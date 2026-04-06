@@ -61,18 +61,18 @@ class Ecosystem:
     """完整生态系统 - 陆地 + 水生"""
 
     DEFAULT_INITIAL_POPULATION = {
-        "grass": 50, "bush": 15, "flower": 20, "moss": 10,
-        "tree": 8, "vine": 12, "cactus": 6, "berry": 10, "mushroom": 15, "fern": 12,
-        "apple_tree": 10, "cherry_tree": 8, "grape_vine": 15, "strawberry": 20,
-        "blueberry": 15, "orange_tree": 8, "watermelon": 10,
-        "insects": 20, "rabbits": 15, "foxes": 5, "deer": 3, "mouse": 10, "bird": 6, "snake": 3, "bee": 8,
-        "eagle": 2, "owl": 3, "duck": 5, "swan": 3, "sparrow": 14, "parrot": 4, "kingfisher": 3,
-        "wolf": 3, "spider": 10, "magpie": 8, "crow": 5, "woodpecker": 6, "hummingbird": 10,
-        "squirrel": 12, "hedgehog": 8, "bat": 8, "raccoon": 6,
-        "bear": 4, "wild_boar": 10, "badger": 8, "raccoon_dog": 6, "skunk": 8, "opossum": 10, "coati": 6, "armadillo": 6,
-        "algae": 30, "seaweed": 15, "plankton": 40, "small_fish": 15, "minnow": 12, "carp": 8, "catfish": 5,
-        "large_fish": 3, "pufferfish": 4, "blackfish": 4, "pike": 3, "shrimp": 20, "crab": 6, "frog": 8,
-        "tadpole": 8, "water_strider": 10,
+        "grass": 500, "bush": 150, "flower": 200, "moss": 100,
+        "tree": 80, "vine": 120, "cactus": 60, "berry": 100, "mushroom": 150, "fern": 120,
+        "apple_tree": 100, "cherry_tree": 80, "grape_vine": 150, "strawberry": 200,
+        "blueberry": 150, "orange_tree": 80, "watermelon": 100,
+        "insects": 200, "rabbits": 150, "foxes": 50, "deer": 30, "mouse": 100, "bird": 60, "snake": 30, "bee": 80,
+        "eagle": 20, "owl": 30, "duck": 50, "swan": 30, "sparrow": 140, "parrot": 40, "kingfisher": 30,
+        "wolf": 30, "spider": 100, "magpie": 80, "crow": 50, "woodpecker": 60, "hummingbird": 100,
+        "squirrel": 120, "hedgehog": 80, "bat": 80, "raccoon": 60,
+        "bear": 40, "wild_boar": 100, "badger": 80, "raccoon_dog": 60, "skunk": 80, "opossum": 100, "coati": 60, "armadillo": 60,
+        "algae": 300, "seaweed": 150, "plankton": 400, "small_fish": 150, "minnow": 120, "carp": 80, "catfish": 50,
+        "large_fish": 30, "pufferfish": 40, "blackfish": 40, "pike": 30, "shrimp": 200, "crab": 60, "frog": 80,
+        "tadpole": 80, "water_strider": 100,
     }
     POPULATION_ALIASES = {
         "insect": "insects",
@@ -83,11 +83,11 @@ class Ecosystem:
         "insect": 18, "bee": 6, "spider": 4,
         "rabbit": 10, "mouse": 8, "bird": 6, "sparrow": 14, "parrot": 4, "duck": 3,
         "deer": 4, "frog": 10,
-        "small_fish": 8, "minnow": 14, "carp": 4, "shrimp": 10, "tadpole": 8, "water_strider": 8,
+        "small_fish": 8, "minnow": 16, "carp": 4, "shrimp": 10, "tadpole": 8, "water_strider": 8,
     }
     PREDATOR_APPETITE = {
         "fox": 2.5, "wolf": 2.2, "snake": 1.3, "bird": 1.2, "sparrow": 1.0, "eagle": 1.8, "owl": 1.6,
-        "spider": 0.9, "blackfish": 2.1, "pike": 1.55, "large_fish": 1.7, "catfish": 1.6, "crab": 1.1,
+        "spider": 0.9, "blackfish": 2.1, "pike": 1.35, "large_fish": 1.7, "catfish": 1.6, "crab": 1.1,
         "kingfisher": 1.2,
     }
 
@@ -154,11 +154,15 @@ class Ecosystem:
         self._plant_index: Dict[Tuple[int, int], List[Plant]] = defaultdict(list)
         self._animal_index: Dict[Tuple[int, int], List[Animal]] = defaultdict(list)
         self._aquatic_index: Dict[Tuple[int, int], List[AquaticCreature]] = defaultdict(list)
+        self._spatial_offset_cache: Dict[int, List[Tuple[int, int]]] = {}
         self._entity_cells: Dict[str, Tuple[str, Tuple[int, int]]] = {}
         self._stats_cache: Optional[Dict] = None
         self._stats_cache_tick: int = -1
         self._migration_cooldowns: Dict[str, int] = {}
         self._latest_species_counts: Optional[Dict[str, int]] = None
+        self._latest_gender_counts: Optional[Dict[str, Dict[str, int]]] = None
+        self._nearby_plant_cache: Dict[Tuple[int, int, int, int], List[Plant]] = {}
+        self._microhabitat_value_cache: Dict[Tuple[int, int, int, int, Tuple[str, ...]], float] = {}
         self.microhabitats: List[MicrohabitatPatch] = []
         self._microhabitat_index: Dict[Tuple[int, int], List[MicrohabitatPatch]] = defaultdict(list)
         
@@ -669,7 +673,9 @@ class Ecosystem:
             if season in {"spring", "summer"}:
                 pulse *= 1.08
             if kind == "night_roost" and (hour >= 18 or hour < 6):
-                pulse *= 1.22
+                pulse *= 1.30
+            elif kind == "night_roost":
+                pulse *= 0.92
         elif kind == "shrub_shelter":
             if season in {"spring", "summer"}:
                 pulse *= 1.12
@@ -796,12 +802,21 @@ class Ecosystem:
         return result
 
     def get_local_microhabitat_value(self, position: Tuple[int, int], kinds, radius: int = 4) -> float:
+        if isinstance(kinds, str):
+            normalized_kinds = (kinds,)
+        else:
+            normalized_kinds = tuple(sorted(kinds))
+        cache_key = (self.tick_count, position[0], position[1], radius, normalized_kinds)
+        cached = self._microhabitat_value_cache.get(cache_key)
+        if cached is not None:
+            return cached
         patches = self.get_microhabitat_patches(kinds=kinds, position=position, radius=radius)
         value = 0.0
         for patch in patches:
             dist = abs(patch.position[0] - position[0]) + abs(patch.position[1] - position[1])
             occupancy_penalty = max(0.35, 1.0 - patch.occupancy / max(0.1, patch.capacity))
             value += (patch.available * occupancy_penalty) / max(1.0, dist + 1.0)
+        self._microhabitat_value_cache[cache_key] = value
         return value
 
     def consume_microhabitat(self, kinds, position: Tuple[int, int], amount: float, radius: int = 3) -> float:
@@ -885,15 +900,24 @@ class Ecosystem:
     def _query_spatial_index(self, index: Dict[Tuple[int, int], List[Creature]], position: Tuple[int, int], range_: int) -> List[Creature]:
         cell_x, cell_y = self._cell_for(position)
         radius = max(1, (range_ + self._spatial_cell_size - 1) // self._spatial_cell_size)
+        offsets = self._spatial_offset_cache.get(radius)
+        if offsets is None:
+            offsets = [(dx, dy) for dx in range(-radius, radius + 1) for dy in range(-radius, radius + 1)]
+            self._spatial_offset_cache[radius] = offsets
+        px, py = position
         nearby = []
-        for dx in range(-radius, radius + 1):
-            for dy in range(-radius, radius + 1):
-                bucket = index.get((cell_x + dx, cell_y + dy), [])
-                for entity in bucket:
-                    if entity.alive:
-                        dist = abs(entity.position[0] - position[0]) + abs(entity.position[1] - position[1])
-                        if dist <= range_:
-                            nearby.append(entity)
+        get_bucket = index.get
+        max_dist = range_
+        for dx, dy in offsets:
+            bucket = get_bucket((cell_x + dx, cell_y + dy))
+            if not bucket:
+                continue
+            for entity in bucket:
+                if not entity.alive:
+                    continue
+                ex, ey = entity.position
+                if abs(ex - px) + abs(ey - py) <= max_dist:
+                    nearby.append(entity)
         return nearby
     
     def _get_species_counts(self) -> Dict[str, int]:
@@ -996,6 +1020,37 @@ class Ecosystem:
         self._stats_cache = None
         self._stats_cache_tick = -1
         self._latest_species_counts = None
+        self._latest_gender_counts = None
+        self._nearby_plant_cache = {}
+        self._microhabitat_value_cache = {}
+
+    def _get_gender_counts(self) -> Dict[str, Dict[str, int]]:
+        gender_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: {"male": 0, "female": 0, "pregnant": 0})
+        for creature in self.animals:
+            if not creature.alive:
+                continue
+            stats = gender_counts[creature.species]
+            gender = getattr(creature, "gender", None)
+            if gender == Gender.MALE or gender == "male":
+                stats["male"] += 1
+            elif gender == Gender.FEMALE or gender == "female":
+                stats["female"] += 1
+            if getattr(creature, "pregnant", False):
+                stats["pregnant"] += 1
+        for creature in self.aquatic_creatures:
+            if not creature.alive:
+                continue
+            gender = getattr(creature, "gender", None)
+            if gender not in {"male", "female"} and not getattr(creature, "pregnant", False):
+                continue
+            stats = gender_counts[creature.species]
+            if gender == "male":
+                stats["male"] += 1
+            elif gender == "female":
+                stats["female"] += 1
+            if getattr(creature, "pregnant", False):
+                stats["pregnant"] += 1
+        return gender_counts
 
     def _can_spawn_land_animal(self, species: str, position: Tuple[int, int]) -> bool:
         x, y = position
@@ -1007,6 +1062,11 @@ class Ecosystem:
         if self._latest_species_counts is None:
             self._latest_species_counts = self._get_species_counts()
         return self._latest_species_counts.get(species, 0)
+
+    def get_gender_count(self, species: str, gender: str) -> int:
+        if self._latest_gender_counts is None:
+            self._latest_gender_counts = self._get_gender_counts()
+        return self._latest_gender_counts.get(species, {}).get(gender, 0)
 
     def get_sustainable_population(self, species: str) -> int:
         """扣除保底种群后的可持续可捕食数量。"""
@@ -1124,9 +1184,12 @@ class Ecosystem:
                     hunger_mult *= 1.08
                     reproduction_mult *= 0.80
             elif species == "owl":
-                if count <= 2 and species_counts.get("mouse", 0) + species_counts.get("bat", 0) + species_counts.get("bird", 0) > 14:
+                if count <= 2 and species_counts.get("mouse", 0) + species_counts.get("bat", 0) + species_counts.get("bird", 0) + species_counts.get("sparrow", 0) > 16:
                     hunger_mult *= 0.82
                     reproduction_mult *= 1.24
+                if count <= 2 and actors["canopy_cover"] >= 8:
+                    hunger_mult *= 0.90
+                    reproduction_mult *= 1.10
                 elif count > 4:
                     hunger_mult *= 1.08
                     reproduction_mult *= 0.80
@@ -1436,13 +1499,13 @@ class Ecosystem:
             {
                 "species": "minnow",
                 "domain": "aquatic",
-                "max_count": 8,
+                "max_count": 10,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["plankton", "algae", "water_strider"]) >= 48,
-                "chance": 0.28 if weather in {"rainy", "stormy"} else 0.2,
+                "chance": 0.36 if weather in {"rainy", "stormy"} else 0.24,
                 "position": lambda: self._random_inflow_water_position_for_body_type({"river_channel", "lake_shallow"}),
                 "message": "一小群米诺鱼顺着河道和浅湖连通带迁入",
                 "cooldown": 36,
-                "habitat_check": lambda pos: self.environment.get_water_body_type(pos[0], pos[1]) == "river_channel" and len([
+                "habitat_check": lambda pos: self.environment.get_water_body_type(pos[0], pos[1]) in {"river_channel", "lake_shallow"} and len([
                     a for a in self.get_nearby_aquatic(pos, 6)
                     if a.species in {"plankton", "algae", "water_strider"} and a.alive
                 ]) >= 4,
@@ -1679,7 +1742,13 @@ class Ecosystem:
         
     def get_nearby_plants(self, position: Tuple[int, int], range_: int) -> List[Plant]:
         """获取附近植物"""
-        return self._query_spatial_index(self._plant_index, position, range_)
+        key = (self.tick_count, position[0], position[1], range_)
+        cached = self._nearby_plant_cache.get(key)
+        if cached is not None:
+            return cached
+        nearby = self._query_spatial_index(self._plant_index, position, range_)
+        self._nearby_plant_cache[key] = nearby
+        return nearby
         
     def get_nearby_animals(self, position: Tuple[int, int], range_: int) -> List[Animal]:
         """获取附近动物"""
@@ -1688,6 +1757,42 @@ class Ecosystem:
     def get_nearby_aquatic(self, position: Tuple[int, int], range_: int) -> List[AquaticCreature]:
         """获取附近水生生物"""
         return self._query_spatial_index(self._aquatic_index, position, range_)
+
+    def count_nearby_aquatic_species(self, position: Tuple[int, int], range_: int, species_filter) -> Dict[str, int]:
+        """按物种统计附近水生生物数量，避免先构造完整对象列表。"""
+        if not species_filter:
+            return {}
+        if isinstance(species_filter, str):
+            target_species = {species_filter}
+        else:
+            target_species = set(species_filter)
+        if not target_species:
+            return {}
+
+        cell_x, cell_y = self._cell_for(position)
+        radius = max(1, (range_ + self._spatial_cell_size - 1) // self._spatial_cell_size)
+        offsets = self._spatial_offset_cache.get(radius)
+        if offsets is None:
+            offsets = [(dx, dy) for dx in range(-radius, radius + 1) for dy in range(-radius, radius + 1)]
+            self._spatial_offset_cache[radius] = offsets
+
+        px, py = position
+        max_dist = range_
+        counts: Dict[str, int] = defaultdict(int)
+        get_bucket = self._aquatic_index.get
+
+        for dx, dy in offsets:
+            bucket = get_bucket((cell_x + dx, cell_y + dy))
+            if not bucket:
+                continue
+            for entity in bucket:
+                if not entity.alive or entity.species not in target_species:
+                    continue
+                ex, ey = entity.position
+                if abs(ex - px) + abs(ey - py) <= max_dist:
+                    counts[entity.species] += 1
+
+        return counts
         
     def log_event(self, description: str):
         """记录事件"""
@@ -1704,23 +1809,12 @@ class Ecosystem:
         species_counts = self._get_species_counts()
         
         # 性别统计
-        gender_stats = {}
-        for animal in self.animals:
-            if not animal.alive:
-                continue
-            stats = gender_stats.setdefault(animal.species, {"males": 0, "females": 0, "pregnant": 0})
-            gender = getattr(animal, "gender", None)
-            if gender == Gender.MALE or gender == "male":
-                stats["males"] += 1
-            elif gender == Gender.FEMALE or gender == "female":
-                stats["females"] += 1
-            if getattr(animal, "pregnant", False):
-                stats["pregnant"] += 1
-
+        raw_gender_stats = self._latest_gender_counts or self._get_gender_counts()
+        self._latest_gender_counts = raw_gender_stats
         gender_stats = {
-            species: stats
-            for species, stats in gender_stats.items()
-            if stats["males"] + stats["females"] > 0
+            species: {"males": stats["male"], "females": stats["female"], "pregnant": stats["pregnant"]}
+            for species, stats in raw_gender_stats.items()
+            if stats["male"] + stats["female"] > 0
         }
             
         env_summary = self.environment.get_environment_summary()

@@ -2,7 +2,7 @@
 
 ## 总览
 
-EcoWorld 当前由四层组成：
+当前项目可以分成 4 层：
 
 ```text
 Renderer
@@ -23,33 +23,33 @@ Entities
   ├─ omnivores.py
   └─ competition.py
 
-Assets / Config / Docs / Tests
+Config / Docs / Tests
 ```
 
 ## 主调用链
 
-程序从 [src/main.py](../src/main.py) 启动：
+程序从 [src/main.py](/Users/yumini/Projects/eco-world/src/main.py) 启动：
 
 1. 解析命令行参数
-2. 读取 YAML 配置
-3. 创建 `Ecosystem`
-4. 根据参数选择 `Renderer` 或 `AdvancedRenderer`
+2. 加载 YAML 配置
+3. 创建 [Ecosystem](/Users/yumini/Projects/eco-world/src/core/ecosystem.py)
+4. 根据参数选择 [Renderer](/Users/yumini/Projects/eco-world/src/renderer/gui.py) 或 [AdvancedRenderer](/Users/yumini/Projects/eco-world/src/renderer/advanced_gui.py)
 5. 进入主循环
 
 ## 核心对象
 
 ### `Ecosystem`
 
-文件：[src/core/ecosystem.py](../src/core/ecosystem.py)
+文件：[src/core/ecosystem.py](/Users/yumini/Projects/eco-world/src/core/ecosystem.py)
 
 职责：
 
-- 管理所有生物集合
-- 驱动每个 tick 的更新
-- 提供生成接口
-- 提供邻域查询
-- 汇总统计信息
-- 连接 `Environment` 和 `EcoBalance`
+- 管理植物、陆地动物、水生生物
+- 推进每个 tick 的更新
+- 维护空间索引和多类缓存
+- 提供生成接口与邻域查询
+- 维护微栖息地资源层
+- 汇总统计并驱动平衡分析
 
 关键属性：
 
@@ -58,19 +58,21 @@ Assets / Config / Docs / Tests
 - `aquatic_creatures`
 - `environment`
 - `balance`
-- `events`
-- `tick_count`
+- `microhabitats`
+- `_plant_index`
+- `_animal_index`
+- `_aquatic_index`
 
 ### `Environment`
 
-文件：[src/core/environment.py](../src/core/environment.py)
+文件：[src/core/environment.py](/Users/yumini/Projects/eco-world/src/core/environment.py)
 
 职责：
 
-- 生成地形、水域、森林、沙地和岩石区域
+- 生成地形、水域、森林、岩石、沙地
 - 推进时间、天气、温度和季节
-- 维护土壤、水质和大气参数
-- 区分河流、浅湖、深湖和水岸过渡带
+- 维护大气、土壤和水质
+- 区分河流、浅湖、深湖以及岸带过渡区
 
 关键子系统：
 
@@ -81,111 +83,133 @@ Assets / Config / Docs / Tests
 
 ### `Creature`
 
-文件：[src/core/creature.py](../src/core/creature.py)
+文件：[src/core/creature.py](/Users/yumini/Projects/eco-world/src/core/creature.py)
 
 职责：
 
-- 提供所有生物共享的生命周期
-- 维护年龄、健康、饥饿、速度、视野和动态繁殖率
-- 提供通用移动与进食逻辑
+- 提供通用生命周期
+- 维护年龄、健康、饥饿、速度、视野和基础繁殖率
+- 提供通用移动、进食和生态修正接口
 
-## 每 Tick 的顺序
+## 每 Tick 顺序
 
-`Ecosystem.update()` 的执行顺序：
+[Ecosystem.update()](/Users/yumini/Projects/eco-world/src/core/ecosystem.py) 当前大致执行：
 
 1. 更新环境
-2. 记录上一轮物种统计
+2. 更新微栖息地资源脉冲
 3. 更新植物
 4. 更新陆地动物
 5. 更新水生生物
-6. 分析种群变化导致的因果链
-7. 更新平衡预警与健康度
+6. 汇总统计
+7. 进行平衡分析和预警生成
 
-## 行为架构
+## 行为层
 
 ### 植物
 
-主文件：[src/entities/plants.py](../src/entities/plants.py)
+文件：[src/entities/plants.py](/Users/yumini/Projects/eco-world/src/entities/plants.py)
 
-植物行为包含：
+包含：
 
 - 生长
 - 产种 / 孢子传播
 - 发芽
-- 结果
-- 竞争：空间、光照、根系
+- 季节结果
+- 空间、光照、根系竞争
 
 ### 陆地动物
 
-主文件：[src/entities/animals.py](../src/entities/animals.py)
+文件：[src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py)
 
-通用行为决策顺序：
+当前主决策顺序：
 
 1. 逃跑 / 防御
 2. 觅食
 3. 求偶
 4. 产仔
-5. 闲逛
+5. 闲逛 / 栖位迁移
 
-补充模块：
+动物层现在已经接入：
 
-- [src/entities/omnivores.py](../src/entities/omnivores.py)：杂食动物
-- [src/entities/competition.py](../src/entities/competition.py)：食物竞争、领地竞争、配偶竞争与防御行为
+- 树冠 / 灌丛 / 近水 / 夜栖偏好
+- 微栖息地搜索与占位
+- 栖位恢复收益
+- 物种特定繁殖资源偏好
 
 ### 水生生物
 
-主文件：[src/entities/aquatic.py](../src/entities/aquatic.py)
+文件：[src/entities/aquatic.py](/Users/yumini/Projects/eco-world/src/entities/aquatic.py)
 
 当前采用独立行为模型：
 
-- 水生基础生产者
-- 水生消费者
-- 水生捕食者
-- 两栖物种（青蛙、蝌蚪）
+- 水生生产者
+- 中层水生消费者
+- 高位捕食者
+- 两栖相关物种
+
+水生移动已不再是单纯随机游动，而是：
+
+- 候选水格生成
+- 粗筛 habitat 评分
+- 精筛 prey / predator / 底栖收益
+- 选择更适宜位置迁移
+
+## 微栖息地资源层
+
+实现位于 [src/core/ecosystem.py](/Users/yumini/Projects/eco-world/src/core/ecosystem.py)。
+
+当前独立资源类型：
+
+- `canopy_roost`
+- `night_roost`
+- `shrub_shelter`
+- `nectar_patch`
+- `wetland_patch`
+- `riparian_perch`
+
+当前资源层具备：
+
+- `position`
+- `capacity`
+- `available`
+- `occupancy`
+- `seasonal_multiplier`
+- 逐 tick 恢复 / 衰减
+
+并且已经接入：
+
+- 动物移动与栖位搜索
+- 局部恢复收益
+- 繁殖成功率
+- 高级 GUI 可视化
 
 ## 性能设计
 
-当前版本的两个关键优化点：
+当前版本的关键优化点：
 
-- `Ecosystem` 引入轻量空间索引，用于植物和陆地动物的邻域查询
-- 自然繁殖使用软承载抑制，而不是硬编码上限
+- 植物、动物、水生生物都接入了轻量空间索引
+- `_query_spatial_index()` 使用 offset 预计算缓存
+- `get_nearby_plants()` 使用 tick 级缓存
+- 动物行为使用个体级短缓存
+- 水生移动采用“两阶段选点”
+- 水生候选评分支持按物种快速计数，避免构造完整对象列表
+- 统计函数使用 tick 级缓存和性别计数缓存
 
-仍然存在的主要限制：
+在当前默认大地图配置下，已实测约：
 
-- 水生物种大多仍使用全列表扫描
-- 长时间高种群仿真仍会明显变慢
-
-## 统计与平衡
-
-平衡系统位于 [src/core/balance.py](../src/core/balance.py)。
-
-当前健康评估覆盖：
-
-- 陆地基础生产者
-- 果类植物
-- 授粉者
-- 陆地中层消费者
-- 陆地捕食者
-- 水生基础生产者
-- 水生中层消费者
-- 水生捕食者
-
-输出包括：
-
-- `health`
-- `alerts`
-- `recommendations`
-- `butterfly_events`
+- `1 tick ≈ 0.344s`
+- `5 tick ≈ 2.244s`
 
 ## 扩展建议
 
-新增物种时建议按以下顺序接入：
+新增物种时建议按这个顺序接入：
 
 1. 在实体模块新增类
-2. 写清食物来源 / 猎物 / 天敌
-3. 在 `Ecosystem.spawn_*` 中注册
-4. 在统计物种表中加入
-5. 在 GUI 颜色或图标映射中加入
-6. 在平衡模型中决定是否纳入关键组
+2. 定义食物来源 / 猎物 / 天敌
+3. 补充微栖位偏好
+4. 在 `spawn_*` 中注册
+5. 在统计物种表中加入
+6. 在 GUI 中文名 / 渲染映射中加入
+7. 在平衡模型里决定是否作为关键控制物种
 
 更新时间：2026-04-06

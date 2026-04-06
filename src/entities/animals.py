@@ -64,6 +64,42 @@ class Animal(Creature):
         self.food_population_factor = 1.0  # 食物种群因子
         self.last_prey_count = 0  # 上一次检查时的猎物数量
         self.check_interval = 0  # 检查间隔
+        self._local_query_cache = {}
+
+    def _reset_local_query_cache(self):
+        self._local_query_cache = {}
+
+    def _cached_nearby_plants(self, ecosystem, range_: int):
+        key = ("plants", self.position[0], self.position[1], range_)
+        cached = self._local_query_cache.get(key)
+        if cached is None:
+            cached = ecosystem.get_nearby_plants(self.position, range_)
+            self._local_query_cache[key] = cached
+        return cached
+
+    def _cached_nearby_animals(self, ecosystem, range_: int):
+        key = ("animals", self.position[0], self.position[1], range_)
+        cached = self._local_query_cache.get(key)
+        if cached is None:
+            cached = ecosystem.get_nearby_animals(self.position, range_)
+            self._local_query_cache[key] = cached
+        return cached
+
+    def _cached_nearby_creatures(self, ecosystem, range_: int):
+        key = ("creatures", self.position[0], self.position[1], range_)
+        cached = self._local_query_cache.get(key)
+        if cached is None:
+            cached = ecosystem.get_nearby_creatures(self.position, range_)
+            self._local_query_cache[key] = cached
+        return cached
+
+    def _cached_nearby_aquatic(self, ecosystem, range_: int):
+        key = ("aquatic", self.position[0], self.position[1], range_)
+        cached = self._local_query_cache.get(key)
+        if cached is None:
+            cached = ecosystem.get_nearby_aquatic(self.position, range_)
+            self._local_query_cache[key] = cached
+        return cached
 
     def get_cover_plant_species(self) -> List[str]:
         return []
@@ -110,11 +146,6 @@ class Animal(Creature):
             score += 0.35
         if self.prefers_shrub_cover() and plant.species in shrub_species:
             score += 0.35
-        nearby_cover = [
-            other for other in ecosystem.get_nearby_plants(plant.position, 2)
-            if other.alive and other.species in self.get_cover_plant_species()
-        ]
-        score += min(0.28, max(0, len(nearby_cover) - 1) * 0.06)
         if self.prefers_water_edge_cover():
             x, y = plant.position
             for dx in range(-1, 2):
@@ -173,15 +204,17 @@ class Animal(Creature):
         bonus = 0.0
         matching = []
         if habitat_species:
-            nearby_plants = ecosystem.get_nearby_plants(self.position, max(3, self.vision_range // 2 + 1))
+            nearby_plants = self._cached_nearby_plants(ecosystem, max(3, self.vision_range // 2 + 1))
             matching = [plant for plant in nearby_plants if plant.alive and plant.species in habitat_species]
             bonus += min(0.18, len(matching) * 0.03)
         if self.prefers_canopy_cover():
-            bonus += min(0.12, len([p for p in matching if p.species in {"tree", "apple_tree", "cherry_tree", "orange_tree"}]) * 0.03)
+            canopy_count = sum(1 for p in matching if p.species in {"tree", "apple_tree", "cherry_tree", "orange_tree"})
+            bonus += min(0.12, canopy_count * 0.03)
             if hasattr(ecosystem, "get_local_microhabitat_value"):
                 bonus += min(0.18, ecosystem.get_local_microhabitat_value(self.position, {"canopy_roost", "night_roost"}, radius=4) * 0.05)
         if self.prefers_shrub_cover():
-            bonus += min(0.12, len([p for p in matching if p.species in {"bush", "berry", "blueberry", "strawberry", "grape_vine"}]) * 0.03)
+            shrub_count = sum(1 for p in matching if p.species in {"bush", "berry", "blueberry", "strawberry", "grape_vine"})
+            bonus += min(0.12, shrub_count * 0.03)
             if hasattr(ecosystem, "get_local_microhabitat_value"):
                 bonus += min(0.16, ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "nectar_patch"}, radius=4) * 0.05)
         if self.prefers_water_edge_cover():
@@ -202,7 +235,7 @@ class Animal(Creature):
         if not cover_species:
             return False
         search_radius = radius or max(4, self.vision_range)
-        nearby_plants = ecosystem.get_nearby_plants(self.position, search_radius)
+        nearby_plants = self._cached_nearby_plants(ecosystem, search_radius)
         shelter = [
             plant for plant in nearby_plants
             if plant.alive and plant.species in cover_species and getattr(plant, "provides_shelter", False)
@@ -278,6 +311,7 @@ class Animal(Creature):
         if not self.alive:
             return
         self.ecosystem = ecosystem
+        self._reset_local_query_cache()
 
         habitat_bonus = self.habitat_recovery_bonus(ecosystem)
         if habitat_bonus > 0:
@@ -489,9 +523,12 @@ class Animal(Creature):
     def check_danger(self, ecosystem) -> bool:
         if self.diet == "carnivore":
             return False
-        nearby = ecosystem.get_nearby_creatures(self.position, self.vision_range)
+        predators = set(self.get_predators())
+        if not predators:
+            return False
+        nearby = self._cached_nearby_creatures(ecosystem, self.vision_range)
         for creature in nearby:
-            if creature.species in self.get_predators():
+            if creature.species in predators:
                 return True
         return False
         
@@ -499,8 +536,11 @@ class Animal(Creature):
         return []
         
     def escape(self, ecosystem):
-        nearby = ecosystem.get_nearby_creatures(self.position, self.vision_range)
-        predators = [c for c in nearby if c.species in self.get_predators()]
+        predators_set = set(self.get_predators())
+        if not predators_set:
+            return
+        nearby = self._cached_nearby_creatures(ecosystem, self.vision_range)
+        predators = [c for c in nearby if c.species in predators_set]
         
         if predators:
             closest = min(predators, key=lambda p: 
@@ -546,7 +586,7 @@ class Animal(Creature):
                 self.find_prey(ecosystem)
             
     def find_plant(self, ecosystem):
-        nearby = ecosystem.get_nearby_plants(self.position, self.vision_range)
+        nearby = self._cached_nearby_plants(ecosystem, self.vision_range)
         edible = [p for p in nearby if p.species in self.get_food_sources()]
         
         if edible:
@@ -573,12 +613,12 @@ class Animal(Creature):
         return ["grass"]
                 
     def find_prey(self, ecosystem):
-        nearby = ecosystem.get_nearby_animals(self.position, self.vision_range)
+        nearby = self._cached_nearby_animals(ecosystem, self.vision_range)
         prey_species = self.get_prey_species()
         
         targets = [a for a in nearby if a.species in prey_species and a.alive]
         if hasattr(ecosystem, "get_nearby_aquatic"):
-            aquatic_targets = ecosystem.get_nearby_aquatic(self.position, self.vision_range)
+            aquatic_targets = self._cached_nearby_aquatic(ecosystem, self.vision_range)
             targets.extend(
                 a for a in aquatic_targets
                 if a.species in prey_species and a.alive
@@ -1257,7 +1297,7 @@ class Owl(Animal):
         return ["night_roost", "canopy_roost"]
 
     def breeding_patch_threshold(self) -> float:
-        return 0.12
+        return 0.10
         
     def execute_behavior(self, ecosystem):
         """猫头鹰夜间活动增强"""
@@ -1269,6 +1309,9 @@ class Owl(Animal):
         else:
             self.speed = 2.0
             self.vision_range = 6
+            if self.seek_habitat(ecosystem, radius=7):
+                self.hunger = max(0, self.hunger - 0.6)
+                self.health = min(100, self.health + 0.25)
             
         super().execute_behavior(ecosystem)
 

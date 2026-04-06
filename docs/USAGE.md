@@ -9,35 +9,35 @@ pip install -r requirements.txt
 建议环境：
 
 - Python 3.9+
-- Pygame 2.5+
+- Pygame 2.6+
 
 ## 启动
 
-### 默认界面
+默认运行：
 
 ```bash
 PYTHONPATH=. python3 src/main.py
 ```
 
-### 高级界面
+高级界面：
 
 ```bash
 PYTHONPATH=. python3 src/main.py --advanced
 ```
 
-### 使用测试配置
+测试配置：
 
 ```bash
 PYTHONPATH=. python3 src/main.py --config config/test.yaml --advanced
 ```
 
-### 无头模式
+无头模式：
 
 ```bash
 PYTHONPATH=. python3 src/main.py --headless
 ```
 
-## 参数
+## 常用参数
 
 | 参数 | 说明 |
 |---|---|
@@ -49,7 +49,21 @@ PYTHONPATH=. python3 src/main.py --headless
 | `--classic` | 经典界面 |
 | `--headless` | 无图形模式 |
 
-## 经典界面操作
+## 默认配置
+
+默认配置文件：
+
+- [config.yaml](/Users/yumini/Projects/eco-world/config.yaml)
+- [config/test.yaml](/Users/yumini/Projects/eco-world/config/test.yaml)
+
+默认世界：
+
+- 尺寸：`2560 x 1920`
+- 网格：`20`
+- 运行格数：`128 x 96`
+- 所有 66 个物种均有初始个体
+
+## 经典界面
 
 | 按键 | 功能 |
 |---|---|
@@ -65,36 +79,22 @@ PYTHONPATH=. python3 src/main.py --headless
 | `S` | 添加小鱼 |
 | `Q` | 退出 |
 
-## 高级界面操作
+## 高级界面
 
-详见 [ADVANCED-GUI.md](ADVANCED-GUI.md)，常用操作如下：
+详见 [ADVANCED-GUI.md](/Users/yumini/Projects/eco-world/docs/ADVANCED-GUI.md)。
+
+常用操作：
 
 | 操作 | 说明 |
 |---|---|
 | 鼠标滚轮 | 缩放 |
 | 右键拖拽 | 平移视角 |
 | 左键 | 选中生物 |
-| 调整窗口大小 | 自适应重排高级界面 |
+| 调整窗口大小 | 自适应重排 |
 | `1-9` | 快速生成物种 |
 | `F1-F4` | 切换侧边栏面板 |
+| `M` | 显示 / 隐藏微栖位叠层 |
 | `Home` | 重置视角 |
-
-## 配置文件
-
-默认配置文件为：
-
-- [config.yaml](../config.yaml)
-- [config/test.yaml](../config/test.yaml)
-
-主要配置段：
-
-- `world`
-- `time`
-- `environment`
-- `plants`
-- `animals`
-- `initial_population`
-- `display`
 
 ## 测试
 
@@ -104,10 +104,28 @@ PYTHONPATH=. python3 src/main.py --headless
 PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py
 ```
 
-食物链脚本：
+食物链测试：
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 test_foodchain.py
+```
+
+性能基准示例：
+
+```bash
+python3 - <<'PY'
+import time, random
+from src.main import load_config
+from src.core.ecosystem import Ecosystem
+
+random.seed(1)
+eco = Ecosystem(config=load_config())
+for ticks in (1, 5):
+    t0 = time.time()
+    for _ in range(ticks):
+        eco.update()
+    print("ticks", ticks, "dt", round(time.time() - t0, 3))
+PY
 ```
 
 更新时间：2026-04-06

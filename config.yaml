@@ -2,8 +2,8 @@
 
 # 地图设置
 world:
-  width: 800
-  height: 600
+  width: 2560
+  height: 1920
   grid_size: 20  # 每个格子大小
 
 # 时间系统
@@ -15,8 +15,8 @@ time:
 # 环境设置
 environment:
   grass_growth_rate: 0.02  # 草生长速度
-  water_tiles: 10          # 水源格子数量
-  initial_grass: 50        # 初始草数量
+  water_tiles: 100         # 水源格子数量
+  initial_grass: 500       # 初始草数量
 
 # 植物设置
 plants:
@@ -90,85 +90,85 @@ animals:
 # 初始种群 - 游戏开始时自动创建所有生物
 initial_population:
   # === 陆地植物 ===
-  grass: 50
-  bush: 15
-  flower: 20
-  moss: 10
+  grass: 500
+  bush: 150
+  flower: 200
+  moss: 100
   # 新增植物
-  tree: 8
-  vine: 12
-  cactus: 6
-  berry: 10
-  mushroom: 15
-  fern: 12
+  tree: 80
+  vine: 120
+  cactus: 60
+  berry: 100
+  mushroom: 150
+  fern: 120
   # 果类植物
-  apple_tree: 10
-  cherry_tree: 8
-  grape_vine: 15
-  strawberry: 20
-  blueberry: 15
-  orange_tree: 8
-  watermelon: 10
+  apple_tree: 100
+  cherry_tree: 80
+  grape_vine: 150
+  strawberry: 200
+  blueberry: 150
+  orange_tree: 80
+  watermelon: 100
   
   # === 陆地动物 ===
-  insects: 20
-  rabbits: 15
-  foxes: 5
-  deer: 3
-  mouse: 10
-  bird: 6
-  snake: 3
-  bee: 8
+  insects: 200
+  rabbits: 150
+  foxes: 50
+  deer: 30
+  mouse: 100
+  bird: 60
+  snake: 30
+  bee: 80
   # 新增鸟类
-  eagle: 2
-  owl: 3
-  duck: 5
-  swan: 3
-  sparrow: 14
-  parrot: 4
-  kingfisher: 3
-  magpie: 8
-  crow: 5
-  woodpecker: 6
-  hummingbird: 10
+  eagle: 20
+  owl: 30
+  duck: 50
+  swan: 30
+  sparrow: 140
+  parrot: 40
+  kingfisher: 30
+  magpie: 80
+  crow: 50
+  woodpecker: 60
+  hummingbird: 100
   # 新增哺乳动物
-  squirrel: 12
-  hedgehog: 8
-  bat: 8
-  raccoon: 6
+  squirrel: 120
+  hedgehog: 80
+  bat: 80
+  raccoon: 60
   # 天敌
-  wolf: 3
-  spider: 10
+  wolf: 30
+  spider: 100
   # 新增杂食动物
-  bear: 4
-  wild_boar: 10
-  badger: 8
-  raccoon_dog: 6
-  skunk: 8
-  opossum: 10
-  coati: 6
-  armadillo: 6
+  bear: 40
+  wild_boar: 100
+  badger: 80
+  raccoon_dog: 60
+  skunk: 80
+  opossum: 100
+  coati: 60
+  armadillo: 60
   
   # === 水生生物 ===
-  algae: 30
-  seaweed: 15
-  plankton: 40
+  algae: 300
+  seaweed: 150
+  plankton: 400
   # 鱼类
-  small_fish: 15
-  minnow: 12
-  carp: 8
-  catfish: 5
-  large_fish: 3
-  pufferfish: 4
-  blackfish: 4
-  pike: 3
+  small_fish: 150
+  minnow: 120
+  carp: 80
+  catfish: 50
+  large_fish: 30
+  pufferfish: 40
+  blackfish: 40
+  pike: 30
   # 甲壳类
-  shrimp: 20
-  crab: 6
+  shrimp: 200
+  crab: 60
   # 两栖类
-  frog: 8
-  tadpole: 8
-  water_strider: 10
+  frog: 80
+  tadpole: 80
+  water_strider: 100
 
 # 显示设置
 display:
