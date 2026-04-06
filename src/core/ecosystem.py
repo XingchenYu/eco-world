@@ -662,35 +662,35 @@ class Ecosystem:
         pulse = 1.0
         if kind == "nectar_patch":
             if season == "spring":
-                pulse *= 1.35
+                pulse *= 1.48
             elif season == "summer":
-                pulse *= 1.18
+                pulse *= 1.28
             elif season == "winter":
                 pulse *= 0.65
             if weather in {"rainy", "stormy"}:
                 pulse *= 0.84
         elif kind in {"canopy_roost", "night_roost"}:
             if season in {"spring", "summer"}:
-                pulse *= 1.08
+                pulse *= 1.18
             if kind == "night_roost" and (hour >= 18 or hour < 6):
-                pulse *= 1.30
+                pulse *= 1.42
             elif kind == "night_roost":
                 pulse *= 0.92
         elif kind == "shrub_shelter":
             if season in {"spring", "summer"}:
-                pulse *= 1.12
+                pulse *= 1.18
             if weather in {"rainy", "foggy"}:
                 pulse *= 1.06
         elif kind == "wetland_patch":
             if season == "spring":
-                pulse *= 1.22
+                pulse *= 1.12
             elif season == "winter":
                 pulse *= 0.78
             if weather in {"rainy", "stormy"}:
-                pulse *= 1.12
+                pulse *= 1.08
         elif kind == "riparian_perch":
             if season in {"spring", "summer"}:
-                pulse *= 1.10
+                pulse *= 1.18
             if weather in {"rainy", "stormy"}:
                 pulse *= 1.08
         return max(0.45, min(1.6, pulse))
@@ -765,7 +765,16 @@ class Ecosystem:
     def _update_microhabitat_resources(self):
         for patch in self.microhabitats:
             target = patch.capacity * patch.seasonal_multiplier
-            recovery_rate = max(0.04, target * 0.06)
+            recovery_multiplier = 1.0
+            if patch.kind in {"canopy_roost", "night_roost"}:
+                recovery_multiplier = 1.22
+            elif patch.kind in {"nectar_patch", "shrub_shelter"}:
+                recovery_multiplier = 1.28
+            elif patch.kind == "riparian_perch":
+                recovery_multiplier = 1.18
+            elif patch.kind == "wetland_patch":
+                recovery_multiplier = 0.92
+            recovery_rate = max(0.04, target * 0.06 * recovery_multiplier)
             patch.available = min(target, patch.available + recovery_rate)
             patch.occupancy = max(0.0, patch.occupancy - max(0.03, patch.capacity * 0.04))
 
@@ -1409,9 +1418,9 @@ class Ecosystem:
             {
                 "species": "kingfisher",
                 "domain": "land",
-                "max_count": 3,
+                "max_count": 10,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["small_fish", "minnow", "shrimp", "tadpole", "water_strider"]) >= 18,
-                "chance": 0.40 if weather in {"rainy", "stormy"} else 0.28,
+                "chance": 0.48 if weather in {"rainy", "stormy"} else 0.34,
                 "position": self._random_water_adjacent_position,
                 "message": "一只翠鸟沿溪岸与湖岸林带迁入",
                 "cooldown": 32,
@@ -1426,9 +1435,9 @@ class Ecosystem:
             {
                 "species": "hummingbird",
                 "domain": "land",
-                "max_count": 6,
+                "max_count": 18,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["flower", "berry", "blueberry", "strawberry"]) >= 18,
-                "chance": 0.50,
+                "chance": 0.56,
                 "position": self._random_edge_land_position,
                 "message": "一只蜂鸟沿开花灌丛和林缘迁入",
                 "cooldown": 28,
@@ -1440,9 +1449,9 @@ class Ecosystem:
             {
                 "species": "squirrel",
                 "domain": "land",
-                "max_count": 6,
+                "max_count": 16,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["tree", "bush", "berry", "mushroom"]) >= 18,
-                "chance": 0.44,
+                "chance": 0.52,
                 "position": self._random_edge_land_position,
                 "message": "一只松鼠沿树林边缘迁入",
                 "cooldown": 30,
@@ -1454,9 +1463,9 @@ class Ecosystem:
             {
                 "species": "bat",
                 "domain": "land",
-                "max_count": 6,
+                "max_count": 14,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["insect", "bee", "spider"]) >= 22,
-                "chance": 0.48,
+                "chance": 0.54,
                 "position": self._random_edge_land_position,
                 "message": "几只蝙蝠借夜色沿林带迁入",
                 "cooldown": 28,
@@ -1471,16 +1480,16 @@ class Ecosystem:
             {
                 "species": "frog",
                 "domain": "land",
-                "max_count": 5,
+                "max_count": 12,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["insect", "plankton", "water_strider"]) >= 24,
-                "chance": 0.40,
+                "chance": 0.50 if weather in {"rainy", "stormy"} else 0.42,
                 "position": self._random_water_adjacent_position,
                 "message": "几只青蛙顺着湿地边缘回到水岸",
-                "cooldown": 24,
+                "cooldown": 18,
                 "habitat_check": lambda pos: len([
                     a for a in self.get_nearby_aquatic(pos, 5)
                     if a.species in {"plankton", "water_strider", "tadpole"} and a.alive
-                ]) >= 3,
+                ]) >= 2 and self.get_local_microhabitat_value(pos, {"wetland_patch", "riparian_perch"}, radius=5) >= 0.08,
             },
             {
                 "species": "small_fish",
@@ -1499,16 +1508,16 @@ class Ecosystem:
             {
                 "species": "minnow",
                 "domain": "aquatic",
-                "max_count": 10,
+                "max_count": 20,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["plankton", "algae", "water_strider"]) >= 48,
-                "chance": 0.36 if weather in {"rainy", "stormy"} else 0.24,
+                "chance": 0.48 if weather in {"rainy", "stormy"} else 0.34,
                 "position": lambda: self._random_inflow_water_position_for_body_type({"river_channel", "lake_shallow"}),
                 "message": "一小群米诺鱼顺着河道和浅湖连通带迁入",
-                "cooldown": 36,
+                "cooldown": 24,
                 "habitat_check": lambda pos: self.environment.get_water_body_type(pos[0], pos[1]) in {"river_channel", "lake_shallow"} and len([
                     a for a in self.get_nearby_aquatic(pos, 6)
                     if a.species in {"plankton", "algae", "water_strider"} and a.alive
-                ]) >= 4,
+                ]) >= 3,
             },
             {
                 "species": "shrimp",
@@ -1555,12 +1564,12 @@ class Ecosystem:
             {
                 "species": "pike",
                 "domain": "aquatic",
-                "max_count": 1,
+                "max_count": 2,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["carp", "small_fish", "minnow", "frog"]) >= 20,
-                "chance": 0.12,
+                "chance": 0.20 if weather in {"rainy", "stormy"} else 0.15,
                 "position": lambda: self._random_inflow_water_position_for_body_type({"river_channel", "lake_shallow"}),
                 "message": "一条狗鱼沿河道迁入了该水域",
-                "cooldown": 108,
+                "cooldown": 72,
                 "habitat_check": lambda pos: len([
                     a for a in self.get_nearby_aquatic(pos, 8)
                     if a.species in {"carp", "small_fish", "minnow", "frog"} and a.alive

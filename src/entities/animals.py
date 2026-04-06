@@ -127,6 +127,9 @@ class Animal(Creature):
             return 0.22
         return 0.0
 
+    def microhabitat_foraging_profile(self):
+        return None
+
     def prefers_water_edge_cover(self) -> bool:
         return False
 
@@ -329,6 +332,26 @@ class Animal(Creature):
                     ecosystem.consume_microhabitat(resource_kinds, self.position, min(0.16, habitat_bonus), radius=3)
                     if hasattr(ecosystem, "occupy_microhabitat"):
                         ecosystem.occupy_microhabitat(self.species, resource_kinds, self.position, amount=min(0.22, habitat_bonus + 0.05), radius=2)
+
+        resource_profile = self.microhabitat_foraging_profile()
+        if resource_profile and hasattr(ecosystem, "consume_microhabitat"):
+            min_hunger = resource_profile.get("min_hunger", 12.0)
+            hour_window = resource_profile.get("hours")
+            hour = getattr(ecosystem.environment, "hour", None)
+            hour_ok = True
+            if hour_window and hour is not None:
+                start, end = hour_window
+                hour_ok = (start <= hour < end) if start < end else (hour >= start or hour < end)
+            if self.hunger >= min_hunger and hour_ok:
+                consumed = ecosystem.consume_microhabitat(
+                    resource_profile["kinds"],
+                    self.position,
+                    resource_profile.get("amount", 0.12),
+                    radius=resource_profile.get("radius", 3),
+                )
+                if consumed > 0:
+                    self.hunger = max(0, self.hunger - consumed * resource_profile.get("hunger_relief", 8.0))
+                    self.health = min(100, self.health + consumed * resource_profile.get("health_gain", 1.5))
             
         # 更新繁殖状态
         self._update_reproduction_state()
@@ -1298,6 +1321,17 @@ class Owl(Animal):
 
     def breeding_patch_threshold(self) -> float:
         return 0.10
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"night_roost", "canopy_roost"},
+            "amount": 0.10,
+            "radius": 3,
+            "hunger_relief": 7.0,
+            "health_gain": 1.0,
+            "min_hunger": 16.0,
+            "hours": (6, 18),
+        }
         
     def execute_behavior(self, ecosystem):
         """猫头鹰夜间活动增强"""
@@ -1615,10 +1649,21 @@ class Kingfisher(Animal):
 
     def breeding_patch_threshold(self) -> float:
         return 0.14
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"riparian_perch", "shrub_shelter"},
+            "amount": 0.12,
+            "radius": 3,
+            "hunger_relief": 7.5,
+            "health_gain": 1.2,
+            "min_hunger": 14.0,
+        }
         
     def forage(self, ecosystem):
         """翠鸟在水边捕鱼"""
         self.find_cover(ecosystem, radius=6)
+        sustainable_minnow = ecosystem.get_sustainable_population("minnow") if hasattr(ecosystem, "get_sustainable_population") else ecosystem.get_species_count("minnow")
         # 寻找水域附近
         found_water = False
         for dy in range(-3, 4):
@@ -1634,6 +1679,8 @@ class Kingfisher(Animal):
                             if a.species in ["small_fish", "minnow", "shrimp", "tadpole", "water_strider", "frog"] and a.alive
                         ]
                         if aquatic_prey:
+                            if sustainable_minnow <= 12:
+                                aquatic_prey = [a for a in aquatic_prey if a.species != "minnow"] or aquatic_prey
                             closest = min(aquatic_prey, key=lambda a:
                                 abs(a.position[0]-nx) + abs(a.position[1]-ny))
                             # 俯冲捕食
@@ -1845,7 +1892,7 @@ class Hummingbird(Animal):
             species="hummingbird",
             position=position,
             max_age=36,
-            hunger_rate=0.26,
+            hunger_rate=0.22,
             reproduction_rate=0.16,
             speed=5.0,
             vision_range=7,
@@ -1874,6 +1921,17 @@ class Hummingbird(Animal):
 
     def breeding_microhabitat_kinds(self) -> List[str]:
         return ["nectar_patch", "shrub_shelter"]
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"nectar_patch", "shrub_shelter"},
+            "amount": 0.16,
+            "radius": 3,
+            "hunger_relief": 10.0,
+            "health_gain": 1.3,
+            "min_hunger": 10.0,
+            "hours": (6, 18),
+        }
 
     def forage(self, ecosystem):
         if self.find_cover(ecosystem, radius=6) and self.hunger < 30:
@@ -1910,7 +1968,7 @@ class Squirrel(Animal):
             species="squirrel",
             position=position,
             max_age=38,
-            hunger_rate=0.22,
+            hunger_rate=0.18,
             reproduction_rate=0.15,
             speed=3.0,
             vision_range=7,
@@ -1936,6 +1994,16 @@ class Squirrel(Animal):
 
     def breeding_microhabitat_kinds(self) -> List[str]:
         return ["canopy_roost"]
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"canopy_roost"},
+            "amount": 0.14,
+            "radius": 3,
+            "hunger_relief": 8.0,
+            "health_gain": 1.1,
+            "min_hunger": 14.0,
+        }
 
     def wander(self, ecosystem):
         if self.seek_habitat(ecosystem, radius=8):
@@ -1998,6 +2066,17 @@ class Bat(Animal):
 
     def breeding_patch_threshold(self) -> float:
         return 0.12
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"night_roost", "canopy_roost"},
+            "amount": 0.14,
+            "radius": 3,
+            "hunger_relief": 9.0,
+            "health_gain": 1.2,
+            "min_hunger": 12.0,
+            "hours": (18, 6),
+        }
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "spider", "bee", "water_strider"]

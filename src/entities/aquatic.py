@@ -645,9 +645,11 @@ class Minnow(AquaticCreature):
         food_supply = plankton_count + algae_count * 0.45 + shrimp_count * 0.25
         food_factor = max(0.35, min(1.55, food_supply / max(1, current_minnow * 2.1)))
         if current_minnow <= 6:
-            food_factor = min(1.58, food_factor * 1.14)
-        elif current_minnow <= 10:
-            food_factor = min(1.45, food_factor * 1.05)
+            food_factor = min(1.9, food_factor * 1.34)
+        elif current_minnow <= 12:
+            food_factor = min(1.72, food_factor * 1.18)
+        elif current_minnow <= 24:
+            food_factor = min(1.58, food_factor * 1.08)
 
         predator_count = sum(
             ecosystem.get_species_count(sp) if hasattr(ecosystem, "get_species_count") else len([c for c in ecosystem.aquatic_creatures if c.species == sp and c.alive])
@@ -656,8 +658,10 @@ class Minnow(AquaticCreature):
         predator_pressure = max(0.42, 1.0 - predator_count * 0.032)
         if profile and profile.body_type == "river_channel":
             predator_pressure = min(1.04, predator_pressure * (1.05 + (schooling_factor - 1.0) * 0.35))
-        if current_minnow <= 5:
-            predator_pressure = min(1.12, predator_pressure * 1.10)
+        if current_minnow <= 6:
+            predator_pressure = min(1.28, predator_pressure * 1.22)
+        elif current_minnow <= 12:
+            predator_pressure = min(1.18, predator_pressure * 1.12)
         habitat_factor = self._habitat_score(
             ecosystem,
             {"river_channel", "lake_shallow"},
@@ -679,13 +683,13 @@ class Minnow(AquaticCreature):
 
         elif self.gender == 'female' and self.reproduction_cooldown == 0:
             male_count = ecosystem.get_gender_count("minnow", "male") if hasattr(ecosystem, "get_gender_count") else len([m for m in ecosystem.aquatic_creatures if m.species == "minnow" and m.gender == 'male' and m.alive])
-            spawn_gate = 4 if current_minnow <= 10 else 7
+            spawn_gate = 2 if current_minnow <= 8 else 4 if current_minnow <= 16 else 7
             if ecosystem.environment.season == "spring":
                 spawn_gate = max(3, spawn_gate - 1)
             if profile and profile.body_type == "river_channel":
                 spawn_gate = max(2, spawn_gate - 1)
             if male_count and food_supply > spawn_gate:
-                chance = (0.085 if current_minnow <= 6 else 0.07 if current_minnow <= 10 else 0.045) * food_factor * predator_pressure * habitat_factor
+                chance = (0.12 if current_minnow <= 6 else 0.095 if current_minnow <= 12 else 0.06 if current_minnow <= 24 else 0.045) * food_factor * predator_pressure * habitat_factor
                 if ecosystem.environment.season == "spring":
                     chance *= 1.06
                 if profile and profile.body_type == "river_channel":
@@ -1251,10 +1255,10 @@ class Pike(AquaticCreature):
         if self.hunger > 30:
             minnows = self._nearby_species(ecosystem, "minnow", 6)
             minnow_chance = ecosystem.get_predation_chance("pike", "minnow", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
-            if minnows and sustainable_minnow > max(5, current_pike * 2):
+            if minnows and sustainable_minnow > max(12, current_pike * 3):
                 closest = min(minnows, key=lambda p: 
                     abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 6 and random.random() < min(0.64, habitat_factor * ambush_factor * 0.82, minnow_chance):
+                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 6 and random.random() < min(0.52, habitat_factor * ambush_factor * 0.72, minnow_chance):
                     closest.die()
                     self.eat(32)
             else:
@@ -1524,7 +1528,7 @@ class Frog(AquaticCreature):
         self.color = (76, 175, 80)
         self.emoji = "🐸"
         self.amphibious = True
-        self.predators = {"snake", "fox", "eagle", "owl", "kingfisher", "large_fish", "blackfish", "pike", "catfish"}
+        self.predators = {"snake", "fox", "eagle", "owl", "blackfish", "pike"}
 
     def _move_towards_edge(self, ecosystem, prefer_water: bool):
         best = None
@@ -1562,7 +1566,7 @@ class Frog(AquaticCreature):
             return False
 
         closest = min(predators, key=lambda p: abs(p.position[0] - self.position[0]) + abs(p.position[1] - self.position[1]))
-        aquatic_threat = closest.species in {"large_fish", "blackfish", "pike", "catfish"}
+        aquatic_threat = closest.species in {"blackfish", "pike"}
         self._move_towards_edge(ecosystem, prefer_water=not aquatic_threat)
         dx = self.position[0] - closest.position[0]
         dy = self.position[1] - closest.position[1]
@@ -1588,8 +1592,8 @@ class Frog(AquaticCreature):
         elif profile and profile.body_type == "river_channel":
             self.health = min(100, self.health + 0.10)
         if wetland_support > 0:
-            self.hunger = max(0, self.hunger - min(1.4, wetland_support * 0.8))
-            self.health = min(100, self.health + min(0.6, wetland_support * 0.18))
+            self.hunger = max(0, self.hunger - min(1.8, wetland_support * 1.0))
+            self.health = min(100, self.health + min(0.8, wetland_support * 0.24))
         if self.health <= 0 or self.age >= self.max_age: self.die(); return
         
         if self.reproduction_cooldown > 0:
@@ -1601,9 +1605,11 @@ class Frog(AquaticCreature):
         food_count = plankton_count + insect_count
         current_frog = ecosystem.get_species_count("frog") if hasattr(ecosystem, "get_species_count") else len([f for f in ecosystem.animals if f.species == "frog" and f.alive])
         food_factor = max(0.20, min(2.0, food_count / max(1, current_frog * 2.1)))
-        if current_frog <= 6:
-            food_factor = min(2.3, food_factor * 1.34)
-        wetland_factor = max(0.65, min(1.55, 0.72 + wetland_support))
+        if current_frog <= 8:
+            food_factor = min(2.55, food_factor * 1.46)
+        elif current_frog <= 16:
+            food_factor = min(2.2, food_factor * 1.18)
+        wetland_factor = max(0.72, min(1.58, 0.78 + wetland_support * 0.78))
         
         if self.pregnant:
             self.pregnancy_timer += 1
@@ -1616,7 +1622,7 @@ class Frog(AquaticCreature):
         
         elif self.gender == 'female' and self.reproduction_cooldown == 0:
             male_count = ecosystem.get_gender_count("frog", "male") if hasattr(ecosystem, "get_gender_count") else len([f for f in ecosystem.animals if f.species == "frog" and f.gender == 'male' and f.alive])
-            if male_count and wetland_support >= 0.08 and food_count > max(6, current_frog * 1.3) and random.random() < 0.054 * food_factor * wetland_factor:
+            if male_count and wetland_support >= 0.06 and food_count > max(6, int(current_frog * 1.25)) and random.random() < 0.052 * food_factor * wetland_factor:
                 self.pregnant = True
 
         if self._escape_predators(ecosystem):
