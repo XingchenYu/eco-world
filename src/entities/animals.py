@@ -157,12 +157,9 @@ class Animal(Creature):
             score += 0.35
         if self.prefers_water_edge_cover():
             x, y = plant.position
-            for dx in range(-1, 2):
-                for dy in range(-1, 2):
-                    nx, ny = x + dx, y + dy
-                    if 0 <= nx < ecosystem.width and 0 <= ny < ecosystem.height and ecosystem.environment.is_water(nx, ny):
-                        score += 0.15
-                        break
+            water_score = ecosystem.get_adjacent_water_score((x, y), radius=1) if hasattr(ecosystem, "get_adjacent_water_score") else 0.0
+            if water_score > 0:
+                score += 0.15
         distance = abs(plant.position[0] - self.position[0]) + abs(plant.position[1] - self.position[1])
         score -= distance * 0.04
         return score
@@ -228,20 +225,10 @@ class Animal(Creature):
                 bonus += min(0.16, ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "nectar_patch"}, radius=4) * 0.05)
         if self.prefers_water_edge_cover():
             water_edge_hits = 0
-            is_water = ecosystem.environment.is_water
-            width = ecosystem.width
-            height = ecosystem.height
             for plant in matching:
-                x, y = plant.position
-                for dx in range(-1, 2):
-                    for dy in range(-1, 2):
-                        nx, ny = x + dx, y + dy
-                        if 0 <= nx < width and 0 <= ny < height and is_water(nx, ny):
-                            water_edge_hits += 1
-                            break
-                    else:
-                        continue
-                    break
+                water_score = ecosystem.get_adjacent_water_score(plant.position, radius=1) if hasattr(ecosystem, "get_adjacent_water_score") else 0.0
+                if water_score > 0:
+                    water_edge_hits += 1
                 if water_edge_hits >= 2:
                     break
             if water_edge_hits:
