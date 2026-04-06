@@ -37,6 +37,7 @@ class AquaticCreature(Creature):
         self.emoji = "🐟"
         self._context_cache = {}
         self.swim_interval = 1
+        self.coarse_swim_step = 2
         
     def update_reproduction_from_food(self, ecosystem, food_sources: list = None):
         """根据食物来源数量动态调整繁殖率"""
@@ -280,6 +281,32 @@ class AquaticCreature(Creature):
         score -= distance * 0.025
         return score
 
+    def _quick_candidate_score(
+        self,
+        ecosystem,
+        position,
+        preferred_body_types=None,
+        min_oxygen=0.0,
+        max_flow=None,
+        min_nutrients=0.0,
+    ):
+        score = self._habitat_score_for_position(
+            ecosystem,
+            position,
+            preferred_body_types=preferred_body_types,
+            min_oxygen=min_oxygen,
+            max_flow=max_flow,
+            min_nutrients=min_nutrients,
+        )
+        if self.aquatic_type == AquaticType.BENTHIC:
+            refuge = self._benthic_refuge_score(ecosystem, position)
+            detritus = self._benthic_detritus_factor(ecosystem, position)
+            score *= refuge
+            score += min(0.22, (detritus - 1.0) * 0.42)
+        distance = abs(position[0] - self.position[0]) + abs(position[1] - self.position[1])
+        score -= distance * 0.02
+        return score
+
     def swim(
         self,
         ecosystem,
@@ -341,6 +368,60 @@ class AquaticCreature(Creature):
         elif random.random() < 0.22:
             dx = random.randint(-2, 2)
             dy = random.randint(-2, 2)
+            new_x = max(0, min(self.position[0] + dx, ecosystem.width - 1))
+            new_y = max(0, min(self.position[1] + dy, ecosystem.height - 1))
+            if ecosystem.environment.is_water(new_x, new_y):
+                self.position = (new_x, new_y)
+
+        if hasattr(ecosystem, "refresh_spatial_entity"):
+            ecosystem.refresh_spatial_entity(self)
+
+    def coarse_swim(
+        self,
+        ecosystem,
+        preferred_body_types=None,
+        min_oxygen=0.0,
+        max_flow=None,
+        min_nutrients=0.0,
+    ):
+        move_radius = max(2, min(5, int(round(self.speed * 1.8))))
+        current_score = self._quick_candidate_score(
+            ecosystem,
+            self.position,
+            preferred_body_types=preferred_body_types,
+            min_oxygen=min_oxygen,
+            max_flow=max_flow,
+            min_nutrients=min_nutrients,
+        )
+        best_position = self.position
+        best_score = current_score
+        candidates = self._candidate_water_positions(ecosystem, move_radius)
+        if not candidates:
+            return
+
+        step = max(1, self.coarse_swim_step)
+        sampled_candidates = candidates[::step]
+        if candidates[-1] not in sampled_candidates:
+            sampled_candidates.append(candidates[-1])
+
+        for candidate in sampled_candidates:
+            candidate_score = self._quick_candidate_score(
+                ecosystem,
+                candidate,
+                preferred_body_types=preferred_body_types,
+                min_oxygen=min_oxygen,
+                max_flow=max_flow,
+                min_nutrients=min_nutrients,
+            )
+            if candidate_score > best_score + 0.025:
+                best_position = candidate
+                best_score = candidate_score
+
+        if best_position != self.position and random.random() < 0.66:
+            self.position = best_position
+        elif random.random() < 0.18:
+            dx = random.randint(-1, 1)
+            dy = random.randint(-1, 1)
             new_x = max(0, min(self.position[0] + dx, ecosystem.width - 1))
             new_y = max(0, min(self.position[1] + dy, ecosystem.height - 1))
             if ecosystem.environment.is_water(new_x, new_y):
@@ -534,6 +615,7 @@ class SmallFish(AquaticCreature):
         self.emoji = "🐟"
         self.predators = ["catfish", "large_fish", "blackfish", "pike", "crab", "kingfisher"]
         self.swim_interval = 2
+        self.coarse_swim_step = 2
         
     def execute_behavior(self, ecosystem):
         if not self.alive: return
@@ -628,13 +710,11 @@ class SmallFish(AquaticCreature):
                             self.eat(12)
         
         if self.should_swim(ecosystem, active_hunger=18.0):
-            self.swim(
+            self.coarse_swim(
                 ecosystem,
                 preferred_body_types={"lake_shallow", "lake_deep"},
                 min_oxygen=0.55,
                 max_flow=0.72,
-                prey_species={"plankton", "algae", "water_strider"},
-                predator_species=set(self.predators),
             )
 
 
@@ -650,6 +730,7 @@ class Minnow(AquaticCreature):
         self.emoji = "🐠"
         self.predators = ["catfish", "large_fish", "blackfish", "pike", "crab", "kingfisher"]
         self.swim_interval = 2
+        self.coarse_swim_step = 2
 
     def _schooling_factor(self, ecosystem):
         nearby = self._nearby_species(ecosystem, "minnow", 4)
@@ -754,14 +835,12 @@ class Minnow(AquaticCreature):
                 self.eat(4)
 
         if self.should_swim(ecosystem, active_hunger=16.0):
-            self.swim(
+            self.coarse_swim(
                 ecosystem,
                 preferred_body_types={"river_channel", "lake_shallow"},
                 min_oxygen=0.56,
                 max_flow=0.92,
                 min_nutrients=0.26,
-                prey_species={"plankton", "algae", "water_strider"},
-                predator_species=set(self.predators),
             )
 
 
@@ -777,6 +856,7 @@ class Carp(AquaticCreature):
         self.emoji = "🐟"
         self.predators = ["blackfish", "large_fish", "pike"]  # 天敌列表
         self.swim_interval = 2
+        self.coarse_swim_step = 3
         
     def execute_behavior(self, ecosystem):
         if not self.alive: return
@@ -848,14 +928,12 @@ class Carp(AquaticCreature):
                         closest.die()
                         self.eat(20)
         if self.should_swim(ecosystem, active_hunger=22.0):
-            self.swim(
+            self.coarse_swim(
                 ecosystem,
                 preferred_body_types={"lake_shallow", "lake_deep"},
                 min_oxygen=0.45,
                 max_flow=0.6,
                 min_nutrients=0.35,
-                prey_species={"plankton", "algae", "shrimp", "seaweed"},
-                predator_species=set(self.predators),
             )
 
 
@@ -902,6 +980,7 @@ class Catfish(AquaticCreature):
             self.reproduction_cooldown -= 1
         
         # 🔄 动态繁殖：猎物不足时不繁殖
+        frog_count = ecosystem.get_species_count("frog") if hasattr(ecosystem, "get_species_count") else len([c for c in ecosystem.animals if c.species == "frog" and c.alive])
         prey_count = sum(
             ecosystem.get_sustainable_population(sp) if hasattr(ecosystem, "get_sustainable_population") else len([c for c in ecosystem.aquatic_creatures if c.species == sp and c.alive])
             for sp in ["small_fish", "minnow", "shrimp", "carp"]
@@ -930,7 +1009,9 @@ class Catfish(AquaticCreature):
                 self.pregnant = True
                 
         if self.hunger > 20:
-            prey_targets = {"shrimp", "carp", "frog", "tadpole"}
+            prey_targets = {"shrimp", "carp", "tadpole"}
+            if frog_count > max(18, current_catfish * 4):
+                prey_targets.add("frog")
             if (not profile or profile.body_type == "river_channel") and small_fish_count > max(18, current_catfish * 5):
                 prey_targets.add("small_fish")
             prey = self._nearby_species(ecosystem, prey_targets, 3)
@@ -1257,7 +1338,9 @@ class Pike(AquaticCreature):
             self.reproduction_cooldown -= 1
         
         # 🔄 动态繁殖
-        core_prey_count = sum((ecosystem.get_species_count(sp) if hasattr(ecosystem, "get_species_count") else len([c for c in ecosystem.aquatic_creatures if c.species == sp and c.alive])) for sp in ["small_fish", "minnow", "shrimp", "frog", "tadpole"])
+        frog_count = ecosystem.get_species_count("frog") if hasattr(ecosystem, "get_species_count") else len([c for c in ecosystem.animals if c.species == "frog" and c.alive])
+        core_prey_count = sum((ecosystem.get_species_count(sp) if hasattr(ecosystem, "get_species_count") else len([c for c in ecosystem.aquatic_creatures if c.species == sp and c.alive])) for sp in ["small_fish", "minnow", "shrimp", "tadpole"])
+        core_prey_count += frog_count
         opportunistic_carp = ecosystem.get_species_count("carp") if hasattr(ecosystem, "get_species_count") else len([c for c in ecosystem.aquatic_creatures if c.species == "carp" and c.alive])
         small_fish_count = ecosystem.get_species_count("small_fish") if hasattr(ecosystem, "get_species_count") else len([c for c in ecosystem.aquatic_creatures if c.species == "small_fish" and c.alive])
         current_pike = ecosystem.get_species_count("pike") if hasattr(ecosystem, "get_species_count") else len([c for c in ecosystem.aquatic_creatures if c.species == "pike" and c.alive])
@@ -1304,7 +1387,9 @@ class Pike(AquaticCreature):
                     closest.die()
                     self.eat(32)
             else:
-                prey_targets = {"frog", "tadpole", "shrimp"}
+                prey_targets = {"tadpole", "shrimp"}
+                if frog_count > max(16, current_pike * 3):
+                    prey_targets.add("frog")
                 if not profile or profile.body_type == "river_channel" or small_fish_count > max(18, current_pike * 5):
                     prey_targets.add("small_fish")
                 small_fish = self._nearby_species(ecosystem, prey_targets, 6)
@@ -1328,7 +1413,10 @@ class Pike(AquaticCreature):
                     self.eat(48)
 
         if self.hunger > 48:
-            fallback = self._nearby_species(ecosystem, {"water_strider", "frog", "shrimp", "minnow"}, 5)
+            fallback_targets = {"water_strider", "shrimp", "minnow"}
+            if frog_count > max(18, current_pike * 4):
+                fallback_targets.add("frog")
+            fallback = self._nearby_species(ecosystem, fallback_targets, 5)
             if fallback:
                 closest = min(fallback, key=lambda p:
                     abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))

@@ -83,7 +83,7 @@ class Ecosystem:
     PREY_RESERVE = {
         "insect": 18, "night_moth": 14, "bee": 6, "spider": 4,
         "rabbit": 10, "mouse": 8, "bird": 6, "sparrow": 14, "parrot": 4, "duck": 3,
-        "deer": 4, "frog": 10,
+        "deer": 4, "frog": 16,
         "small_fish": 8, "minnow": 16, "carp": 4, "shrimp": 10, "tadpole": 8, "water_strider": 8,
     }
     PREDATOR_APPETITE = {
