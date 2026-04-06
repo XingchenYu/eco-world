@@ -162,6 +162,7 @@ class Ecosystem:
         self._migration_cooldowns: Dict[str, int] = {}
         self._latest_species_counts: Optional[Dict[str, int]] = None
         self._latest_gender_counts: Optional[Dict[str, Dict[str, int]]] = None
+        self._latest_diet_counts: Optional[Dict[str, int]] = None
         self._nearby_plant_cache: Dict[Tuple[int, int, int, int], List[Plant]] = {}
         self._nearby_creature_cache: Dict[Tuple[int, int, int, int], List[Creature]] = {}
         self._nearby_aquatic_cache: Dict[Tuple[int, int, int, int], List[AquaticCreature]] = {}
@@ -1118,6 +1119,7 @@ class Ecosystem:
         self._stats_cache_tick = -1
         self._latest_species_counts = None
         self._latest_gender_counts = None
+        self._latest_diet_counts = None
         self._nearby_plant_cache = {}
         self._nearby_creature_cache = {}
         self._nearby_aquatic_cache = {}
@@ -1154,6 +1156,16 @@ class Ecosystem:
                 stats["pregnant"] += 1
         return gender_counts
 
+    def _get_diet_counts(self) -> Dict[str, int]:
+        counts = {"herbivore": 0, "carnivore": 0, "omnivore": 0}
+        for creature in self.animals:
+            if not creature.alive:
+                continue
+            diet = getattr(creature, "diet", None)
+            if diet in counts:
+                counts[diet] += 1
+        return counts
+
     def _can_spawn_land_animal(self, species: str, position: Tuple[int, int]) -> bool:
         x, y = position
         if species in self.AMPHIBIOUS_SPECIES:
@@ -1169,6 +1181,11 @@ class Ecosystem:
         if self._latest_gender_counts is None:
             self._latest_gender_counts = self._get_gender_counts()
         return self._latest_gender_counts.get(species, {}).get(gender, 0)
+
+    def get_diet_count(self, diet: str) -> int:
+        if self._latest_diet_counts is None:
+            self._latest_diet_counts = self._get_diet_counts()
+        return self._latest_diet_counts.get(diet, 0)
 
     def get_sustainable_population(self, species: str) -> int:
         """扣除保底种群后的可持续可捕食数量。"""

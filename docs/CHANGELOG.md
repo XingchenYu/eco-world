@@ -26,6 +26,29 @@
 
 ## 版本历史
 
+### v3.3 (2026-04-07 11:40)
+
+**性能与结构**：
+- ✅ 默认大地图性能继续优化到约 `1 tick ≈ 0.217s`、`5 tick ≈ 1.260s`
+- ✅ 中低层水生移动分层，`small_fish / minnow / carp` 已切到更粗粒度区域趋向移动
+- ✅ 低层水生漂移频率、植物邻域缓存、水生候选评分、动物局部缓存继续收口
+- ✅ 动物繁殖率更新已接入物种数缓存与食性计数缓存，减少 herbivore / carnivore / omnivore 的全表扫描
+
+**生态与机制**：
+- ✅ 物种总数修正文档为 `67`：17 植物、35 陆地/鸟类/两栖、15 水生
+- ✅ `frog` 湿地链已接入更强的成人湿地恢复和岸带羽化资源利用
+- ✅ 夜间飞虫 `night_swarm`、树冠觅食 `canopy_forage`、岸带羽化 `shore_hatch` 已写入核心文档
+
+**文档**：
+- ✅ README 更新到 67 物种、最新微栖位列表和最新性能数据
+- ✅ ARCHITECTURE、ECOSYSTEM、MECHANICS 更新到当前资源层与缓存结构
+- ✅ CHANGELOG 补充 v3.3 记录
+
+**验证**：
+- ✅ `tests/test_ecosystem.py`
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/entities/animals.py src/core/ecosystem.py`
+- ✅ 默认大地图性能基准
+
 ### v3.2 (2026-04-06 19:30)
 
 **默认世界与性能**：

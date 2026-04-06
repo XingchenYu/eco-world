@@ -74,6 +74,9 @@
 - `nectar_patch`
 - `wetland_patch`
 - `riparian_perch`
+- `night_swarm`
+- `canopy_forage`
+- `shore_hatch`
 
 当前资源层具备：
 
@@ -100,6 +103,12 @@
 - `kingfisher` 偏 `riparian_perch / shrub_shelter`
 - `hummingbird` 偏 `nectar_patch / shrub_shelter`
 - `squirrel` 偏 `canopy_roost`
+
+另外已有更自然的底层资源脉冲：
+
+- `night_swarm` 支撑 `bat / owl` 的夜间飞虫资源
+- `shore_hatch` 支撑 `frog / kingfisher` 的岸带羽化资源
+- `canopy_forage` 支撑 `squirrel` 的树冠持续觅食资源
 
 ## 自然迁入
 
@@ -162,14 +171,16 @@
 - 植物邻域 tick 级缓存
 - 统计缓存
 - 性别计数缓存
+- 食性计数缓存
 - 动物个体级查询缓存
 - 水生候选点两阶段筛选
 - 邻近水生按物种快速计数
+- 动物繁殖率更新优先复用缓存统计
 
 当前默认大地图实测约：
 
-- `1 tick ≈ 0.344s`
-- `5 tick ≈ 2.244s`
+- `1 tick ≈ 0.217s`
+- `5 tick ≈ 1.260s`
 
 ## 当前模型边界
 
@@ -177,4 +188,4 @@
 - 夜行链和两栖链仍在继续收敛
 - 微栖位资源层已进入主循环，但个体长期绑定巢位仍未完全展开
 
-更新时间：2026-04-06
+更新时间：2026-04-07

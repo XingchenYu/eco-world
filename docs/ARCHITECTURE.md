@@ -166,6 +166,9 @@ Config / Docs / Tests
 - `nectar_patch`
 - `wetland_patch`
 - `riparian_perch`
+- `night_swarm`
+- `canopy_forage`
+- `shore_hatch`
 
 当前资源层具备：
 
@@ -191,14 +194,15 @@ Config / Docs / Tests
 - `_query_spatial_index()` 使用 offset 预计算缓存
 - `get_nearby_plants()` 使用 tick 级缓存
 - 动物行为使用个体级短缓存
+- 动物繁殖率更新已优先复用物种数和食性计数缓存
 - 水生移动采用“两阶段选点”
 - 水生候选评分支持按物种快速计数，避免构造完整对象列表
-- 统计函数使用 tick 级缓存和性别计数缓存
+- 统计函数使用 tick 级缓存、性别计数缓存和食性计数缓存
 
 在当前默认大地图配置下，已实测约：
 
-- `1 tick ≈ 0.344s`
-- `5 tick ≈ 2.244s`
+- `1 tick ≈ 0.217s`
+- `5 tick ≈ 1.260s`
 
 ## 扩展建议
 
@@ -212,4 +216,4 @@ Config / Docs / Tests
 6. 在 GUI 中文名 / 渲染映射中加入
 7. 在平衡模型里决定是否作为关键控制物种
 
-更新时间：2026-04-06
+更新时间：2026-04-07
