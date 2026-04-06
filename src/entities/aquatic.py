@@ -1568,12 +1568,7 @@ class Frog(AquaticCreature):
                     continue
                 if not prefer_water and is_water:
                     continue
-                score = 0.0
-                for ox in range(-1, 2):
-                    for oy in range(-1, 2):
-                        tx, ty = nx + ox, ny + oy
-                        if 0 <= tx < ecosystem.width and 0 <= ty < ecosystem.height and ecosystem.environment.is_water(tx, ty):
-                            score += 1.2
+                score = ecosystem.get_adjacent_water_score((nx, ny), radius=1) if hasattr(ecosystem, "get_adjacent_water_score") else 0.0
                 score -= (abs(dx) + abs(dy)) * 0.18
                 if score > best_score:
                     best_score = score

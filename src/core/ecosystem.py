@@ -169,6 +169,7 @@ class Ecosystem:
         self._microhabitat_value_cache: Dict[Tuple[int, int, int, int, Tuple[str, ...]], float] = {}
         self._nearby_aquatic_count_cache: Dict[Tuple[int, int, int, int, Tuple[str, ...]], Dict[str, int]] = {}
         self._water_candidate_cache: Dict[Tuple[int, int, int], List[Tuple[int, int]]] = {}
+        self._adjacent_water_score_cache: Dict[Tuple[int, int, int, int], float] = {}
         self.microhabitats: List[MicrohabitatPatch] = []
         self._microhabitat_index: Dict[Tuple[int, int], List[MicrohabitatPatch]] = defaultdict(list)
         
@@ -979,8 +980,10 @@ class Ecosystem:
             self._spatial_offset_cache[radius] = offsets
         px, py = position
         nearby = []
+        nearby_append = nearby.append
         get_bucket = index.get
         max_dist = range_
+        abs_fn = abs
         for dx, dy in offsets:
             bucket = get_bucket((cell_x + dx, cell_y + dy))
             if not bucket:
@@ -989,8 +992,8 @@ class Ecosystem:
                 if not entity.alive:
                     continue
                 ex, ey = entity.position
-                if abs(ex - px) + abs(ey - py) <= max_dist:
-                    nearby.append(entity)
+                if abs_fn(ex - px) + abs_fn(ey - py) <= max_dist:
+                    nearby_append(entity)
         return nearby
     
     def _get_species_counts(self) -> Dict[str, int]:
@@ -1105,6 +1108,7 @@ class Ecosystem:
         self._microhabitat_patch_cache = {}
         self._microhabitat_value_cache = {}
         self._nearby_aquatic_count_cache = {}
+        self._adjacent_water_score_cache = {}
 
     def _get_gender_counts(self) -> Dict[str, Dict[str, int]]:
         gender_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: {"male": 0, "female": 0, "pregnant": 0})
@@ -1965,6 +1969,28 @@ class Ecosystem:
         positions.sort(key=lambda pos: abs(pos[0] - px) + abs(pos[1] - py))
         self._water_candidate_cache[cache_key] = positions[:8]
         return self._water_candidate_cache[cache_key]
+
+    def get_adjacent_water_score(self, position: Tuple[int, int], radius: int = 1) -> float:
+        """缓存局部邻接水域强度，供两栖边缘移动等高频逻辑复用。"""
+        cache_key = (self.tick_count, position[0], position[1], radius)
+        cached = self._adjacent_water_score_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        px, py = position
+        score = 0.0
+        is_water = self.environment.is_water
+        width = self.width
+        height = self.height
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                if dx == 0 and dy == 0:
+                    continue
+                tx, ty = px + dx, py + dy
+                if 0 <= tx < width and 0 <= ty < height and is_water(tx, ty):
+                    score += 1.2
+        self._adjacent_water_score_cache[cache_key] = score
+        return score
         
     def log_event(self, description: str):
         """记录事件"""
