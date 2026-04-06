@@ -36,6 +36,7 @@ class AquaticCreature(Creature):
         self.color = (30, 144, 255)  # 默认蓝色
         self.emoji = "🐟"
         self._context_cache = {}
+        self.swim_interval = 1
         
     def update_reproduction_from_food(self, ecosystem, food_sources: list = None):
         """根据食物来源数量动态调整繁殖率"""
@@ -348,6 +349,13 @@ class AquaticCreature(Creature):
         if hasattr(ecosystem, "refresh_spatial_entity"):
             ecosystem.refresh_spatial_entity(self)
 
+    def should_swim(self, ecosystem, active_hunger: float = 35.0, threat: bool = False) -> bool:
+        if threat or self.swim_interval <= 1:
+            return True
+        if self.hunger >= active_hunger:
+            return True
+        return ecosystem.tick_count % self.swim_interval == 0
+
 
 # 水生植物
 class Algae(AquaticCreature):
@@ -478,6 +486,7 @@ class Plankton(AquaticCreature):
         super().__init__("plankton", position, 25, 0.1, 0.5, 0.3, 1)  # 寿命延长到25，繁殖率0.5
         self.color = (200, 200, 200)  # 浅灰色（微小生物）
         self.emoji = "🔬"
+        self.swim_interval = 3
     def execute_behavior(self, ecosystem):
         if not self.alive: return
         self.age += 1
@@ -508,7 +517,8 @@ class Plankton(AquaticCreature):
             if ecosystem.environment.is_water(new_pos[0], new_pos[1]):
                 ecosystem.spawn_aquatic("plankton", new_pos)
         
-        self.swim(ecosystem)
+        if self.should_swim(ecosystem, active_hunger=24):
+            self.swim(ecosystem)
 
 
 # 鱼类
@@ -1390,6 +1400,7 @@ class Shrimp(AquaticCreature):
         self.reproduction_cooldown = 0
         self.color = (255, 150, 150)  # 浅粉色
         self.emoji = "🦐"
+        self.swim_interval = 2
     def execute_behavior(self, ecosystem):
         if not self.alive: return
         self.age += 1
@@ -1471,15 +1482,17 @@ class Shrimp(AquaticCreature):
             elif random.random() < max(0.18, (detritus_factor - 1.0) * 0.45):
                 self.eat(8)
         
-        self.swim(
-            ecosystem,
-            preferred_body_types={"lake_shallow", "river_channel"},
-            min_oxygen=0.5,
-            max_flow=0.75,
-            min_nutrients=0.3,
-            prey_species={"algae", "plankton", "seaweed"},
-            predator_species={"catfish", "crab", "large_fish", "blackfish", "pike"},
-        )
+        predator_species = {"catfish", "crab", "large_fish", "blackfish", "pike"}
+        if self.should_swim(ecosystem, active_hunger=26, threat=self.hunger > 40):
+            self.swim(
+                ecosystem,
+                preferred_body_types={"lake_shallow", "river_channel"},
+                min_oxygen=0.5,
+                max_flow=0.75,
+                min_nutrients=0.3,
+                prey_species={"algae", "plankton", "seaweed"},
+                predator_species=predator_species,
+            )
 
 
 class Crab(AquaticCreature):
@@ -1492,6 +1505,7 @@ class Crab(AquaticCreature):
         self.reproduction_cooldown = 0
         self.color = (139, 90, 43)
         self.emoji = "🦀"
+        self.swim_interval = 2
         
     def execute_behavior(self, ecosystem):
         if not self.alive: return
@@ -1539,7 +1553,8 @@ class Crab(AquaticCreature):
                     if random.random() < ambush_factor:
                         closest.die()
                         self.eat(16 if closest.species == "plankton" else 25)
-        self.swim(ecosystem)
+        if self.should_swim(ecosystem, active_hunger=28, threat=self.hunger > 38):
+            self.swim(ecosystem)
 
 
 # 两栖动物
@@ -1705,6 +1720,7 @@ class Tadpole(AquaticCreature):
         super().__init__("tadpole", position, 10, 0.3, 0, 0.8, 2)
         self.color = (50, 50, 50)
         self.emoji = "🐸"
+        self.swim_interval = 2
         
     def execute_behavior(self, ecosystem):
         if not self.alive: return
@@ -1731,7 +1747,8 @@ class Tadpole(AquaticCreature):
             self.die()
             if self._is_in_water(ecosystem): ecosystem.spawn_animal("frog", self.position)
             return
-        self.swim(ecosystem)
+        if self.should_swim(ecosystem, active_hunger=18):
+            self.swim(ecosystem)
 
 
 class WaterStrider(AquaticCreature):
@@ -1741,6 +1758,7 @@ class WaterStrider(AquaticCreature):
         self.color = (100, 100, 100)
         self.emoji = "🦗"
         self.reproduction_cooldown = 0
+        self.swim_interval = 2
         
     def execute_behavior(self, ecosystem):
         if not self.alive: return
@@ -1781,4 +1799,5 @@ class WaterStrider(AquaticCreature):
                     plankton[0].die()
                 self.eat(10)
         
-        self.swim(ecosystem)
+        if self.should_swim(ecosystem, active_hunger=20):
+            self.swim(ecosystem)
