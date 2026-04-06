@@ -329,9 +329,10 @@ class Animal(Creature):
                 if self.prefers_water_edge_cover():
                     resource_kinds.update({"riparian_perch", "wetland_patch"})
                 if resource_kinds:
-                    ecosystem.consume_microhabitat(resource_kinds, self.position, min(0.16, habitat_bonus), radius=3)
+                    if self.hunger >= 24 or self.health < 65:
+                        ecosystem.consume_microhabitat(resource_kinds, self.position, min(0.08, habitat_bonus * 0.5), radius=3)
                     if hasattr(ecosystem, "occupy_microhabitat"):
-                        ecosystem.occupy_microhabitat(self.species, resource_kinds, self.position, amount=min(0.22, habitat_bonus + 0.05), radius=2)
+                        ecosystem.occupy_microhabitat(self.species, resource_kinds, self.position, amount=min(0.10, habitat_bonus * 0.45 + 0.03), radius=2)
 
         resource_profile = self.microhabitat_foraging_profile()
         if resource_profile and hasattr(ecosystem, "consume_microhabitat"):
@@ -762,6 +763,108 @@ class Insect(Animal):
         self.pregnant = False
         self.pregnancy_timer = 0
         self.mate_cooldown = 4
+
+
+class NightMoth(Animal):
+    """夜间飞蛾 - 夜行飞虫，连接花源、湿地与夜行捕食链。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="night_moth",
+            position=position,
+            max_age=22,
+            hunger_rate=0.25,
+            reproduction_rate=0.16,
+            speed=2.1,
+            vision_range=4,
+            diet="herbivore",
+            gender=gender
+        )
+        self.emoji = "🦋"
+        self.color = (160, 150, 110)
+        self.pregnancy_duration = 3
+        self.maturity_age = 2
+        self.is_nocturnal = True
+        self.can_hide = True
+        self.forms_groups = True
+
+    def get_predators(self) -> List[str]:
+        return ["bat", "owl", "spider", "bird"]
+
+    def get_food_sources(self) -> List[str]:
+        return ["flower", "berry", "blueberry", "strawberry", "moss", "fern"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["flower", "bush", "berry", "blueberry", "strawberry", "fern", "moss"]
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["night_swarm", "nectar_patch", "shrub_shelter"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.12
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"night_swarm", "nectar_patch", "shrub_shelter"},
+            "amount": 0.12,
+            "radius": 3,
+            "hunger_relief": 8.0,
+            "health_gain": 1.0,
+            "min_hunger": 8.0,
+            "hours": (18, 6),
+        }
+
+    def execute_behavior(self, ecosystem):
+        hour = ecosystem.environment.hour
+        if 18 <= hour or hour < 6:
+            self.speed = 2.4
+            self.vision_range = 5
+        else:
+            self.speed = 1.0
+            self.vision_range = 2
+            if self.seek_habitat(ecosystem, radius=6):
+                self.hunger = max(0, self.hunger - 0.35)
+        super().execute_behavior(ecosystem)
+
+    def _give_birth(self, ecosystem):
+        hour = ecosystem.environment.hour
+        if not (18 <= hour or hour < 6):
+            self.pregnant = False
+            self.pregnancy_timer = 0
+            self.mate_cooldown = max(self.mate_cooldown, 4)
+            return
+        flower_supply = sum(
+            1 for p in ecosystem.plants
+            if p.species in self.get_food_sources() and p.alive
+        )
+        current_moths = ecosystem.get_species_count("night_moth") if hasattr(ecosystem, "get_species_count") else len([a for a in ecosystem.animals if a.species == "night_moth" and a.alive])
+        food_factor = max(0.25, min(1.8, flower_supply / max(1, current_moths * 0.6)))
+        patch_value = ecosystem.get_local_microhabitat_value(self.position, {"night_swarm", "nectar_patch"}, radius=4) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
+        patch_factor = max(0.52, min(1.5, 0.70 + patch_value * 0.38))
+        predator_pressure = sum(
+            ecosystem.get_species_count(sp) if hasattr(ecosystem, "get_species_count") else len([a for a in ecosystem.animals if a.species == sp and a.alive])
+            for sp in ["bat", "owl", "bird", "frog", "spider", "kingfisher"]
+        )
+        predator_factor = max(0.52, 1.0 - predator_pressure * 0.012)
+        season = getattr(ecosystem.environment, "season", "spring")
+        season_factor = 1.0 if season in {"spring", "summer"} else 0.86 if season == "autumn" else 0.58
+        litter_size = max(1, min(3, int(food_factor * patch_factor * predator_factor * season_factor * 2.35)))
+        for _ in range(litter_size):
+            pos = (
+                max(0, min(self.position[0] + random.randint(-2, 2), ecosystem.width - 1)),
+                max(0, min(self.position[1] + random.randint(-2, 2), ecosystem.height - 1)),
+            )
+            ecosystem.spawn_animal("night_moth", pos, is_offspring=True)
+
+        self.pregnant = False
+        self.pregnancy_timer = 0
+        self.mate_cooldown = 3
 
 
 class Rabbit(Animal):
@@ -1308,7 +1411,7 @@ class Owl(Animal):
         return ["eagle"]
         
     def get_prey_species(self) -> List[str]:
-        return ["insect", "mouse", "bat", "water_strider", "frog"]
+        return ["insect", "night_moth", "mouse", "bat", "water_strider", "frog"]
 
     def get_cover_plant_species(self) -> List[str]:
         return ["tree", "apple_tree", "cherry_tree", "orange_tree"]
@@ -1324,7 +1427,7 @@ class Owl(Animal):
 
     def microhabitat_foraging_profile(self):
         return {
-            "kinds": {"night_roost", "canopy_roost"},
+            "kinds": {"night_roost", "canopy_roost", "night_swarm"},
             "amount": 0.10,
             "radius": 3,
             "hunger_relief": 7.0,
@@ -1332,6 +1435,24 @@ class Owl(Animal):
             "min_hunger": 16.0,
             "hours": (6, 18),
         }
+
+    def forage(self, ecosystem):
+        hour = ecosystem.environment.hour
+        if 18 <= hour or hour < 6:
+            nearby = self._cached_nearby_creatures(ecosystem, self.vision_range)
+            preferred = [
+                creature for creature in nearby
+                if creature.alive and creature.species in {"night_moth", "mouse", "bat", "frog", "sparrow", "bird"}
+            ]
+            if preferred:
+                target = min(preferred, key=lambda c: abs(c.position[0] - self.position[0]) + abs(c.position[1] - self.position[1]))
+                self.move_towards(target.position, ecosystem)
+                dist = abs(target.position[0] - self.position[0]) + abs(target.position[1] - self.position[1])
+                chance = ecosystem.get_predation_chance(self.species, target.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if dist <= 1 and random.random() < min(0.88, chance + (0.12 if target.species == "night_moth" else 0.0)):
+                    self.hunt(target, ecosystem)
+                    return
+        super().forage(ecosystem)
         
     def execute_behavior(self, ecosystem):
         """猫头鹰夜间活动增强"""
@@ -1645,17 +1766,17 @@ class Kingfisher(Animal):
         return True
 
     def breeding_microhabitat_kinds(self) -> List[str]:
-        return ["riparian_perch", "shrub_shelter"]
+        return ["riparian_perch", "shrub_shelter", "shore_hatch"]
 
     def breeding_patch_threshold(self) -> float:
-        return 0.14
+        return 0.12
 
     def microhabitat_foraging_profile(self):
         return {
-            "kinds": {"riparian_perch", "shrub_shelter"},
+            "kinds": {"riparian_perch", "shrub_shelter", "shore_hatch"},
             "amount": 0.12,
             "radius": 3,
-            "hunger_relief": 7.5,
+            "hunger_relief": 8.5,
             "health_gain": 1.2,
             "min_hunger": 14.0,
         }
@@ -1696,6 +1817,13 @@ class Kingfisher(Animal):
                     if 0 <= nx < ecosystem.width and 0 <= ny < ecosystem.height and ecosystem.environment.is_water(nx, ny):
                         self.move_towards((nx, ny), ecosystem)
                         return
+        if hasattr(ecosystem, "get_local_microhabitat_value") and hasattr(ecosystem, "consume_microhabitat"):
+            hatch_value = ecosystem.get_local_microhabitat_value(self.position, {"shore_hatch"}, radius=4)
+            if hatch_value >= 0.14:
+                consumed = ecosystem.consume_microhabitat({"shore_hatch"}, self.position, 0.12, radius=3)
+                if consumed > 0:
+                    self.eat(10 + consumed * 8)
+                    return
         # 没找到鱼就吃昆虫
         super().forage(ecosystem)
 
@@ -1735,7 +1863,7 @@ class Spider(Animal):
         return ["bird", "sparrow"]  # 鸟类吃蜘蛛
         
     def get_prey_species(self) -> List[str]:
-        return ["insect", "bee", "water_strider"]  # 专门吃小型节肢动物
+        return ["insect", "night_moth", "bee", "water_strider"]  # 专门吃小型节肢动物
         
     def hunt(self, prey, ecosystem):
         """蜘蛛捕食 - 不会过度捕猎"""
@@ -1997,7 +2125,7 @@ class Squirrel(Animal):
 
     def microhabitat_foraging_profile(self):
         return {
-            "kinds": {"canopy_roost"},
+            "kinds": {"canopy_roost", "canopy_forage"},
             "amount": 0.14,
             "radius": 3,
             "hunger_relief": 8.0,
@@ -2069,7 +2197,7 @@ class Bat(Animal):
 
     def microhabitat_foraging_profile(self):
         return {
-            "kinds": {"night_roost", "canopy_roost"},
+            "kinds": {"night_roost", "canopy_roost", "night_swarm"},
             "amount": 0.14,
             "radius": 3,
             "hunger_relief": 9.0,
@@ -2079,7 +2207,7 @@ class Bat(Animal):
         }
         
     def get_prey_species(self) -> List[str]:
-        return ["insect", "spider", "bee", "water_strider"]
+        return ["insect", "night_moth", "spider", "bee", "water_strider"]
 
     def get_cover_plant_species(self) -> List[str]:
         return ["tree", "bush", "apple_tree", "cherry_tree", "orange_tree"]
@@ -2100,6 +2228,24 @@ class Bat(Animal):
                 self.hunger = max(0, self.hunger - 0.8)
                 self.health = min(100, self.health + 0.35)
         super().execute_behavior(ecosystem)
+
+    def forage(self, ecosystem):
+        hour = ecosystem.environment.hour
+        if 18 <= hour or hour < 6:
+            nearby = self._cached_nearby_animals(ecosystem, self.vision_range)
+            prey = [
+                creature for creature in nearby
+                if creature.alive and creature.species in {"night_moth", "insect", "bee", "spider"}
+            ]
+            if prey:
+                target = min(prey, key=lambda c: abs(c.position[0] - self.position[0]) + abs(c.position[1] - self.position[1]))
+                self.move_towards(target.position, ecosystem)
+                dist = abs(target.position[0] - self.position[0]) + abs(target.position[1] - self.position[1])
+                chance = ecosystem.get_predation_chance(self.species, target.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if dist <= 1 and random.random() < min(0.92, chance + (0.18 if target.species == "night_moth" else 0.0)):
+                    self.hunt(target, ecosystem)
+                    return
+        super().forage(ecosystem)
 
 
 class Raccoon(Animal):

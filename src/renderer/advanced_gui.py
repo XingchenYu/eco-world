@@ -79,6 +79,8 @@ class AdvancedRenderer:
         # === UI组件 ===
         self.notifications = []
         self.active_tab = "species"  # species, foodchain, events, settings
+        self.panel_scrolls = {"species": 0, "foodchain": 0, "events": 0, "settings": 0}
+        self.panel_scroll_limits = {"species": 0, "foodchain": 0, "events": 0, "settings": 0}
         self._terrain_cache = None
         self._terrain_cache_key = None
         self._minimap_surface = None
@@ -297,7 +299,7 @@ class AdvancedRenderer:
             "snake": "蛇", "spider": "蜘蛛", "hedgehog": "刺猬", "bird": "小鸟", "eagle": "老鹰",
             "owl": "猫头鹰", "duck": "鸭", "swan": "天鹅", "sparrow": "麻雀", "parrot": "鹦鹉",
             "kingfisher": "翠鸟", "magpie": "喜鹊", "crow": "乌鸦", "woodpecker": "啄木鸟",
-            "hummingbird": "蜂鸟", "insect": "昆虫", "bat": "蝙蝠", "frog": "青蛙",
+            "hummingbird": "蜂鸟", "insect": "昆虫", "night_moth": "夜飞蛾", "bat": "蝙蝠", "frog": "青蛙",
             "algae": "藻类", "seaweed": "水草", "plankton": "浮游生物", "small_fish": "小鱼",
             "minnow": "米诺鱼", "carp": "鲤鱼", "catfish": "鲶鱼", "large_fish": "大鱼",
             "pufferfish": "河豚", "blackfish": "黑鱼", "pike": "狗鱼", "shrimp": "虾", "crab": "蟹",
@@ -456,7 +458,15 @@ class AdvancedRenderer:
             self._clamp_camera()
             
     def _handle_mouse_wheel(self, direction):
-        """处理鼠标滚轮 - 缩放"""
+        """处理鼠标滚轮 - 侧栏滚动或世界缩放"""
+        mouse_x, _ = pygame.mouse.get_pos()
+        if mouse_x >= self.window_width - self.sidebar_width:
+            current = self.panel_scrolls.get(self.active_tab, 0)
+            limit = self.panel_scroll_limits.get(self.active_tab, 0)
+            next_scroll = min(limit, max(0, current - direction * 36))
+            if next_scroll != current:
+                self.panel_scrolls[self.active_tab] = next_scroll
+            return
         old_zoom = self.zoom
         self.zoom = max(self.min_zoom, min(self.max_zoom, self.zoom + direction * 0.1))
         
@@ -475,6 +485,29 @@ class AdvancedRenderer:
         self._minimap_cache_key = None
         self._clamp_camera()
         self._notify(f"🪟 窗口: {self.window_width}x{self.window_height}")
+
+    def _content_viewport(self, sidebar_x):
+        top_y = 206
+        height = self.window_height - self.bottom_bar_height - top_y - 18
+        rect = pygame.Rect(sidebar_x + 12, top_y, self.sidebar_width - 24, max(120, height))
+        return rect
+
+    def _apply_panel_scroll(self, tab: str, content_end_y: int, viewport_rect: pygame.Rect):
+        limit = max(0, content_end_y - viewport_rect.height)
+        self.panel_scroll_limits[tab] = limit
+        self.panel_scrolls[tab] = min(self.panel_scrolls.get(tab, 0), limit)
+
+    def _render_scroll_hint(self, viewport_rect: pygame.Rect, tab: str):
+        limit = self.panel_scroll_limits.get(tab, 0)
+        if limit <= 0:
+            return
+        track = pygame.Rect(viewport_rect.right - 6, viewport_rect.y + 6, 4, viewport_rect.height - 12)
+        pygame.draw.rect(self.screen, self.ui["panel_alt"], track, border_radius=3)
+        scroll = self.panel_scrolls.get(tab, 0)
+        thumb_h = max(36, int(track.height * viewport_rect.height / max(viewport_rect.height, viewport_rect.height + limit)))
+        thumb_y = track.y + int((track.height - thumb_h) * scroll / max(1, limit))
+        thumb = pygame.Rect(track.x, thumb_y, track.width, thumb_h)
+        pygame.draw.rect(self.screen, self.ui["accent"], thumb, border_radius=3)
             
     def _screen_to_world(self, screen_pos) -> Tuple[int, int]:
         """屏幕坐标转世界坐标"""
@@ -1131,6 +1164,9 @@ class AdvancedRenderer:
             "nectar_patch": (224, 148, 104),
             "wetland_patch": (94, 164, 150),
             "riparian_perch": (106, 150, 190),
+            "night_swarm": (140, 122, 74),
+            "canopy_forage": (150, 172, 92),
+            "shore_hatch": (185, 197, 108),
         }
         for patch in self.ecosystem.microhabitats:
             screen_x = int((patch.position[0] - self.camera_x) * grid_size)
@@ -1318,6 +1354,9 @@ class AdvancedRenderer:
                 "nectar_patch": "花蜜位",
                 "wetland_patch": "湿地位",
                 "riparian_perch": "岸栖位",
+                "night_swarm": "夜虫群",
+                "canopy_forage": "树冠食位",
+                "shore_hatch": "近岸羽化带",
             }
             kinds = self.selected_creature.breeding_microhabitat_kinds()
             if kinds:
@@ -1333,8 +1372,12 @@ class AdvancedRenderer:
         """渲染物种统计面板"""
         stats = self.ecosystem.get_statistics()
         species = stats.get('species', {})
+        viewport = self._content_viewport(sidebar_x)
+        scroll = self.panel_scrolls.get("species", 0)
+        previous_clip = self.screen.get_clip()
+        self.screen.set_clip(viewport)
 
-        top_y = 206
+        top_y = 206 - scroll
         content_y = top_y + 108
         panel_bottom = self.window_height - self.bottom_bar_height - 18
         card_width = (self.sidebar_width - 52) // 2
@@ -1376,7 +1419,7 @@ class AdvancedRenderer:
         categories = [
             ("🌿 植物", ["grass", "bush", "flower", "moss", "tree", "vine", "cactus", "berry", "mushroom", "fern",
                        "apple_tree", "cherry_tree", "grape_vine", "strawberry", "blueberry", "orange_tree", "watermelon"]),
-            ("🐾 动物", ["insect", "rabbit", "fox", "deer", "mouse", "bird", "snake", "bee", "frog",
+            ("🐾 动物", ["insect", "night_moth", "rabbit", "fox", "deer", "mouse", "bird", "snake", "bee", "frog",
                        "eagle", "owl", "duck", "swan", "sparrow", "parrot", "kingfisher",
                        "wolf", "spider", "magpie", "crow", "woodpecker", "hummingbird",
                        "squirrel", "hedgehog", "bat", "raccoon",
@@ -1394,7 +1437,7 @@ class AdvancedRenderer:
             self.screen.blit(cat_surf, (sidebar_x + 18, content_y))
             content_y += 34
             for sp in species_list:
-                if content_y > panel_bottom - 20:
+                if content_y > panel_bottom - 20 + scroll:
                     break
                 count = species.get(sp, 0)
                 if count > 0:
@@ -1412,10 +1455,18 @@ class AdvancedRenderer:
                     pygame.draw.rect(self.screen, bar_color, (row_rect.right - 34 - bar_width, row_rect.bottom - 8, bar_width, 4), border_radius=2)
                     content_y += 30
             content_y += 8
+        content_end = content_y - top_y + 16
+        self.screen.set_clip(previous_clip)
+        self._apply_panel_scroll("species", content_end, viewport)
+        self._render_scroll_hint(viewport, "species")
             
     def _render_foodchain_panel(self, sidebar_x):
         """渲染食物链面板"""
-        y = 210
+        viewport = self._content_viewport(sidebar_x)
+        scroll = self.panel_scrolls.get("foodchain", 0)
+        previous_clip = self.screen.get_clip()
+        self.screen.set_clip(viewport)
+        y = 210 - scroll
         title_surf = self.font_large.render("关键食物关系", True, self.ui["accent_strong"])
         self.screen.blit(title_surf, (sidebar_x + 18, y))
         y += 42
@@ -1436,10 +1487,18 @@ class AdvancedRenderer:
             self.screen.blit(top, (box.x + 14, box.y + 10))
             self.screen.blit(bottom, (box.x + 14, box.y + 34))
             y += 68
+        content_end = y - (210 - scroll) + 16
+        self.screen.set_clip(previous_clip)
+        self._apply_panel_scroll("foodchain", content_end, viewport)
+        self._render_scroll_hint(viewport, "foodchain")
             
     def _render_events_panel(self, sidebar_x):
         """渲染事件面板"""
-        y = 210
+        viewport = self._content_viewport(sidebar_x)
+        scroll = self.panel_scrolls.get("events", 0)
+        previous_clip = self.screen.get_clip()
+        self.screen.set_clip(viewport)
+        y = 210 - scroll
         title_surf = self.font_large.render("最近事件", True, self.ui["accent_strong"])
         self.screen.blit(title_surf, (sidebar_x + 18, y))
         y += 42
@@ -1454,10 +1513,18 @@ class AdvancedRenderer:
             self.screen.blit(tick_surf, (row.x + 12, row.y + 6))
             self.screen.blit(text_surf, (row.x + 12, row.y + 22))
             y += 50
+        content_end = y - (210 - scroll) + 16
+        self.screen.set_clip(previous_clip)
+        self._apply_panel_scroll("events", content_end, viewport)
+        self._render_scroll_hint(viewport, "events")
             
     def _render_settings_panel(self, sidebar_x):
         """渲染设置面板"""
-        y = 210
+        viewport = self._content_viewport(sidebar_x)
+        scroll = self.panel_scrolls.get("settings", 0)
+        previous_clip = self.screen.get_clip()
+        self.screen.set_clip(viewport)
+        y = 210 - scroll
         title_surf = self.font_large.render("运行信息", True, self.ui["accent_strong"])
         self.screen.blit(title_surf, (sidebar_x + 18, y))
         y += 44
@@ -1478,11 +1545,16 @@ class AdvancedRenderer:
             f"花蜜位：{stats.get('microhabitats', {}).get('nectar_patch', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('nectar_patch', {}).get('occupied', 0.0):.1f}",
             f"湿地位：{stats.get('microhabitats', {}).get('wetland_patch', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('wetland_patch', {}).get('occupied', 0.0):.1f}",
             f"岸栖位：{stats.get('microhabitats', {}).get('riparian_perch', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('riparian_perch', {}).get('occupied', 0.0):.1f}",
+            f"夜虫群：{stats.get('microhabitats', {}).get('night_swarm', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('night_swarm', {}).get('occupied', 0.0):.1f}",
+            f"树冠食位：{stats.get('microhabitats', {}).get('canopy_forage', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('canopy_forage', {}).get('occupied', 0.0):.1f}",
+            f"近岸羽化带：{stats.get('microhabitats', {}).get('shore_hatch', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('shore_hatch', {}).get('occupied', 0.0):.1f}",
             "",
             "图例：",
             "绿点 树冠/灌丛位",
             "橙点 花蜜位",
             "青点 湿地/岸栖位",
+            "褐点 夜虫群/树冠食位",
+            "黄绿点 近岸羽化带",
             "外环 表示已占位",
             "",
             "操作说明：",
@@ -1500,6 +1572,10 @@ class AdvancedRenderer:
             text_surf = self.font_small.render(item, True, color)
             self.screen.blit(text_surf, (sidebar_x + 15, y))
             y += 22
+        content_end = y - (210 - scroll) + 16
+        self.screen.set_clip(previous_clip)
+        self._apply_panel_scroll("settings", content_end, viewport)
+        self._render_scroll_hint(viewport, "settings")
             
     def _render_bottom_bar(self):
         """渲染底部状态栏"""

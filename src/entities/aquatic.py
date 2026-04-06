@@ -35,6 +35,7 @@ class AquaticCreature(Creature):
         self.check_interval = 0
         self.color = (30, 144, 255)  # 默认蓝色
         self.emoji = "🐟"
+        self._context_cache = {}
         
     def update_reproduction_from_food(self, ecosystem, food_sources: list = None):
         """根据食物来源数量动态调整繁殖率"""
@@ -76,10 +77,19 @@ class AquaticCreature(Creature):
         return [a for a in nearby if a.species in species and a.alive]
 
     def _water_profile(self, ecosystem):
-        return ecosystem.environment.get_water_quality(self.position[0], self.position[1])
+        key = ("profile", ecosystem.tick_count, self.position[0], self.position[1])
+        cached = self._context_cache.get(key)
+        if cached is None:
+            cached = ecosystem.environment.get_water_quality(self.position[0], self.position[1])
+            self._context_cache[key] = cached
+        return cached
 
     def _shoreline_context(self, ecosystem, position=None):
         x, y = position or self.position
+        key = ("shoreline", ecosystem.tick_count, x, y)
+        cached = self._context_cache.get(key)
+        if cached is not None:
+            return cached
         mud = 0
         sand = 0
         land = 0
@@ -100,18 +110,31 @@ class AquaticCreature(Creature):
                     TerrainType.RIVER,
                 }:
                     land += 1
-        return {"mud": mud, "sand": sand, "land": land}
+        result = {"mud": mud, "sand": sand, "land": land}
+        self._context_cache[key] = result
+        return result
 
     def _benthic_refuge_score(self, ecosystem, position=None):
+        query_position = position or self.position
+        key = ("refuge", ecosystem.tick_count, query_position[0], query_position[1])
+        cached = self._context_cache.get(key)
+        if cached is not None:
+            return cached
         shoreline = self._shoreline_context(ecosystem, position)
         score = 1.0 + shoreline["mud"] * 0.07 + shoreline["sand"] * 0.03
         if shoreline["land"] >= 2:
             score += 0.05
-        return max(0.9, min(1.35, score))
+        result = max(0.9, min(1.35, score))
+        self._context_cache[key] = result
+        return result
 
     def _benthic_detritus_factor(self, ecosystem, position=None):
-        shoreline = self._shoreline_context(ecosystem, position)
         query_position = position or self.position
+        key = ("detritus", ecosystem.tick_count, query_position[0], query_position[1])
+        cached = self._context_cache.get(key)
+        if cached is not None:
+            return cached
+        shoreline = self._shoreline_context(ecosystem, position)
         profile = ecosystem.environment.get_water_quality(query_position[0], query_position[1])
         factor = 1.0 + shoreline["mud"] * 0.08 + shoreline["sand"] * 0.04
         if shoreline["land"] >= 2:
@@ -127,7 +150,9 @@ class AquaticCreature(Creature):
                 factor += min(0.12, (0.58 - profile.clarity) * 0.4)
             if profile.flow_rate < 0.35:
                 factor += 0.04
-        return max(0.95, min(1.45, factor))
+        result = max(0.95, min(1.45, factor))
+        self._context_cache[key] = result
+        return result
 
     def _shoreline_predation_penalty(self, ecosystem, prey):
         if getattr(prey, "aquatic_type", None) != AquaticType.BENTHIC:
@@ -195,6 +220,8 @@ class AquaticCreature(Creature):
         return max(0.25, min(1.35, score))
 
     def _candidate_water_positions(self, ecosystem, radius):
+        if hasattr(ecosystem, "get_water_candidate_positions"):
+            return list(ecosystem.get_water_candidate_positions(self.position, radius))
         positions = []
         for dx in range(-radius, radius + 1):
             for dy in range(-radius, radius + 1):
@@ -206,7 +233,6 @@ class AquaticCreature(Creature):
                 y = max(0, min(self.position[1] + dy, ecosystem.height - 1))
                 if ecosystem.environment.is_water(x, y):
                     positions.append((x, y))
-        random.shuffle(positions)
         return positions[:8]
 
     def _score_candidate_position(
@@ -1587,6 +1613,7 @@ class Frog(AquaticCreature):
         if self.hunger > 64: self.health -= 3.2
         profile = self._water_profile(ecosystem) if self._is_in_water(ecosystem) else None
         wetland_support = ecosystem.get_local_microhabitat_value(self.position, {"wetland_patch", "riparian_perch"}, radius=4) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
+        hatch_support = ecosystem.get_local_microhabitat_value(self.position, {"shore_hatch"}, radius=4) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
         if profile and profile.body_type == "lake_shallow":
             self.health = min(100, self.health + 0.08)
         elif profile and profile.body_type == "river_channel":
@@ -1594,6 +1621,8 @@ class Frog(AquaticCreature):
         if wetland_support > 0:
             self.hunger = max(0, self.hunger - min(1.8, wetland_support * 1.0))
             self.health = min(100, self.health + min(0.8, wetland_support * 0.24))
+        if hatch_support > 0:
+            self.hunger = max(0, self.hunger - min(0.7, hatch_support * 0.38))
         if self.health <= 0 or self.age >= self.max_age: self.die(); return
         
         if self.reproduction_cooldown > 0:
@@ -1602,19 +1631,19 @@ class Frog(AquaticCreature):
         # 🔄 动态繁殖：根据食物数量控制
         plankton_count = ecosystem.get_species_count("plankton") if hasattr(ecosystem, "get_species_count") else len([p for p in ecosystem.aquatic_creatures if p.species == "plankton" and p.alive])
         insect_count = (ecosystem.get_species_count("insect") + ecosystem.get_species_count("bee")) if hasattr(ecosystem, "get_species_count") else len([i for i in ecosystem.animals if i.species in {"insect", "bee"} and i.alive])
-        food_count = plankton_count + insect_count
+        food_count = plankton_count + insect_count + int(hatch_support * 7)
         current_frog = ecosystem.get_species_count("frog") if hasattr(ecosystem, "get_species_count") else len([f for f in ecosystem.animals if f.species == "frog" and f.alive])
         food_factor = max(0.20, min(2.0, food_count / max(1, current_frog * 2.1)))
         if current_frog <= 8:
-            food_factor = min(2.55, food_factor * 1.46)
+            food_factor = min(2.35, food_factor * 1.32)
         elif current_frog <= 16:
-            food_factor = min(2.2, food_factor * 1.18)
-        wetland_factor = max(0.72, min(1.58, 0.78 + wetland_support * 0.78))
+            food_factor = min(2.05, food_factor * 1.12)
+        wetland_factor = max(0.72, min(1.46, 0.78 + wetland_support * 0.72 + hatch_support * 0.12))
         
         if self.pregnant:
             self.pregnancy_timer += 1
             if self.pregnancy_timer >= 10:
-                litter_size = max(2, min(9, int(food_factor * wetland_factor * 5.2)))
+                litter_size = max(2, min(7, int(food_factor * wetland_factor * 4.2)))
                 for _ in range(litter_size):
                     ecosystem.spawn_aquatic("tadpole", self.position)
                 self.pregnant = False
@@ -1622,7 +1651,7 @@ class Frog(AquaticCreature):
         
         elif self.gender == 'female' and self.reproduction_cooldown == 0:
             male_count = ecosystem.get_gender_count("frog", "male") if hasattr(ecosystem, "get_gender_count") else len([f for f in ecosystem.animals if f.species == "frog" and f.gender == 'male' and f.alive])
-            if male_count and wetland_support >= 0.06 and food_count > max(6, int(current_frog * 1.25)) and random.random() < 0.052 * food_factor * wetland_factor:
+            if male_count and wetland_support >= 0.06 and food_count > max(6, int(current_frog * 1.35)) and random.random() < 0.042 * food_factor * wetland_factor:
                 self.pregnant = True
 
         if self._escape_predators(ecosystem):
@@ -1652,7 +1681,14 @@ class Frog(AquaticCreature):
                         closest.die()
                         self.eat(15)
                 elif random.random() < 0.30:
-                    self.eat(5)
+                    if hatch_support > 0.18 and hasattr(ecosystem, "consume_microhabitat"):
+                        consumed = ecosystem.consume_microhabitat({"shore_hatch"}, self.position, 0.08, radius=3)
+                        if consumed > 0:
+                            self.eat(6)
+                        else:
+                            self.eat(5)
+                    else:
+                        self.eat(5)
 
         if self.hunger > 18 and not self._is_in_water(ecosystem):
             self._move_towards_edge(ecosystem, prefer_water=False)

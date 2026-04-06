@@ -205,6 +205,19 @@ def test_amphibious_animals_can_spawn_in_water():
     print("✅ Amphibious water spawn test passed")
 
 
+def test_night_moth_registration_and_spawn():
+    """夜飞蛾应完成注册并可在陆地/水边生成。"""
+    eco = Ecosystem()
+    position = eco._random_water_adjacent_position() or eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("night_moth")
+    eco.spawn_animal("night_moth", position, source="manual")
+    assert eco.get_species_count("night_moth") == initial + 1
+
+    print("✅ Night moth registration test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -220,6 +233,7 @@ def run_all_tests():
     test_load_config_preserves_world_dimensions()
     test_land_animals_do_not_spawn_in_water()
     test_amphibious_animals_can_spawn_in_water()
+    test_night_moth_registration_and_spawn()
     
     print("\n✅ All tests passed!")
 
