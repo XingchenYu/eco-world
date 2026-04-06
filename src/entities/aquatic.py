@@ -1655,7 +1655,7 @@ class Crab(AquaticCreature):
 class Frog(AquaticCreature):
     """青蛙 - 水陆两栖，吃浮游生物/昆虫"""
     def __init__(self, position, gender=None):
-        super().__init__("frog", position, 50, 0.13, 0.20, 2.2, 6)
+        super().__init__("frog", position, 55, 0.11, 0.20, 2.2, 6)
         self.gender = gender or random.choice(['male', 'female'])
         self.pregnant = False
         self.pregnancy_timer = 0
@@ -1718,15 +1718,17 @@ class Frog(AquaticCreature):
         profile = self._water_profile(ecosystem) if self._is_in_water(ecosystem) else None
         wetland_support = ecosystem.get_local_microhabitat_value(self.position, {"wetland_patch", "riparian_perch"}, radius=4) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
         hatch_support = ecosystem.get_local_microhabitat_value(self.position, {"shore_hatch"}, radius=4) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
+        if ecosystem.environment.hour >= 18 or ecosystem.environment.hour < 7:
+            hatch_support = max(hatch_support, hatch_support * 1.18)
         if profile and profile.body_type == "lake_shallow":
             self.health = min(100, self.health + 0.08)
         elif profile and profile.body_type == "river_channel":
             self.health = min(100, self.health + 0.10)
         if wetland_support > 0:
-            self.hunger = max(0, self.hunger - min(1.8, wetland_support * 1.0))
-            self.health = min(100, self.health + min(0.8, wetland_support * 0.24))
+            self.hunger = max(0, self.hunger - min(2.0, wetland_support * 1.08))
+            self.health = min(100, self.health + min(0.9, wetland_support * 0.28))
         if hatch_support > 0:
-            self.hunger = max(0, self.hunger - min(0.7, hatch_support * 0.38))
+            self.hunger = max(0, self.hunger - min(1.0, hatch_support * 0.46))
         if self.health <= 0 or self.age >= self.max_age: self.die(); return
         
         if self.reproduction_cooldown > 0:
@@ -1735,14 +1737,14 @@ class Frog(AquaticCreature):
         # 🔄 动态繁殖：根据食物数量控制
         plankton_count = ecosystem.get_species_count("plankton") if hasattr(ecosystem, "get_species_count") else len([p for p in ecosystem.aquatic_creatures if p.species == "plankton" and p.alive])
         insect_count = (ecosystem.get_species_count("insect") + ecosystem.get_species_count("bee")) if hasattr(ecosystem, "get_species_count") else len([i for i in ecosystem.animals if i.species in {"insect", "bee"} and i.alive])
-        food_count = plankton_count + insect_count + int(hatch_support * 7)
+        food_count = plankton_count + insect_count + int(hatch_support * 9)
         current_frog = ecosystem.get_species_count("frog") if hasattr(ecosystem, "get_species_count") else len([f for f in ecosystem.animals if f.species == "frog" and f.alive])
         food_factor = max(0.20, min(2.0, food_count / max(1, current_frog * 2.1)))
         if current_frog <= 8:
             food_factor = min(2.35, food_factor * 1.32)
         elif current_frog <= 16:
             food_factor = min(2.05, food_factor * 1.12)
-        wetland_factor = max(0.72, min(1.46, 0.78 + wetland_support * 0.72 + hatch_support * 0.12))
+        wetland_factor = max(0.82, min(1.62, 0.84 + wetland_support * 0.80 + hatch_support * 0.18))
         
         if self.pregnant:
             self.pregnancy_timer += 1
@@ -1755,11 +1757,15 @@ class Frog(AquaticCreature):
         
         elif self.gender == 'female' and self.reproduction_cooldown == 0:
             male_count = ecosystem.get_gender_count("frog", "male") if hasattr(ecosystem, "get_gender_count") else len([f for f in ecosystem.animals if f.species == "frog" and f.gender == 'male' and f.alive])
-            if male_count and wetland_support >= 0.06 and food_count > max(6, int(current_frog * 1.35)) and random.random() < 0.042 * food_factor * wetland_factor:
+            if male_count and wetland_support >= 0.04 and food_count > max(5, int(current_frog * 1.20)) and random.random() < 0.052 * food_factor * wetland_factor:
                 self.pregnant = True
 
         if self._escape_predators(ecosystem):
-            if self.hunger > 36:
+            if hatch_support > 0.15 and hasattr(ecosystem, "consume_microhabitat"):
+                consumed = ecosystem.consume_microhabitat({"shore_hatch"}, self.position, 0.05, radius=3)
+                if consumed > 0:
+                    self.eat(4)
+            elif self.hunger > 36:
                 self.eat(3)
             return
 
@@ -1776,8 +1782,19 @@ class Frog(AquaticCreature):
                     else:
                         target.die()
                     self.eat(12 if target.species != "algae" else 8)
+                elif hatch_support > 0.18 and hasattr(ecosystem, "consume_microhabitat"):
+                    consumed = ecosystem.consume_microhabitat({"shore_hatch"}, self.position, 0.06, radius=3)
+                    if consumed > 0:
+                        self.eat(5)
             else:
-                insects = [a for a in ecosystem.animals if a.species in {"insect", "bee", "spider"} and a.alive]
+                insects = []
+                if hasattr(ecosystem, "get_nearby_animals"):
+                    insects = [
+                        a for a in ecosystem.get_nearby_animals(self.position, 6)
+                        if a.species in {"insect", "bee", "spider"} and a.alive
+                    ]
+                else:
+                    insects = [a for a in ecosystem.animals if a.species in {"insect", "bee", "spider"} and a.alive]
                 if insects:
                     closest = min(insects, key=lambda i: abs(i.position[0]-self.position[0]) + abs(i.position[1]-self.position[1]))
                     self.move_towards(closest.position, ecosystem)
