@@ -1,0 +1,172 @@
+"""
+基础测试
+"""
+
+import sys
+import os
+
+# 添加项目根目录到路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.core.ecosystem import Ecosystem, Environment
+from src.core.environment import TerrainType
+from src.entities.plants import Grass, Tree
+from src.entities.animals import Rabbit, Fox
+
+
+def test_environment():
+    """测试环境系统"""
+    env = Environment(40, 30)
+    
+    assert env.width == 40
+    assert env.height == 30
+    assert env.season == "spring"
+    
+    # 测试地形生成
+    terrain_types = set(env.terrain.values())
+    assert TerrainType.GRASS in terrain_types
+    
+    print("✅ Environment test passed")
+
+
+def test_plants():
+    """测试植物系统"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+    
+    # 添加草
+    initial_count = len(eco.plants)
+    eco.spawn_plant("grass", position)
+    assert len(eco.plants) == initial_count + 1
+    
+    # 测试生长
+    grass = eco.plants[-1]
+    assert grass.species == "grass"
+    initial_size = grass.size
+    grass.update(eco)
+    assert grass.size > initial_size
+    
+    print("✅ Plants test passed")
+
+
+def test_animals():
+    """测试动物系统"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+    
+    # 添加兔子
+    initial_animals = len(eco.animals)
+    eco.spawn_animal("rabbit", position)
+    assert len(eco.animals) == initial_animals + 1
+    
+    # 测试状态
+    rabbit = eco.animals[-1]
+    assert rabbit.health == 100
+    assert rabbit.hunger == 0
+    
+    print("✅ Animals test passed")
+
+
+def test_ecosystem_update():
+    """测试生态系统更新"""
+    eco = Ecosystem()
+    
+    initial_tick = eco.tick_count
+    eco.update()
+    
+    assert eco.tick_count == initial_tick + 1
+    assert eco.environment.hour == 1 or eco.environment.hour == 0
+    
+    print("✅ Ecosystem update test passed")
+
+
+def test_food_chain():
+    """测试食物链"""
+    eco = Ecosystem()
+    
+    # 清空后手动添加
+    eco.plants = []
+    eco.animals = []
+    
+    # 添加草和兔子
+    eco.spawn_plant("grass", (10, 10))
+    eco.spawn_animal("rabbit", (10, 10))
+    
+    rabbit = eco.animals[0]
+    initial_hunger = rabbit.hunger
+    
+    # 运行一段时间
+    for _ in range(10):
+        eco.update()
+    
+    # 兔子应该有饥饿值变化
+    assert rabbit.hunger != initial_hunger or not rabbit.alive
+    
+    print("✅ Food chain test passed")
+
+
+def test_statistics():
+    """测试统计功能"""
+    eco = Ecosystem()
+    
+    stats = eco.get_statistics()
+    
+    assert "tick" in stats
+    assert "plants" in stats
+    assert "animals" in stats
+    assert "species" in stats
+    
+    print("✅ Statistics test passed")
+
+
+def test_minnow_registration_and_spawn():
+    """测试米诺鱼注册和按水体类型生成"""
+    eco = Ecosystem()
+
+    assert "minnow" in eco.AQUATIC_SPECIES
+
+    position = eco._random_water_position_for_body_type({"river_channel", "lake_shallow"})
+    assert position is not None
+    body_type = eco.environment.get_water_body_type(position[0], position[1])
+    assert body_type in {"river_channel", "lake_shallow"}
+
+    initial_count = len(eco.aquatic_creatures)
+    eco.spawn_aquatic("minnow", position, source="manual")
+    assert len(eco.aquatic_creatures) == initial_count + 1
+    assert eco.aquatic_creatures[-1].species == "minnow"
+
+    print("✅ Minnow registration test passed")
+
+
+def test_shrimp_uses_shallow_or_river_habitat():
+    """测试虾优先有有效的浅水/河道栖息地来源"""
+    eco = Ecosystem()
+
+    position = eco._random_inflow_water_position_for_body_type({"river_channel", "lake_shallow"})
+    assert position is not None
+    body_type = eco.environment.get_water_body_type(position[0], position[1])
+    assert body_type in {"river_channel", "lake_shallow"}
+
+    print("✅ Shrimp habitat source test passed")
+
+
+def run_all_tests():
+    """运行所有测试"""
+    print("🧪 Running EcoWorld tests...\n")
+    
+    test_environment()
+    test_plants()
+    test_animals()
+    test_ecosystem_update()
+    test_food_chain()
+    test_statistics()
+    test_minnow_registration_and_spawn()
+    test_shrimp_uses_shallow_or_river_habitat()
+    
+    print("\n✅ All tests passed!")
+
+
+if __name__ == "__main__":
+    run_all_tests()

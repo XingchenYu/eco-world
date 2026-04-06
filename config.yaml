@@ -1,0 +1,177 @@
+# EcoWorld 配置文件 - 扩展版
+
+# 地图设置
+world:
+  width: 800
+  height: 600
+  grid_size: 20  # 每个格子大小
+
+# 时间系统
+time:
+  tick_interval: 100  # 毫秒
+  day_length: 24      # tick数 = 1天
+  season_length: 30   # 天数 = 1季节
+
+# 环境设置
+environment:
+  grass_growth_rate: 0.02  # 草生长速度
+  water_tiles: 10          # 水源格子数量
+  initial_grass: 50        # 初始草数量
+
+# 植物设置
+plants:
+  grass:
+    max_age: 100
+    growth_rate: 0.03
+    spread_radius: 2
+  bush:
+    max_age: 150
+    growth_rate: 0.015
+    spread_radius: 3
+  flower:
+    max_age: 50
+    growth_rate: 0.04
+    spread_radius: 1
+  moss:
+    max_age: 80
+    growth_rate: 0.02
+    spread_radius: 1
+
+# 动物设置
+animals:
+  insect:
+    max_age: 30
+    hunger_rate: 0.5
+    reproduction_rate: 0.1
+    speed: 1.5
+  rabbit:
+    max_age: 60
+    hunger_rate: 0.3
+    reproduction_rate: 0.05
+    speed: 2.0
+    vision_range: 5
+  fox:
+    max_age: 80
+    hunger_rate: 0.4
+    reproduction_rate: 0.03
+    speed: 3.0
+    vision_range: 8
+  deer:
+    max_age: 120
+    hunger_rate: 0.25
+    reproduction_rate: 0.03
+    speed: 2.0
+    vision_range: 8
+  mouse:
+    max_age: 40
+    hunger_rate: 0.4
+    reproduction_rate: 0.2
+    speed: 1.8
+    vision_range: 4
+  bird:
+    max_age: 50
+    hunger_rate: 0.35
+    reproduction_rate: 0.06
+    speed: 4.0
+    vision_range: 12
+  snake:
+    max_age: 70
+    hunger_rate: 0.3
+    reproduction_rate: 0.05
+    speed: 2.0
+    vision_range: 5
+  bee:
+    max_age: 25
+    hunger_rate: 0.6
+    reproduction_rate: 0.1
+    speed: 3.0
+    vision_range: 6
+
+# 初始种群 - 游戏开始时自动创建所有生物
+initial_population:
+  # === 陆地植物 ===
+  grass: 50
+  bush: 15
+  flower: 20
+  moss: 10
+  # 新增植物
+  tree: 8
+  vine: 12
+  cactus: 6
+  berry: 10
+  mushroom: 15
+  fern: 12
+  # 果类植物
+  apple_tree: 10
+  cherry_tree: 8
+  grape_vine: 15
+  strawberry: 20
+  blueberry: 15
+  orange_tree: 8
+  watermelon: 10
+  
+  # === 陆地动物 ===
+  insects: 20
+  rabbits: 15
+  foxes: 5
+  deer: 3
+  mouse: 10
+  bird: 5
+  snake: 3
+  bee: 8
+  # 新增鸟类
+  eagle: 2
+  owl: 3
+  duck: 5
+  swan: 3
+  sparrow: 10
+  parrot: 4
+  kingfisher: 3
+  magpie: 8
+  crow: 5
+  woodpecker: 6
+  hummingbird: 10
+  # 新增哺乳动物
+  squirrel: 12
+  hedgehog: 8
+  bat: 8
+  raccoon: 6
+  # 天敌
+  wolf: 3
+  spider: 10
+  # 新增杂食动物
+  bear: 4
+  wild_boar: 10
+  badger: 8
+  raccoon_dog: 6
+  skunk: 8
+  opossum: 10
+  coati: 6
+  armadillo: 6
+  
+  # === 水生生物 ===
+  algae: 30
+  seaweed: 15
+  plankton: 40
+  # 鱼类
+  small_fish: 15
+  minnow: 12
+  carp: 8
+  catfish: 5
+  large_fish: 3
+  pufferfish: 4
+  blackfish: 4
+  pike: 3
+  # 甲壳类
+  shrimp: 20
+  crab: 6
+  # 两栖类
+  frog: 5
+  tadpole: 8
+  water_strider: 10
+
+# 显示设置
+display:
+  show_grid: true
+  show_stats: true
+  background_color: "#1a3a1a"

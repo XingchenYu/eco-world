@@ -1,0 +1,327 @@
+"""
+杂食动物模块 - 新增物种
+"""
+from typing import Tuple, List
+import random
+from enum import Enum
+from .animals import Animal, Gender
+
+
+class Bear(Animal):
+    """熊 - 大型杂食动物，什么都吃"""
+    
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="bear",
+            position=position,
+            max_age=120,
+            hunger_rate=0.25,
+            reproduction_rate=0.03,
+            speed=2.5,
+            vision_range=10,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🐻"
+        self.color = (139, 90, 43)
+        self.pregnancy_duration = 20
+        self.dominance = 1.5  # 高支配力
+        self.hibernating = False
+        
+    def get_predators(self) -> List[str]:
+        return []  # 熊没有天敌
+        
+    def get_food_sources(self) -> List[str]:
+        # 熊吃各种果实和植物
+        return ["apple_tree", "cherry_tree", "blueberry", "strawberry", 
+                "grape_vine", "orange_tree", "watermelon", "berry",
+                "bush", "flower", "moss", "grass", "mushroom", "fern"]
+        
+    def get_prey_species(self) -> List[str]:
+        # 熊也捕食动物
+        return ["small_fish", "carp", "rabbit", "mouse", "insect", "frog", "bee", "duck", "swan", "shrimp"]
+        
+    def execute_behavior(self, ecosystem):
+        """熊冬季冬眠"""
+        if ecosystem.environment.season == "winter":
+            self.hibernating = True
+            self.hunger_rate = 0.05  # 冬眠时消耗少
+            return  # 冬眠不活动
+        else:
+            self.hibernating = False
+            self.hunger_rate = 0.25
+        super().execute_behavior(ecosystem)
+        
+    def hunt(self, prey, ecosystem):
+        """熊捕食"""
+        prey.die()
+        nutrition = 40
+        self.eat(nutrition)
+
+
+class WildBoar(Animal):
+    """野猪 - 杂食，用鼻子掘食"""
+    
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="wild_boar",
+            position=position,
+            max_age=70,
+            hunger_rate=0.35,
+            reproduction_rate=0.08,
+            speed=2.0,
+            vision_range=6,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🐗"
+        self.color = (101, 67, 33)
+        self.pregnancy_duration = 12
+        self.dominance = 1.2
+        self.can_dig = True
+        
+    def get_predators(self) -> List[str]:
+        return ["wolf", "bear"]
+        
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "bush", "flower", "moss", "berry",
+                "strawberry", "blueberry", "mushroom", "fern", "apple_tree", "watermelon"]
+        
+    def get_prey_species(self) -> List[str]:
+        return ["insect", "mouse", "frog", "tadpole", "shrimp", "water_strider"]
+        
+    def forage(self, ecosystem):
+        """野猪用鼻子掘食"""
+        # 优先找果实和块茎
+        nearby_plants = ecosystem.get_nearby_plants(self.position, self.vision_range)
+        fruits = [p for p in nearby_plants if hasattr(p, 'has_fruit') and p.has_fruit]
+        
+        if fruits:
+            closest = min(fruits, key=lambda p:
+                abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
+            self.move_towards(closest.position, ecosystem)
+            dist = abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1])
+            if dist <= 1:
+                nutrition = closest.be_eaten(1.0)
+                self.eat(nutrition)
+                # 掘食可能伤害植物
+                if random.random() < 0.3:
+                    closest.health -= 10
+        else:
+            super().forage(ecosystem)
+
+
+class Badger(Animal):
+    """獾 - 夜行性杂食动物"""
+    
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="badger",
+            position=position,
+            max_age=50,
+            hunger_rate=0.32,
+            reproduction_rate=0.06,
+            speed=1.8,
+            vision_range=5,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🦡"
+        self.color = (128, 128, 128)
+        self.pregnancy_duration = 10
+        self.is_nocturnal = True
+        self.has_burrow = False
+        
+    def get_predators(self) -> List[str]:
+        return ["wolf", "bear", "eagle"]
+        
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "flower", "berry", "mushroom", "blueberry", "strawberry", "moss"]
+        
+    def get_prey_species(self) -> List[str]:
+        return ["insect", "mouse", "frog", "bee", "spider", "tadpole", "water_strider"]
+        
+    def execute_behavior(self, ecosystem):
+        """獾夜间活动"""
+        hour = ecosystem.environment.hour
+        if 18 <= hour or hour < 6:
+            self.speed = 2.2
+            self.vision_range = 7
+        else:
+            self.speed = 0.5  # 白天躲在洞穴
+            self.vision_range = 2
+        super().execute_behavior(ecosystem)
+
+
+class RaccoonDog(Animal):
+    """貉 - 像浣熊的犬科"""
+    
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="raccoon_dog",
+            position=position,
+            max_age=45,
+            hunger_rate=0.30,
+            reproduction_rate=0.10,
+            speed=2.0,
+            vision_range=6,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🐕"
+        self.color = (160, 120, 80)
+        self.pregnancy_duration = 10
+        self.can_swim = True
+        
+    def get_predators(self) -> List[str]:
+        return ["wolf", "bear", "fox"]
+        
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "flower", "berry", "blueberry", "strawberry", "mushroom", "apple_tree"]
+        
+    def get_prey_species(self) -> List[str]:
+        return ["insect", "mouse", "frog", "small_fish", "shrimp", "tadpole", "water_strider", "bird"]
+
+
+class Skunk(Animal):
+    """臭鼬 - 有臭腺防御"""
+    
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="skunk",
+            position=position,
+            max_age=35,
+            hunger_rate=0.35,
+            reproduction_rate=0.08,
+            speed=1.5,
+            vision_range=4,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🦨"
+        self.color = (0, 0, 0)
+        self.pregnancy_duration = 8
+        self.defense_rating = 2.0  # 高防御
+        self.can_spray = True  # 臭腺
+        
+    def get_predators(self) -> List[str]:
+        return []  # 臭鼬很少有捕食者
+        
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "flower", "berry", "mushroom", "strawberry", "blueberry", "moss"]
+        
+    def get_prey_species(self) -> List[str]:
+        return ["insect", "mouse", "frog", "bee", "spider", "water_strider"]
+        
+    def defend_against_predator(self, predator, ecosystem):
+        """臭鼬喷臭液防御"""
+        if random.random() < 0.7:  # 70%成功率
+            # 成功防御，捕食者逃跑
+            predator.health -= 5
+            ecosystem.log_event(f"{self.id} sprayed {predator.id}")
+            return "sprayed"
+        return "failed"
+
+
+class Opossum(Animal):
+    """负鼠 - 会装死"""
+    
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="opossum",
+            position=position,
+            max_age=25,
+            hunger_rate=0.40,
+            reproduction_rate=0.15,
+            speed=1.2,
+            vision_range=4,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🐭"
+        self.color = (150, 150, 150)
+        self.pregnancy_duration = 5
+        self.can_play_dead = True
+        
+    def get_predators(self) -> List[str]:
+        return ["wolf", "fox", "owl", "eagle"]
+        
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "flower", "berry", "mushroom", "blueberry", "strawberry", "moss"]
+        
+    def get_prey_species(self) -> List[str]:
+        return ["insect", "mouse", "frog", "spider", "water_strider"]
+        
+    def check_danger(self, ecosystem) -> bool:
+        """负鼠装死躲避捕食者"""
+        if random.random() < 0.6:  # 60%成功装死
+            return False  # 捕食者忽略
+        return super().check_danger(ecosystem)
+
+
+class Coati(Animal):
+    """长鼻浣熊 - 热带杂食动物"""
+    
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="coati",
+            position=position,
+            max_age=40,
+            hunger_rate=0.32,
+            reproduction_rate=0.09,
+            speed=2.5,
+            vision_range=7,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🦝"
+        self.color = (205, 133, 63)
+        self.pregnancy_duration = 10
+        self.can_climb = True
+        
+    def get_predators(self) -> List[str]:
+        return ["eagle", "snake", "wolf"]
+        
+    def get_food_sources(self) -> List[str]:
+        return ["apple_tree", "cherry_tree", "berry", "strawberry", 
+                "grape_vine", "blueberry", "flower", "orange_tree", "watermelon", "mushroom"]
+        
+    def get_prey_species(self) -> List[str]:
+        return ["insect", "mouse", "frog", "bird", "sparrow", "bee", "spider", "tadpole"]
+
+
+class Armadillo(Animal):
+    """犰狳 - 有装甲外壳"""
+    
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="armadillo",
+            position=position,
+            max_age=50,
+            hunger_rate=0.28,
+            reproduction_rate=0.05,
+            speed=1.0,
+            vision_range=3,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🦔"
+        self.color = (210, 180, 140)
+        self.pregnancy_duration = 12
+        self.defense_rating = 2.5  # 很高的防御
+        self.has_armor = True
+        
+    def get_predators(self) -> List[str]:
+        return []  # 装甲保护
+        
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "flower", "berry", "mushroom", "fern", "moss"]
+        
+    def get_prey_species(self) -> List[str]:
+        return ["insect", "bee", "spider", "tadpole", "water_strider"]
+        
+    def defend_against_predator(self, predator, ecosystem):
+        """犰狳蜷缩成球"""
+        if random.random() < 0.8:  # 80%成功
+            return "curled"
+        return "failed"

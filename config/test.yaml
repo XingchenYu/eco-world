@@ -1,0 +1,101 @@
+# EcoWorld 完整配置 - 果类植物与杂食动物版
+
+world:
+  width: 800
+  height: 600
+
+initial_population:
+  # ==================== 陆地植物 ====================
+  # 基础植物
+  grass: 60
+  bush: 15
+  flower: 20
+  moss: 10
+  
+  # 新增植物
+  tree: 10
+  vine: 15
+  cactus: 8
+  berry: 12
+  mushroom: 20
+  fern: 15
+  
+  # ==================== 果类植物 ====================
+  apple_tree: 12      # 苹果树 - 秋季果实
+  cherry_tree: 10     # 樱桃树 - 春季果实
+  grape_vine: 18      # 葡萄藤 - 夏季果实
+  strawberry: 25      # 草莓 - 夏秋果实
+  blueberry: 18       # 蓝莓 - 夏季果实
+  orange_tree: 10     # 橙子树 - 冬季果实
+  watermelon: 12      # 西瓜 - 夏季果实
+  
+  # ==================== 陆地动物 ====================
+  # 基础动物
+  insects: 30
+  rabbits: 20
+  foxes: 8
+  deer: 10
+  mouse: 15
+  bird: 8
+  snake: 5
+  bee: 12
+  
+  # 鸟类
+  eagle: 3
+  owl: 5
+  duck: 8
+  swan: 5
+  sparrow: 15
+  parrot: 6
+  kingfisher: 5
+  
+  # 天敌
+  wolf: 5
+  spider: 25
+  
+  # 新增鸟类
+  magpie: 10
+  crow: 6
+  woodpecker: 8
+  hummingbird: 12
+  
+  # 新增哺乳动物
+  squirrel: 15
+  hedgehog: 10
+  bat: 10
+  raccoon: 8
+  
+  # ==================== 新增杂食动物 ====================
+  bear: 5             # 熊 - 大型杂食，冬眠
+  wild_boar: 12       # 野猪 - 掘食
+  badger: 10          # 獾 - 夜行性
+  raccoon_dog: 8      # 貉 - 像浣熊
+  skunk: 10           # 臭鼬 - 臭腺防御
+  opossum: 12         # 负鼠 - 装死
+  coati: 8            # 长鼻浣熊 - 热带
+  armadillo: 8        # 犰狳 - 装甲防御
+  
+  # ==================== 水生生物 ====================
+  # 水生植物
+  algae: 50
+  seaweed: 25
+  plankton: 60
+  
+  # 鱼类
+  small_fish: 25
+  minnow: 14
+  carp: 15
+  catfish: 8
+  large_fish: 5
+  pufferfish: 6
+  
+  # 天敌鱼
+  blackfish: 6
+  pike: 5
+  
+  # 甲壳类
+  shrimp: 30
+  crab: 10
+  
+  # 两栖动物
+  frog: 8
