@@ -65,6 +65,7 @@ class Animal(Creature):
         self.last_prey_count = 0  # 上一次检查时的猎物数量
         self.check_interval = 0  # 检查间隔
         self._local_query_cache = {}
+        self._predator_species_cache = None
 
     def _reset_local_query_cache(self):
         self._local_query_cache = {}
@@ -100,6 +101,11 @@ class Animal(Creature):
             cached = ecosystem.get_nearby_aquatic(self.position, range_)
             self._local_query_cache[key] = cached
         return cached
+
+    def _predator_species(self):
+        if self._predator_species_cache is None:
+            self._predator_species_cache = set(self.get_predators())
+        return self._predator_species_cache
 
     def get_cover_plant_species(self) -> List[str]:
         return []
@@ -221,14 +227,25 @@ class Animal(Creature):
             if hasattr(ecosystem, "get_local_microhabitat_value"):
                 bonus += min(0.16, ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "nectar_patch"}, radius=4) * 0.05)
         if self.prefers_water_edge_cover():
+            water_edge_hits = 0
+            is_water = ecosystem.environment.is_water
+            width = ecosystem.width
+            height = ecosystem.height
             for plant in matching:
                 x, y = plant.position
                 for dx in range(-1, 2):
                     for dy in range(-1, 2):
                         nx, ny = x + dx, y + dy
-                        if 0 <= nx < ecosystem.width and 0 <= ny < ecosystem.height and ecosystem.environment.is_water(nx, ny):
-                            bonus += 0.05
+                        if 0 <= nx < width and 0 <= ny < height and is_water(nx, ny):
+                            water_edge_hits += 1
                             break
+                    else:
+                        continue
+                    break
+                if water_edge_hits >= 2:
+                    break
+            if water_edge_hits:
+                bonus += min(0.10, water_edge_hits * 0.05)
             if hasattr(ecosystem, "get_local_microhabitat_value"):
                 bonus += min(0.14, ecosystem.get_local_microhabitat_value(self.position, {"riparian_perch", "wetland_patch"}, radius=4) * 0.05)
         return min(0.28, bonus)
@@ -547,7 +564,7 @@ class Animal(Creature):
     def check_danger(self, ecosystem) -> bool:
         if self.diet == "carnivore":
             return False
-        predators = set(self.get_predators())
+        predators = self._predator_species()
         if not predators:
             return False
         nearby = self._cached_nearby_creatures(ecosystem, self.vision_range)
@@ -560,7 +577,7 @@ class Animal(Creature):
         return []
         
     def escape(self, ecosystem):
-        predators_set = set(self.get_predators())
+        predators_set = self._predator_species()
         if not predators_set:
             return
         nearby = self._cached_nearby_creatures(ecosystem, self.vision_range)
