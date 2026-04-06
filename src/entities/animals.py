@@ -275,14 +275,25 @@ class Animal(Creature):
             return
             
         self.check_interval = 0
+        species_counts = ecosystem._latest_species_counts if hasattr(ecosystem, "_latest_species_counts") and ecosystem._latest_species_counts else None
+
+        def species_count(species: str) -> int:
+            if species_counts is not None:
+                return species_counts.get(species, 0)
+            if hasattr(ecosystem, "get_species_count"):
+                return ecosystem.get_species_count(species)
+            return len([a for a in ecosystem.animals if a.species == species and a.alive])
         
         # 获取食物来源数量
         if self.diet == "herbivore":
             # 食草动物：检查植物数量
-            food_count = len([p for p in ecosystem.plants if p.alive])
+            if species_counts is not None and hasattr(ecosystem, "PLANT_SPECIES"):
+                food_count = sum(species_counts.get(sp, 0) for sp in ecosystem.PLANT_SPECIES)
+            else:
+                food_count = len([p for p in ecosystem.plants if p.alive])
             # 理想食物数量（相对于自身数量）
             ideal_food = 3  # 每个食草动物需要3株植物
-            animal_count = len([a for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "herbivore" and a.alive])
+            animal_count = sum(1 for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "herbivore" and a.alive)
             
         elif self.diet == "carnivore":
             # 捕食者：检查猎物数量
@@ -290,27 +301,24 @@ class Animal(Creature):
             if hasattr(ecosystem, "get_sustainable_population"):
                 food_count = sum(ecosystem.get_sustainable_population(sp) for sp in prey_species)
             else:
-                food_count = sum(
-                    len([a for a in ecosystem.animals if a.species == sp and a.alive])
-                    for sp in prey_species
-                )
+                food_count = sum(species_count(sp) for sp in prey_species)
             ideal_food = 2  # 每个捕食者需要2个猎物
-            animal_count = len([a for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "carnivore" and a.alive])
+            animal_count = sum(1 for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "carnivore" and a.alive)
             
         else:  # omnivore
             # 杂食：综合计算
-            plant_count = len([p for p in ecosystem.plants if p.alive])
+            if species_counts is not None and hasattr(ecosystem, "PLANT_SPECIES"):
+                plant_count = sum(species_counts.get(sp, 0) for sp in ecosystem.PLANT_SPECIES)
+            else:
+                plant_count = len([p for p in ecosystem.plants if p.alive])
             prey_species = self.get_prey_species() if hasattr(self, 'get_prey_species') else []
             if hasattr(ecosystem, "get_sustainable_population"):
                 prey_count = sum(ecosystem.get_sustainable_population(sp) for sp in prey_species)
             else:
-                prey_count = sum(
-                    len([a for a in ecosystem.animals if a.species == sp and a.alive])
-                    for sp in prey_species
-                )
+                prey_count = sum(species_count(sp) for sp in prey_species)
             food_count = plant_count + prey_count * 2  # 猎物价值更高
             ideal_food = 4
-            animal_count = len([a for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "omnivore" and a.alive])
+            animal_count = sum(1 for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "omnivore" and a.alive)
             
         # 计算食物充足度
         if animal_count > 0:
