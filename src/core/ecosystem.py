@@ -839,10 +839,15 @@ class Ecosystem:
         radius: int = 4,
     ) -> List[MicrohabitatPatch]:
         if isinstance(kinds, str):
-            kinds = {kinds}
-        elif kinds is not None:
-            kinds = set(kinds)
-        normalized_kinds = tuple(sorted(kinds)) if kinds is not None else tuple()
+            kinds = (kinds,)
+            normalized_kinds = kinds
+            kind_filter = {kinds[0]}
+        elif kinds is None:
+            normalized_kinds = tuple()
+            kind_filter = None
+        else:
+            normalized_kinds = tuple(sorted(kinds))
+            kind_filter = set(normalized_kinds)
 
         if position is None:
             patches = self.microhabitats
@@ -853,20 +858,31 @@ class Ecosystem:
                 return cached
             cell_x, cell_y = self._microhabitat_cell_for(position)
             cell_radius = max(1, (radius + self._spatial_cell_size - 1) // self._spatial_cell_size)
+            offsets = self._spatial_offset_cache.get(cell_radius)
+            if offsets is None:
+                offsets = [(dx, dy) for dx in range(-cell_radius, cell_radius + 1) for dy in range(-cell_radius, cell_radius + 1)]
+                self._spatial_offset_cache[cell_radius] = offsets
             patches = []
-            for dx in range(-cell_radius, cell_radius + 1):
-                for dy in range(-cell_radius, cell_radius + 1):
-                    patches.extend(self._microhabitat_index.get((cell_x + dx, cell_y + dy), []))
+            get_bucket = self._microhabitat_index.get
+            patches_extend = patches.extend
+            for dx, dy in offsets:
+                bucket = get_bucket((cell_x + dx, cell_y + dy))
+                if bucket:
+                    patches_extend(bucket)
 
         result = []
+        result_append = result.append
+        px = py = None
+        if position is not None:
+            px, py = position
         for patch in patches:
-            if kinds and patch.kind not in kinds:
+            if kind_filter and patch.kind not in kind_filter:
                 continue
             if position is not None:
-                dist = abs(patch.position[0] - position[0]) + abs(patch.position[1] - position[1])
+                dist = abs(patch.position[0] - px) + abs(patch.position[1] - py)
                 if dist > radius:
                     continue
-            result.append(patch)
+            result_append(patch)
         if position is not None:
             self._microhabitat_patch_cache[cache_key] = result
         return result
@@ -1918,7 +1934,7 @@ class Ecosystem:
         cache_key = (self.tick_count, position[0], position[1], range_, normalized_species)
         cached = self._nearby_aquatic_count_cache.get(cache_key)
         if cached is not None:
-            return dict(cached)
+            return cached
 
         cell_x, cell_y = self._cell_for(position)
         radius = max(1, (range_ + self._spatial_cell_size - 1) // self._spatial_cell_size)
@@ -1931,6 +1947,7 @@ class Ecosystem:
         max_dist = range_
         counts: Dict[str, int] = defaultdict(int)
         get_bucket = self._aquatic_index.get
+        abs_fn = abs
 
         for dx, dy in offsets:
             bucket = get_bucket((cell_x + dx, cell_y + dy))
@@ -1940,12 +1957,12 @@ class Ecosystem:
                 if not entity.alive or entity.species not in target_species:
                     continue
                 ex, ey = entity.position
-                if abs(ex - px) + abs(ey - py) <= max_dist:
+                if abs_fn(ex - px) + abs_fn(ey - py) <= max_dist:
                     counts[entity.species] += 1
 
         result = dict(counts)
         self._nearby_aquatic_count_cache[cache_key] = result
-        return dict(result)
+        return result
 
     def get_water_candidate_positions(self, position: Tuple[int, int], radius: int) -> List[Tuple[int, int]]:
         """缓存局部水域候选格，减少水生移动时的重复枚举。"""
@@ -1956,16 +1973,23 @@ class Ecosystem:
 
         px, py = position
         positions: List[Tuple[int, int]] = []
-        for dx in range(-radius, radius + 1):
-            for dy in range(-radius, radius + 1):
-                if dx == 0 and dy == 0:
-                    continue
-                if abs(dx) + abs(dy) > radius + 1:
-                    continue
-                x = max(0, min(px + dx, self.width - 1))
-                y = max(0, min(py + dy, self.height - 1))
-                if self.environment.is_water(x, y):
-                    positions.append((x, y))
+        offsets = self._spatial_offset_cache.get(radius)
+        if offsets is None:
+            offsets = [(dx, dy) for dx in range(-radius, radius + 1) for dy in range(-radius, radius + 1)]
+            self._spatial_offset_cache[radius] = offsets
+        is_water = self.environment.is_water
+        width = self.width
+        height = self.height
+        positions_append = positions.append
+        for dx, dy in offsets:
+            if dx == 0 and dy == 0:
+                continue
+            if abs(dx) + abs(dy) > radius + 1:
+                continue
+            x = max(0, min(px + dx, width - 1))
+            y = max(0, min(py + dy, height - 1))
+            if is_water(x, y):
+                positions_append((x, y))
         positions.sort(key=lambda pos: abs(pos[0] - px) + abs(pos[1] - py))
         self._water_candidate_cache[cache_key] = positions[:8]
         return self._water_candidate_cache[cache_key]

@@ -533,6 +533,7 @@ class SmallFish(AquaticCreature):
         self.color = (255, 215, 0)
         self.emoji = "🐟"
         self.predators = ["catfish", "large_fish", "blackfish", "pike", "crab", "kingfisher"]
+        self.swim_interval = 2
         
     def execute_behavior(self, ecosystem):
         if not self.alive: return
@@ -626,14 +627,15 @@ class SmallFish(AquaticCreature):
                             closest.die()
                             self.eat(12)
         
-        self.swim(
-            ecosystem,
-            preferred_body_types={"lake_shallow", "lake_deep"},
-            min_oxygen=0.55,
-            max_flow=0.72,
-            prey_species={"plankton", "algae", "water_strider"},
-            predator_species=set(self.predators),
-        )
+        if self.should_swim(ecosystem, active_hunger=18.0):
+            self.swim(
+                ecosystem,
+                preferred_body_types={"lake_shallow", "lake_deep"},
+                min_oxygen=0.55,
+                max_flow=0.72,
+                prey_species={"plankton", "algae", "water_strider"},
+                predator_species=set(self.predators),
+            )
 
 
 class Minnow(AquaticCreature):
@@ -647,6 +649,7 @@ class Minnow(AquaticCreature):
         self.color = (135, 206, 235)
         self.emoji = "🐠"
         self.predators = ["catfish", "large_fish", "blackfish", "pike", "crab", "kingfisher"]
+        self.swim_interval = 2
 
     def _schooling_factor(self, ecosystem):
         nearby = self._nearby_species(ecosystem, "minnow", 4)
@@ -750,15 +753,16 @@ class Minnow(AquaticCreature):
             elif random.random() < 0.22:
                 self.eat(4)
 
-        self.swim(
-            ecosystem,
-            preferred_body_types={"river_channel", "lake_shallow"},
-            min_oxygen=0.56,
-            max_flow=0.92,
-            min_nutrients=0.26,
-            prey_species={"plankton", "algae", "water_strider"},
-            predator_species=set(self.predators),
-        )
+        if self.should_swim(ecosystem, active_hunger=16.0):
+            self.swim(
+                ecosystem,
+                preferred_body_types={"river_channel", "lake_shallow"},
+                min_oxygen=0.56,
+                max_flow=0.92,
+                min_nutrients=0.26,
+                prey_species={"plankton", "algae", "water_strider"},
+                predator_species=set(self.predators),
+            )
 
 
 class Carp(AquaticCreature):
@@ -772,6 +776,7 @@ class Carp(AquaticCreature):
         self.color = (255, 140, 0)
         self.emoji = "🐟"
         self.predators = ["blackfish", "large_fish", "pike"]  # 天敌列表
+        self.swim_interval = 2
         
     def execute_behavior(self, ecosystem):
         if not self.alive: return
@@ -842,15 +847,16 @@ class Carp(AquaticCreature):
                     else:
                         closest.die()
                         self.eat(20)
-        self.swim(
-            ecosystem,
-            preferred_body_types={"lake_shallow", "lake_deep"},
-            min_oxygen=0.45,
-            max_flow=0.6,
-            min_nutrients=0.35,
-            prey_species={"plankton", "algae", "shrimp", "seaweed"},
-            predator_species=set(self.predators),
-        )
+        if self.should_swim(ecosystem, active_hunger=22.0):
+            self.swim(
+                ecosystem,
+                preferred_body_types={"lake_shallow", "lake_deep"},
+                min_oxygen=0.45,
+                max_flow=0.6,
+                min_nutrients=0.35,
+                prey_species={"plankton", "algae", "shrimp", "seaweed"},
+                predator_species=set(self.predators),
+            )
 
 
 class Catfish(AquaticCreature):
