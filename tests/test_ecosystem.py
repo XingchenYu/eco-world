@@ -4,6 +4,7 @@
 
 import sys
 import os
+from copy import deepcopy
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,6 +13,7 @@ from src.core.ecosystem import Ecosystem, Environment
 from src.core.environment import TerrainType
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
+from src.main import load_config
 
 
 def test_environment():
@@ -89,12 +91,16 @@ def test_food_chain():
     # 清空后手动添加
     eco.plants = []
     eco.animals = []
+    eco.aquatic_creatures = []
+    eco._rebuild_spatial_indices()
     
     # 添加草和兔子
-    eco.spawn_plant("grass", (10, 10))
-    eco.spawn_animal("rabbit", (10, 10))
+    position = eco._random_land_position()
+    assert position is not None
+    eco.spawn_plant("grass", position)
+    eco.spawn_animal("rabbit", position)
     
-    rabbit = eco.animals[0]
+    rabbit = next(a for a in eco.animals if a.species == "rabbit")
     initial_hunger = rabbit.hunger
     
     # 运行一段时间
@@ -152,6 +158,53 @@ def test_shrimp_uses_shallow_or_river_habitat():
     print("✅ Shrimp habitat source test passed")
 
 
+def test_load_config_preserves_world_dimensions():
+    """未显式传 CLI 宽高时，保留配置文件中的世界尺寸。"""
+    config = load_config("config/test.yaml")
+    world = deepcopy(config.get("world", {}))
+    world["grid_size"] = world.get("grid_size", 20)
+
+    eco = Ecosystem(config=config)
+
+    assert world["width"] == 800
+    assert world["height"] == 600
+    assert eco.width == world["width"] // world["grid_size"]
+    assert eco.height == world["height"] // world["grid_size"]
+
+    print("✅ Config world size preservation test passed")
+
+
+def test_land_animals_do_not_spawn_in_water():
+    """陆地动物不应生成在水域。"""
+    eco = Ecosystem()
+    water_pos = eco._random_water_position()
+    assert water_pos is not None
+
+    initial_rabbits = len([a for a in eco.animals if a.species == "rabbit" and a.alive])
+    eco.spawn_animal("rabbit", water_pos, source="manual")
+    rabbit_count = len([a for a in eco.animals if a.species == "rabbit" and a.alive])
+
+    assert rabbit_count == initial_rabbits
+
+    print("✅ Land animal water spawn guard test passed")
+
+
+def test_amphibious_animals_can_spawn_in_water():
+    """两栖/水鸟仍允许在水域生成。"""
+    eco = Ecosystem()
+    water_pos = eco._random_water_position()
+    assert water_pos is not None
+
+    initial_frogs = len([a for a in eco.animals if a.species == "frog" and a.alive])
+    eco.spawn_animal("frog", water_pos, source="manual")
+    frog_count = len([a for a in eco.animals if a.species == "frog" and a.alive])
+
+    assert frog_count == initial_frogs + 1
+    assert eco.animals[-1].position == water_pos
+
+    print("✅ Amphibious water spawn test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -164,6 +217,9 @@ def run_all_tests():
     test_statistics()
     test_minnow_registration_and_spawn()
     test_shrimp_uses_shallow_or_river_habitat()
+    test_load_config_preserves_world_dimensions()
+    test_land_animals_do_not_spawn_in_water()
+    test_amphibious_animals_can_spawn_in_water()
     
     print("\n✅ All tests passed!")
 

@@ -482,7 +482,7 @@ class SmallFish(AquaticCreature):
         profile = self._water_profile(ecosystem)
         if profile:
             if profile.body_type == "river_channel":
-                self.health = min(100, self.health + 0.12)
+                self.health = min(100, self.health + 0.05)
             elif profile.body_type == "lake_shallow":
                 self.health = min(100, self.health + 0.08)
             elif profile.body_type == "lake_deep":
@@ -513,6 +513,9 @@ class SmallFish(AquaticCreature):
         if profile and profile.body_type.startswith("lake"):
             predator_pressure = min(0.92, predator_pressure * 1.18)
             habitat_factor = min(1.35, habitat_factor * 1.12)
+        elif profile and profile.body_type == "river_channel":
+            predator_pressure = max(0.3, predator_pressure * 0.9)
+            habitat_factor = max(0.75, habitat_factor * 0.88)
         
         # 怀孕逻辑
         if self.pregnant:
@@ -564,9 +567,9 @@ class SmallFish(AquaticCreature):
         
         self.swim(
             ecosystem,
-            preferred_body_types={"river_channel", "lake_shallow", "lake_deep"},
+            preferred_body_types={"lake_shallow", "lake_deep"},
             min_oxygen=0.55,
-            max_flow=0.95,
+            max_flow=0.72,
             prey_species={"plankton", "algae", "water_strider"},
             predator_species=set(self.predators),
         )
@@ -575,7 +578,7 @@ class SmallFish(AquaticCreature):
 class Minnow(AquaticCreature):
     """米诺鱼 - 河道/浅湖中层小型猎物，缓解高位鱼对虾和小鱼的争食。"""
     def __init__(self, position, gender=None):
-        super().__init__("minnow", position, 42, 0.2, 0.16, 1.9, 5)
+        super().__init__("minnow", position, 42, 0.24, 0.09, 1.9, 5)
         self.gender = gender or random.choice(['male', 'female'])
         self.pregnant = False
         self.pregnancy_timer = 0
@@ -614,10 +617,10 @@ class Minnow(AquaticCreature):
         shrimp_count = len([s for s in ecosystem.aquatic_creatures if s.species == "shrimp" and s.alive])
         current_minnow = len([m for m in ecosystem.aquatic_creatures if m.species == "minnow" and m.alive])
 
-        food_supply = plankton_count + algae_count * 0.4 + shrimp_count * 0.2
-        food_factor = max(0.35, min(2.0, food_supply / max(1, current_minnow * 1.7)))
+        food_supply = plankton_count + algae_count * 0.45 + shrimp_count * 0.25
+        food_factor = max(0.35, min(1.8, food_supply / max(1, current_minnow * 1.9)))
         if current_minnow <= 10:
-            food_factor = min(2.3, food_factor * 1.26)
+            food_factor = min(1.6, food_factor * 1.08)
 
         predator_count = sum(
             len([c for c in ecosystem.aquatic_creatures if c.species == sp and c.alive])
@@ -625,7 +628,7 @@ class Minnow(AquaticCreature):
         )
         predator_pressure = max(0.42, 1.0 - predator_count * 0.032)
         if profile and profile.body_type == "river_channel":
-            predator_pressure = min(1.05, predator_pressure * (1.05 + (schooling_factor - 1.0) * 0.4))
+            predator_pressure = min(1.04, predator_pressure * (1.05 + (schooling_factor - 1.0) * 0.35))
         habitat_factor = self._habitat_score(
             ecosystem,
             {"river_channel", "lake_shallow"},
@@ -634,12 +637,12 @@ class Minnow(AquaticCreature):
             min_nutrients=0.26,
         )
         if profile and profile.body_type == "river_channel":
-            habitat_factor = min(1.45, habitat_factor * 1.14 * refuge_factor)
+            habitat_factor = min(1.42, habitat_factor * 1.14 * refuge_factor)
 
         if self.pregnant:
             self.pregnancy_timer += 1
             if self.pregnancy_timer >= 7:
-                litter_size = max(1, min(4, int(food_factor * predator_pressure * habitat_factor * 3)))
+                litter_size = max(1, min(3, int(food_factor * predator_pressure * habitat_factor * 2.6)))
                 for _ in range(litter_size):
                     ecosystem.spawn_aquatic("minnow", self.position)
                 self.pregnant = False
@@ -650,10 +653,14 @@ class Minnow(AquaticCreature):
             spawn_gate = 4 if current_minnow <= 10 else 7
             if ecosystem.environment.season == "spring":
                 spawn_gate = max(3, spawn_gate - 1)
+            if profile and profile.body_type == "river_channel":
+                spawn_gate = max(2, spawn_gate - 1)
             if males and food_supply > spawn_gate:
-                chance = (0.22 if current_minnow <= 10 else 0.16) * food_factor * predator_pressure * habitat_factor
+                chance = (0.09 if current_minnow <= 10 else 0.06) * food_factor * predator_pressure * habitat_factor
                 if ecosystem.environment.season == "spring":
-                    chance *= 1.14
+                    chance *= 1.10
+                if profile and profile.body_type == "river_channel":
+                    chance *= 1.08
                 if random.random() < chance:
                     self.pregnant = True
 
@@ -778,7 +785,7 @@ class Carp(AquaticCreature):
 class Catfish(AquaticCreature):
     """鲶鱼 - 底栖，吃小鱼/虾，繁殖由猎物数量控制"""
     def __init__(self, position, gender=None):
-        super().__init__("catfish", position, 80, 0.30, 0.06, 1.5, 4, AquaticType.BENTHIC)
+        super().__init__("catfish", position, 80, 0.37, 0.028, 1.5, 4, AquaticType.BENTHIC)
         self.gender = gender or random.choice(['male', 'female'])
         self.pregnant = False
         self.pregnancy_timer = 0
@@ -818,18 +825,20 @@ class Catfish(AquaticCreature):
             self.reproduction_cooldown -= 1
         
         # 🔄 动态繁殖：猎物不足时不繁殖
-        prey_count = len([c for c in ecosystem.aquatic_creatures 
-                         if c.species in ["small_fish", "minnow", "shrimp", "carp"] and c.alive])
+        prey_count = sum(
+            ecosystem.get_sustainable_population(sp) if hasattr(ecosystem, "get_sustainable_population") else len([c for c in ecosystem.aquatic_creatures if c.species == sp and c.alive])
+            for sp in ["small_fish", "minnow", "shrimp", "carp"]
+        )
         small_fish_count = len([c for c in ecosystem.aquatic_creatures if c.species == "small_fish" and c.alive])
         current_catfish = len([c for c in ecosystem.aquatic_creatures if c.species == "catfish" and c.alive])
-        food_factor = max(0.18, min(1.7, prey_count / max(1, current_catfish * 3.0)))
+        food_factor = max(0.14, min(1.12, prey_count / max(1, current_catfish * 4.2)))
         spawning_factor = self._spawning_factor(ecosystem)
         
         if self.pregnant:
             self.pregnancy_timer += 1
             if self.pregnancy_timer >= 12:
                 # 🌱 产仔数量由猎物决定
-                litter_size = max(1, min(3, int(food_factor * spawning_factor * 2)))
+                litter_size = max(1, min(2, int(food_factor * spawning_factor * 1.9)))
                 for _ in range(litter_size): 
                     ecosystem.spawn_aquatic("catfish", self.position)
                 self.pregnant = False
@@ -839,25 +848,27 @@ class Catfish(AquaticCreature):
             males = [c for c in ecosystem.aquatic_creatures 
                     if c.species == "catfish" and c.gender == 'male' and c.alive]
             # 猎物充足时才受孕
-            prey_gate = max(2, int(current_catfish * (0.8 if current_catfish <= 4 else 1.0)))
-            if males and prey_count > prey_gate and random.random() < 0.038 * food_factor * spawning_factor:
+            prey_gate = max(3, int(current_catfish * (0.9 if current_catfish <= 4 else 1.1)))
+            if males and prey_count > prey_gate and random.random() < 0.018 * food_factor * spawning_factor:
                 self.pregnant = True
                 
         if self.hunger > 20:
             minnows = self._nearby_species(ecosystem, "minnow", 3)
-            if minnows and prey_count > current_catfish:
+            if minnows and prey_count > current_catfish and len(minnows) > max(3, current_catfish * 2):
                 closest = min(minnows, key=lambda p: abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 2:
+                chance = ecosystem.get_predation_chance("catfish", "minnow", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 2 and random.random() < min(0.58, chance):
                     closest.die()
                     self.eat(30)
             else:
                 prey_targets = {"shrimp", "carp", "frog", "tadpole"}
-                if not profile or profile.body_type == "river_channel" or small_fish_count > max(16, current_catfish * 4):
+                if (not profile or profile.body_type == "river_channel") and small_fish_count > max(18, current_catfish * 5):
                     prey_targets.add("small_fish")
                 prey = self._nearby_species(ecosystem, prey_targets, 3)
                 if prey and prey_count > current_catfish:
                     closest = min(prey, key=lambda p: abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 2:
+                    chance = ecosystem.get_predation_chance("catfish", closest.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 2 and random.random() < min(0.66, chance):
                         if random.random() < self._shoreline_predation_penalty(ecosystem, closest):
                             closest.die()
                             self.eat(24 if closest.species in {"shrimp", "tadpole"} else 32)
@@ -873,7 +884,7 @@ class Catfish(AquaticCreature):
 class LargeFish(AquaticCreature):
     """大鱼 - 顶级水生捕食者，吃鲤鱼/小鱼"""
     def __init__(self, position, gender=None):
-        super().__init__("large_fish", position, 80, 0.20, 0.06, 2.0, 6)
+        super().__init__("large_fish", position, 80, 0.26, 0.028, 2.0, 6)
         self.gender = gender or random.choice(['male', 'female'])
         self.pregnant = False
         self.pregnancy_timer = 0
@@ -901,23 +912,25 @@ class LargeFish(AquaticCreature):
             self.reproduction_cooldown -= 1
         
         # 🔄 动态繁殖：根据猎物数量决定繁殖
-        prey_count = len([c for c in ecosystem.aquatic_creatures 
-                         if c.species in ["small_fish", "minnow", "carp", "shrimp"] and c.alive])
+        prey_count = sum(
+            ecosystem.get_sustainable_population(sp) if hasattr(ecosystem, "get_sustainable_population") else len([c for c in ecosystem.aquatic_creatures if c.species == sp and c.alive])
+            for sp in ["small_fish", "minnow", "carp", "shrimp"]
+        )
         current_predator = len([c for c in ecosystem.aquatic_creatures 
                                if c.species == "large_fish" and c.alive])
         
         # 食物充足度：猎物数量相对于捕食者数量
-        food_factor = max(0.18, min(1.8, prey_count / max(1, current_predator * 3.4)))
+        food_factor = max(0.14, min(1.12, prey_count / max(1, current_predator * 4.4)))
         if current_predator <= 2:
-            food_factor = min(2.0, food_factor * 1.35)
+            food_factor = min(1.45, food_factor * 1.10)
         if profile and profile.body_type.startswith("lake"):
-            food_factor = min(2.05, food_factor * 1.16)
+            food_factor = min(1.75, food_factor * 1.10)
         
         if self.pregnant:
             self.pregnancy_timer += 1
             if self.pregnancy_timer >= 12:
                 # 🌱 自然繁殖：产仔数量取决于猎物充足度
-                litter_size = max(1, min(3, int(food_factor * 2.4)))
+                litter_size = max(1, min(2, int(food_factor * 2.0)))
                 for _ in range(litter_size):
                     ecosystem.spawn_aquatic("large_fish", self.position)
                 self.pregnant = False
@@ -928,7 +941,7 @@ class LargeFish(AquaticCreature):
                     if c.species == "large_fish" and c.gender == 'male' and c.alive]
             # 猎物充足时才繁殖
             prey_gate = max(2, int(current_predator * 1.2))
-            conception_rate = (0.06 if current_predator <= 2 else 0.042) * food_factor
+            conception_rate = (0.024 if current_predator <= 2 else 0.018) * food_factor
             if males and prey_count >= prey_gate and random.random() < conception_rate:
                 self.pregnant = True
                 
@@ -936,19 +949,21 @@ class LargeFish(AquaticCreature):
         if self.hunger > 30:
             # 优先捕食鲤鱼
             carp = self._nearby_species(ecosystem, "carp", 6)
-            if carp and random.random() < 0.5 and len(carp) > 1:
+            if carp and random.random() < 0.38 and len(carp) > 2:
                 closest = min(carp, key=lambda p: 
                     abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 5:
+                chance = ecosystem.get_predation_chance("large_fish", "carp", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 5 and random.random() < min(0.64, chance):
                     closest.die()
                     self.eat(50)
             else:
                 # 没有鲤鱼就先吃米诺鱼，再吃其他中层猎物
                 minnows = self._nearby_species(ecosystem, "minnow", 4)
-                if minnows and prey_count > current_predator:
+                if minnows and prey_count > current_predator and len(minnows) > max(2, current_predator * 2):
                     closest = min(minnows, key=lambda p:
                         abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4:
+                    chance = ecosystem.get_predation_chance("large_fish", "minnow", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4 and random.random() < min(0.62, chance):
                         closest.die()
                         self.eat(36)
                 else:
@@ -956,7 +971,8 @@ class LargeFish(AquaticCreature):
                     if prey and prey_count > current_predator:
                         closest = min(prey, key=lambda p: 
                             abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                        if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4:
+                        chance = ecosystem.get_predation_chance("large_fish", closest.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                        if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4 and random.random() < min(0.66, chance):
                             if random.random() < self._shoreline_predation_penalty(ecosystem, closest):
                                 closest.die()
                                 self.eat(34 if closest.species in {"shrimp", "tadpole"} else 40)
@@ -993,6 +1009,7 @@ class Blackfish(AquaticCreature):
         self.age += 1
         self.hunger += self.hunger_rate
         if not self._is_in_water(ecosystem): self.die(); return
+        minnow_count = len([c for c in ecosystem.aquatic_creatures if c.species == "minnow" and c.alive])
         profile = self._water_profile(ecosystem)
         metabolism_factor = self._seasonal_metabolism_factor(ecosystem)
         if metabolism_factor < 1.0:
@@ -1000,6 +1017,8 @@ class Blackfish(AquaticCreature):
         if profile:
             if profile.body_type.startswith("lake") and profile.depth_factor > 0.7:
                 self.health = min(100, self.health + 0.12)
+            elif profile.body_type == "lake_shallow" and minnow_count > 10:
+                self.health = min(100, self.health + 0.06)
             if profile.flow_rate > 0.65:
                 self.health -= 1.3
         if self.hunger > 60: self.health -= 3
@@ -1011,13 +1030,14 @@ class Blackfish(AquaticCreature):
         # 🔄 动态繁殖：根据鲤鱼数量决定繁殖
         carp_count = len([c for c in ecosystem.aquatic_creatures if c.species == "carp" and c.alive])
         small_fish_count = len([c for c in ecosystem.aquatic_creatures if c.species == "small_fish" and c.alive])
-        minnow_count = len([c for c in ecosystem.aquatic_creatures if c.species == "minnow" and c.alive])
         current_blackfish = len([c for c in ecosystem.aquatic_creatures if c.species == "blackfish" and c.alive])
+        sustainable_carp = ecosystem.get_sustainable_population("carp") if hasattr(ecosystem, "get_sustainable_population") else carp_count
+        sustainable_small = ecosystem.get_sustainable_population("small_fish") if hasattr(ecosystem, "get_sustainable_population") else small_fish_count
+        sustainable_minnow = ecosystem.get_sustainable_population("minnow") if hasattr(ecosystem, "get_sustainable_population") else minnow_count
         
-        # 鲤鱼充足度
-        food_factor = max(0.15, min(1.8, (carp_count * 2.0 + small_fish_count * 0.9 + minnow_count * 0.35) / max(1, current_blackfish * 7)))
+        food_factor = max(0.12, min(1.55, (sustainable_carp * 2.0 + sustainable_small * 0.9 + sustainable_minnow * 0.55) / max(1, current_blackfish * 7)))
         if current_blackfish <= 3:
-            food_factor = min(2.0, food_factor * 1.58)
+            food_factor = min(1.85, food_factor * 1.42)
         habitat_factor = self._habitat_score(ecosystem, {"lake_deep", "lake_shallow"}, min_oxygen=0.5, max_flow=0.55)
         
         if self.pregnant:
@@ -1034,34 +1054,37 @@ class Blackfish(AquaticCreature):
                     if c.species == "blackfish" and c.gender == 'male' and c.alive]
             # 鲤鱼充足时才繁殖
             prey_gate = max(3, current_blackfish * (2 if current_blackfish <= 3 else 3))
-            if males and (carp_count * 1.4 + small_fish_count + minnow_count * 0.3) > prey_gate and random.random() < (0.06 if current_blackfish <= 3 else 0.035) * food_factor * habitat_factor:
+            if males and (sustainable_carp * 1.4 + sustainable_small + sustainable_minnow * 0.45) > prey_gate and random.random() < (0.055 if current_blackfish <= 3 else 0.032) * food_factor * habitat_factor:
                 self.pregnant = True
                 
         # 觅食：专门捕食鲤鱼
         if self.hunger > 25:
             carp = self._nearby_species(ecosystem, "carp", 7)
             local_carp_pressure = len(carp)
-            if carp and carp_count > max(2, current_blackfish) and local_carp_pressure >= (2 if current_blackfish <= 3 else 3):
+            carp_chance = ecosystem.get_predation_chance("blackfish", "carp", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+            if carp and sustainable_carp > max(1, current_blackfish) and local_carp_pressure >= (2 if current_blackfish <= 3 else 3):
                 closest = min(carp, key=lambda p: 
                     abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 6 and random.random() < habitat_factor:
+                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 6 and random.random() < min(habitat_factor, carp_chance):
                     closest.die()
                     self.eat(60)  # 鲤鱼营养价值高
             # 没有鲤鱼时也吃小鱼
             elif self.hunger > 35:
                 small_fish = self._nearby_species(ecosystem, "small_fish", 5)
-                if small_fish and small_fish_count > max(2, current_blackfish):
+                small_fish_chance = ecosystem.get_predation_chance("blackfish", "small_fish", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if small_fish and sustainable_small > max(1, current_blackfish):
                     closest = min(small_fish, key=lambda p: 
                         abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4 and random.random() < habitat_factor:
+                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4 and random.random() < min(habitat_factor, small_fish_chance):
                         closest.die()
                         self.eat(35)
                 else:
                     minnows = self._nearby_species(ecosystem, "minnow", 5)
-                    if minnows and minnow_count > max(4, current_blackfish * 2):
+                    minnow_chance = ecosystem.get_predation_chance("blackfish", "minnow", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                    if minnows and sustainable_minnow > max(2, current_blackfish * 2):
                         closest = min(minnows, key=lambda p: 
                             abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                        if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4 and random.random() < habitat_factor * 0.78:
+                        if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4 and random.random() < min(habitat_factor * 0.78, minnow_chance):
                             closest.die()
                             self.eat(22)
             elif self.hunger > 45:
@@ -1069,7 +1092,8 @@ class Blackfish(AquaticCreature):
                 if fallback:
                     closest = min(fallback, key=lambda p:
                         abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4 and random.random() < habitat_factor * 0.85:
+                    fallback_chance = ecosystem.get_predation_chance("blackfish", closest.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 4 and random.random() < min(habitat_factor * 0.85, fallback_chance):
                         if random.random() < self._shoreline_predation_penalty(ecosystem, closest):
                             closest.die()
                             self.eat(24 if closest.species == "shrimp" else 28)
@@ -1131,6 +1155,7 @@ class Pike(AquaticCreature):
         self.age += 1
         self.hunger += self.hunger_rate
         if not self._is_in_water(ecosystem): self.die(); return
+        minnow_count = len([c for c in ecosystem.aquatic_creatures if c.species == "minnow" and c.alive])
         profile = self._water_profile(ecosystem)
         ambush_factor = self._river_ambush_factor(ecosystem)
         spawning_factor = self._spawning_factor(ecosystem)
@@ -1140,10 +1165,14 @@ class Pike(AquaticCreature):
         if profile:
             if profile.body_type == "river_channel":
                 self.health = min(100, self.health + 0.14 * ambush_factor)
+            elif profile.body_type == "lake_shallow" and minnow_count > 8:
+                self.health = min(100, self.health + 0.07 * ambush_factor)
             if profile.depth_factor > 0.75 and profile.oxygen_level < 0.5:
                 self.health -= 1.1
             if profile.body_type == "river_channel" and profile.flow_rate <= 0.95:
                 self.hunger = max(0, self.hunger - 0.18)
+            elif profile.body_type == "lake_shallow":
+                self.hunger = max(0, self.hunger - 0.08)
         if self.hunger > 55: self.health -= 4
         if self.health <= 0 or self.age >= self.max_age: self.die(); return
         
@@ -1156,13 +1185,21 @@ class Pike(AquaticCreature):
         opportunistic_carp = len([c for c in ecosystem.aquatic_creatures
                                  if c.species == "carp" and c.alive])
         small_fish_count = len([c for c in ecosystem.aquatic_creatures if c.species == "small_fish" and c.alive])
-        minnow_count = len([c for c in ecosystem.aquatic_creatures if c.species == "minnow" and c.alive])
         current_pike = len([c for c in ecosystem.aquatic_creatures if c.species == "pike" and c.alive])
-        food_factor = max(0.18, min(1.9, (minnow_count * 1.45 + small_fish_count * 0.65 + (core_prey_count - minnow_count - small_fish_count) * 0.8 + opportunistic_carp * 0.18) / max(1, current_pike * 5.0)))
+        sustainable_minnow = ecosystem.get_sustainable_population("minnow") if hasattr(ecosystem, "get_sustainable_population") else minnow_count
+        sustainable_small = ecosystem.get_sustainable_population("small_fish") if hasattr(ecosystem, "get_sustainable_population") else small_fish_count
+        sustainable_frog = ecosystem.get_sustainable_population("frog") if hasattr(ecosystem, "get_sustainable_population") else len([c for c in ecosystem.animals if c.species == "frog" and c.alive])
+        sustainable_shrimp = ecosystem.get_sustainable_population("shrimp") if hasattr(ecosystem, "get_sustainable_population") else len([c for c in ecosystem.aquatic_creatures if c.species == "shrimp" and c.alive])
+        sustainable_tadpole = ecosystem.get_sustainable_population("tadpole") if hasattr(ecosystem, "get_sustainable_population") else len([c for c in ecosystem.aquatic_creatures if c.species == "tadpole" and c.alive])
+        sustainable_carp = ecosystem.get_sustainable_population("carp") if hasattr(ecosystem, "get_sustainable_population") else opportunistic_carp
+        effective_core = sustainable_minnow + sustainable_small + sustainable_frog + sustainable_shrimp + sustainable_tadpole
+        food_factor = max(0.15, min(1.55, (sustainable_minnow * 1.45 + sustainable_small * 0.65 + (effective_core - sustainable_minnow - sustainable_small) * 0.8 + sustainable_carp * 0.18) / max(1, current_pike * 5.0)))
         if current_pike <= 3:
-            food_factor = min(2.1, food_factor * 1.5)
+            food_factor = min(1.85, food_factor * 1.38)
         habitat_factor = self._habitat_score(ecosystem, {"river_channel", "lake_shallow"}, min_oxygen=0.58, max_flow=0.9)
-        breeding_factor = min(1.7, habitat_factor * spawning_factor)
+        breeding_factor = min(1.75, habitat_factor * spawning_factor)
+        if profile and profile.body_type == "lake_shallow" and minnow_count > 10:
+            breeding_factor = min(1.9, breeding_factor * 1.12)
         
         if self.pregnant:
             self.pregnancy_timer += 1
@@ -1177,17 +1214,18 @@ class Pike(AquaticCreature):
             males = [c for c in ecosystem.aquatic_creatures 
                     if c.species == "pike" and c.gender == 'male' and c.alive]
             prey_gate = max(2, int(current_pike * (1.2 if current_pike <= 3 else 1.7)))
-            conception_rate = (0.078 if current_pike <= 3 else 0.048) * food_factor * breeding_factor
-            if males and (minnow_count + small_fish_count * 0.5 + (core_prey_count - minnow_count - small_fish_count) * 0.4) >= prey_gate and random.random() < conception_rate:
+            conception_rate = (0.046 if current_pike <= 3 else 0.028) * food_factor * breeding_factor
+            if males and (sustainable_minnow + sustainable_small * 0.5 + (effective_core - sustainable_minnow - sustainable_small) * 0.4) >= prey_gate and random.random() < conception_rate:
                 self.pregnant = True
                 
         # 觅食：主抓河道米诺鱼与两栖幼体，鲤鱼只作为机会型猎物
         if self.hunger > 30:
             minnows = self._nearby_species(ecosystem, "minnow", 6)
-            if minnows and minnow_count > max(3, current_pike):
+            minnow_chance = ecosystem.get_predation_chance("pike", "minnow", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+            if minnows and sustainable_minnow > max(2, current_pike):
                 closest = min(minnows, key=lambda p: 
                     abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 6 and random.random() < min(1.0, habitat_factor * ambush_factor):
+                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 6 and random.random() < min(0.84, habitat_factor * ambush_factor, minnow_chance):
                     closest.die()
                     self.eat(32)
             else:
@@ -1195,20 +1233,22 @@ class Pike(AquaticCreature):
                 if not profile or profile.body_type == "river_channel" or small_fish_count > max(18, current_pike * 5):
                     prey_targets.add("small_fish")
                 small_fish = self._nearby_species(ecosystem, prey_targets, 6)
-                if small_fish and core_prey_count > max(2, current_pike):
+                if small_fish and effective_core > max(2, current_pike):
                     closest = min(small_fish, key=lambda p: 
                         abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 6 and random.random() < min(1.0, habitat_factor * ambush_factor):
+                    prey_chance = ecosystem.get_predation_chance("pike", closest.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                    if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 6 and random.random() < min(0.9, habitat_factor * ambush_factor, prey_chance):
                         if random.random() < self._shoreline_predation_penalty(ecosystem, closest):
                             closest.die()
                             self.eat(24 if closest.species in {"tadpole", "shrimp"} else 30)
 
         if self.hunger > 45:
             carp = self._nearby_species(ecosystem, "carp", 8)
-            if carp and len(carp) >= (2 if current_pike <= 3 else 3) and opportunistic_carp > max(8, current_pike * 3):
+            if carp and len(carp) >= (2 if current_pike <= 3 else 3) and sustainable_carp > max(4, current_pike * 2):
                 closest = min(carp, key=lambda p: 
                     abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 8 and random.random() < min(0.92, habitat_factor * ambush_factor * 0.9):
+                carp_chance = ecosystem.get_predation_chance("pike", "carp", self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 8 and random.random() < min(0.92, habitat_factor * ambush_factor * 0.9, carp_chance):
                     closest.die()
                     self.eat(48)
 
@@ -1217,13 +1257,14 @@ class Pike(AquaticCreature):
             if fallback:
                 closest = min(fallback, key=lambda p:
                     abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
-                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 5 and random.random() < min(0.9, habitat_factor * ambush_factor * 0.9):
+                fallback_chance = ecosystem.get_predation_chance("pike", closest.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 5 and random.random() < min(0.82, habitat_factor * ambush_factor * 0.88, fallback_chance):
                     if random.random() < self._shoreline_predation_penalty(ecosystem, closest):
                         closest.die()
                         self.eat(18 if closest.species == "water_strider" else 22 if closest.species == "minnow" else 24)
         self.swim(
             ecosystem,
-            preferred_body_types={"river_channel"},
+            preferred_body_types={"river_channel", "lake_shallow"},
             min_oxygen=0.58,
             max_flow=0.9,
             prey_species={"minnow", "small_fish", "frog", "tadpole", "shrimp"},
@@ -1445,24 +1486,76 @@ class Crab(AquaticCreature):
 class Frog(AquaticCreature):
     """青蛙 - 水陆两栖，吃浮游生物/昆虫"""
     def __init__(self, position, gender=None):
-        super().__init__("frog", position, 35, 0.35, 0.08, 1.8, 5)
+        super().__init__("frog", position, 50, 0.13, 0.20, 2.2, 6)
         self.gender = gender or random.choice(['male', 'female'])
         self.pregnant = False
         self.pregnancy_timer = 0
         self.reproduction_cooldown = 0
         self.color = (76, 175, 80)
         self.emoji = "🐸"
-        
+        self.amphibious = True
+        self.predators = {"snake", "fox", "eagle", "owl", "kingfisher", "large_fish", "blackfish", "pike", "catfish"}
+
+    def _move_towards_edge(self, ecosystem, prefer_water: bool):
+        best = None
+        best_score = -10_000
+        for dx in range(-3, 4):
+            for dy in range(-3, 4):
+                nx = max(0, min(self.position[0] + dx, ecosystem.width - 1))
+                ny = max(0, min(self.position[1] + dy, ecosystem.height - 1))
+                is_water = ecosystem.environment.is_water(nx, ny)
+                if prefer_water and not is_water:
+                    continue
+                if not prefer_water and is_water:
+                    continue
+                score = 0.0
+                for ox in range(-1, 2):
+                    for oy in range(-1, 2):
+                        tx, ty = nx + ox, ny + oy
+                        if 0 <= tx < ecosystem.width and 0 <= ty < ecosystem.height and ecosystem.environment.is_water(tx, ty):
+                            score += 1.2
+                score -= (abs(dx) + abs(dy)) * 0.18
+                if score > best_score:
+                    best_score = score
+                    best = (nx, ny)
+        if best and best != self.position:
+            self.position = best
+            if hasattr(ecosystem, "refresh_spatial_entity"):
+                ecosystem.refresh_spatial_entity(self)
+
+    def _escape_predators(self, ecosystem) -> bool:
+        nearby_land = ecosystem.get_nearby_animals(self.position, 6)
+        nearby_water = ecosystem.get_nearby_aquatic(self.position, 6)
+        predators = [c for c in nearby_land if c.alive and c.species in self.predators]
+        predators.extend(c for c in nearby_water if c.alive and c.species in self.predators)
+        if not predators:
+            return False
+
+        closest = min(predators, key=lambda p: abs(p.position[0] - self.position[0]) + abs(p.position[1] - self.position[1]))
+        aquatic_threat = closest.species in {"large_fish", "blackfish", "pike", "catfish"}
+        self._move_towards_edge(ecosystem, prefer_water=not aquatic_threat)
+        dx = self.position[0] - closest.position[0]
+        dy = self.position[1] - closest.position[1]
+        move_x = 1 if dx >= 0 else -1
+        move_y = 1 if dy >= 0 else -1
+        self.position = (
+            max(0, min(self.position[0] + move_x, ecosystem.width - 1)),
+            max(0, min(self.position[1] + move_y, ecosystem.height - 1)),
+        )
+        if hasattr(ecosystem, "refresh_spatial_entity"):
+            ecosystem.refresh_spatial_entity(self)
+        return True
+
     def execute_behavior(self, ecosystem):
         if not self.alive: return
         self.age += 1
         self.hunger += self.hunger_rate
-        if self.hunger > 50: self.health -= 5
+        if self.hunger > 64: self.health -= 3.2
         profile = self._water_profile(ecosystem) if self._is_in_water(ecosystem) else None
         if profile and profile.body_type == "lake_shallow":
-            self.health = min(100, self.health + 0.05)
-        elif profile and profile.body_type == "river_channel":
             self.health = min(100, self.health + 0.08)
+        elif profile and profile.body_type == "river_channel":
+            self.health = min(100, self.health + 0.10)
         if self.health <= 0 or self.age >= self.max_age: self.die(); return
         
         if self.reproduction_cooldown > 0:
@@ -1473,40 +1566,65 @@ class Frog(AquaticCreature):
         insect_count = len([i for i in ecosystem.animals if i.species in {"insect", "bee"} and i.alive])
         food_count = plankton_count + insect_count
         current_frog = len([f for f in ecosystem.animals if f.species == "frog" and f.alive])
-        food_factor = max(0.1, min(1.5, food_count / (current_frog * 3)))
+        food_factor = max(0.20, min(2.0, food_count / max(1, current_frog * 2.1)))
+        if current_frog <= 6:
+            food_factor = min(2.3, food_factor * 1.34)
         
         if self.pregnant:
             self.pregnancy_timer += 1
             if self.pregnancy_timer >= 10:
-                litter_size = max(2, min(8, int(food_factor * 5)))
+                litter_size = max(2, min(9, int(food_factor * 5.5)))
                 for _ in range(litter_size):
                     ecosystem.spawn_aquatic("tadpole", self.position)
                 self.pregnant = False
-                self.reproduction_cooldown = 15
+                self.reproduction_cooldown = 12
         
         elif self.gender == 'female' and self.reproduction_cooldown == 0:
             males = [f for f in ecosystem.animals if f.species == "frog" and f.gender == 'male' and f.alive]
-            if males and food_count > current_frog * 2 and random.random() < 0.03 * food_factor:
+            if males and food_count > max(6, current_frog * 1.3) and random.random() < 0.058 * food_factor:
                 self.pregnant = True
-        
+
+        if self._escape_predators(ecosystem):
+            if self.hunger > 36:
+                self.eat(3)
+            return
+
         # 水陆两栖觅食
         if self.hunger > 25:
             if self._is_in_water(ecosystem):
-                plankton = self._nearby_species(ecosystem, {"plankton", "tadpole", "water_strider"}, 3)
-                if plankton and random.random() < 0.3:
-                    plankton[0].die()
-                    self.eat(10)
+                plankton = self._nearby_species(ecosystem, {"plankton", "tadpole", "water_strider", "algae"}, 4)
+                if plankton and random.random() < 0.75:
+                    target = min(plankton, key=lambda p: abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
+                    if hasattr(target, "size"):
+                        target.size -= 0.22
+                        if target.size <= 0:
+                            target.die()
+                    else:
+                        target.die()
+                    self.eat(12 if target.species != "algae" else 8)
             else:
                 insects = [a for a in ecosystem.animals if a.species in {"insect", "bee", "spider"} and a.alive]
                 if insects:
                     closest = min(insects, key=lambda i: abs(i.position[0]-self.position[0]) + abs(i.position[1]-self.position[1]))
+                    self.move_towards(closest.position, ecosystem)
                     if abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1]) <= 2:
                         closest.die()
                         self.eat(15)
-        
-        if random.random() < 0.3:
-            dx, dy = random.randint(-3, 3), random.randint(-3, 3)
+                elif random.random() < 0.30:
+                    self.eat(5)
+
+        if self.hunger > 18 and not self._is_in_water(ecosystem):
+            self._move_towards_edge(ecosystem, prefer_water=False)
+        elif ecosystem.environment.hour >= 18 or ecosystem.environment.hour < 7:
+            self._move_towards_edge(ecosystem, prefer_water=False)
+        else:
+            self._move_towards_edge(ecosystem, prefer_water=True)
+
+        if random.random() < 0.25:
+            dx, dy = random.randint(-2, 2), random.randint(-2, 2)
             self.position = (max(0, min(self.position[0]+dx, ecosystem.width-1)), max(0, min(self.position[1]+dy, ecosystem.height-1)))
+            if hasattr(ecosystem, "refresh_spatial_entity"):
+                ecosystem.refresh_spatial_entity(self)
 
 
 class Tadpole(AquaticCreature):

@@ -116,7 +116,7 @@ initial_population:
   foxes: 5
   deer: 3
   mouse: 10
-  bird: 5
+  bird: 6
   snake: 3
   bee: 8
   # 新增鸟类
@@ -124,7 +124,7 @@ initial_population:
   owl: 3
   duck: 5
   swan: 3
-  sparrow: 10
+  sparrow: 14
   parrot: 4
   kingfisher: 3
   magpie: 8
@@ -166,7 +166,7 @@ initial_population:
   shrimp: 20
   crab: 6
   # 两栖类
-  frog: 5
+  frog: 8
   tadpole: 8
   water_strider: 10
 

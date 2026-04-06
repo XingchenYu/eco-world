@@ -28,8 +28,8 @@ def load_config(config_path: str = None) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="EcoWorld - Virtual Ecosystem")
     parser.add_argument("--config", "-c", type=str, default=None, help="Path to config file")
-    parser.add_argument("--width", "-W", type=int, default=800, help="Window width")
-    parser.add_argument("--height", "-H", type=int, default=600, help="Window height")
+    parser.add_argument("--width", "-W", type=int, default=None, help="Window width")
+    parser.add_argument("--height", "-H", type=int, default=None, help="Window height")
     parser.add_argument("--speed", "-s", type=int, default=1, help="Initial simulation speed")
     parser.add_argument("--headless", action="store_true", help="Run without GUI (for testing)")
     parser.add_argument("--advanced", "-a", action="store_true", help="Use advanced renderer (游戏化界面)")
@@ -43,8 +43,10 @@ def main():
     # 覆盖命令行参数
     if "world" not in config:
         config["world"] = {}
-    config["world"]["width"] = args.width
-    config["world"]["height"] = args.height
+    if args.width is not None:
+        config["world"]["width"] = args.width
+    if args.height is not None:
+        config["world"]["height"] = args.height
     config["world"]["grid_size"] = config.get("world", {}).get("grid_size", 20)
     
     # 创建生态系统

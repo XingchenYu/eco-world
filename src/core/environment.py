@@ -225,15 +225,28 @@ class Environment:
                             
     def _generate_water_bodies(self):
         """生成水系 - 河流和湖泊"""
+        min_dimension = min(self.width, self.height)
+
+        if min_dimension < 3:
+            return
+
         # 生成湖泊
-        lake_count = random.randint(1, 3)
+        lake_count = random.randint(1, 3 if min_dimension >= 12 else 1)
         for _ in range(lake_count):
-            lx = random.randint(3, self.width - 4)
-            ly = random.randint(3, self.height - 4)
+            max_radius = max(1, min(4, min_dimension // 4))
+            radius = random.randint(1, max_radius)
+            min_x = radius
+            max_x = self.width - radius - 1
+            min_y = radius
+            max_y = self.height - radius - 1
+            if min_x > max_x or min_y > max_y:
+                continue
+
+            lx = random.randint(min_x, max_x)
+            ly = random.randint(min_y, max_y)
             
             lake_cells = []
             # 湖泊中心（深水）
-            radius = random.randint(2, 4)
             for dy in range(-radius, radius + 1):
                 for dx in range(-radius, radius + 1):
                     if dx*dx + dy*dy <= radius*radius:

@@ -64,6 +64,154 @@ class Animal(Creature):
         self.food_population_factor = 1.0  # 食物种群因子
         self.last_prey_count = 0  # 上一次检查时的猎物数量
         self.check_interval = 0  # 检查间隔
+
+    def get_cover_plant_species(self) -> List[str]:
+        return []
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def preferred_microhabitat_kinds(self) -> List[str]:
+        kinds = []
+        if self.prefers_canopy_cover():
+            kinds.extend(["canopy_roost", "night_roost"])
+        if self.prefers_shrub_cover():
+            kinds.extend(["shrub_shelter", "nectar_patch"])
+        if self.prefers_water_edge_cover():
+            kinds.extend(["riparian_perch", "wetland_patch"])
+        return kinds
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return self.preferred_microhabitat_kinds()
+
+    def breeding_patch_threshold(self) -> float:
+        if self.prefers_canopy_cover():
+            return 0.28
+        if self.prefers_shrub_cover() or self.prefers_water_edge_cover():
+            return 0.22
+        return 0.0
+
+    def prefers_water_edge_cover(self) -> bool:
+        return False
+
+    def prefers_canopy_cover(self) -> bool:
+        return False
+
+    def prefers_shrub_cover(self) -> bool:
+        return False
+
+    def _cover_score(self, plant, ecosystem) -> float:
+        score = 1.0
+        if getattr(plant, "size", 1.0) >= 1.5:
+            score += 0.3
+        canopy_species = {"tree", "apple_tree", "cherry_tree", "orange_tree"}
+        shrub_species = {"bush", "berry", "blueberry", "strawberry", "grape_vine"}
+        if self.prefers_canopy_cover() and plant.species in canopy_species:
+            score += 0.35
+        if self.prefers_shrub_cover() and plant.species in shrub_species:
+            score += 0.35
+        nearby_cover = [
+            other for other in ecosystem.get_nearby_plants(plant.position, 2)
+            if other.alive and other.species in self.get_cover_plant_species()
+        ]
+        score += min(0.28, max(0, len(nearby_cover) - 1) * 0.06)
+        if self.prefers_water_edge_cover():
+            x, y = plant.position
+            for dx in range(-1, 2):
+                for dy in range(-1, 2):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < ecosystem.width and 0 <= ny < ecosystem.height and ecosystem.environment.is_water(nx, ny):
+                        score += 0.15
+                        break
+        distance = abs(plant.position[0] - self.position[0]) + abs(plant.position[1] - self.position[1])
+        score -= distance * 0.04
+        return score
+
+    def seek_habitat(self, ecosystem, radius: Optional[int] = None) -> bool:
+        microhabitat_kinds = self.preferred_microhabitat_kinds()
+        if microhabitat_kinds and hasattr(ecosystem, "get_microhabitat_patches"):
+            search_radius = radius or max(5, self.vision_range + 1)
+            patches = ecosystem.get_microhabitat_patches(
+                kinds=microhabitat_kinds,
+                position=self.position,
+                radius=search_radius,
+            )
+            patches = [
+                patch for patch in patches
+                if patch.available > 0.08 and patch.occupancy < patch.capacity * 0.95
+            ]
+            if patches:
+                target_patch = max(
+                    patches,
+                    key=lambda patch: (patch.available - patch.occupancy) / max(
+                        1,
+                        abs(patch.position[0] - self.position[0]) + abs(patch.position[1] - self.position[1]),
+                    ),
+                )
+                self.move_towards(target_patch.position, ecosystem)
+                return True
+
+        habitat_species = self.get_habitat_plant_species()
+        if not habitat_species:
+            return False
+        search_radius = radius or max(5, self.vision_range + 1)
+        nearby_plants = ecosystem.get_nearby_plants(self.position, search_radius)
+        habitats = [
+            plant for plant in nearby_plants
+            if plant.alive and plant.species in habitat_species
+        ]
+        if not habitats:
+            return False
+        target = max(habitats, key=lambda plant: self._cover_score(plant, ecosystem))
+        if self._cover_score(target, ecosystem) < 0.95:
+            return False
+        self.move_towards(target.position, ecosystem)
+        return True
+
+    def habitat_recovery_bonus(self, ecosystem) -> float:
+        habitat_species = set(self.get_habitat_plant_species())
+        bonus = 0.0
+        matching = []
+        if habitat_species:
+            nearby_plants = ecosystem.get_nearby_plants(self.position, max(3, self.vision_range // 2 + 1))
+            matching = [plant for plant in nearby_plants if plant.alive and plant.species in habitat_species]
+            bonus += min(0.18, len(matching) * 0.03)
+        if self.prefers_canopy_cover():
+            bonus += min(0.12, len([p for p in matching if p.species in {"tree", "apple_tree", "cherry_tree", "orange_tree"}]) * 0.03)
+            if hasattr(ecosystem, "get_local_microhabitat_value"):
+                bonus += min(0.18, ecosystem.get_local_microhabitat_value(self.position, {"canopy_roost", "night_roost"}, radius=4) * 0.05)
+        if self.prefers_shrub_cover():
+            bonus += min(0.12, len([p for p in matching if p.species in {"bush", "berry", "blueberry", "strawberry", "grape_vine"}]) * 0.03)
+            if hasattr(ecosystem, "get_local_microhabitat_value"):
+                bonus += min(0.16, ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "nectar_patch"}, radius=4) * 0.05)
+        if self.prefers_water_edge_cover():
+            for plant in matching:
+                x, y = plant.position
+                for dx in range(-1, 2):
+                    for dy in range(-1, 2):
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < ecosystem.width and 0 <= ny < ecosystem.height and ecosystem.environment.is_water(nx, ny):
+                            bonus += 0.05
+                            break
+            if hasattr(ecosystem, "get_local_microhabitat_value"):
+                bonus += min(0.14, ecosystem.get_local_microhabitat_value(self.position, {"riparian_perch", "wetland_patch"}, radius=4) * 0.05)
+        return min(0.28, bonus)
+
+    def find_cover(self, ecosystem, radius: Optional[int] = None) -> bool:
+        cover_species = self.get_cover_plant_species()
+        if not cover_species:
+            return False
+        search_radius = radius or max(4, self.vision_range)
+        nearby_plants = ecosystem.get_nearby_plants(self.position, search_radius)
+        shelter = [
+            plant for plant in nearby_plants
+            if plant.alive and plant.species in cover_species and getattr(plant, "provides_shelter", False)
+        ]
+        if not shelter:
+            return False
+        target = max(shelter, key=lambda plant: self._cover_score(plant, ecosystem))
+        self.move_towards(target.position, ecosystem)
+        return True
         
     def update_reproduction_from_food(self, ecosystem):
         """🔄 根据食物来源数量动态调整繁殖率"""
@@ -86,10 +234,13 @@ class Animal(Creature):
         elif self.diet == "carnivore":
             # 捕食者：检查猎物数量
             prey_species = self.get_prey_species() if hasattr(self, 'get_prey_species') else []
-            food_count = sum(
-                len([a for a in ecosystem.animals if a.species == sp and a.alive])
-                for sp in prey_species
-            )
+            if hasattr(ecosystem, "get_sustainable_population"):
+                food_count = sum(ecosystem.get_sustainable_population(sp) for sp in prey_species)
+            else:
+                food_count = sum(
+                    len([a for a in ecosystem.animals if a.species == sp and a.alive])
+                    for sp in prey_species
+                )
             ideal_food = 2  # 每个捕食者需要2个猎物
             animal_count = len([a for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "carnivore" and a.alive])
             
@@ -97,10 +248,13 @@ class Animal(Creature):
             # 杂食：综合计算
             plant_count = len([p for p in ecosystem.plants if p.alive])
             prey_species = self.get_prey_species() if hasattr(self, 'get_prey_species') else []
-            prey_count = sum(
-                len([a for a in ecosystem.animals if a.species == sp and a.alive])
-                for sp in prey_species
-            )
+            if hasattr(ecosystem, "get_sustainable_population"):
+                prey_count = sum(ecosystem.get_sustainable_population(sp) for sp in prey_species)
+            else:
+                prey_count = sum(
+                    len([a for a in ecosystem.animals if a.species == sp and a.alive])
+                    for sp in prey_species
+                )
             food_count = plant_count + prey_count * 2  # 猎物价值更高
             ideal_food = 4
             animal_count = len([a for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "omnivore" and a.alive])
@@ -123,6 +277,24 @@ class Animal(Creature):
         """动物行为逻辑 - 动态繁殖"""
         if not self.alive:
             return
+        self.ecosystem = ecosystem
+
+        habitat_bonus = self.habitat_recovery_bonus(ecosystem)
+        if habitat_bonus > 0:
+            self.hunger = max(0, self.hunger - habitat_bonus * 0.8)
+            self.health = min(100, self.health + habitat_bonus * 0.5)
+            if hasattr(ecosystem, "consume_microhabitat"):
+                resource_kinds = set()
+                if self.prefers_canopy_cover():
+                    resource_kinds.update({"canopy_roost", "night_roost"})
+                if self.prefers_shrub_cover():
+                    resource_kinds.update({"shrub_shelter", "nectar_patch"})
+                if self.prefers_water_edge_cover():
+                    resource_kinds.update({"riparian_perch", "wetland_patch"})
+                if resource_kinds:
+                    ecosystem.consume_microhabitat(resource_kinds, self.position, min(0.16, habitat_bonus), radius=3)
+                    if hasattr(ecosystem, "occupy_microhabitat"):
+                        ecosystem.occupy_microhabitat(self.species, resource_kinds, self.position, amount=min(0.22, habitat_bonus + 0.05), radius=2)
             
         # 更新繁殖状态
         self._update_reproduction_state()
@@ -166,6 +338,12 @@ class Animal(Creature):
             
     def _should_seek_mate(self) -> bool:
         """是否应该寻找配偶"""
+        ecosystem = getattr(self, "ecosystem", None)
+        breeding_kinds = self.breeding_microhabitat_kinds()
+        if ecosystem is not None and breeding_kinds and hasattr(ecosystem, "get_local_microhabitat_value"):
+            patch_support = ecosystem.get_local_microhabitat_value(self.position, breeding_kinds, radius=4)
+            if patch_support < self.breeding_patch_threshold():
+                return False
         return (
             self.can_mate and
             not self.pregnant and
@@ -252,7 +430,10 @@ class Animal(Creature):
         elif self.diet == "carnivore":
             # 捕食者：检查猎物数量
             prey_species = self.get_prey_species() if hasattr(self, 'get_prey_species') else []
-            food_count = sum(len([a for a in ecosystem.animals if a.species == sp and a.alive]) for sp in prey_species)
+            if hasattr(ecosystem, "get_sustainable_population"):
+                food_count = sum(ecosystem.get_sustainable_population(sp) for sp in prey_species)
+            else:
+                food_count = sum(len([a for a in ecosystem.animals if a.species == sp and a.alive]) for sp in prey_species)
             food_factor = max(0.1, min(1.5, food_count / max(1, len([a for a in ecosystem.animals if hasattr(a, 'diet') and a.diet == "carnivore" and a.alive])) / 3))
         else:  # omnivore
             # 杂食动物
@@ -264,10 +445,21 @@ class Animal(Creature):
         if hasattr(self, 'get_predators'):
             predator_count = sum(len([a for a in ecosystem.animals if a.species == sp and a.alive]) for sp in self.get_predators())
             predator_pressure = max(0.3, 1.0 - predator_count * 0.05)
+
+        patch_factor = 1.0
+        preferred_kinds = self.breeding_microhabitat_kinds()
+        if preferred_kinds and hasattr(ecosystem, "get_local_microhabitat_value"):
+            patch_value = ecosystem.get_local_microhabitat_value(self.position, preferred_kinds, radius=4)
+            patch_factor = max(0.2, min(1.4, patch_value))
+            if patch_value < self.breeding_patch_threshold():
+                self.pregnant = False
+                self.pregnancy_timer = 0
+                self.mate_cooldown = max(self.mate_cooldown, 8)
+                return
             
         # 产下后代（数量由环境决定）
         base_litter = random.randint(1, 3)
-        litter_size = max(1, min(5, int(base_litter * food_factor * predator_pressure)))
+        litter_size = max(1, min(5, int(base_litter * food_factor * predator_pressure * patch_factor)))
         
         for _ in range(litter_size):
             offspring_pos = (
@@ -333,12 +525,9 @@ class Animal(Creature):
                 self.position[1] + int(dy * 2)
             )
             self.move_towards(target, ecosystem)
-            
-        if hasattr(self, 'can_hide') and self.can_hide:
-            nearby_plants = ecosystem.get_nearby_plants(self.position, self.vision_range)
-            bushes = [p for p in nearby_plants if p.species == "bush" and hasattr(p, 'provides_shelter')]
-            if bushes:
-                self.move_towards(bushes[0].position, ecosystem)
+
+        if getattr(self, 'can_hide', False):
+            self.find_cover(ecosystem, radius=max(6, self.vision_range + 1))
             
     def forage(self, ecosystem):
         competition = Competition.food_competition(self, ecosystem)
@@ -396,20 +585,33 @@ class Animal(Creature):
             )
         
         if targets:
-            closest = min(targets, key=lambda t:
-                abs(t.position[0]-self.position[0]) + abs(t.position[1]-self.position[1]))
+            scored_targets = []
+            for target in targets:
+                dist = abs(target.position[0]-self.position[0]) + abs(target.position[1]-self.position[1])
+                predation_chance = ecosystem.get_predation_chance(self.species, target.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if predation_chance <= 0.0:
+                    continue
+                scored_targets.append((predation_chance / max(1, dist), dist, predation_chance, target))
+            if not scored_targets:
+                self.wander(ecosystem)
+                return
+            _, _, predation_chance, closest = max(scored_targets, key=lambda item: item[0])
                 
             self.target = closest.position
             self.move_towards(self.target, ecosystem)
             
             dist = abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1])
-            if dist <= 1:
+            if dist <= 1 and random.random() < predation_chance:
                 self.hunt(closest, ecosystem)
                 
     def get_prey_species(self) -> List[str]:
         return []
                 
     def hunt(self, prey, ecosystem):
+        if hasattr(ecosystem, "get_predation_chance"):
+            chance = ecosystem.get_predation_chance(self.species, prey.species, self.hunger)
+            if chance <= 0.0 or random.random() > chance:
+                return
         prey.die()
         nutrition = 30.0
         self.eat(nutrition)
@@ -432,6 +634,10 @@ class Animal(Creature):
             self.seek_mate(ecosystem)
             
     def wander(self, ecosystem):
+        if getattr(self, "can_hide", False) and random.random() < 0.4 and self.find_cover(ecosystem, radius=max(6, self.vision_range + 1)):
+            return
+        if getattr(self, "can_hide", False) and random.random() < 0.3 and self.seek_habitat(ecosystem, radius=max(6, self.vision_range + 2)):
+            return
         if random.random() < 0.3:
             target = (
                 self.position[0] + random.randint(-3, 3),
@@ -574,12 +780,15 @@ class Fox(Animal):
         self.pregnancy_duration = 12
         
     def get_prey_species(self) -> List[str]:
-        return ["insect", "rabbit", "mouse", "bird", "sparrow", "snake", "frog", "duck"]
+        return ["insect", "rabbit", "mouse", "bird", "snake", "frog", "duck"]
     
     def _give_birth(self, ecosystem):
         """狐狸产仔 - 由猎物数量控制"""
-        prey_count = sum(len([a for a in ecosystem.animals if a.species == sp and a.alive]) 
-                        for sp in self.get_prey_species())
+        if hasattr(ecosystem, "get_sustainable_population"):
+            prey_count = sum(ecosystem.get_sustainable_population(sp) for sp in self.get_prey_species())
+        else:
+            prey_count = sum(len([a for a in ecosystem.animals if a.species == sp and a.alive]) 
+                            for sp in self.get_prey_species())
         current_fox = len([f for f in ecosystem.animals if f.species == "fox" and f.alive])
         
         # 猎物充足度
@@ -608,12 +817,17 @@ class Fox(Animal):
         """狐狸捕食 - 有保护机制"""
         prey_species = prey.species
         prey_count = len([a for a in ecosystem.animals if a.species == prey_species and a.alive])
+        predation_chance = ecosystem.get_predation_chance(self.species, prey_species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+        if predation_chance <= 0.0:
+            return
         
         # 如果猎物太少就不捕食
         min_threshold = {"rabbit": 10, "mouse": 8, "insect": 20, "bird": 5}
         threshold = min_threshold.get(prey_species, 5)
         
         if prey_count < threshold and random.random() < 0.55:
+            return
+        if random.random() > min(0.92, predation_chance):
             return
             
         prey.die()
@@ -722,12 +936,17 @@ class Wolf(Animal):
         prey_species = prey.species
         prey_count = len([a for a in ecosystem.animals if a.species == prey_species and a.alive])
         current_wolf = len([w for w in ecosystem.animals if w.species == "wolf" and w.alive])
+        predation_chance = ecosystem.get_predation_chance(self.species, prey_species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+        if predation_chance <= 0.0:
+            return
         
         # 如果猎物太少就不捕食（保护机制）
         min_threshold = {"deer": 20, "rabbit": 15, "mouse": 10}
         threshold = min_threshold.get(prey_species, 5)
         
         if prey_count < threshold and random.random() < 0.3:
+            return  # 放弃捕食
+        if random.random() > min(0.95, predation_chance):
             return  # 放弃捕食
             
         # 正常捕食
@@ -744,8 +963,11 @@ class Wolf(Animal):
         
     def _give_birth(self, ecosystem):
         """狼产仔 - 由猎物数量控制"""
-        prey_count = sum(len([a for a in ecosystem.animals if a.species == sp and a.alive]) 
-                        for sp in self.get_prey_species())
+        if hasattr(ecosystem, "get_sustainable_population"):
+            prey_count = sum(ecosystem.get_sustainable_population(sp) for sp in self.get_prey_species())
+        else:
+            prey_count = sum(len([a for a in ecosystem.animals if a.species == sp and a.alive]) 
+                            for sp in self.get_prey_species())
         current_wolf = len([w for w in ecosystem.animals if w.species == "wolf" and w.alive])
         
         # 猎物充足度
@@ -778,7 +1000,7 @@ class Mouse(Animal):
             species="mouse",
             position=position,
             max_age=40,
-            hunger_rate=0.4,
+            hunger_rate=0.34,
             reproduction_rate=0.2,
             speed=1.8,
             vision_range=4,
@@ -807,7 +1029,7 @@ class Bird(Animal):
             species="bird",
             position=position,
             max_age=50,
-            hunger_rate=0.35,
+            hunger_rate=0.28,
             reproduction_rate=0.06,
             speed=4.0,
             vision_range=12,
@@ -817,12 +1039,20 @@ class Bird(Animal):
         self.emoji = "🐦"
         self.color = (100, 150, 200)
         self.pregnancy_duration = 10
+        self.can_hide = True
+        self.forms_groups = True
         
     def get_predators(self) -> List[str]:
         return ["fox"]
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "mouse", "bee", "spider", "water_strider"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "bush", "apple_tree", "cherry_tree", "orange_tree", "grape_vine"]
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
         
     def escape(self, ecosystem):
         self.speed = 5.0
@@ -853,7 +1083,7 @@ class Snake(Animal):
         return ["fox"]
         
     def get_prey_species(self) -> List[str]:
-        return ["insect", "mouse", "rabbit", "sparrow", "frog"]
+        return ["insect", "mouse", "rabbit", "frog"]
         
     def execute_behavior(self, ecosystem):
         """蛇伏击模式"""
@@ -967,10 +1197,14 @@ class Eagle(Animal):
         return []  # 老鹰没有天敌
         
     def get_prey_species(self) -> List[str]:
-        return ["insect", "mouse", "rabbit", "snake", "bird", "sparrow", "duck", "frog", "small_fish"]  # 可以抓小型鸟和水边猎物
+        return ["insect", "mouse", "rabbit", "snake", "bird", "duck", "frog", "small_fish"]  # 以中小型陆地/水边猎物为主
         
     def hunt(self, prey, ecosystem):
         """老鹰俯冲捕食"""
+        if hasattr(ecosystem, "get_predation_chance"):
+            chance = ecosystem.get_predation_chance(self.species, prey.species, self.hunger)
+            if chance <= 0.0 or random.random() > min(0.95, chance * 0.95):
+                return
         prey.die()
         nutrition = 50.0  # 老鹰捕食获得更多营养
         self.eat(nutrition)
@@ -995,8 +1229,8 @@ class Owl(Animal):
             species="owl",
             position=position,
             max_age=60,
-            hunger_rate=0.3,
-            reproduction_rate=0.04,
+            hunger_rate=0.22,
+            reproduction_rate=0.05,
             speed=3.5,
             vision_range=10,
             diet="carnivore",
@@ -1011,7 +1245,19 @@ class Owl(Animal):
         return ["eagle"]
         
     def get_prey_species(self) -> List[str]:
-        return ["insect", "mouse", "small_fish", "frog", "sparrow", "bat", "water_strider"]
+        return ["insect", "mouse", "bat", "water_strider", "frog"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "apple_tree", "cherry_tree", "orange_tree"]
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["night_roost", "canopy_roost"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.12
         
     def execute_behavior(self, ecosystem):
         """猫头鹰夜间活动增强"""
@@ -1095,6 +1341,8 @@ class Duck(Animal):
         new_x = max(0, min(self.position[0] + move_x, ecosystem.width - 1))
         new_y = max(0, min(self.position[1] + move_y, ecosystem.height - 1))
         self.position = (new_x, new_y)
+        if hasattr(ecosystem, "refresh_spatial_entity"):
+            ecosystem.refresh_spatial_entity(self)
 
 
 class Swan(Animal):
@@ -1154,26 +1402,90 @@ class Sparrow(Animal):
         super().__init__(
             species="sparrow",
             position=position,
-            max_age=25,
-            hunger_rate=0.5,
-            reproduction_rate=0.2,  # 繁殖快
-            speed=3.0,
-            vision_range=5,
+            max_age=40,
+            hunger_rate=0.18,
+            reproduction_rate=0.22,  # 繁殖快
+            speed=4.2,
+            vision_range=8,
             diet="omnivore",
             gender=gender
         )
         self.emoji = "🐦"
         self.color = (139, 119, 101)  # 棕灰色
         self.pregnancy_duration = 5
+        self.forms_groups = True
+        self.can_hide = True
         
     def get_predators(self) -> List[str]:
-        return ["fox", "snake", "eagle", "owl"]
+        return ["snake", "eagle", "owl"]
         
     def get_food_sources(self) -> List[str]:
-        return ["grass", "flower", "moss", "berry", "strawberry", "blueberry"]
+        return ["grass", "flower", "moss", "berry", "strawberry", "blueberry", "grape_vine"]
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "bee", "spider"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["bush", "tree", "berry", "apple_tree", "cherry_tree", "blueberry", "grape_vine"]
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def execute_behavior(self, ecosystem):
+        if not self.alive:
+            return
+        self._update_reproduction_state()
+        self.update_reproduction_from_food(ecosystem)
+        close_predators = [
+            creature for creature in ecosystem.get_nearby_creatures(self.position, 4)
+            if creature.alive and creature.species in self.get_predators()
+        ]
+        if close_predators and self.hunger < 40:
+            self.behavior_state = BehaviorState.ESCAPING
+            self.escape(ecosystem)
+        elif self.hunger > 18:
+            self.behavior_state = BehaviorState.FORAGING
+            self.forage(ecosystem)
+        elif self.check_danger(ecosystem):
+            self.behavior_state = BehaviorState.ESCAPING
+            self.escape(ecosystem)
+        elif self._should_seek_mate():
+            self.behavior_state = BehaviorState.MATING
+            self.seek_mate(ecosystem)
+        elif self.pregnant and self.pregnancy_timer >= self.pregnancy_duration:
+            self._give_birth(ecosystem)
+        else:
+            self.behavior_state = BehaviorState.IDLE
+            self.wander(ecosystem)
+
+    def forage(self, ecosystem):
+        if self.check_danger(ecosystem) and self.find_cover(ecosystem, radius=8):
+            return
+        insects = [
+            a for a in ecosystem.get_nearby_animals(self.position, 5)
+            if a.alive and a.species in {"insect", "bee", "spider"}
+        ]
+        if insects:
+            closest_insect = min(insects, key=lambda a: abs(a.position[0]-self.position[0]) + abs(a.position[1]-self.position[1]))
+            self.move_towards(closest_insect.position, ecosystem)
+            dist = abs(closest_insect.position[0]-self.position[0]) + abs(closest_insect.position[1]-self.position[1])
+            if dist <= 2:
+                closest_insect.die()
+                self.eat(14 if closest_insect.species == "insect" else 11)
+                return
+        nearby = ecosystem.get_nearby_plants(self.position, self.vision_range)
+        preferred = [
+            p for p in nearby
+            if p.species in ["grass", "flower", "berry", "strawberry", "blueberry", "grape_vine"]
+        ]
+        if preferred:
+            closest = min(preferred, key=lambda p: abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
+            self.move_towards(closest.position, ecosystem)
+            dist = abs(closest.position[0]-self.position[0]) + abs(closest.position[1]-self.position[1])
+            if dist <= 1:
+                self.eat(closest.be_eaten(0.35))
+                return
+        super().forage(ecosystem)
 
 
 class Parrot(Animal):
@@ -1228,11 +1540,11 @@ class Kingfisher(Animal):
         super().__init__(
             species="kingfisher",
             position=position,
-            max_age=35,
-            hunger_rate=0.4,
+            max_age=45,
+            hunger_rate=0.18,
             reproduction_rate=0.08,
             speed=4.0,
-            vision_range=8,
+            vision_range=9,
             diet="carnivore",
             gender=gender
         )
@@ -1241,35 +1553,72 @@ class Kingfisher(Animal):
         self.pregnancy_duration = 8
         
     def get_predators(self) -> List[str]:
-        return ["fox", "eagle"]
+        return ["eagle"]
         
     def get_prey_species(self) -> List[str]:
-        return ["small_fish", "shrimp", "tadpole", "insect", "water_strider", "frog"]
+        return ["small_fish", "minnow", "shrimp", "tadpole", "insect", "water_strider", "frog"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["bush", "tree", "apple_tree", "cherry_tree", "berry"]
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["riparian_perch", "shrub_shelter"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.14
         
     def forage(self, ecosystem):
         """翠鸟在水边捕鱼"""
+        self.find_cover(ecosystem, radius=6)
         # 寻找水域附近
+        found_water = False
         for dy in range(-3, 4):
             for dx in range(-3, 4):
                 nx, ny = self.position[0] + dx, self.position[1] + dy
                 if 0 <= nx < ecosystem.width and 0 <= ny < ecosystem.height:
                     if ecosystem.environment.is_water(nx, ny):
+                        found_water = True
                         # 找水中的猎物
                         aquatic_prey = ecosystem.get_nearby_aquatic((nx, ny), 4)
                         aquatic_prey = [
                             a for a in aquatic_prey
-                            if a.species in ["small_fish", "shrimp", "tadpole", "water_strider", "frog"] and a.alive
+                            if a.species in ["small_fish", "minnow", "shrimp", "tadpole", "water_strider", "frog"] and a.alive
                         ]
                         if aquatic_prey:
                             closest = min(aquatic_prey, key=lambda a:
                                 abs(a.position[0]-nx) + abs(a.position[1]-ny))
                             # 俯冲捕食
-                            if abs(closest.position[0]-nx) + abs(closest.position[1]-ny) <= 3:
+                            chance = ecosystem.get_predation_chance(self.species, closest.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                            if abs(closest.position[0]-nx) + abs(closest.position[1]-ny) <= 3 and random.random() < min(0.82, chance):
                                 closest.die()
                                 self.eat(25)
                                 return
+        if not found_water:
+            for dy in range(-5, 6):
+                for dx in range(-5, 6):
+                    nx, ny = self.position[0] + dx, self.position[1] + dy
+                    if 0 <= nx < ecosystem.width and 0 <= ny < ecosystem.height and ecosystem.environment.is_water(nx, ny):
+                        self.move_towards((nx, ny), ecosystem)
+                        return
         # 没找到鱼就吃昆虫
         super().forage(ecosystem)
+
+    def wander(self, ecosystem):
+        if self.seek_habitat(ecosystem, radius=7):
+            return
+        for dy in range(-5, 6):
+            for dx in range(-5, 6):
+                nx, ny = self.position[0] + dx, self.position[1] + dy
+                if 0 <= nx < ecosystem.width and 0 <= ny < ecosystem.height and ecosystem.environment.is_water(nx, ny):
+                    self.move_towards((nx, ny), ecosystem)
+                    return
+        super().wander(ecosystem)
 
 
 class Spider(Animal):
@@ -1358,6 +1707,7 @@ class Magpie(Animal):
         self.emoji = "🐦‍⬛"
         self.color = (30, 30, 30)
         self.pregnancy_duration = 10
+        self.can_hide = True
         
     def get_predators(self) -> List[str]:
         return ["fox", "eagle", "owl"]
@@ -1367,6 +1717,12 @@ class Magpie(Animal):
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "mouse", "bee", "spider", "frog"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "bush", "apple_tree", "cherry_tree"]
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
 
 
 class Crow(Animal):
@@ -1387,6 +1743,7 @@ class Crow(Animal):
         self.emoji = "🐦‍⬛"
         self.color = (20, 20, 20)
         self.pregnancy_duration = 12
+        self.can_hide = True
         
     def get_predators(self) -> List[str]:
         return ["eagle", "owl"]
@@ -1396,6 +1753,12 @@ class Crow(Animal):
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "mouse", "frog", "small_fish", "shrimp", "water_strider"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "bush", "apple_tree", "orange_tree"]
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
 
 
 class Woodpecker(Animal):
@@ -1416,12 +1779,19 @@ class Woodpecker(Animal):
         self.emoji = "🐦"
         self.color = (139, 69, 19)
         self.pregnancy_duration = 8
+        self.can_hide = True
         
     def get_predators(self) -> List[str]:
         return ["fox", "eagle", "owl", "snake"]
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "bee", "spider"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "apple_tree", "cherry_tree", "orange_tree"]
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
 
 
 class Hummingbird(Animal):
@@ -1431,23 +1801,60 @@ class Hummingbird(Animal):
         super().__init__(
             species="hummingbird",
             position=position,
-            max_age=15,
-            hunger_rate=0.8,
-            reproduction_rate=0.15,
+            max_age=36,
+            hunger_rate=0.26,
+            reproduction_rate=0.16,
             speed=5.0,
-            vision_range=6,
-            diet="herbivore",
+            vision_range=7,
+            diet="omnivore",
             gender=gender
         )
         self.emoji = "🐦"
         self.color = (0, 255, 127)
         self.pregnancy_duration = 4
+        self.can_hide = True
         
     def get_predators(self) -> List[str]:
-        return ["spider", "snake", "frog"]
+        return ["spider", "snake"]
         
     def get_food_sources(self) -> List[str]:
         return ["flower", "berry", "blueberry", "strawberry"]
+
+    def get_prey_species(self) -> List[str]:
+        return ["insect", "bee"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["flower", "bush", "berry", "blueberry", "strawberry"]
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["nectar_patch", "shrub_shelter"]
+
+    def forage(self, ecosystem):
+        if self.find_cover(ecosystem, radius=6) and self.hunger < 30:
+            return
+        insects = [
+            a for a in ecosystem.get_nearby_animals(self.position, 4)
+            if a.alive and a.species in {"insect", "bee"}
+        ]
+        if insects and (self.hunger > 22 or random.random() < 0.35):
+            target = min(insects, key=lambda a: abs(a.position[0]-self.position[0]) + abs(a.position[1]-self.position[1]))
+            self.move_towards(target.position, ecosystem)
+            if abs(target.position[0]-self.position[0]) + abs(target.position[1]-self.position[1]) <= 1:
+                target.die()
+                self.eat(10)
+                return
+        nearby = ecosystem.get_nearby_plants(self.position, self.vision_range)
+        flowers = [p for p in nearby if p.alive and p.species in {"flower", "berry", "blueberry", "strawberry"}]
+        if flowers:
+            target = min(flowers, key=lambda p: abs(p.position[0]-self.position[0]) + abs(p.position[1]-self.position[1]))
+            self.move_towards(target.position, ecosystem)
+            if abs(target.position[0]-self.position[0]) + abs(target.position[1]-self.position[1]) <= 1:
+                self.eat(target.be_eaten(0.28))
+                return
+        super().forage(ecosystem)
 
 
 # ==================== 扩展哺乳动物 ====================
@@ -1459,23 +1866,38 @@ class Squirrel(Animal):
         super().__init__(
             species="squirrel",
             position=position,
-            max_age=30,
-            hunger_rate=0.3,
-            reproduction_rate=0.12,
+            max_age=38,
+            hunger_rate=0.22,
+            reproduction_rate=0.15,
             speed=3.0,
-            vision_range=6,
+            vision_range=7,
             diet="herbivore",
             gender=gender
         )
         self.emoji = "🐿️"
         self.color = (165, 42, 42)
         self.pregnancy_duration = 8
+        self.can_hide = True
         
     def get_predators(self) -> List[str]:
         return ["fox", "eagle", "owl", "snake"]
         
     def get_food_sources(self) -> List[str]:
-        return ["bush", "flower", "grass", "berry", "blueberry", "strawberry", "mushroom", "fern"]
+        return ["bush", "flower", "grass", "berry", "blueberry", "strawberry", "mushroom", "fern", "apple_tree", "cherry_tree", "orange_tree"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "bush", "apple_tree", "cherry_tree", "orange_tree"]
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["canopy_roost"]
+
+    def wander(self, ecosystem):
+        if self.seek_habitat(ecosystem, radius=8):
+            return
+        super().wander(ecosystem)
 
 
 class Hedgehog(Animal):
@@ -1511,9 +1933,9 @@ class Bat(Animal):
         super().__init__(
             species="bat",
             position=position,
-            max_age=25,
-            hunger_rate=0.45,
-            reproduction_rate=0.10,
+            max_age=32,
+            hunger_rate=0.30,
+            reproduction_rate=0.13,
             speed=4.5,
             vision_range=6,
             diet="carnivore",
@@ -1523,13 +1945,26 @@ class Bat(Animal):
         self.color = (60, 60, 60)
         self.pregnancy_duration = 6
         self.is_nocturnal = True
+        self.can_hide = True
         
     def get_predators(self) -> List[str]:
-        return ["owl", "eagle", "snake"]
+        return ["owl", "eagle"]
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["night_roost", "canopy_roost"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.14
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "spider", "bee", "water_strider"]
-        
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "bush", "apple_tree", "cherry_tree", "orange_tree"]
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
+
     def execute_behavior(self, ecosystem):
         """蝙蝠夜间活动"""
         hour = ecosystem.environment.hour
@@ -1538,7 +1973,7 @@ class Bat(Animal):
             self.vision_range = 8
         else:
             self.speed = 1.0
-            self.vision_range = 2
+            self.vision_range = 3
         super().execute_behavior(ecosystem)
 
 

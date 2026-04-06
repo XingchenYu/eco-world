@@ -46,8 +46,50 @@ class Event:
     description: str
 
 
+@dataclass
+class MicrohabitatPatch:
+    """可被生物占用和消耗的微栖息地资源。"""
+    kind: str
+    position: Tuple[int, int]
+    capacity: float
+    available: float
+    seasonal_multiplier: float
+    occupancy: float = 0.0
+
+
 class Ecosystem:
     """完整生态系统 - 陆地 + 水生"""
+
+    DEFAULT_INITIAL_POPULATION = {
+        "grass": 50, "bush": 15, "flower": 20, "moss": 10,
+        "tree": 8, "vine": 12, "cactus": 6, "berry": 10, "mushroom": 15, "fern": 12,
+        "apple_tree": 10, "cherry_tree": 8, "grape_vine": 15, "strawberry": 20,
+        "blueberry": 15, "orange_tree": 8, "watermelon": 10,
+        "insects": 20, "rabbits": 15, "foxes": 5, "deer": 3, "mouse": 10, "bird": 6, "snake": 3, "bee": 8,
+        "eagle": 2, "owl": 3, "duck": 5, "swan": 3, "sparrow": 14, "parrot": 4, "kingfisher": 3,
+        "wolf": 3, "spider": 10, "magpie": 8, "crow": 5, "woodpecker": 6, "hummingbird": 10,
+        "squirrel": 12, "hedgehog": 8, "bat": 8, "raccoon": 6,
+        "bear": 4, "wild_boar": 10, "badger": 8, "raccoon_dog": 6, "skunk": 8, "opossum": 10, "coati": 6, "armadillo": 6,
+        "algae": 30, "seaweed": 15, "plankton": 40, "small_fish": 15, "minnow": 12, "carp": 8, "catfish": 5,
+        "large_fish": 3, "pufferfish": 4, "blackfish": 4, "pike": 3, "shrimp": 20, "crab": 6, "frog": 8,
+        "tadpole": 8, "water_strider": 10,
+    }
+    POPULATION_ALIASES = {
+        "insect": "insects",
+        "rabbit": "rabbits",
+        "fox": "foxes",
+    }
+    PREY_RESERVE = {
+        "insect": 18, "bee": 6, "spider": 4,
+        "rabbit": 10, "mouse": 8, "bird": 6, "sparrow": 14, "parrot": 4, "duck": 3,
+        "deer": 4, "frog": 10,
+        "small_fish": 8, "minnow": 12, "carp": 4, "shrimp": 10, "tadpole": 8, "water_strider": 8,
+    }
+    PREDATOR_APPETITE = {
+        "fox": 2.5, "wolf": 2.2, "snake": 1.3, "bird": 1.2, "sparrow": 1.0, "eagle": 1.8, "owl": 1.6,
+        "spider": 0.9, "blackfish": 2.1, "pike": 1.8, "large_fish": 1.7, "catfish": 1.6, "crab": 1.1,
+        "kingfisher": 1.2,
+    }
 
     PLANT_SPECIES = [
         "grass", "bush", "flower", "moss",
@@ -56,7 +98,7 @@ class Ecosystem:
         "blueberry", "orange_tree", "watermelon",
     ]
     LAND_ANIMAL_SPECIES = [
-        "insect", "rabbit", "fox", "deer", "mouse", "bird", "snake", "bee", "frog",
+        "insect", "rabbit", "fox", "deer", "mouse", "bird", "snake", "bee",
         "eagle", "owl", "duck", "swan", "sparrow", "parrot", "kingfisher",
         "wolf", "spider",
         "magpie", "crow", "woodpecker", "hummingbird",
@@ -64,6 +106,8 @@ class Ecosystem:
         "bear", "wild_boar", "badger", "raccoon_dog",
         "skunk", "opossum", "coati", "armadillo",
     ]
+    AMPHIBIOUS_ANIMAL_SPECIES = ["frog"]
+    ALL_ANIMAL_SPECIES = LAND_ANIMAL_SPECIES + AMPHIBIOUS_ANIMAL_SPECIES
     AQUATIC_SPECIES = [
         "algae", "seaweed", "plankton", "small_fish", "minnow", "carp", "catfish",
         "large_fish", "pufferfish", "shrimp", "crab", "tadpole", "water_strider",
@@ -79,6 +123,8 @@ class Ecosystem:
         "hummingbird",
     }
     LAND_PREDATORS = {"fox", "wolf", "snake", "spider", "eagle", "owl", "bear", "wild_boar", "badger", "skunk", "coati"}
+    AMPHIBIOUS_SPECIES = {"frog", "duck", "swan"}
+    FISH_SPECIES = {"small_fish", "minnow", "large_fish", "carp", "catfish", "blackfish", "pike"}
     
     def __init__(self, config_path: str = None, config: dict = None):
         self.config = self._load_config(config_path, config)
@@ -112,9 +158,14 @@ class Ecosystem:
         self._stats_cache: Optional[Dict] = None
         self._stats_cache_tick: int = -1
         self._migration_cooldowns: Dict[str, int] = {}
+        self._latest_species_counts: Optional[Dict[str, int]] = None
+        self.microhabitats: List[MicrohabitatPatch] = []
+        self._microhabitat_index: Dict[Tuple[int, int], List[MicrohabitatPatch]] = defaultdict(list)
         
         self._init_population()
         self._rebuild_spatial_indices()
+        self._rebuild_microhabitat_resources()
+        self._latest_species_counts = self._get_species_counts()
         
     def _load_config(self, path: str = None, config: dict = None) -> dict:
         if config is not None:
@@ -123,10 +174,30 @@ class Ecosystem:
             with open(path, 'r') as f:
                 return yaml.safe_load(f)
         return {}
-        
+
+    def _resolve_initial_population(self) -> Dict[str, int]:
+        """归一化初始种群配置，兼容新旧键名并补齐缺失物种。"""
+        configured = dict(self.config.get("initial_population", {}))
+        normalized = dict(self.DEFAULT_INITIAL_POPULATION)
+        for key, value in configured.items():
+            normalized[key] = value
+            alias_target = self.POPULATION_ALIASES.get(key)
+            if alias_target:
+                normalized[alias_target] = value
+
+        for alias, canonical in self.POPULATION_ALIASES.items():
+            if alias in configured and canonical not in configured:
+                normalized[canonical] = configured[alias]
+            if canonical in configured and alias not in configured:
+                normalized[alias] = configured[canonical]
+
+        for species in self.ALL_ANIMAL_SPECIES + self.AQUATIC_SPECIES + self.PLANT_SPECIES:
+            normalized.setdefault(species, 0)
+        return normalized
+
     def _init_population(self):
         """初始化所有生物"""
-        initial = self.config.get("initial_population", {})
+        initial = self._resolve_initial_population()
         
         # === 陆地植物 ===
         for _ in range(initial.get("grass", 50)):
@@ -269,12 +340,12 @@ class Ecosystem:
                 self.animals.append(Owl(pos))
             
         for _ in range(initial.get("duck", 5)):
-            pos = self._random_water_adjacent_position() or self._random_land_position()
+            pos = self._random_amphibious_position()
             if pos:
                 self.animals.append(Duck(pos))
             
         for _ in range(initial.get("swan", 3)):
-            pos = self._random_water_position()
+            pos = self._random_water_position() or self._random_amphibious_position()
             if pos:
                 self.animals.append(Swan(pos))
             
@@ -457,10 +528,20 @@ class Ecosystem:
                 self.aquatic_creatures.append(Crab(pos))
             
         # === 两栖动物 ===
-        for _ in range(initial.get("frog", 5)):
-            pos = self._random_water_position()
+        for _ in range(initial.get("frog", 8)):
+            pos = self._random_amphibious_position()
             if pos:
                 self.animals.append(Frog(pos))
+
+        for _ in range(initial.get("tadpole", 8)):
+            pos = self._random_water_position_for_body_type({"lake_shallow", "river_channel"})
+            if pos:
+                self.aquatic_creatures.append(Tadpole(pos))
+
+        for _ in range(initial.get("water_strider", 10)):
+            pos = self._random_water_position_for_body_type({"lake_shallow", "river_channel"})
+            if pos:
+                self.aquatic_creatures.append(WaterStrider(pos))
             
     def _random_land_position(self) -> Optional[Tuple[int, int]]:
         """随机陆地位置"""
@@ -506,6 +587,14 @@ class Ecosystem:
                             if self.environment.is_land(x, y):
                                 return (x, y)
         return None
+
+    def _random_amphibious_position(self) -> Optional[Tuple[int, int]]:
+        """随机两栖友好位置，优先湿地边缘，其次浅水或陆地。"""
+        return (
+            self._random_water_adjacent_position()
+            or self._random_water_position_for_body_type({"river_channel", "lake_shallow"})
+            or self._random_land_position()
+        )
 
     def _random_edge_land_position(self) -> Optional[Tuple[int, int]]:
         """随机边缘陆地位置，模拟从生态廊道迁入。"""
@@ -556,6 +645,198 @@ class Ecosystem:
     
     def _cell_for(self, position: Tuple[int, int]) -> Tuple[int, int]:
         return (position[0] // self._spatial_cell_size, position[1] // self._spatial_cell_size)
+
+    def _microhabitat_cell_for(self, position: Tuple[int, int]) -> Tuple[int, int]:
+        cell_size = max(2, self._spatial_cell_size)
+        return (position[0] // cell_size, position[1] // cell_size)
+
+    def _seasonal_resource_pulse(self, kind: str) -> float:
+        season = self.environment.season
+        weather_value = self.environment.weather
+        weather = weather_value.value if hasattr(weather_value, "value") else str(weather_value)
+        hour = self.environment.hour
+        pulse = 1.0
+        if kind == "nectar_patch":
+            if season == "spring":
+                pulse *= 1.35
+            elif season == "summer":
+                pulse *= 1.18
+            elif season == "winter":
+                pulse *= 0.65
+            if weather in {"rainy", "stormy"}:
+                pulse *= 0.84
+        elif kind in {"canopy_roost", "night_roost"}:
+            if season in {"spring", "summer"}:
+                pulse *= 1.08
+            if kind == "night_roost" and (hour >= 18 or hour < 6):
+                pulse *= 1.22
+        elif kind == "shrub_shelter":
+            if season in {"spring", "summer"}:
+                pulse *= 1.12
+            if weather in {"rainy", "foggy"}:
+                pulse *= 1.06
+        elif kind == "wetland_patch":
+            if season == "spring":
+                pulse *= 1.22
+            elif season == "winter":
+                pulse *= 0.78
+            if weather in {"rainy", "stormy"}:
+                pulse *= 1.12
+        elif kind == "riparian_perch":
+            if season in {"spring", "summer"}:
+                pulse *= 1.10
+            if weather in {"rainy", "stormy"}:
+                pulse *= 1.08
+        return max(0.45, min(1.6, pulse))
+
+    def _add_microhabitat_patch(self, kind: str, position: Tuple[int, int], capacity: float):
+        seasonal_multiplier = self._seasonal_resource_pulse(kind)
+        patch = MicrohabitatPatch(
+            kind=kind,
+            position=position,
+            capacity=capacity,
+            available=capacity * seasonal_multiplier,
+            seasonal_multiplier=seasonal_multiplier,
+        )
+        self.microhabitats.append(patch)
+        self._microhabitat_index[self._microhabitat_cell_for(position)].append(patch)
+
+    def _rebuild_microhabitat_resources(self):
+        previous_state = {
+            (patch.kind, patch.position): (
+                patch.available / max(0.1, patch.capacity * max(0.45, patch.seasonal_multiplier)),
+                patch.occupancy,
+            )
+            for patch in self.microhabitats
+        }
+        self.microhabitats = []
+        self._microhabitat_index = defaultdict(list)
+        canopy_species = {"tree", "apple_tree", "cherry_tree", "orange_tree"}
+        shrub_species = {"bush", "berry", "blueberry", "strawberry", "grape_vine"}
+        nectar_species = {"flower", "berry", "blueberry", "strawberry"}
+        wetland_species = {"moss", "fern"}
+
+        for plant in self.plants:
+            if not plant.alive:
+                continue
+            size = max(0.8, getattr(plant, "size", 1.0))
+            if plant.species in canopy_species:
+                self._add_microhabitat_patch("canopy_roost", plant.position, 1.2 * size)
+                self._add_microhabitat_patch("night_roost", plant.position, 1.0 * size)
+            if plant.species in shrub_species:
+                self._add_microhabitat_patch("shrub_shelter", plant.position, 0.9 * size)
+            if plant.species in nectar_species:
+                self._add_microhabitat_patch("nectar_patch", plant.position, 0.8 * size)
+            if plant.species in wetland_species:
+                self._add_microhabitat_patch("wetland_patch", plant.position, 0.9 * size)
+
+            if plant.species in canopy_species.union(shrub_species):
+                x, y = plant.position
+                near_water = False
+                for dx in range(-1, 2):
+                    for dy in range(-1, 2):
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < self.width and 0 <= ny < self.height and self.environment.is_water(nx, ny):
+                            near_water = True
+                            break
+                    if near_water:
+                        break
+                if near_water:
+                    self._add_microhabitat_patch("riparian_perch", plant.position, 0.85 * size)
+
+        for aquatic in self.aquatic_creatures:
+            if aquatic.alive and aquatic.species in {"water_strider", "tadpole"}:
+                self._add_microhabitat_patch("wetland_patch", aquatic.position, 0.6)
+
+        for patch in self.microhabitats:
+            ratio, occupancy = previous_state.get((patch.kind, patch.position), (1.0, 0.0))
+            patch.available = min(
+                patch.capacity * patch.seasonal_multiplier,
+                max(0.0, patch.capacity * patch.seasonal_multiplier * ratio),
+            )
+            patch.occupancy = min(patch.capacity, max(0.0, occupancy))
+
+    def _update_microhabitat_resources(self):
+        for patch in self.microhabitats:
+            target = patch.capacity * patch.seasonal_multiplier
+            recovery_rate = max(0.04, target * 0.06)
+            patch.available = min(target, patch.available + recovery_rate)
+            patch.occupancy = max(0.0, patch.occupancy - max(0.03, patch.capacity * 0.04))
+
+    def get_microhabitat_patches(
+        self,
+        kinds=None,
+        position: Optional[Tuple[int, int]] = None,
+        radius: int = 4,
+    ) -> List[MicrohabitatPatch]:
+        if isinstance(kinds, str):
+            kinds = {kinds}
+        elif kinds is not None:
+            kinds = set(kinds)
+
+        if position is None:
+            patches = self.microhabitats
+        else:
+            cell_x, cell_y = self._microhabitat_cell_for(position)
+            cell_radius = max(1, (radius + self._spatial_cell_size - 1) // self._spatial_cell_size)
+            patches = []
+            for dx in range(-cell_radius, cell_radius + 1):
+                for dy in range(-cell_radius, cell_radius + 1):
+                    patches.extend(self._microhabitat_index.get((cell_x + dx, cell_y + dy), []))
+
+        result = []
+        for patch in patches:
+            if kinds and patch.kind not in kinds:
+                continue
+            if position is not None:
+                dist = abs(patch.position[0] - position[0]) + abs(patch.position[1] - position[1])
+                if dist > radius:
+                    continue
+            result.append(patch)
+        return result
+
+    def get_local_microhabitat_value(self, position: Tuple[int, int], kinds, radius: int = 4) -> float:
+        patches = self.get_microhabitat_patches(kinds=kinds, position=position, radius=radius)
+        value = 0.0
+        for patch in patches:
+            dist = abs(patch.position[0] - position[0]) + abs(patch.position[1] - position[1])
+            occupancy_penalty = max(0.35, 1.0 - patch.occupancy / max(0.1, patch.capacity))
+            value += (patch.available * occupancy_penalty) / max(1.0, dist + 1.0)
+        return value
+
+    def consume_microhabitat(self, kinds, position: Tuple[int, int], amount: float, radius: int = 3) -> float:
+        patches = self.get_microhabitat_patches(kinds=kinds, position=position, radius=radius)
+        patches.sort(key=lambda patch: abs(patch.position[0] - position[0]) + abs(patch.position[1] - position[1]))
+        remaining = amount
+        consumed = 0.0
+        for patch in patches:
+            if remaining <= 0:
+                break
+            take = min(remaining, patch.available)
+            patch.available -= take
+            consumed += take
+            remaining -= take
+        return consumed
+
+    def occupy_microhabitat(self, species: str, kinds, position: Tuple[int, int], amount: float = 0.2, radius: int = 2) -> float:
+        patches = self.get_microhabitat_patches(kinds=kinds, position=position, radius=radius)
+        patches.sort(
+            key=lambda patch: (
+                -(patch.available - patch.occupancy),
+                abs(patch.position[0] - position[0]) + abs(patch.position[1] - position[1]),
+            )
+        )
+        occupied = 0.0
+        for patch in patches:
+            free_space = max(0.0, patch.capacity - patch.occupancy)
+            if free_space <= 0:
+                continue
+            take = min(amount - occupied, free_space)
+            patch.occupancy += take
+            occupied += take
+            if occupied >= amount:
+                break
+        return occupied
     
     def _rebuild_spatial_indices(self):
         self._plant_index = defaultdict(list)
@@ -616,11 +897,56 @@ class Ecosystem:
         return nearby
     
     def _get_species_counts(self) -> Dict[str, int]:
-        species_counts = {sp: 0 for sp in self.PLANT_SPECIES + self.LAND_ANIMAL_SPECIES + self.AQUATIC_SPECIES}
+        species_counts = {sp: 0 for sp in self.PLANT_SPECIES + self.ALL_ANIMAL_SPECIES + self.AQUATIC_SPECIES}
         species_counts.update(Counter(p.species for p in self.plants if p.alive))
         species_counts.update(Counter(a.species for a in self.animals if a.alive))
         species_counts.update(Counter(a.species for a in self.aquatic_creatures if a.alive))
         return species_counts
+
+    def _compute_ecosystem_actors(self, species_counts: Dict[str, int]) -> Dict[str, float]:
+        canopy_cover = (
+            species_counts.get("tree", 0)
+            + species_counts.get("apple_tree", 0)
+            + species_counts.get("cherry_tree", 0)
+            + species_counts.get("orange_tree", 0)
+        )
+        shrub_cover = (
+            species_counts.get("bush", 0)
+            + species_counts.get("berry", 0)
+            + species_counts.get("blueberry", 0)
+            + species_counts.get("strawberry", 0)
+            + species_counts.get("grape_vine", 0)
+        )
+        bloom_abundance = (
+            species_counts.get("flower", 0)
+            + species_counts.get("berry", 0)
+            + species_counts.get("blueberry", 0)
+            + species_counts.get("strawberry", 0)
+        )
+        wetland_support = (
+            species_counts.get("moss", 0)
+            + species_counts.get("fern", 0)
+            + species_counts.get("water_strider", 0)
+            + species_counts.get("tadpole", 0)
+        )
+        aerial_insect_supply = (
+            species_counts.get("insect", 0)
+            + species_counts.get("bee", 0)
+            + species_counts.get("spider", 0) * 0.4
+        )
+        aquatic_mid_pressure = (
+            species_counts.get("minnow", 0)
+            + species_counts.get("small_fish", 0)
+            + species_counts.get("carp", 0)
+        )
+        return {
+            "canopy_cover": canopy_cover,
+            "shrub_cover": shrub_cover,
+            "bloom_abundance": bloom_abundance,
+            "wetland_support": wetland_support,
+            "aerial_insect_supply": aerial_insect_supply,
+            "aquatic_mid_pressure": aquatic_mid_pressure,
+        }
     
     def _soft_population_limit(self, species: str, domain: str) -> int:
         water_capacity = max(1, len(self.environment.water_quality))
@@ -669,12 +995,51 @@ class Ecosystem:
     def _invalidate_stats_cache(self):
         self._stats_cache = None
         self._stats_cache_tick = -1
+        self._latest_species_counts = None
+
+    def _can_spawn_land_animal(self, species: str, position: Tuple[int, int]) -> bool:
+        x, y = position
+        if species in self.AMPHIBIOUS_SPECIES:
+            return self.environment.is_land(x, y) or self.environment.is_water(x, y)
+        return self.environment.is_land(x, y)
+
+    def get_species_count(self, species: str) -> int:
+        if self._latest_species_counts is None:
+            self._latest_species_counts = self._get_species_counts()
+        return self._latest_species_counts.get(species, 0)
+
+    def get_sustainable_population(self, species: str) -> int:
+        """扣除保底种群后的可持续可捕食数量。"""
+        reserve = self.PREY_RESERVE.get(species, 0)
+        return max(0, self.get_species_count(species) - reserve)
+
+    def get_predation_chance(self, predator_species: str, prey_species: str, hunger: float = 50.0) -> float:
+        """根据猎物剩余量和捕食者数量动态限制捕食强度，防止食物链被打穿。"""
+        species_counts = self._latest_species_counts or self._get_species_counts()
+        prey_count = species_counts.get(prey_species, 0)
+        predator_count = max(1, species_counts.get(predator_species, 0))
+        reserve = self.PREY_RESERVE.get(prey_species, 2)
+        if prey_count <= reserve:
+            return 0.0
+
+        surplus = prey_count - reserve
+        appetite = self.PREDATOR_APPETITE.get(predator_species, 1.4)
+        scarcity = surplus / max(1.0, predator_count * appetite)
+        hunger_factor = max(0.75, min(1.3, hunger / 55.0 if hunger > 0 else 0.9))
+
+        if scarcity < 0.2 and hunger < 65:
+            return 0.0
+        if scarcity < 0.35:
+            return min(0.28, (0.10 + scarcity * 0.35) * hunger_factor)
+
+        return max(0.18, min(0.98, (0.16 + min(1.0, scarcity) * 0.74) * hunger_factor))
 
     def _apply_population_pressure(self, species_counts: Dict[str, int]):
         """按营养级和关键物种数量给出生存/繁殖阻尼。"""
         land_prey_total = sum(species_counts.get(sp, 0) for sp in self.LAND_PREY)
         aquatic_producer_total = sum(species_counts.get(sp, 0) for sp in self.AQUATIC_PRODUCERS)
         aquatic_consumer_total = sum(species_counts.get(sp, 0) for sp in self.AQUATIC_CONSUMERS)
+        actors = self._compute_ecosystem_actors(species_counts)
 
         def modifiers(species: str) -> Tuple[float, float]:
             hunger_mult = 1.0
@@ -692,18 +1057,122 @@ class Ecosystem:
                 if count > 20:
                     hunger_mult *= 1.12
                     reproduction_mult *= 0.82
+                elif count <= 8 and species_counts.get("grass", 0) + species_counts.get("bush", 0) > 40:
+                    hunger_mult *= 0.88
+                    reproduction_mult *= 1.32
             elif species == "mouse":
                 if count > 24:
                     hunger_mult *= 1.10
                     reproduction_mult *= 0.84
+                elif count <= 8 and species_counts.get("insect", 0) + species_counts.get("berry", 0) > 18:
+                    hunger_mult *= 0.86
+                    reproduction_mult *= 1.26
             elif species == "fox":
                 if count <= 4 and land_prey_total > 35:
                     hunger_mult *= 0.88
                     reproduction_mult *= 1.28
+                elif count > 8:
+                    hunger_mult *= 1.10
+                    reproduction_mult *= 0.76
             elif species == "wolf":
                 if count <= 3 and species_counts.get("deer", 0) + species_counts.get("rabbit", 0) > 18:
                     hunger_mult *= 0.90
                     reproduction_mult *= 1.20
+                elif count > 5:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.78
+            elif species == "bird":
+                if count <= 4 and species_counts.get("insect", 0) + species_counts.get("bee", 0) > 20:
+                    hunger_mult *= 0.84
+                    reproduction_mult *= 1.24
+                elif count > 10:
+                    hunger_mult *= 1.06
+                    reproduction_mult *= 0.84
+            elif species == "sparrow":
+                if count <= 10 and species_counts.get("insect", 0) + species_counts.get("grass", 0) + species_counts.get("berry", 0) > 34:
+                    hunger_mult *= 0.70
+                    reproduction_mult *= 1.52
+                elif count > 16:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.84
+            elif species == "kingfisher":
+                if count <= 2 and species_counts.get("small_fish", 0) + species_counts.get("minnow", 0) + species_counts.get("shrimp", 0) > 18:
+                    hunger_mult *= 0.76
+                    reproduction_mult *= 1.34
+                elif count > 4:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.82
+            elif species == "deer":
+                if count <= 3 and species_counts.get("grass", 0) + species_counts.get("bush", 0) + species_counts.get("fern", 0) > 32:
+                    hunger_mult *= 0.90
+                    reproduction_mult *= 1.18
+            elif species == "frog":
+                if count <= 5 and species_counts.get("insect", 0) + species_counts.get("plankton", 0) > 32:
+                    hunger_mult *= 0.80
+                    reproduction_mult *= 1.36
+                elif count > 14:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.84
+                if actors["wetland_support"] >= 18:
+                    hunger_mult *= 0.90
+                    reproduction_mult *= 1.10
+            elif species == "eagle":
+                if count <= 2 and land_prey_total > 24:
+                    hunger_mult *= 0.88
+                    reproduction_mult *= 1.18
+                elif count > 4:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.80
+            elif species == "owl":
+                if count <= 2 and species_counts.get("mouse", 0) + species_counts.get("bat", 0) + species_counts.get("bird", 0) > 14:
+                    hunger_mult *= 0.82
+                    reproduction_mult *= 1.24
+                elif count > 4:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.80
+            elif species == "hummingbird":
+                if count <= 4 and species_counts.get("flower", 0) + species_counts.get("berry", 0) + species_counts.get("blueberry", 0) > 16:
+                    hunger_mult *= 0.68
+                    reproduction_mult *= 1.50
+                if actors["bloom_abundance"] >= 12 and actors["shrub_cover"] >= 8:
+                    hunger_mult *= 0.88
+                    reproduction_mult *= 1.10
+            elif species == "woodpecker":
+                if count <= 3 and species_counts.get("insect", 0) + species_counts.get("bee", 0) + species_counts.get("spider", 0) > 20:
+                    hunger_mult *= 0.84
+                    reproduction_mult *= 1.24
+                if actors["canopy_cover"] >= 12:
+                    hunger_mult *= 0.92
+            elif species == "magpie":
+                if count <= 4 and species_counts.get("insect", 0) + species_counts.get("mouse", 0) + species_counts.get("berry", 0) > 18:
+                    hunger_mult *= 0.88
+                    reproduction_mult *= 1.16
+                if actors["canopy_cover"] >= 12 and actors["shrub_cover"] >= 8:
+                    hunger_mult *= 0.94
+            elif species == "crow":
+                if count <= 3 and species_counts.get("insect", 0) + species_counts.get("mouse", 0) + species_counts.get("frog", 0) > 16:
+                    hunger_mult *= 0.88
+                    reproduction_mult *= 1.18
+                if actors["canopy_cover"] >= 12:
+                    hunger_mult *= 0.94
+            elif species == "squirrel":
+                if count <= 5 and species_counts.get("tree", 0) + species_counts.get("bush", 0) + species_counts.get("berry", 0) > 14:
+                    hunger_mult *= 0.68
+                    reproduction_mult *= 1.42
+                if actors["canopy_cover"] >= 12:
+                    hunger_mult *= 0.86
+                    reproduction_mult *= 1.08
+            elif species == "bat":
+                if count <= 4 and species_counts.get("insect", 0) + species_counts.get("bee", 0) > 18:
+                    hunger_mult *= 0.70
+                    reproduction_mult *= 1.40
+                if actors["canopy_cover"] >= 10 and actors["aerial_insect_supply"] >= 16:
+                    hunger_mult *= 0.88
+                    reproduction_mult *= 1.10
+            elif species == "bear":
+                if count <= 2 and land_prey_total > 28:
+                    hunger_mult *= 0.90
+                    reproduction_mult *= 1.10
             elif species == "plankton":
                 if count > 150:
                     hunger_mult *= 1.20
@@ -731,11 +1200,14 @@ class Ecosystem:
                     reproduction_mult *= 1.55
             elif species == "minnow":
                 if count <= 12 and aquatic_producer_total > 75:
-                    hunger_mult *= 0.80
-                    reproduction_mult *= 1.46
-                elif count > 34:
-                    hunger_mult *= 1.12
-                    reproduction_mult *= 0.78
+                    hunger_mult *= 0.76
+                    reproduction_mult *= 1.58
+                elif count > 22:
+                    hunger_mult *= 1.18
+                    reproduction_mult *= 0.64
+                if actors["aquatic_mid_pressure"] > 42:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.86
             elif species == "shrimp":
                 if count <= 8 and aquatic_producer_total > 75:
                     hunger_mult *= 0.82
@@ -747,9 +1219,12 @@ class Ecosystem:
                 if count <= 2 and aquatic_consumer_total > 20:
                     hunger_mult *= 0.82
                     reproduction_mult *= 1.45
-                elif count > 10:
-                    hunger_mult *= 1.06
-                    reproduction_mult *= 0.85
+                elif count > 9:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.78
+                if species_counts.get("minnow", 0) + species_counts.get("small_fish", 0) < 6:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.90
             elif species == "pike":
                 if count <= 2 and aquatic_consumer_total > 18:
                     hunger_mult *= 0.86
@@ -757,9 +1232,12 @@ class Ecosystem:
                 elif count <= 4 and aquatic_consumer_total > 24:
                     hunger_mult *= 0.92
                     reproduction_mult *= 1.08
-                elif count > 9:
-                    hunger_mult *= 1.07
-                    reproduction_mult *= 0.84
+                elif count > 5:
+                    hunger_mult *= 1.18
+                    reproduction_mult *= 0.62
+                if species_counts.get("minnow", 0) < 4:
+                    hunger_mult *= 1.10
+                    reproduction_mult *= 0.88
             elif species == "catfish":
                 if count <= 3 and aquatic_consumer_total > 18:
                     hunger_mult *= 0.94
@@ -767,6 +1245,12 @@ class Ecosystem:
                 elif count <= 5 and aquatic_consumer_total > 24:
                     hunger_mult *= 0.94
                     reproduction_mult *= 1.04
+                elif count > 4:
+                    hunger_mult *= 1.20
+                    reproduction_mult *= 0.58
+                if actors["aquatic_mid_pressure"] < 14:
+                    hunger_mult *= 1.08
+                    reproduction_mult *= 0.84
             elif species == "large_fish":
                 if count <= 2 and aquatic_consumer_total > 16:
                     hunger_mult *= 0.84
@@ -777,9 +1261,9 @@ class Ecosystem:
                 elif count <= 6 and aquatic_consumer_total > 24:
                     hunger_mult *= 0.96
                     reproduction_mult *= 1.08
-                elif count > 8:
-                    hunger_mult *= 1.04
-                    reproduction_mult *= 0.88
+                elif count > 4:
+                    hunger_mult *= 1.16
+                    reproduction_mult *= 0.64
 
             return hunger_mult, reproduction_mult
 
@@ -791,7 +1275,7 @@ class Ecosystem:
 
     def _maybe_recolonize_species(self, species_counts: Dict[str, int]):
         """关键控制物种的低密度自然迁入，避免生态链永久断裂。"""
-        if self.tick_count < 40 or self.tick_count % 12 != 0:
+        if self.tick_count < 24 or self.tick_count % 8 != 0:
             return
 
         season = self.environment.season
@@ -810,6 +1294,124 @@ class Ecosystem:
                     a for a in self.get_nearby_animals(pos, 8)
                     if a.species in {"rabbit", "mouse", "insect", "frog"} and a.alive
                 ]) >= 4,
+            },
+            {
+                "species": "eagle",
+                "domain": "land",
+                "max_count": 1,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["bird", "sparrow", "rabbit", "duck"]) >= 14,
+                "chance": 0.12,
+                "position": self._random_edge_land_position,
+                "message": "一只老鹰沿山脊与林缘迁入",
+                "cooldown": 120,
+                "habitat_check": lambda pos: len([
+                    a for a in self.get_nearby_animals(pos, 10)
+                    if a.species in {"bird", "sparrow", "rabbit", "duck"} and a.alive
+                ]) >= 3,
+            },
+            {
+                "species": "owl",
+                "domain": "land",
+                "max_count": 2,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["mouse", "bat", "bird", "sparrow"]) >= 12,
+                "chance": 0.18,
+                "position": self._random_edge_land_position,
+                "message": "一只猫头鹰借林带夜间迁入",
+                "cooldown": 84,
+                "habitat_check": lambda pos: len([
+                    a for a in self.get_nearby_animals(pos, 10)
+                    if a.species in {"mouse", "bat", "bird", "sparrow"} and a.alive
+                ]) >= 3,
+            },
+            {
+                "species": "sparrow",
+                "domain": "land",
+                "max_count": 10,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["insect", "grass", "flower", "berry"]) >= 30,
+                "chance": 0.65,
+                "position": self._random_edge_land_position,
+                "message": "一小群麻雀沿农田与林缘迁入",
+                "cooldown": 20,
+                "habitat_check": lambda pos: len([
+                    p for p in self.get_nearby_plants(pos, 6)
+                    if p.species in {"grass", "flower", "berry", "strawberry", "blueberry", "bush", "tree"} and p.alive
+                ]) >= 4,
+            },
+            {
+                "species": "kingfisher",
+                "domain": "land",
+                "max_count": 3,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["small_fish", "minnow", "shrimp", "tadpole", "water_strider"]) >= 18,
+                "chance": 0.40 if weather in {"rainy", "stormy"} else 0.28,
+                "position": self._random_water_adjacent_position,
+                "message": "一只翠鸟沿溪岸与湖岸林带迁入",
+                "cooldown": 32,
+                "habitat_check": lambda pos: len([
+                    a for a in self.get_nearby_aquatic(pos, 6)
+                    if a.species in {"small_fish", "minnow", "shrimp", "tadpole", "water_strider"} and a.alive
+                ]) >= 3 and len([
+                    p for p in self.get_nearby_plants(pos, 5)
+                    if p.species in {"bush", "tree", "berry", "apple_tree", "cherry_tree"} and p.alive
+                ]) >= 2,
+            },
+            {
+                "species": "hummingbird",
+                "domain": "land",
+                "max_count": 6,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["flower", "berry", "blueberry", "strawberry"]) >= 18,
+                "chance": 0.50,
+                "position": self._random_edge_land_position,
+                "message": "一只蜂鸟沿开花灌丛和林缘迁入",
+                "cooldown": 28,
+                "habitat_check": lambda pos: len([
+                    p for p in self.get_nearby_plants(pos, 5)
+                    if p.species in {"flower", "berry", "blueberry", "strawberry", "bush"} and p.alive
+                ]) >= 4,
+            },
+            {
+                "species": "squirrel",
+                "domain": "land",
+                "max_count": 6,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["tree", "bush", "berry", "mushroom"]) >= 18,
+                "chance": 0.44,
+                "position": self._random_edge_land_position,
+                "message": "一只松鼠沿树林边缘迁入",
+                "cooldown": 30,
+                "habitat_check": lambda pos: len([
+                    p for p in self.get_nearby_plants(pos, 5)
+                    if p.species in {"tree", "bush", "berry", "apple_tree", "cherry_tree", "orange_tree"} and p.alive
+                ]) >= 3,
+            },
+            {
+                "species": "bat",
+                "domain": "land",
+                "max_count": 5,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["insect", "bee", "spider"]) >= 22,
+                "chance": 0.42,
+                "position": self._random_edge_land_position,
+                "message": "几只蝙蝠借夜色沿林带迁入",
+                "cooldown": 28,
+                "habitat_check": lambda pos: len([
+                    a for a in self.get_nearby_animals(pos, 6)
+                    if a.species in {"insect", "bee", "spider"} and a.alive
+                ]) >= 4 and len([
+                    p for p in self.get_nearby_plants(pos, 5)
+                    if p.species in {"tree", "bush", "apple_tree", "cherry_tree"} and p.alive
+                ]) >= 2,
+            },
+            {
+                "species": "frog",
+                "domain": "land",
+                "max_count": 5,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["insect", "plankton", "water_strider"]) >= 24,
+                "chance": 0.40,
+                "position": self._random_water_adjacent_position,
+                "message": "几只青蛙顺着湿地边缘回到水岸",
+                "cooldown": 24,
+                "habitat_check": lambda pos: len([
+                    a for a in self.get_nearby_aquatic(pos, 5)
+                    if a.species in {"plankton", "water_strider", "tadpole"} and a.alive
+                ]) >= 3,
             },
             {
                 "species": "small_fish",
@@ -941,30 +1543,30 @@ class Ecosystem:
         self._invalidate_stats_cache()
 
         species_counts = self._get_species_counts()
+        self._latest_species_counts = species_counts
         self._apply_population_pressure(species_counts)
         
         # 获取生物数量用于环境更新
-        plant_count = len([p for p in self.plants if p.alive])
-        fish_count = len([a for a in self.aquatic_creatures if a.species in ["small_fish", "minnow", "large_fish", "carp", "catfish", "blackfish", "pike"] and a.alive])
+        plant_count = sum(1 for p in self.plants if p.alive)
+        fish_count = sum(1 for a in self.aquatic_creatures if a.alive and a.species in self.FISH_SPECIES)
         
         # 更新环境
         self.environment.update(plant_count, fish_count)
+        self._update_microhabitat_resources()
         
         # 记录上一轮的物种数量
         self.previous_counts = species_counts
-        self._rebuild_spatial_indices()
         
         # 更新陆地植物
         for plant in self.plants:
             plant.update(self)
         self.plants = [p for p in self.plants if p.alive]
-        self._rebuild_spatial_indices()
+        self._rebuild_microhabitat_resources()
         
         # 更新陆地动物
         for animal in self.animals:
             animal.update(self)
         self.animals = [a for a in self.animals if a.alive]
-        self._rebuild_spatial_indices()
         
         # 更新水生生物
         for aquatic in self.aquatic_creatures:
@@ -973,6 +1575,7 @@ class Ecosystem:
         self._rebuild_spatial_indices()
 
         current_counts = self._get_species_counts()
+        self._latest_species_counts = current_counts
         self._maybe_recolonize_species(current_counts)
         
         # 蝴蝶效应分析
@@ -1036,7 +1639,7 @@ class Ecosystem:
         }
         current_count = len([a for a in self.animals if a.species == species and a.alive])
         manual = source == "manual" and not is_offspring
-        if species in animal_classes and self._allow_spawn(species, current_count, "land", manual=manual) and (species == "frog" or self.environment.is_land(position[0], position[1]) or self.environment.is_water(position[0], position[1])):
+        if species in animal_classes and self._allow_spawn(species, current_count, "land", manual=manual) and self._can_spawn_land_animal(species, position):
             animal = animal_classes[species](position, gender)
             self.animals.append(animal)
             cell = self._cell_for(animal.position)
@@ -1096,15 +1699,42 @@ class Ecosystem:
         
         # 性别统计
         gender_stats = {}
-        for sp in self.LAND_ANIMAL_SPECIES:
-            animals = [a for a in self.animals if a.species == sp]
-            males = len([a for a in animals if hasattr(a, 'gender') and (a.gender == Gender.MALE or a.gender == "male")])
-            females = len([a for a in animals if hasattr(a, 'gender') and (a.gender == Gender.FEMALE or a.gender == "female")])
-            pregnant = len([a for a in animals if hasattr(a, 'pregnant') and a.pregnant])
-            if males + females > 0:
-                gender_stats[sp] = {"males": males, "females": females, "pregnant": pregnant}
+        for animal in self.animals:
+            if not animal.alive:
+                continue
+            stats = gender_stats.setdefault(animal.species, {"males": 0, "females": 0, "pregnant": 0})
+            gender = getattr(animal, "gender", None)
+            if gender == Gender.MALE or gender == "male":
+                stats["males"] += 1
+            elif gender == Gender.FEMALE or gender == "female":
+                stats["females"] += 1
+            if getattr(animal, "pregnant", False):
+                stats["pregnant"] += 1
+
+        gender_stats = {
+            species: stats
+            for species, stats in gender_stats.items()
+            if stats["males"] + stats["females"] > 0
+        }
             
         env_summary = self.environment.get_environment_summary()
+        actors = self._compute_ecosystem_actors(species_counts)
+        microhabitat_summary = {}
+        for patch in self.microhabitats:
+            stats = microhabitat_summary.setdefault(patch.kind, {"capacity": 0.0, "available": 0.0, "occupancy": 0.0, "count": 0})
+            stats["capacity"] += patch.capacity
+            stats["available"] += patch.available
+            stats["occupancy"] += patch.occupancy
+            stats["count"] += 1
+        microhabitat_summary = {
+            kind: {
+                "count": values["count"],
+                "capacity": round(values["capacity"], 2),
+                "available": round(values["available"], 2),
+                "occupied": round(values["occupancy"], 2),
+            }
+            for kind, values in microhabitat_summary.items()
+        }
         
         self._stats_cache = {
             "tick": self.tick_count,
@@ -1119,11 +1749,14 @@ class Ecosystem:
             "species": species_counts,
             "gender": gender_stats,
             "health": self.balance.get_ecosystem_health({"species": species_counts, "tick": self.tick_count}),
+            "ecosystem_health": self.balance.get_ecosystem_health({"species": species_counts, "tick": self.tick_count}),
             "alerts": [str(a) for a in self.active_alerts],
             "recommendations": self.balance.get_recommendations({"species": species_counts, "tick": self.tick_count}),
             "butterfly_events": [str(e) for e in self.balance.get_butterfly_events(5)],
             "grass_protection": self.balance.grass_protection_factor,
             "environment": env_summary,
+            "actors": actors,
+            "microhabitats": microhabitat_summary,
         }
         self._stats_cache_tick = self.tick_count
         return self._stats_cache

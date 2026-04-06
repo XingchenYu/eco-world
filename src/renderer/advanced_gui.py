@@ -32,13 +32,13 @@ class AdvancedRenderer:
         self.window_height = 900
         
         # UI布局
-        self.sidebar_width = 320
-        self.bottom_bar_height = 60
-        self.minimap_size = 150
+        self.sidebar_width = 380
+        self.bottom_bar_height = 88
+        self.minimap_size = 170
         
         # 创建窗口
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
-        pygame.display.set_caption("🌍 EcoWorld - 虚拟生态系统模拟器")
+        pygame.display.set_caption("生态世界 - 虚拟生态系统模拟器")
         
         # === 摄像头系统 ===
         self.zoom = 1.0
@@ -61,57 +61,74 @@ class AdvancedRenderer:
         self.speed = 1
         self.show_debug = False
         self.show_grid = True
+        self.show_microhabitats = True
         self.max_notifications = 5
         
         # === 颜色主题 ===
         self._init_colors()
-        
+
         # === 字体 ===
         self._init_fonts()
-        
+
+        # === 文案映射 ===
+        self._init_labels()
+
         # === 生物精灵 ===
         self._init_sprites()
         
         # === UI组件 ===
         self.notifications = []
         self.active_tab = "species"  # species, foodchain, events, settings
-        
+        self._terrain_cache = None
+        self._terrain_cache_key = None
+        self._minimap_surface = None
+        self._minimap_cache_key = None
+        self._entity_shadow_alpha = 85
+
         self._clamp_camera()
         
     def _init_colors(self):
         """初始化颜色主题"""
-        # 地形颜色（更自然）
+        # 地形颜色（偏自然主义）
         self.terrain_colors = {
-            "grass": (86, 176, 76),
-            "forest": (45, 90, 39),
-            "rock": (120, 120, 130),
-            "water_shallow": (64, 164, 223),
-            "water_deep": (25, 80, 150),
-            "river": (30, 120, 200),
-            "sand": (238, 214, 175),
-            "mud": (139, 90, 43),
+            "grass": (111, 152, 78),
+            "forest": (53, 86, 49),
+            "rock": (122, 120, 114),
+            "water_shallow": (96, 150, 156),
+            "water_deep": (45, 92, 111),
+            "river": (63, 121, 137),
+            "sand": (184, 164, 124),
+            "mud": (110, 88, 60),
         }
         
         # 地形纹理颜色（用于细节）
         self.terrain_detail = {
-            "grass": [(76, 166, 66), (96, 186, 86), (66, 146, 56)],
-            "forest": [(35, 80, 29), (55, 100, 49), (40, 85, 34)],
-            "water_shallow": [(54, 144, 203), (74, 174, 233), (44, 134, 183)],
+            "grass": [(103, 146, 70), (121, 160, 88), (95, 134, 64)],
+            "forest": [(46, 78, 41), (58, 91, 53), (39, 67, 37)],
+            "water_shallow": [(88, 143, 149), (103, 159, 167), (78, 134, 141)],
+            "water_deep": [(42, 87, 104), (51, 97, 116), (36, 78, 93)],
+            "river": [(58, 115, 130), (71, 129, 143), (48, 102, 117)],
+            "sand": [(176, 156, 118), (190, 169, 130), (166, 146, 112)],
+            "mud": [(103, 81, 56), (118, 94, 66), (91, 71, 49)],
         }
-        
+
         # UI颜色
         self.ui = {
-            "bg_dark": (20, 22, 28),
-            "bg_medium": (30, 33, 42),
-            "bg_light": (40, 44, 55),
-            "border": (50, 55, 70),
-            "text": (230, 235, 240),
-            "text_dim": (140, 150, 165),
-            "accent": (72, 165, 255),
-            "success": (76, 175, 80),
-            "warning": (255, 193, 7),
-            "danger": (244, 67, 54),
-            "highlight": (100, 149, 237),
+            "bg_dark": (27, 29, 24),
+            "bg_medium": (39, 43, 35),
+            "bg_light": (53, 60, 48),
+            "panel": (244, 239, 229),
+            "panel_alt": (231, 224, 209),
+            "border": (118, 108, 88),
+            "text": (40, 35, 27),
+            "text_dim": (102, 95, 81),
+            "accent": (75, 118, 92),
+            "accent_strong": (51, 88, 66),
+            "success": (85, 128, 68),
+            "warning": (181, 130, 58),
+            "danger": (156, 78, 61),
+            "highlight": (173, 144, 88),
+            "shadow": (22, 24, 20),
         }
         
         # 生物颜色映射（完整版）
@@ -214,26 +231,87 @@ class AdvancedRenderer:
         
     def _init_fonts(self):
         """初始化字体"""
-        try:
-            # 尝试加载系统中文字体
-            self.font_small = pygame.font.SysFont("pingfang", 12)
-            self.font_normal = pygame.font.SysFont("pingfang", 14)
-            self.font_medium = pygame.font.SysFont("pingfang", 16)
-            self.font_large = pygame.font.SysFont("pingfang", 20)
-            self.font_title = pygame.font.SysFont("pingfang", 24, bold=True)
-        except:
-            try:
-                self.font_small = pygame.font.SysFont("arial", 12)
-                self.font_normal = pygame.font.SysFont("arial", 14)
-                self.font_medium = pygame.font.SysFont("arial", 16)
-                self.font_large = pygame.font.SysFont("arial", 20)
-                self.font_title = pygame.font.SysFont("arial", 24, bold=True)
-            except:
-                self.font_small = pygame.font.Font(None, 14)
-                self.font_normal = pygame.font.Font(None, 16)
-                self.font_medium = pygame.font.Font(None, 20)
-                self.font_large = pygame.font.Font(None, 24)
-                self.font_title = pygame.font.Font(None, 28)
+        preferred = [
+            "PingFang SC", "Hiragino Sans GB", "Heiti SC", "Songti SC",
+            "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "Source Han Sans SC",
+        ]
+        font_name = None
+        for candidate in preferred:
+            if pygame.font.match_font(candidate):
+                font_name = candidate
+                break
+
+        if font_name:
+            self.font_small = pygame.font.SysFont(font_name, 16)
+            self.font_normal = pygame.font.SysFont(font_name, 20)
+            self.font_medium = pygame.font.SysFont(font_name, 24)
+            self.font_large = pygame.font.SysFont(font_name, 30, bold=True)
+            self.font_title = pygame.font.SysFont(font_name, 38, bold=True)
+        else:
+            self.font_small = pygame.font.Font(None, 18)
+            self.font_normal = pygame.font.Font(None, 22)
+            self.font_medium = pygame.font.Font(None, 26)
+            self.font_large = pygame.font.Font(None, 32)
+            self.font_title = pygame.font.Font(None, 40)
+
+    def _init_labels(self):
+        """初始化中文标签。"""
+        self.tab_labels = {
+            "species": "生态总览",
+            "foodchain": "食物关系",
+            "events": "近期事件",
+            "settings": "运行信息",
+        }
+        self.season_labels = {
+            "spring": "春季",
+            "summer": "夏季",
+            "autumn": "秋季",
+            "winter": "冬季",
+        }
+        self.weather_labels = {
+            "sunny": "晴朗",
+            "cloudy": "多云",
+            "rainy": "降雨",
+            "stormy": "暴雨",
+            "snowy": "降雪",
+            "drought": "干旱",
+        }
+        self.terrain_labels = {
+            "grass": "草地",
+            "forest": "林地",
+            "rock": "岩地",
+            "water_shallow": "浅水",
+            "water_deep": "深水",
+            "river": "河道",
+            "sand": "沙地",
+            "mud": "泥地",
+        }
+        self.species_labels = {
+            "grass": "草", "bush": "灌木", "flower": "花朵", "moss": "苔藓", "tree": "树木",
+            "vine": "藤蔓", "cactus": "仙人掌", "berry": "浆果丛", "mushroom": "蘑菇", "fern": "蕨类",
+            "apple_tree": "苹果树", "cherry_tree": "樱桃树", "grape_vine": "葡萄藤", "strawberry": "草莓",
+            "blueberry": "蓝莓", "orange_tree": "橙树", "watermelon": "西瓜",
+            "bear": "熊", "wild_boar": "野猪", "badger": "獾", "raccoon_dog": "狸", "skunk": "臭鼬",
+            "opossum": "负鼠", "coati": "长鼻浣熊", "armadillo": "犰狳", "rabbit": "兔子", "deer": "鹿",
+            "squirrel": "松鼠", "mouse": "老鼠", "bee": "蜜蜂", "wolf": "狼", "fox": "狐狸",
+            "snake": "蛇", "spider": "蜘蛛", "hedgehog": "刺猬", "bird": "小鸟", "eagle": "老鹰",
+            "owl": "猫头鹰", "duck": "鸭", "swan": "天鹅", "sparrow": "麻雀", "parrot": "鹦鹉",
+            "kingfisher": "翠鸟", "magpie": "喜鹊", "crow": "乌鸦", "woodpecker": "啄木鸟",
+            "hummingbird": "蜂鸟", "insect": "昆虫", "bat": "蝙蝠", "frog": "青蛙",
+            "algae": "藻类", "seaweed": "水草", "plankton": "浮游生物", "small_fish": "小鱼",
+            "minnow": "米诺鱼", "carp": "鲤鱼", "catfish": "鲶鱼", "large_fish": "大鱼",
+            "pufferfish": "河豚", "blackfish": "黑鱼", "pike": "狗鱼", "shrimp": "虾", "crab": "蟹",
+            "tadpole": "蝌蚪", "water_strider": "水黾",
+        }
+
+    def _label_species(self, species: str) -> str:
+        return self.species_labels.get(species, species)
+
+    def _label_weather(self, weather: str) -> str:
+        return self.weather_labels.get(weather, weather)
+
+    def _label_season(self, season: str) -> str:
+        return self.season_labels.get(season, season)
                 
     def _init_sprites(self):
         """初始化生物精灵"""
@@ -299,6 +377,10 @@ class AdvancedRenderer:
             self._notify(f"⏱️ 速度: {self.speed}x")
         elif key == pygame.K_g:
             self.show_grid = not self.show_grid
+            self._notify("🧭 网格已显示" if self.show_grid else "🧭 网格已隐藏")
+        elif key == pygame.K_m:
+            self.show_microhabitats = not self.show_microhabitats
+            self._notify("🌱 微栖息地已显示" if self.show_microhabitats else "🌱 微栖息地已隐藏")
         elif key == pygame.K_F1:
             self.active_tab = "species"
             self._notify("📊 物种统计")
@@ -386,9 +468,11 @@ class AdvancedRenderer:
         """处理窗口尺寸变化。"""
         self.window_width = max(960, width)
         self.window_height = max(640, height)
-        self.sidebar_width = min(360, max(260, self.window_width // 4))
-        self.minimap_size = min(180, max(110, self.window_height // 6))
+        self.sidebar_width = min(430, max(320, self.window_width // 3))
+        self.minimap_size = min(210, max(130, self.window_height // 6))
         self.screen = pygame.display.set_mode((self.window_width, self.window_height), pygame.RESIZABLE)
+        self._terrain_cache_key = None
+        self._minimap_cache_key = None
         self._clamp_camera()
         self._notify(f"🪟 窗口: {self.window_width}x{self.window_height}")
             
@@ -435,21 +519,21 @@ class AdvancedRenderer:
         for animal in self.ecosystem.animals:
             if animal.position == (x, y) and animal.alive:
                 self.selected_creature = animal
-                self._notify(f"选中: {self.creature_emoji.get(animal.species, '?')} {animal.species}")
+                self._notify(f"选中：{self.creature_emoji.get(animal.species, '?')} {self._label_species(animal.species)}")
                 return
                 
         # 检查植物
         for plant in self.ecosystem.plants:
             if plant.position == (x, y) and plant.alive:
                 self.selected_creature = plant
-                self._notify(f"选中: {self.creature_emoji.get(plant.species, '?')} {plant.species}")
+                self._notify(f"选中：{self.creature_emoji.get(plant.species, '?')} {self._label_species(plant.species)}")
                 return
                 
         # 检查水生生物
         for aquatic in self.ecosystem.aquatic_creatures:
             if aquatic.position == (x, y) and aquatic.alive:
                 self.selected_creature = aquatic
-                self._notify(f"选中: {self.creature_emoji.get(aquatic.species, '?')} {aquatic.species}")
+                self._notify(f"选中：{self.creature_emoji.get(aquatic.species, '?')} {self._label_species(aquatic.species)}")
                 return
                 
         self.selected_creature = None
@@ -461,16 +545,24 @@ class AdvancedRenderer:
         rel_x = pos[0] - sidebar_x
         rel_y = pos[1]
         
-        # 标签页按钮高度
-        tab_y = 60
-        tab_height = 35
         tabs = ["species", "foodchain", "events", "settings"]
-        
+        header_y = 104
+        tab_gap = 10
+        tab_width = (self.sidebar_width - 40 - tab_gap) // 2
+        tab_height = 42
+
         for i, tab in enumerate(tabs):
-            tab_start = tab_y + i * tab_height
-            if tab_start <= rel_y < tab_start + tab_height:
+            row = i // 2
+            col = i % 2
+            tab_rect = pygame.Rect(
+                20 + col * (tab_width + tab_gap),
+                header_y + row * (tab_height + 10),
+                tab_width,
+                tab_height,
+            )
+            if tab_rect.collidepoint(rel_x, rel_y):
                 self.active_tab = tab
-                self._notify(f"切换到: {tab}")
+                self._notify(f"切换到：{self.tab_labels.get(tab, tab)}")
                 return
                 
     def _spawn_random(self, species, name):
@@ -513,16 +605,17 @@ class AdvancedRenderer:
     def _update_weather_particles(self):
         """更新天气粒子效果"""
         weather = getattr(self.ecosystem.environment, 'weather', 'sunny')
-        
+        particle_cap = max(50, (self.window_width - self.sidebar_width) // 6)
+
         # 添加新粒子
-        if weather in {'rainy', 'stormy'} and random.random() < (0.5 if weather == 'stormy' else 0.3):
+        if weather in {'rainy', 'stormy'} and len(self.weather_particles) < particle_cap and random.random() < (0.22 if weather == 'stormy' else 0.12):
             self.weather_particles.append({
                 'x': random.randint(0, max(1, self.window_width - self.sidebar_width)),
                 'y': 0,
                 'speed': random.randint(7, 13) if weather == 'stormy' else random.randint(5, 10),
                 'type': 'rain'
             })
-        elif weather == 'snowy' and random.random() < 0.2:
+        elif weather == 'snowy' and len(self.weather_particles) < particle_cap // 2 and random.random() < 0.08:
             self.weather_particles.append({
                 'x': random.randint(0, max(1, self.window_width - self.sidebar_width)),
                 'y': 0,
@@ -584,6 +677,9 @@ class AdvancedRenderer:
         
         # 渲染植物
         self._render_plants(game_surface, grid_size)
+
+        # 渲染微栖息地资源
+        self._render_microhabitats(game_surface, grid_size)
         
         # 渲染动物
         self._render_animals(game_surface, grid_size)
@@ -606,7 +702,20 @@ class AdvancedRenderer:
         self.screen.blit(game_surface, (0, 0))
         
     def _render_terrain(self, surface, start_x, start_y, end_x, end_y, grid_size):
-        """渲染地形"""
+        """渲染地形。"""
+        cache_key = (start_x, start_y, end_x, end_y, grid_size)
+        if self._terrain_cache_key != cache_key:
+            width = surface.get_width()
+            height = surface.get_height()
+            cached = pygame.Surface((width, height))
+            cached.fill((68, 78, 62))
+            self._build_terrain_cache(cached, start_x, start_y, end_x, end_y, grid_size)
+            self._terrain_cache = cached
+            self._terrain_cache_key = cache_key
+        surface.blit(self._terrain_cache, (0, 0))
+
+    def _build_terrain_cache(self, surface, start_x, start_y, end_x, end_y, grid_size):
+        """构建可见区域地形缓存。"""
         for x in range(start_x, end_x):
             for y in range(start_y, end_y):
                 terrain = self.ecosystem.environment.get_terrain(x, y)
@@ -622,16 +731,22 @@ class AdvancedRenderer:
                 screen_x = int((x - self.camera_x) * grid_size)
                 screen_y = int((y - self.camera_y) * grid_size)
                 
-                # 绘制地形格子
-                pygame.draw.rect(surface, color, 
-                               (screen_x, screen_y, grid_size, grid_size))
-                
-                # 水波纹效果
-                if terrain in ["water_shallow", "water_deep", "river"]:
-                    wave_offset = math.sin(self.animation_tick * 0.05 + x * 0.5 + y * 0.3) * 2
-                    wave_color = tuple(max(0, min(255, c + int(wave_offset))) for c in color)
-                    pygame.draw.rect(surface, wave_color,
-                                   (screen_x, screen_y, grid_size, grid_size))
+                rect = pygame.Rect(screen_x, screen_y, grid_size, grid_size)
+                pygame.draw.rect(surface, color, rect)
+                if grid_size >= 12:
+                    shadow = tuple(max(0, c - 10) for c in color)
+                    highlight = tuple(min(255, c + 8) for c in color)
+                    pygame.draw.line(surface, highlight, (rect.x, rect.y), (rect.right, rect.y))
+                    pygame.draw.line(surface, shadow, (rect.x, rect.bottom - 1), (rect.right, rect.bottom - 1))
+                if terrain in ["water_shallow", "water_deep", "river"] and grid_size >= 10:
+                    pygame.draw.arc(
+                        surface,
+                        tuple(min(255, c + 12) for c in color),
+                        rect.inflate(-grid_size // 4, -grid_size // 3),
+                        math.pi * 0.1,
+                        math.pi * 0.9,
+                        1,
+                    )
                     
     def _render_plants(self, surface, grid_size):
         """渲染植物"""
@@ -657,13 +772,10 @@ class AdvancedRenderer:
             
             # 绘制植物
             if plant.species in ["tree", "apple_tree", "cherry_tree", "orange_tree"]:
-                # 大树
                 self._draw_tree(surface, screen_x, screen_y, grid_size, color, plant)
             elif plant.species in ["bush", "berry", "blueberry"]:
-                # 灌木
                 self._draw_bush(surface, screen_x, screen_y, draw_size, color, plant)
             elif plant.species == "flower":
-                # 花
                 self._draw_flower(surface, screen_x, screen_y, draw_size, plant)
             elif plant.species == "cactus":
                 # 仙人掌
@@ -673,46 +785,59 @@ class AdvancedRenderer:
                 self._draw_mushroom(surface, screen_x, screen_y, draw_size, color)
             else:
                 # 默认植物
-                pygame.draw.circle(surface, color, 
-                                 (screen_x + grid_size // 2, screen_y + grid_size // 2),
-                                 draw_size // 2)
+                self._draw_ground_plant(surface, screen_x, screen_y, draw_size, color)
+
+    def _draw_shadow(self, surface, center_x, center_y, width, height):
+        shadow = pygame.Surface((width, height), pygame.SRCALPHA)
+        pygame.draw.ellipse(shadow, (*self.ui["shadow"], self._entity_shadow_alpha), shadow.get_rect())
+        surface.blit(shadow, (center_x - width // 2, center_y - height // 2))
+
+    def _shade(self, color, delta):
+        return tuple(max(0, min(255, channel + delta)) for channel in color)
+
+    def _draw_ground_plant(self, surface, x, y, size, color):
+        center_x = x + size // 2
+        center_y = y + size // 2
+        self._draw_shadow(surface, center_x, center_y + size // 3, size, max(4, size // 2))
+        stem_color = self._shade(color, -30)
+        for offset in (-3, 0, 3):
+            pygame.draw.line(surface, stem_color, (center_x, center_y + size // 3), (center_x + offset, center_y - size // 3), 2)
+        pygame.draw.circle(surface, self._shade(color, 12), (center_x - 2, center_y - size // 5), max(2, size // 4))
+        pygame.draw.circle(surface, color, (center_x + 3, center_y - size // 4), max(2, size // 4))
                                  
     def _draw_tree(self, surface, x, y, grid_size, color, plant):
         """绘制大树"""
-        # 树干
-        trunk_color = (101, 67, 33)
+        center_x = x + grid_size // 2
+        center_y = y + grid_size // 2
+        self._draw_shadow(surface, center_x, y + grid_size + 4, int(grid_size * 0.9), max(6, grid_size // 3))
+        trunk_color = (98, 72, 48)
         trunk_width = grid_size // 4
         trunk_height = grid_size // 2
         pygame.draw.rect(surface, trunk_color, 
-                        (x + grid_size // 2 - trunk_width // 2, y + grid_size // 2,
+                        (center_x - trunk_width // 2, center_y,
                          trunk_width, trunk_height))
-        
-        # 树冠
         crown_radius = int(grid_size * 0.4 * (plant.size / 2 if hasattr(plant, 'size') else 1))
-        pygame.draw.circle(surface, color,
-                         (x + grid_size // 2, y + grid_size // 2),
-                         crown_radius)
-        
-        # 果实
+        pygame.draw.circle(surface, self._shade(color, -18), (center_x + 3, center_y + 3), crown_radius)
+        pygame.draw.circle(surface, color, (center_x, center_y), crown_radius)
+        pygame.draw.circle(surface, self._shade(color, 12), (center_x - crown_radius // 3, center_y - crown_radius // 3), max(3, crown_radius // 2))
         if hasattr(plant, 'has_fruit') and plant.has_fruit:
             fruit_color = self.creature_colors.get(plant.species, (255, 0, 0))
             for _ in range(min(3, plant.fruit_count if hasattr(plant, 'fruit_count') else 3)):
-                fx = x + grid_size // 2 + random.randint(-crown_radius // 2, crown_radius // 2)
-                fy = y + grid_size // 2 + random.randint(-crown_radius // 2, crown_radius // 2)
+                fx = center_x + random.randint(-crown_radius // 2, crown_radius // 2)
+                fy = center_y + random.randint(-crown_radius // 2, crown_radius // 2)
                 pygame.draw.circle(surface, fruit_color, (fx, fy), 3)
                 
     def _draw_bush(self, surface, x, y, size, color, plant):
         """绘制灌木"""
-        # 多个圆形组成灌木
-        pygame.draw.circle(surface, color, (x + size // 2, y + size // 2), size // 2)
-        pygame.draw.circle(surface, tuple(min(255, c + 20) for c in color), 
-                         (x + size // 3, y + size // 3), size // 3)
-        pygame.draw.circle(surface, tuple(max(0, c - 20) for c in color),
-                         (x + size * 2 // 3, y + size * 2 // 3), size // 3)
-        
-        # 浆果
+        center_x = x + size // 2
+        center_y = y + size // 2
+        self._draw_shadow(surface, center_x, center_y + size // 2, size + 4, max(4, size // 2))
+        pygame.draw.circle(surface, self._shade(color, -16), (center_x + 2, center_y + 2), size // 2)
+        pygame.draw.circle(surface, color, (center_x, center_y), size // 2)
+        pygame.draw.circle(surface, self._shade(color, 18), (x + size // 3, y + size // 3), size // 3)
+        pygame.draw.circle(surface, self._shade(color, -24), (x + size * 2 // 3, y + size * 2 // 3), size // 3)
         if hasattr(plant, 'has_fruit') and plant.has_fruit:
-            berry_color = (100, 50, 150)
+            berry_color = (120, 62, 104)
             for _ in range(3):
                 bx = x + random.randint(2, size - 2)
                 by = y + random.randint(2, size - 2)
@@ -720,24 +845,22 @@ class AdvancedRenderer:
                 
     def _draw_flower(self, surface, x, y, size, plant):
         """绘制花"""
-        colors = [(255, 182, 193), (255, 105, 180), (255, 20, 147), (255, 255, 0)]
+        colors = [(214, 162, 171), (197, 102, 128), (189, 126, 78), (219, 196, 91)]
         color = colors[(plant.position[0] + plant.position[1]) % len(colors)]
-        
-        # 花瓣
         center_x, center_y = x + size // 2, y + size // 2
+        self._draw_shadow(surface, center_x, center_y + size // 3, size, max(4, size // 2))
+        pygame.draw.line(surface, (78, 122, 60), (center_x, center_y + size // 2), (center_x, center_y - size // 3), 2)
         petal_size = size // 3
         for angle in range(0, 360, 60):
             rad = math.radians(angle + self.animation_tick)
             px = center_x + int(math.cos(rad) * petal_size)
             py = center_y + int(math.sin(rad) * petal_size)
             pygame.draw.circle(surface, color, (px, py), petal_size // 2)
-            
-        # 花心
-        pygame.draw.circle(surface, (255, 255, 0), (center_x, center_y), petal_size // 3)
+        pygame.draw.circle(surface, (202, 170, 72), (center_x, center_y), petal_size // 3)
         
     def _draw_cactus(self, surface, x, y, size, color):
         """绘制仙人掌"""
-        # 主干
+        self._draw_shadow(surface, x + size // 2, y + size, size, max(4, size // 3))
         pygame.draw.rect(surface, color, 
                         (x + size // 3, y, size // 3, size))
         # 左枝
@@ -753,12 +876,10 @@ class AdvancedRenderer:
                         
     def _draw_mushroom(self, surface, x, y, size, color):
         """绘制蘑菇"""
-        # 伞盖
-        pygame.draw.ellipse(surface, color,
-                          (x, y, size, size // 2))
-        # 柄
-        pygame.draw.rect(surface, (255, 255, 255),
-                        (x + size // 3, y + size // 3, size // 3, size // 2))
+        self._draw_shadow(surface, x + size // 2, y + size, size, max(4, size // 3))
+        pygame.draw.ellipse(surface, self._shade(color, -8), (x + 1, y + 2, size, size // 2))
+        pygame.draw.ellipse(surface, color, (x, y, size, size // 2))
+        pygame.draw.rect(surface, (233, 224, 204), (x + size // 3, y + size // 3, size // 3, size // 2))
                         
     def _render_animals(self, surface, grid_size):
         """渲染动物"""
@@ -795,30 +916,25 @@ class AdvancedRenderer:
             elif animal.species in ["bear", "wolf", "fox", "deer", "rabbit"]:
                 self._draw_mammal(surface, screen_x, screen_y, grid_size, color, animal)
             else:
-                # 默认圆形
                 size = int(grid_size * 0.4)
-                pygame.draw.circle(surface, color,
-                                 (screen_x + grid_size // 2, screen_y + grid_size // 2), size)
+                center_x = screen_x + grid_size // 2
+                center_y = screen_y + grid_size // 2
+                self._draw_shadow(surface, center_x, center_y + size, size * 2, max(4, size))
+                pygame.draw.circle(surface, color, (center_x, center_y), size)
                                  
     def _draw_bird(self, surface, x, y, grid_size, color, animal):
         """绘制小鸟"""
         center_x, center_y = x + grid_size // 2, y + grid_size // 2
         size = grid_size // 3
-        
-        # 身体
+        self._draw_shadow(surface, center_x, center_y + size, size * 2, max(4, size // 2))
+        pygame.draw.ellipse(surface, self._shade(color, -18), (center_x - size + 2, center_y - size // 2 + 2, size * 2, size))
         pygame.draw.ellipse(surface, color, (center_x - size, center_y - size // 2, size * 2, size))
-        
-        # 翅膀动画
         wing_angle = math.sin(self.animation_tick * 0.2 + animal.position[0]) * 0.3
         wing_y = center_y + int(wing_angle * size)
-        pygame.draw.ellipse(surface, tuple(min(255, c + 30) for c in color),
+        pygame.draw.ellipse(surface, self._shade(color, 22),
                           (center_x - size, wing_y - size // 3, size // 2, size // 2))
-        
-        # 头
         pygame.draw.circle(surface, color, (center_x + size // 2, center_y - size // 4), size // 3)
-        
-        # 喙
-        beak_color = (255, 165, 0)
+        beak_color = (191, 132, 64)
         pygame.draw.polygon(surface, beak_color,
                           [(center_x + size, center_y), 
                            (center_x + size + size // 3, center_y),
@@ -828,8 +944,7 @@ class AdvancedRenderer:
         """绘制猛禽"""
         center_x, center_y = x + grid_size // 2, y + grid_size // 2
         size = grid_size // 2
-        
-        # 翅膀展开
+        self._draw_shadow(surface, center_x, center_y + size, size * 3, max(6, size // 2))
         wing_span = size * 2
         pygame.draw.ellipse(surface, color,
                           (center_x - wing_span, center_y - size // 4, wing_span, size // 2))
@@ -845,8 +960,7 @@ class AdvancedRenderer:
         """绘制水鸟"""
         center_x, center_y = x + grid_size // 2, y + grid_size // 2
         size = grid_size // 3
-        
-        # 身体
+        self._draw_shadow(surface, center_x, center_y + size, size * 2, max(4, size // 2))
         pygame.draw.ellipse(surface, color,
                           (center_x - size, center_y - size // 2, size * 2, size))
         
@@ -864,8 +978,7 @@ class AdvancedRenderer:
         """绘制蜜蜂"""
         center_x, center_y = x + grid_size // 2, y + grid_size // 2
         size = grid_size // 4
-        
-        # 身体（黄黑条纹）
+        self._draw_shadow(surface, center_x, center_y + size, size * 2, max(4, size // 2))
         pygame.draw.ellipse(surface, (255, 200, 0), (center_x - size, center_y - size // 2, size * 2, size))
         pygame.draw.line(surface, (0, 0, 0), (center_x - size // 3, center_y - size // 2),
                         (center_x - size // 3, center_y + size // 2), 2)
@@ -881,8 +994,7 @@ class AdvancedRenderer:
         """绘制蝴蝶"""
         center_x, center_y = x + grid_size // 2, y + grid_size // 2
         size = grid_size // 3
-        
-        # 翅膀动画
+        self._draw_shadow(surface, center_x, center_y + size, size * 2, max(4, size // 2))
         wing_angle = math.sin(self.animation_tick * 0.3) * 0.5
         wing_size = int(size * (1 + wing_angle))
         
@@ -900,8 +1012,7 @@ class AdvancedRenderer:
         """绘制蜘蛛"""
         center_x, center_y = x + grid_size // 2, y + grid_size // 2
         size = grid_size // 4
-        
-        # 身体
+        self._draw_shadow(surface, center_x, center_y + size, size * 2, max(4, size // 2))
         pygame.draw.circle(surface, color, (center_x, center_y), size)
         pygame.draw.circle(surface, tuple(min(255, c + 30) for c in color),
                          (center_x, center_y - size // 2), size // 2)
@@ -919,14 +1030,13 @@ class AdvancedRenderer:
     def _draw_snake(self, surface, x, y, grid_size, color, animal):
         """绘制蛇"""
         size = grid_size // 3
-        
-        # 身体曲线
         points = []
         for i in range(5):
             offset_x = i * size // 2
             offset_y = int(math.sin(self.animation_tick * 0.1 + i) * size // 2)
             points.append((x + offset_x, y + grid_size // 2 + offset_y))
-            
+        if points:
+            self._draw_shadow(surface, x + size, y + grid_size // 2 + size // 2, size * 3, max(4, size))
         if len(points) >= 2:
             pygame.draw.lines(surface, color, False, points, 3)
             
@@ -948,16 +1058,18 @@ class AdvancedRenderer:
         }
         factor = size_factors.get(animal.species, 0.8)
         size = int(grid_size * 0.4 * factor)
-        
-        # 身体
+        self._draw_shadow(surface, center_x, center_y + size, size * 3, max(5, size))
         pygame.draw.ellipse(surface, color,
                           (center_x - size, center_y - size // 2, size * 2, size))
-        
-        # 头
         head_x = center_x + size // 2
         pygame.draw.circle(surface, color, (head_x, center_y - size // 4), size // 2)
-        
-        # 耳朵（兔子）
+        if animal.species == "fox":
+            pygame.draw.polygon(surface, self._shade(color, -30), [(head_x - 2, center_y - size), (head_x + size // 6, center_y - size // 2), (head_x - size // 4, center_y - size // 2)])
+            pygame.draw.polygon(surface, self._shade(color, -30), [(head_x + size // 3, center_y - size), (head_x + size // 2, center_y - size // 2), (head_x, center_y - size // 2)])
+        if animal.species == "deer":
+            antler_color = (120, 96, 66)
+            pygame.draw.line(surface, antler_color, (head_x, center_y - size // 2), (head_x + size // 3, center_y - size), 2)
+            pygame.draw.line(surface, antler_color, (head_x + size // 5, center_y - size // 2), (head_x + size // 2, center_y - size + 2), 2)
         if animal.species == "rabbit":
             ear_size = size // 2
             pygame.draw.ellipse(surface, color,
@@ -984,83 +1096,94 @@ class AdvancedRenderer:
             center_x, center_y = screen_x + grid_size // 2, screen_y + grid_size // 2
             
             if aquatic.species in ["algae", "seaweed"]:
-                # 水草
-                pygame.draw.ellipse(surface, color,
-                                  (center_x - grid_size // 4, center_y - grid_size // 3,
-                                   grid_size // 2, grid_size // 1.5))
+                self._draw_shadow(surface, center_x, center_y + grid_size // 2, grid_size, max(4, grid_size // 3))
+                pygame.draw.ellipse(surface, color, (center_x - grid_size // 4, center_y - grid_size // 3, grid_size // 2, grid_size // 1.5))
             elif aquatic.species == "plankton":
-                # 浮游生物
                 pygame.draw.circle(surface, color, (center_x, center_y), 2)
             elif aquatic.species in ["small_fish", "minnow", "carp", "catfish", "large_fish", "blackfish", "pike"]:
-                # 鱼
                 self._draw_fish(surface, center_x, center_y, grid_size, color, aquatic)
             elif aquatic.species == "pufferfish":
-                # 河豚
                 size = grid_size // 3
+                self._draw_shadow(surface, center_x, center_y + size, size * 2, max(4, size))
                 pygame.draw.circle(surface, color, (center_x, center_y), size)
-                # 斑点
                 pygame.draw.circle(surface, (50, 50, 50), (center_x - size // 3, center_y), 1)
                 pygame.draw.circle(surface, (50, 50, 50), (center_x + size // 3, center_y), 1)
             elif aquatic.species == "shrimp":
-                # 虾
                 self._draw_shrimp(surface, center_x, center_y, grid_size, color)
             elif aquatic.species == "crab":
-                # 螃蟹
                 self._draw_crab(surface, center_x, center_y, grid_size, color)
             elif aquatic.species == "tadpole":
-                # 蝌蚪
+                self._draw_shadow(surface, center_x, center_y + grid_size // 3, grid_size, max(4, grid_size // 3))
                 pygame.draw.circle(surface, color, (center_x, center_y), grid_size // 5)
                 pygame.draw.line(surface, color, (center_x, center_y),
                                (center_x + grid_size // 4, center_y), 2)
             else:
                 pygame.draw.circle(surface, color, (center_x, center_y), grid_size // 4)
+
+    def _render_microhabitats(self, surface, grid_size):
+        """渲染微栖息地资源点。"""
+        if not self.show_microhabitats or grid_size < 10 or not hasattr(self.ecosystem, "microhabitats"):
+            return
+        colors = {
+            "canopy_roost": (91, 140, 86),
+            "night_roost": (88, 98, 138),
+            "shrub_shelter": (118, 156, 92),
+            "nectar_patch": (224, 148, 104),
+            "wetland_patch": (94, 164, 150),
+            "riparian_perch": (106, 150, 190),
+        }
+        for patch in self.ecosystem.microhabitats:
+            screen_x = int((patch.position[0] - self.camera_x) * grid_size)
+            screen_y = int((patch.position[1] - self.camera_y) * grid_size)
+            if screen_x < -grid_size or screen_x > surface.get_width():
+                continue
+            if screen_y < -grid_size or screen_y > surface.get_height():
+                continue
+            base = colors.get(patch.kind, (180, 180, 180))
+            occupancy_ratio = 0 if patch.capacity <= 0 else min(1.0, patch.occupancy / patch.capacity)
+            available_ratio = 0 if patch.capacity <= 0 else min(1.0, patch.available / max(0.1, patch.capacity * max(0.45, patch.seasonal_multiplier)))
+            radius = max(2, grid_size // 7)
+            color = (
+                max(30, int(base[0] * (0.7 + available_ratio * 0.3))),
+                max(30, int(base[1] * (0.7 + available_ratio * 0.3))),
+                max(30, int(base[2] * (0.7 + available_ratio * 0.3))),
+            )
+            pygame.draw.circle(surface, color, (screen_x + grid_size // 2, screen_y + grid_size // 2), radius)
+            if occupancy_ratio > 0.15:
+                ring = tuple(max(20, c - 55) for c in color)
+                pygame.draw.circle(surface, ring, (screen_x + grid_size // 2, screen_y + grid_size // 2), radius + 2, 1)
                 
     def _draw_fish(self, surface, x, y, grid_size, color, aquatic):
         """绘制鱼"""
         size = grid_size // 3
-        
-        # 身体
-        pygame.draw.ellipse(surface, color, (x - size, y - size // 2, size * 2, size))
-        
-        # 尾巴
+        self._draw_shadow(surface, x, y + size, size * 3, max(4, size))
+        body_rect = pygame.Rect(x - size, y - size // 2, size * 2, size)
+        pygame.draw.ellipse(surface, self._shade(color, -18), body_rect.move(2, 2))
+        pygame.draw.ellipse(surface, color, body_rect)
+        pygame.draw.ellipse(surface, self._shade(color, 12), pygame.Rect(x - size // 2, y - size // 3, size, size // 2))
         tail_points = [(x - size, y), (x - size - size // 2, y - size // 2), (x - size - size // 2, y + size // 2)]
         pygame.draw.polygon(surface, color, tail_points)
-        
-        # 眼睛
         pygame.draw.circle(surface, (255, 255, 255), (x + size // 2, y - size // 4), size // 4)
         pygame.draw.circle(surface, (0, 0, 0), (x + size // 2, y - size // 4), size // 6)
-        
-        # 游动动画
-        if hasattr(aquatic, 'direction'):
-            # 翻转方向
-            pass
             
     def _draw_shrimp(self, surface, x, y, grid_size, color):
         """绘制虾"""
         size = grid_size // 4
-        
-        # 身体（多节）
+        self._draw_shadow(surface, x, y + size, size * 4, max(4, size))
         for i in range(4):
             segment_x = x - i * size // 2
             segment_y = y + int(math.sin(self.animation_tick * 0.1 + i) * 2)
             pygame.draw.circle(surface, color, (segment_x, segment_y), size // 2)
-            
-        # 须
         pygame.draw.line(surface, color, (x + size, y - size // 2), (x + size * 2, y - size), 1)
         pygame.draw.line(surface, color, (x + size, y + size // 2), (x + size * 2, y + size), 1)
         
     def _draw_crab(self, surface, x, y, grid_size, color):
         """绘制螃蟹"""
         size = grid_size // 3
-        
-        # 身体
+        self._draw_shadow(surface, x, y + size, size * 3, max(4, size))
         pygame.draw.ellipse(surface, color, (x - size, y - size // 2, size * 2, size))
-        
-        # 螯
         pygame.draw.circle(surface, color, (x - size - size // 2, y - size // 2), size // 2)
         pygame.draw.circle(surface, color, (x + size + size // 2, y - size // 2), size // 2)
-        
-        # 腿
         for i in range(-2, 3):
             if i != 0:
                 pygame.draw.line(surface, color, (x, y + size // 2),
@@ -1106,20 +1229,16 @@ class AdvancedRenderer:
         """渲染侧边栏"""
         sidebar_x = self.window_width - self.sidebar_width
         sidebar_rect = pygame.Rect(sidebar_x, 0, self.sidebar_width, self.window_height - self.bottom_bar_height)
-        
-        # 背景
-        pygame.draw.rect(self.screen, self.ui["bg_medium"], sidebar_rect)
-        pygame.draw.line(self.screen, self.ui["border"], 
-                        (sidebar_x, 0), (sidebar_x, self.window_height), 2)
-        
-        # 标题
-        title_surf = self.font_title.render("🌍 EcoWorld", True, self.ui["text"])
-        self.screen.blit(title_surf, (sidebar_x + 15, 15))
-        
-        # 标签页
+        pygame.draw.rect(self.screen, self.ui["panel"], sidebar_rect)
+        pygame.draw.line(self.screen, self.ui["border"], (sidebar_x, 0), (sidebar_x, self.window_height), 2)
+
+        title_surf = self.font_title.render("生态世界", True, self.ui["text"])
+        subtitle_surf = self.font_small.render("动态食物网与地形环境模拟", True, self.ui["text_dim"])
+        self.screen.blit(title_surf, (sidebar_x + 20, 18))
+        self.screen.blit(subtitle_surf, (sidebar_x + 22, 62))
+
         self._render_tabs(sidebar_x)
-        
-        # 内容区域
+
         if self.active_tab == "species":
             self._render_species_panel(sidebar_x)
         elif self.active_tab == "foodchain":
@@ -1131,40 +1250,129 @@ class AdvancedRenderer:
             
     def _render_tabs(self, sidebar_x):
         """渲染标签页"""
-        tabs = [
-            ("species", "📊 物种"),
-            ("foodchain", "🔗 食物链"),
-            ("events", "📜 事件"),
-            ("settings", "⚙️ 设置")
-        ]
-        
-        tab_y = 50
-        tab_height = 35
-        
-        for i, (tab_id, tab_name) in enumerate(tabs):
-            tab_rect = pygame.Rect(sidebar_x + 5, tab_y + i * tab_height, self.sidebar_width - 10, tab_height - 2)
-            
+        tabs = ["species", "foodchain", "events", "settings"]
+        header_y = 104
+        tab_gap = 10
+        tab_width = (self.sidebar_width - 40 - tab_gap) // 2
+        tab_height = 42
+
+        for i, tab_id in enumerate(tabs):
+            row = i // 2
+            col = i % 2
+            tab_rect = pygame.Rect(
+                sidebar_x + 20 + col * (tab_width + tab_gap),
+                header_y + row * (tab_height + 10),
+                tab_width,
+                tab_height,
+            )
             if tab_id == self.active_tab:
-                pygame.draw.rect(self.screen, self.ui["bg_light"], tab_rect, border_radius=5)
-                pygame.draw.rect(self.screen, self.ui["accent"], tab_rect, 2, border_radius=5)
+                pygame.draw.rect(self.screen, self.ui["accent"], tab_rect, border_radius=10)
+                text_color = (248, 245, 238)
             else:
-                pygame.draw.rect(self.screen, self.ui["bg_dark"], tab_rect, border_radius=5)
-                
-            text_surf = self.font_normal.render(tab_name, True, self.ui["text"])
-            self.screen.blit(text_surf, (tab_rect.x + 10, tab_rect.y + 8))
+                pygame.draw.rect(self.screen, self.ui["panel_alt"], tab_rect, border_radius=10)
+                pygame.draw.rect(self.screen, self.ui["border"], tab_rect, 1, border_radius=10)
+                text_color = self.ui["text"]
+
+            text_surf = self.font_normal.render(self.tab_labels[tab_id], True, text_color)
+            self.screen.blit(text_surf, text_surf.get_rect(center=tab_rect.center))
+
+    def _draw_info_card(self, rect, title, value, tone="accent"):
+        pygame.draw.rect(self.screen, self.ui["panel_alt"], rect, border_radius=14)
+        pygame.draw.rect(self.screen, self.ui["border"], rect, 1, border_radius=14)
+        title_surf = self.font_small.render(title, True, self.ui["text_dim"])
+        value_color = self.ui.get(tone, self.ui["accent"])
+        value_surf = self.font_large.render(value, True, value_color)
+        self.screen.blit(title_surf, (rect.x + 14, rect.y + 10))
+        self.screen.blit(value_surf, (rect.x + 14, rect.y + 32))
+
+    def _render_selected_creature_card(self, sidebar_x, y):
+        """渲染当前选中生物详情。"""
+        if not self.selected_creature or not getattr(self.selected_creature, "alive", False):
+            return y
+
+        rect = pygame.Rect(sidebar_x + 18, y, self.sidebar_width - 36, 142)
+        pygame.draw.rect(self.screen, self.ui["panel_alt"], rect, border_radius=14)
+        pygame.draw.rect(self.screen, self.ui["border"], rect, 1, border_radius=14)
+        species = getattr(self.selected_creature, "species", "未知")
+        emoji = self.creature_emoji.get(species, "•")
+        title = self.font_medium.render(f"{emoji} {self._label_species(species)}", True, self.ui["text"])
+        meta = self.font_small.render(f"位置 ({self.selected_creature.position[0]}, {self.selected_creature.position[1]})", True, self.ui["text_dim"])
+        self.screen.blit(title, (rect.x + 14, rect.y + 10))
+        self.screen.blit(meta, (rect.x + 14, rect.y + 38))
+
+        info_items = [
+            ("生命", int(getattr(self.selected_creature, "health", 0))),
+            ("饥饿", int(getattr(self.selected_creature, "hunger", 0))),
+            ("年龄", int(getattr(self.selected_creature, "age", 0))),
+        ]
+        bar_y = rect.y + 66
+        for index, (label, value) in enumerate(info_items):
+            slot_x = rect.x + 14 + index * ((rect.width - 28) // 3)
+            self.screen.blit(self.font_small.render(f"{label} {value}", True, self.ui["text"]), (slot_x, bar_y))
+
+        if hasattr(self.selected_creature, "breeding_microhabitat_kinds"):
+            patch_labels = {
+                "canopy_roost": "树冠位",
+                "night_roost": "夜栖位",
+                "shrub_shelter": "灌丛位",
+                "nectar_patch": "花蜜位",
+                "wetland_patch": "湿地位",
+                "riparian_perch": "岸栖位",
+            }
+            kinds = self.selected_creature.breeding_microhabitat_kinds()
+            if kinds:
+                patch_text = "繁殖资源：" + " / ".join(patch_labels.get(kind, kind) for kind in kinds)
+                self.screen.blit(self.font_small.render(patch_text, True, self.ui["text_dim"]), (rect.x + 14, rect.y + 96))
+                if hasattr(self.ecosystem, "get_local_microhabitat_value"):
+                    patch_value = self.ecosystem.get_local_microhabitat_value(self.selected_creature.position, kinds, radius=4)
+                    support_text = f"局部可用度：{patch_value:.2f}"
+                    self.screen.blit(self.font_small.render(support_text, True, self.ui["accent"]), (rect.x + 14, rect.y + 116))
+        return rect.bottom + 12
             
     def _render_species_panel(self, sidebar_x):
         """渲染物种统计面板"""
         stats = self.ecosystem.get_statistics()
         species = stats.get('species', {})
-        
-        y = 200
-        panel_height = self.window_height - self.bottom_bar_height - y - 10
-        
-        # 创建滚动区域
-        content_y = y
-        
-        # 分类显示
+
+        top_y = 206
+        content_y = top_y + 108
+        panel_bottom = self.window_height - self.bottom_bar_height - 18
+        card_width = (self.sidebar_width - 52) // 2
+
+        total_plants = sum(species.get(sp, 0) for sp in self.species_labels if sp in {
+            "grass", "bush", "flower", "moss", "tree", "vine", "cactus", "berry", "mushroom", "fern",
+            "apple_tree", "cherry_tree", "grape_vine", "strawberry", "blueberry", "orange_tree", "watermelon"
+        })
+        total_animals = sum(1 for animal in self.ecosystem.animals if animal.alive)
+        total_aquatic = sum(1 for aquatic in self.ecosystem.aquatic_creatures if aquatic.alive)
+        health = stats.get("ecosystem_health", 0)
+        self._draw_info_card(pygame.Rect(sidebar_x + 18, top_y, card_width, 86), "生态健康度", f"{health:.0f}", "accent_strong")
+        self._draw_info_card(pygame.Rect(sidebar_x + 30 + card_width, top_y, card_width, 86), "存活生物", f"{total_animals + total_aquatic + total_plants}", "success")
+        content_y = self._render_selected_creature_card(sidebar_x, content_y)
+
+        apex_species = [
+            ("fox", species.get("fox", 0)),
+            ("wolf", species.get("wolf", 0)),
+            ("eagle", species.get("eagle", 0)),
+            ("owl", species.get("owl", 0)),
+            ("blackfish", species.get("blackfish", 0)),
+            ("pike", species.get("pike", 0)),
+        ]
+        apex_rect = pygame.Rect(sidebar_x + 18, content_y, self.sidebar_width - 36, 94)
+        pygame.draw.rect(self.screen, self.ui["panel_alt"], apex_rect, border_radius=14)
+        pygame.draw.rect(self.screen, self.ui["border"], apex_rect, 1, border_radius=14)
+        self.screen.blit(self.font_medium.render("顶层控制物种", True, self.ui["accent_strong"]), (apex_rect.x + 14, apex_rect.y + 10))
+        row_y = apex_rect.y + 44
+        col_x = apex_rect.x + 14
+        for idx, (sp, count) in enumerate(apex_species):
+            if idx == 3:
+                row_y += 24
+                col_x = apex_rect.x + 14
+            label = f"{self.creature_emoji.get(sp, '•')} {self._label_species(sp)} {count}"
+            self.screen.blit(self.font_small.render(label, True, self.ui["text"]), (col_x, row_y))
+            col_x += 112
+        content_y = apex_rect.bottom + 14
+
         categories = [
             ("🌿 植物", ["grass", "bush", "flower", "moss", "tree", "vine", "cactus", "berry", "mushroom", "fern",
                        "apple_tree", "cherry_tree", "grape_vine", "strawberry", "blueberry", "orange_tree", "watermelon"]),
@@ -1176,122 +1384,128 @@ class AdvancedRenderer:
             ("🐟 水生", ["algae", "seaweed", "plankton", "small_fish", "minnow", "carp", "catfish", "large_fish", "pufferfish",
                        "blackfish", "pike", "shrimp", "crab", "tadpole", "water_strider"])
         ]
-        
+
+        summary = {"🌿 植物": total_plants, "🐾 动物": total_animals, "🐟 水生": total_aquatic}
         for category_name, species_list in categories:
-            # 分类标题
-            cat_surf = self.font_medium.render(category_name, True, self.ui["accent"])
-            self.screen.blit(cat_surf, (sidebar_x + 15, content_y))
-            content_y += 25
-            
-            # 物种列表
+            if content_y > panel_bottom - 32:
+                break
+            count_label = summary.get(category_name, 0)
+            cat_surf = self.font_medium.render(f"{category_name}  {count_label}", True, self.ui["accent_strong"])
+            self.screen.blit(cat_surf, (sidebar_x + 18, content_y))
+            content_y += 34
             for sp in species_list:
-                if content_y > panel_height + y - 30:
+                if content_y > panel_bottom - 20:
                     break
-                    
                 count = species.get(sp, 0)
                 if count > 0:
                     emoji = self.creature_emoji.get(sp, "?")
-                    color = self.creature_colors.get(sp, (200, 200, 200))
-                    
-                    # 物种条目
-                    text = f"{emoji} {sp}: {count}"
+                    label = self._label_species(sp)
+                    row_rect = pygame.Rect(sidebar_x + 18, content_y - 2, self.sidebar_width - 36, 26)
+                    pygame.draw.rect(self.screen, self.ui["panel_alt"], row_rect, border_radius=8)
+                    text = f"{emoji} {label}"
                     text_surf = self.font_small.render(text, True, self.ui["text"])
-                    self.screen.blit(text_surf, (sidebar_x + 25, content_y))
-                    
-                    # 数量条
-                    bar_width = min(100, count)
+                    count_surf = self.font_small.render(str(count), True, self.ui["text"])
+                    self.screen.blit(text_surf, (row_rect.x + 10, row_rect.y + 5))
+                    self.screen.blit(count_surf, (row_rect.right - 34, row_rect.y + 5))
+                    bar_width = min(126, max(16, count * 3))
                     bar_color = self.ui["success"] if count > 10 else self.ui["warning"] if count > 5 else self.ui["danger"]
-                    pygame.draw.rect(self.screen, bar_color,
-                                   (sidebar_x + 200, content_y + 2, bar_width, 12), border_radius=3)
-                    
-                    content_y += 20
-                    
-            content_y += 10
+                    pygame.draw.rect(self.screen, bar_color, (row_rect.right - 34 - bar_width, row_rect.bottom - 8, bar_width, 4), border_radius=2)
+                    content_y += 30
+            content_y += 8
             
     def _render_foodchain_panel(self, sidebar_x):
         """渲染食物链面板"""
-        y = 200
-        
-        # 食物链图示
-        title_surf = self.font_medium.render("🔗 食物链关系", True, self.ui["accent"])
-        self.screen.blit(title_surf, (sidebar_x + 15, y))
-        y += 30
-        
-        # 显示捕食关系
+        y = 210
+        title_surf = self.font_large.render("关键食物关系", True, self.ui["accent_strong"])
+        self.screen.blit(title_surf, (sidebar_x + 18, y))
+        y += 42
         relations = [
-            ("🐺 狼", "→ 捕食", "🦌 鹿, 🐰 兔子"),
-            ("🦊 狐狸", "→ 捕食", "🐰 兔子, 🐛 昆虫"),
-            ("🐟 黑鱼", "→ 捕食", "🐟 鲤鱼"),
-            ("🐟 狗鱼", "→ 捕食", "🐟 鲤鱼"),
-            ("🦅 老鹰", "→ 捕食", "🐦 鸟, 🐰 兔子"),
-            ("🐍 蛇", "→ 捕食", "🐛 昆虫, 🐭 老鼠"),
+            ("狼", "控制", "鹿、兔子"),
+            ("狐狸", "捕食", "兔子、昆虫、鼠类"),
+            ("黑鱼", "压制", "鲤鱼、小鱼"),
+            ("狗鱼", "伏击", "米诺鱼、小鱼、虾"),
+            ("老鹰", "猎取", "鸟类、兔子"),
+            ("蛇", "捕食", "昆虫、鼠类、蛙类"),
         ]
-        
         for predator, arrow, prey in relations:
-            text = f"{predator} {arrow} {prey}"
-            text_surf = self.font_small.render(text, True, self.ui["text_dim"])
-            self.screen.blit(text_surf, (sidebar_x + 20, y))
-            y += 25
+            box = pygame.Rect(sidebar_x + 18, y, self.sidebar_width - 36, 58)
+            pygame.draw.rect(self.screen, self.ui["panel_alt"], box, border_radius=12)
+            pygame.draw.rect(self.screen, self.ui["border"], box, 1, border_radius=12)
+            top = self.font_normal.render(f"{predator} {arrow}", True, self.ui["text"])
+            bottom = self.font_small.render(prey, True, self.ui["text_dim"])
+            self.screen.blit(top, (box.x + 14, box.y + 10))
+            self.screen.blit(bottom, (box.x + 14, box.y + 34))
+            y += 68
             
     def _render_events_panel(self, sidebar_x):
         """渲染事件面板"""
-        y = 200
-        
-        title_surf = self.font_medium.render("📜 最近事件", True, self.ui["accent"])
-        self.screen.blit(title_surf, (sidebar_x + 15, y))
-        y += 30
-        
-        # 显示最近事件
+        y = 210
+        title_surf = self.font_large.render("最近事件", True, self.ui["accent_strong"])
+        self.screen.blit(title_surf, (sidebar_x + 18, y))
+        y += 42
         events = self.ecosystem.events[-20:] if hasattr(self.ecosystem, 'events') else []
-        
         for event in events[-15:]:
             tick = getattr(event, 'tick', 0)
-            desc = getattr(event, 'description', 'Unknown event')
-            
-            text = f"[{tick}] {desc[:30]}"
-            text_surf = self.font_small.render(text, True, self.ui["text_dim"])
-            self.screen.blit(text_surf, (sidebar_x + 15, y))
-            y += 18
+            desc = getattr(event, 'description', '未知事件')
+            row = pygame.Rect(sidebar_x + 18, y, self.sidebar_width - 36, 44)
+            pygame.draw.rect(self.screen, self.ui["panel_alt"], row, border_radius=10)
+            tick_surf = self.font_small.render(f"Tick {tick}", True, self.ui["accent_strong"])
+            text_surf = self.font_small.render(desc[:24], True, self.ui["text"])
+            self.screen.blit(tick_surf, (row.x + 12, row.y + 6))
+            self.screen.blit(text_surf, (row.x + 12, row.y + 22))
+            y += 50
             
     def _render_settings_panel(self, sidebar_x):
         """渲染设置面板"""
-        y = 200
-        
-        # 游戏信息
-        title_surf = self.font_medium.render("⚙️ 游戏设置", True, self.ui["accent"])
-        self.screen.blit(title_surf, (sidebar_x + 15, y))
-        y += 35
-        
+        y = 210
+        title_surf = self.font_large.render("运行信息", True, self.ui["accent_strong"])
+        self.screen.blit(title_surf, (sidebar_x + 18, y))
+        y += 44
         stats = self.ecosystem.get_statistics()
-        
         info_items = [
-            f"📅 日期: Day {stats.get('day', 0)}",
-            f"🌡️ 季节: {stats.get('season', 'spring')}",
-            f"🌤️ 天气: {stats.get('weather', 'sunny')}",
-            f"⏱️ Tick: {stats.get('tick', 0)}",
-            f"🔍 缩放: {self.zoom:.1f}x",
-            f"⏩ 速度: {self.speed}x",
+            f"日期：第 {stats.get('day', 0)} 天",
+            f"季节：{self._label_season(stats.get('season', 'spring'))}",
+            f"天气：{self._label_weather(stats.get('weather', 'sunny'))}",
+            f"模拟帧：{stats.get('tick', 0)}",
+            f"缩放：{self.zoom:.1f} 倍",
+            f"速度：{self.speed} 倍",
+            f"栖位叠层：{'开启' if self.show_microhabitats else '关闭'}",
             "",
-            "🎮 快捷键:",
-            "  1-9: 添加生物",
-            "  Space: 暂停/继续",
-            "  +/-: 调整速度",
-            "  G: 显示网格",
-            "  Home: 重置视角",
-            "  鼠标滚轮: 缩放",
-            "  右键拖拽: 平移",
+            "微栖息地：",
+            f"树冠位：{stats.get('microhabitats', {}).get('canopy_roost', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('canopy_roost', {}).get('occupied', 0.0):.1f}",
+            f"夜栖位：{stats.get('microhabitats', {}).get('night_roost', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('night_roost', {}).get('occupied', 0.0):.1f}",
+            f"灌丛位：{stats.get('microhabitats', {}).get('shrub_shelter', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('shrub_shelter', {}).get('occupied', 0.0):.1f}",
+            f"花蜜位：{stats.get('microhabitats', {}).get('nectar_patch', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('nectar_patch', {}).get('occupied', 0.0):.1f}",
+            f"湿地位：{stats.get('microhabitats', {}).get('wetland_patch', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('wetland_patch', {}).get('occupied', 0.0):.1f}",
+            f"岸栖位：{stats.get('microhabitats', {}).get('riparian_perch', {}).get('count', 0)} / 占用 {stats.get('microhabitats', {}).get('riparian_perch', {}).get('occupied', 0.0):.1f}",
+            "",
+            "图例：",
+            "绿点 树冠/灌丛位",
+            "橙点 花蜜位",
+            "青点 湿地/岸栖位",
+            "外环 表示已占位",
+            "",
+            "操作说明：",
+            "1-9 投放常见物种",
+            "空格 暂停或继续",
+            "+ / - 调整速度",
+            "G 显示或隐藏网格",
+            "M 显示或隐藏微栖位",
+            "Home 重置视角",
+            "滚轮 缩放",
+            "右键拖拽 平移视角",
         ]
-        
         for item in info_items:
-            text_surf = self.font_small.render(item, True, self.ui["text"])
+            color = self.ui["text"] if item else self.ui["text_dim"]
+            text_surf = self.font_small.render(item, True, color)
             self.screen.blit(text_surf, (sidebar_x + 15, y))
-            y += 20
+            y += 22
             
     def _render_bottom_bar(self):
         """渲染底部状态栏"""
         bar_rect = pygame.Rect(0, self.window_height - self.bottom_bar_height, 
                                self.window_width, self.bottom_bar_height)
-        pygame.draw.rect(self.screen, self.ui["bg_medium"], bar_rect)
+        pygame.draw.rect(self.screen, self.ui["panel"], bar_rect)
         pygame.draw.line(self.screen, self.ui["border"],
                         (0, self.window_height - self.bottom_bar_height),
                         (self.window_width, self.window_height - self.bottom_bar_height), 2)
@@ -1304,22 +1518,20 @@ class AdvancedRenderer:
         total_animals = sum(1 for a in self.ecosystem.animals if a.alive)
         total_aquatic = sum(1 for a in self.ecosystem.aquatic_creatures if a.alive)
         
-        x = 20
-        y = self.window_height - self.bottom_bar_height + 10
+        x = 22
+        y = self.window_height - self.bottom_bar_height + 16
         
         # 暂停指示
         if self.paused:
-            pause_surf = self.font_medium.render("⏸ 已暂停", True, self.ui["warning"])
+            pause_surf = self.font_medium.render("已暂停", True, self.ui["warning"])
             self.screen.blit(pause_surf, (x, y))
-            x += 100
-        
-        # 速度
-        speed_surf = self.font_normal.render(f"⏩ {self.speed}x", True, self.ui["text"])
+            x += 116
+
+        speed_surf = self.font_normal.render(f"速度 {self.speed} 倍", True, self.ui["text"])
         self.screen.blit(speed_surf, (x, y + 2))
-        x += 80
-        
-        # 种群统计
-        stat_text = f"🌿 植物: {total_plants}  🐾 动物: {total_animals}  🐟 水生: {total_aquatic}"
+        x += 128
+
+        stat_text = f"植物 {total_plants}    动物 {total_animals}    水生 {total_aquatic}    季节 {self._label_season(stats.get('season', 'spring'))}    天气 {self._label_weather(stats.get('weather', 'sunny'))}"
         stat_surf = self.font_normal.render(stat_text, True, self.ui["text"])
         self.screen.blit(stat_surf, (x, y + 2))
         
@@ -1330,25 +1542,27 @@ class AdvancedRenderer:
         """渲染小地图"""
         minimap_x = self.window_width - self.sidebar_width - self.minimap_size - 20
         minimap_y = self.window_height - self.bottom_bar_height - self.minimap_size - 10
-        
-        # 小地图背景
-        pygame.draw.rect(self.screen, self.ui["bg_dark"],
-                        (minimap_x - 2, minimap_y - 2, self.minimap_size + 4, self.minimap_size + 4))
-        
-        # 绘制地形
+        pygame.draw.rect(self.screen, self.ui["panel_alt"], (minimap_x - 6, minimap_y - 26, self.minimap_size + 12, self.minimap_size + 32), border_radius=14)
+        pygame.draw.rect(self.screen, self.ui["border"], (minimap_x - 6, minimap_y - 26, self.minimap_size + 12, self.minimap_size + 32), 1, border_radius=14)
+        title = self.font_small.render("地形缩略图", True, self.ui["text"])
+        self.screen.blit(title, (minimap_x + 8, minimap_y - 20))
+
         scale_x = self.minimap_size / self.world_width
         scale_y = self.minimap_size / self.world_height
-        
-        for x in range(0, self.world_width, 5):
-            for y in range(0, self.world_height, 5):
-                terrain = self.ecosystem.environment.get_terrain(x, y)
-                color = self.terrain_colors.get(terrain, (100, 100, 100))
-                
-                px = int(minimap_x + x * scale_x)
-                py = int(minimap_y + y * scale_y)
-                pygame.draw.rect(self.screen, color, (px, py, 3, 3))
-                
-        # 绘制动物位置（点）
+
+        minimap_key = (self.minimap_size, self.world_width, self.world_height)
+        if self._minimap_cache_key != minimap_key:
+            self._minimap_surface = pygame.Surface((self.minimap_size, self.minimap_size))
+            for x in range(0, self.world_width, 5):
+                for y in range(0, self.world_height, 5):
+                    terrain = self.ecosystem.environment.get_terrain(x, y)
+                    color = self.terrain_colors.get(terrain, (100, 100, 100))
+                    px = int(x * scale_x)
+                    py = int(y * scale_y)
+                    pygame.draw.rect(self._minimap_surface, color, (px, py, 3, 3))
+            self._minimap_cache_key = minimap_key
+        self.screen.blit(self._minimap_surface, (minimap_x, minimap_y))
+
         for animal in self.ecosystem.animals[:100]:  # 限制数量
             if animal.alive:
                 px = int(minimap_x + animal.position[0] * scale_x)
@@ -1369,13 +1583,11 @@ class AdvancedRenderer:
         """渲染天气效果"""
         for particle in self.weather_particles:
             if particle['type'] == 'rain':
-                # 雨滴
-                pygame.draw.line(self.screen, (100, 149, 237),
+                pygame.draw.line(self.screen, (115, 146, 160),
                                (particle['x'], particle['y']),
                                (particle['x'] - 2, particle['y'] + 10), 2)
             elif particle['type'] == 'snow':
-                # 雪花
-                pygame.draw.circle(self.screen, (255, 255, 255),
+                pygame.draw.circle(self.screen, (247, 246, 240),
                                  (int(particle['x']), int(particle['y'])), 3)
                                  
     def _render_notifications(self):
@@ -1386,12 +1598,12 @@ class AdvancedRenderer:
             alpha = max(0, 255 - (self.tick - tick) * 2)
             
             # 创建带透明度的表面
-            text_surf = self.font_normal.render(message, True, (255, 255, 255))
+            text_surf = self.font_normal.render(message, True, (245, 242, 236))
             
             # 背景
             bg_rect = pygame.Rect(10, y, text_surf.get_width() + 20, 25)
             bg_surf = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)
-            pygame.draw.rect(bg_surf, (0, 0, 0, min(200, alpha)), bg_surf.get_rect(), border_radius=5)
+            pygame.draw.rect(bg_surf, (24, 28, 23, min(210, alpha)), bg_surf.get_rect(), border_radius=10)
             
             self.screen.blit(bg_surf, bg_rect)
             self.screen.blit(text_surf, (20, y + 5))

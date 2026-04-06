@@ -61,7 +61,7 @@ class EcoBalance:
     FRUIT_PLANTS = ["berry", "apple_tree", "cherry_tree", "grape_vine", "strawberry", "blueberry", "orange_tree", "watermelon"]
     POLLINATORS = ["bee", "hummingbird", "butterfly"]
     LAND_HERBIVORES = ["insect", "rabbit", "deer", "mouse", "squirrel", "duck", "swan", "sparrow", "parrot", "hedgehog"]
-    LAND_PREDATORS = ["fox", "wolf", "snake", "spider", "eagle", "owl", "kingfisher", "crow", "magpie", "woodpecker", "bat", "bear", "badger", "raccoon", "raccoon_dog", "skunk", "opossum", "coati", "armadillo", "frog"]
+    LAND_PREDATORS = ["fox", "wolf", "snake", "spider", "eagle", "owl", "kingfisher", "crow", "magpie", "woodpecker", "bat", "bear", "badger", "raccoon", "raccoon_dog", "skunk", "opossum", "coati", "armadillo"]
     AQUATIC_PRODUCERS = ["algae", "seaweed", "plankton"]
     AQUATIC_CONSUMERS = ["small_fish", "minnow", "carp", "shrimp", "tadpole", "water_strider", "pufferfish"]
     AQUATIC_PREDATORS = ["catfish", "large_fish", "blackfish", "pike", "crab"]
