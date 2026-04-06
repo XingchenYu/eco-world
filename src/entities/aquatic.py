@@ -589,7 +589,7 @@ class Minnow(AquaticCreature):
 
     def _schooling_factor(self, ecosystem):
         nearby = self._nearby_species(ecosystem, "minnow", 4)
-        return max(1.0, min(1.35, 1.0 + len(nearby) * 0.05))
+        return max(1.0, min(1.28, 1.0 + len(nearby) * 0.04))
 
     def execute_behavior(self, ecosystem):
         if not self.alive: return
@@ -618,9 +618,9 @@ class Minnow(AquaticCreature):
         current_minnow = len([m for m in ecosystem.aquatic_creatures if m.species == "minnow" and m.alive])
 
         food_supply = plankton_count + algae_count * 0.45 + shrimp_count * 0.25
-        food_factor = max(0.35, min(1.8, food_supply / max(1, current_minnow * 1.9)))
+        food_factor = max(0.35, min(1.55, food_supply / max(1, current_minnow * 2.1)))
         if current_minnow <= 10:
-            food_factor = min(1.6, food_factor * 1.08)
+            food_factor = min(1.45, food_factor * 1.05)
 
         predator_count = sum(
             len([c for c in ecosystem.aquatic_creatures if c.species == sp and c.alive])
@@ -642,11 +642,11 @@ class Minnow(AquaticCreature):
         if self.pregnant:
             self.pregnancy_timer += 1
             if self.pregnancy_timer >= 7:
-                litter_size = max(1, min(3, int(food_factor * predator_pressure * habitat_factor * 2.6)))
+                litter_size = max(1, min(2, int(food_factor * predator_pressure * habitat_factor * 2.2)))
                 for _ in range(litter_size):
                     ecosystem.spawn_aquatic("minnow", self.position)
                 self.pregnant = False
-                self.reproduction_cooldown = 9
+                self.reproduction_cooldown = 10
 
         elif self.gender == 'female' and self.reproduction_cooldown == 0:
             males = [m for m in ecosystem.aquatic_creatures if m.species == "minnow" and m.gender == 'male' and m.alive]
@@ -656,11 +656,11 @@ class Minnow(AquaticCreature):
             if profile and profile.body_type == "river_channel":
                 spawn_gate = max(2, spawn_gate - 1)
             if males and food_supply > spawn_gate:
-                chance = (0.09 if current_minnow <= 10 else 0.06) * food_factor * predator_pressure * habitat_factor
+                chance = (0.07 if current_minnow <= 10 else 0.045) * food_factor * predator_pressure * habitat_factor
                 if ecosystem.environment.season == "spring":
-                    chance *= 1.10
+                    chance *= 1.06
                 if profile and profile.body_type == "river_channel":
-                    chance *= 1.08
+                    chance *= 1.04
                 if random.random() < chance:
                     self.pregnant = True
 
@@ -1552,10 +1552,14 @@ class Frog(AquaticCreature):
         self.hunger += self.hunger_rate
         if self.hunger > 64: self.health -= 3.2
         profile = self._water_profile(ecosystem) if self._is_in_water(ecosystem) else None
+        wetland_support = ecosystem.get_local_microhabitat_value(self.position, {"wetland_patch", "riparian_perch"}, radius=4) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
         if profile and profile.body_type == "lake_shallow":
             self.health = min(100, self.health + 0.08)
         elif profile and profile.body_type == "river_channel":
             self.health = min(100, self.health + 0.10)
+        if wetland_support > 0:
+            self.hunger = max(0, self.hunger - min(1.4, wetland_support * 0.8))
+            self.health = min(100, self.health + min(0.6, wetland_support * 0.18))
         if self.health <= 0 or self.age >= self.max_age: self.die(); return
         
         if self.reproduction_cooldown > 0:
@@ -1569,11 +1573,12 @@ class Frog(AquaticCreature):
         food_factor = max(0.20, min(2.0, food_count / max(1, current_frog * 2.1)))
         if current_frog <= 6:
             food_factor = min(2.3, food_factor * 1.34)
+        wetland_factor = max(0.65, min(1.55, 0.72 + wetland_support))
         
         if self.pregnant:
             self.pregnancy_timer += 1
             if self.pregnancy_timer >= 10:
-                litter_size = max(2, min(9, int(food_factor * 5.5)))
+                litter_size = max(2, min(9, int(food_factor * wetland_factor * 5.2)))
                 for _ in range(litter_size):
                     ecosystem.spawn_aquatic("tadpole", self.position)
                 self.pregnant = False
@@ -1581,7 +1586,7 @@ class Frog(AquaticCreature):
         
         elif self.gender == 'female' and self.reproduction_cooldown == 0:
             males = [f for f in ecosystem.animals if f.species == "frog" and f.gender == 'male' and f.alive]
-            if males and food_count > max(6, current_frog * 1.3) and random.random() < 0.058 * food_factor:
+            if males and wetland_support >= 0.08 and food_count > max(6, current_frog * 1.3) and random.random() < 0.054 * food_factor * wetland_factor:
                 self.pregnant = True
 
         if self._escape_predators(ecosystem):

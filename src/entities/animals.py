@@ -1954,7 +1954,7 @@ class Bat(Animal):
         return ["night_roost", "canopy_roost"]
 
     def breeding_patch_threshold(self) -> float:
-        return 0.14
+        return 0.12
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "spider", "bee", "water_strider"]
@@ -1974,6 +1974,9 @@ class Bat(Animal):
         else:
             self.speed = 1.0
             self.vision_range = 3
+            if self.seek_habitat(ecosystem, radius=7):
+                self.hunger = max(0, self.hunger - 0.8)
+                self.health = min(100, self.health + 0.35)
         super().execute_behavior(ecosystem)
 
 

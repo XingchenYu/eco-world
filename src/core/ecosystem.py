@@ -83,11 +83,11 @@ class Ecosystem:
         "insect": 18, "bee": 6, "spider": 4,
         "rabbit": 10, "mouse": 8, "bird": 6, "sparrow": 14, "parrot": 4, "duck": 3,
         "deer": 4, "frog": 10,
-        "small_fish": 8, "minnow": 12, "carp": 4, "shrimp": 10, "tadpole": 8, "water_strider": 8,
+        "small_fish": 8, "minnow": 14, "carp": 4, "shrimp": 10, "tadpole": 8, "water_strider": 8,
     }
     PREDATOR_APPETITE = {
         "fox": 2.5, "wolf": 2.2, "snake": 1.3, "bird": 1.2, "sparrow": 1.0, "eagle": 1.8, "owl": 1.6,
-        "spider": 0.9, "blackfish": 2.1, "pike": 1.8, "large_fish": 1.7, "catfish": 1.6, "crab": 1.1,
+        "spider": 0.9, "blackfish": 2.1, "pike": 1.55, "large_fish": 1.7, "catfish": 1.6, "crab": 1.1,
         "kingfisher": 1.2,
     }
 
@@ -1164,11 +1164,14 @@ class Ecosystem:
                     reproduction_mult *= 1.08
             elif species == "bat":
                 if count <= 4 and species_counts.get("insect", 0) + species_counts.get("bee", 0) > 18:
-                    hunger_mult *= 0.70
-                    reproduction_mult *= 1.40
+                    hunger_mult *= 0.68
+                    reproduction_mult *= 1.42
+                if count <= 2 and actors["canopy_cover"] >= 8 and actors["aerial_insect_supply"] >= 12:
+                    hunger_mult *= 0.78
+                    reproduction_mult *= 1.18
                 if actors["canopy_cover"] >= 10 and actors["aerial_insect_supply"] >= 16:
-                    hunger_mult *= 0.88
-                    reproduction_mult *= 1.10
+                    hunger_mult *= 0.86
+                    reproduction_mult *= 1.12
             elif species == "bear":
                 if count <= 2 and land_prey_total > 28:
                     hunger_mult *= 0.90
@@ -1200,14 +1203,17 @@ class Ecosystem:
                     reproduction_mult *= 1.55
             elif species == "minnow":
                 if count <= 12 and aquatic_producer_total > 75:
-                    hunger_mult *= 0.76
-                    reproduction_mult *= 1.58
-                elif count > 22:
+                    hunger_mult *= 0.80
+                    reproduction_mult *= 1.32
+                elif count > 28:
+                    hunger_mult *= 1.22
+                    reproduction_mult *= 0.50
+                elif count > 18:
                     hunger_mult *= 1.18
-                    reproduction_mult *= 0.64
-                if actors["aquatic_mid_pressure"] > 42:
-                    hunger_mult *= 1.08
-                    reproduction_mult *= 0.86
+                    reproduction_mult *= 0.62
+                if actors["aquatic_mid_pressure"] > 36:
+                    hunger_mult *= 1.10
+                    reproduction_mult *= 0.82
             elif species == "shrimp":
                 if count <= 8 and aquatic_producer_total > 75:
                     hunger_mult *= 0.82
@@ -1314,14 +1320,14 @@ class Ecosystem:
                 "domain": "land",
                 "max_count": 2,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["mouse", "bat", "bird", "sparrow"]) >= 12,
-                "chance": 0.18,
+                "chance": 0.22,
                 "position": self._random_edge_land_position,
                 "message": "一只猫头鹰借林带夜间迁入",
                 "cooldown": 84,
                 "habitat_check": lambda pos: len([
                     a for a in self.get_nearby_animals(pos, 10)
                     if a.species in {"mouse", "bat", "bird", "sparrow"} and a.alive
-                ]) >= 3,
+                ]) >= 3 and self.get_local_microhabitat_value(pos, {"night_roost", "canopy_roost"}, radius=6) >= 0.10,
             },
             {
                 "species": "sparrow",
@@ -1385,9 +1391,9 @@ class Ecosystem:
             {
                 "species": "bat",
                 "domain": "land",
-                "max_count": 5,
+                "max_count": 6,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["insect", "bee", "spider"]) >= 22,
-                "chance": 0.42,
+                "chance": 0.48,
                 "position": self._random_edge_land_position,
                 "message": "几只蝙蝠借夜色沿林带迁入",
                 "cooldown": 28,
@@ -1397,7 +1403,7 @@ class Ecosystem:
                 ]) >= 4 and len([
                     p for p in self.get_nearby_plants(pos, 5)
                     if p.species in {"tree", "bush", "apple_tree", "cherry_tree"} and p.alive
-                ]) >= 2,
+                ]) >= 2 and self.get_local_microhabitat_value(pos, {"night_roost", "canopy_roost"}, radius=5) >= 0.12,
             },
             {
                 "species": "frog",
