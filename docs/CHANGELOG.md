@@ -26,6 +26,16 @@
 
 ## 版本历史
 
+### v3.7 (2026-04-08 17:30)
+
+**文档**：
+- ✅ 新增 [docs/V4-IMPLEMENTATION-STEPS.md](/Users/yumini/Projects/eco-world/docs/V4-IMPLEMENTATION-STEPS.md)
+- ✅ README 的 `v4` 文档导航新增实施步骤入口
+
+**目标**：
+- ✅ 将后续开发从“继续逐步讨论”推进成“按步骤实施”
+- ✅ 固定后续 `v4` 的执行顺序，减少范围漂移和重复设计
+
 ### v3.6 (2026-04-08 16:40)
 
 **v4 架构推进**：
