@@ -1,45 +1,77 @@
 # EcoWorld
 
-EcoWorld 是一个基于 Python 和 Pygame 的 2D 虚拟生态系统模拟器，当前版本已经演进到“陆地生态 + 水域生态 + 微栖息地资源层 + 双 GUI”的完整结构。
+EcoWorld 是一个正在从“多物种生态沙盒原型”升级为“多尺度虚拟生态世界模拟器”的项目。
 
-当前代码基于 **67 个物种** 运行：
+当前仓库中的 `v3.x` 版本已经具备：
 
-- 17 种植物
-- 35 种陆地动物、鸟类与两栖动物
-- 15 种水生物种
+- 多物种生态模拟
+- 陆地、淡水与部分海岸/微栖位逻辑
+- 基础食物链、繁殖、环境与平衡系统
+- 高级 `pygame` 可视化界面
+- 大地图与缓存优化
 
-## 当前版本重点
+下一阶段的 `v4.0` 目标是把它升级为：
 
-- 默认世界已扩大到约原来的 10 倍面积
-- 默认启动即包含所有已注册物种
-- 已接入微栖息地资源层：
-  - `canopy_roost`
-  - `night_roost`
-  - `shrub_shelter`
-  - `nectar_patch`
-  - `wetland_patch`
-  - `riparian_perch`
-  - `night_swarm`
-  - `canopy_forage`
-  - `shore_hatch`
-- 动物会优先搜索可用微栖位资源，而不只是找植物
-- 微栖位已接入容量、占用、季节脉冲、逐 tick 恢复与繁殖门槛
-- 高级 GUI 已支持中文界面、窗口自适应、微栖位叠层和选中生物资源信息
-- 大地图默认配置下，核心更新性能已明显优化
+- 多大陆、多生态区、多尺度地图
+- 陆地、河流、湖泊、海洋、天空一体化生态系统
+- 数据驱动物种模板体系
+- 捕食、竞争、共生、寄生、工程师物种等独立关系系统
+- 图鉴、事件、任务、玩家干预和完整游戏化体验
 
-## 运行环境
+## 当前版本
 
-```bash
-pip install -r requirements.txt
+当前仓库可视为 `v3.x` 可运行原型，特点包括：
+
+- 单区域高密度生态模拟
+- 67 个已接入物种
+- 微栖息地资源层
+- 高级 GUI 和生态统计面板
+- 空间索引与多层缓存优化
+
+但它仍然有明显边界：
+
+- 仍是单区域、单尺度逻辑
+- 多数物种仍偏向脚本式实现
+- 生态关系系统尚未完全独立
+- 还不是完整的世界级模拟
+
+## V4 设计文档
+
+`v4.0` 的完整升级设计已经确定，核心文档如下：
+
+- [V4 世界设计](/Users/yumini/Projects/eco-world/docs/V4-WORLD.md)
+- [V4 物种系统设计](/Users/yumini/Projects/eco-world/docs/V4-SPECIES.md)
+- [V4 生态关系设计](/Users/yumini/Projects/eco-world/docs/V4-RELATIONS.md)
+- [V4 路线图](/Users/yumini/Projects/eco-world/docs/V4-ROADMAP.md)
+
+这些文档定义了项目如何从当前原型，演进成完整的虚拟生态世界。
+
+## 当前仓库结构
+
+```text
+eco-world/
+├── src/
+│   ├── core/          # 当前环境、生态主循环、平衡与基础生命模型
+│   ├── entities/      # 当前植物、动物、水生物种与杂食动物实现
+│   ├── renderer/      # 当前 GUI
+│   └── main.py        # 当前入口
+├── docs/              # 当前文档与 v4 设计文档
+├── tests/             # 当前测试
+├── config.yaml        # 默认配置
+└── requirements.txt   # 依赖
 ```
 
-依赖：
+后续 `v4.0` 将新增：
 
-- `pygame`
-- `pyyaml`
-- `numpy`
+- `src/world/`
+- `src/ecology/`
+- `src/agents/`
+- `src/populations/`
+- `src/sim/`
+- `src/data/`
+- `src/ui/`
 
-## 启动
+## 当前运行方式
 
 默认运行：
 
@@ -65,7 +97,26 @@ PYTHONPATH=. python3 src/main.py --config config/test.yaml --advanced
 PYTHONPATH=. python3 src/main.py --headless
 ```
 
-## 默认世界
+## 当前版本能力
+
+- 默认世界已扩大到约原来的 10 倍面积
+- 默认启动即包含所有已注册物种
+- 已接入微栖息地资源层：
+  - `canopy_roost`
+  - `night_roost`
+  - `shrub_shelter`
+  - `nectar_patch`
+  - `wetland_patch`
+  - `riparian_perch`
+  - `night_swarm`
+  - `canopy_forage`
+  - `shore_hatch`
+- 动物会优先搜索可用微栖位资源，而不只是找植物
+- 微栖位已接入容量、占用、季节脉冲、逐 tick 恢复与繁殖门槛
+- 高级 GUI 已支持中文界面、窗口自适应、微栖位叠层和选中生物资源信息
+- 空间索引与缓存已接入大地图和高种群运行
+
+## 当前默认世界
 
 默认配置见 [config.yaml](/Users/yumini/Projects/eco-world/config.yaml)：
 
@@ -74,77 +125,33 @@ PYTHONPATH=. python3 src/main.py --headless
 - 运行网格：`128 x 96`
 - 初始种群：所有物种均有初始个体
 
-在当前默认配置下，初始化后大致规模为：
-
-- 植物约 `2440`
-- 陆地动物约 `2460`
-- 水生生物约 `1410`
-
-## 主要能力
-
-- 动态生态循环：生长、觅食、捕食、交配、产仔、死亡
-- 多样化食谱：主食、替代食物、机会型猎物
-- 河流与湖泊分化：`river_channel`、`lake_shallow`、`lake_deep`
-- 微栖息地资源层：树冠位、夜栖位、灌丛位、花蜜位、湿地位、岸栖位
-- 双界面：经典 GUI 与高级游戏化 GUI
-- 生态监控：健康度、预警、建议、因果链事件
-- 空间索引与缓存：用于大地图和高种群运行，包含 tick 级 ecosystem actor 缓存
-
 ## 当前性能
 
-以默认放大后的世界为基线，当前实测约为：
+当前仓库已具备多层缓存和空间索引优化。实际性能会随种群和配置波动；精确数值应以最新基准测试为准。
 
-- `1 tick ≈ 0.217s`
-- `5 tick ≈ 1.260s`
+## 当前文档导航
 
-相对放大地图后的早期基线：
+- [ARCHITECTURE.md](/Users/yumini/Projects/eco-world/docs/ARCHITECTURE.md)
+- [ECOSYSTEM.md](/Users/yumini/Projects/eco-world/docs/ECOSYSTEM.md)
+- [SPECIES.md](/Users/yumini/Projects/eco-world/docs/SPECIES.md)
+- [MECHANICS.md](/Users/yumini/Projects/eco-world/docs/MECHANICS.md)
+- [USAGE.md](/Users/yumini/Projects/eco-world/docs/USAGE.md)
+- [ADVANCED-GUI.md](/Users/yumini/Projects/eco-world/docs/ADVANCED-GUI.md)
+- [CHANGELOG.md](/Users/yumini/Projects/eco-world/docs/CHANGELOG.md)
 
-- 单 tick 下降约 `77%`
-- 5 tick 下降约 `76%`
+## 项目路线
 
-## 项目结构
+- `v3.x`：当前可运行生态沙盒原型
+- `v4.0`：世界骨架、模板系统、关系系统、区域生态
+- `v4.5+`：更完整海洋、天空、迁徙、疾病、文明干预与游戏化系统
 
-```text
-eco-world/
-├── src/
-│   ├── core/          # 环境、生态主循环、平衡监控、基础生命模型
-│   ├── entities/      # 植物、动物、水生物种、杂食与竞争系统
-│   ├── renderer/      # 经典 GUI 与高级 GUI
-│   └── main.py        # 入口
-├── config/            # 补充配置
-├── docs/              # 说明文档
-├── tests/             # 基础测试
-├── config.yaml        # 默认配置
-└── requirements.txt   # 依赖
-```
+## 项目定位
 
-## 推荐阅读顺序
+EcoWorld 的最终目标不是简单增加物种数量，而是构建一个：
 
-1. [src/main.py](/Users/yumini/Projects/eco-world/src/main.py)
-2. [src/core/ecosystem.py](/Users/yumini/Projects/eco-world/src/core/ecosystem.py)
-3. [src/core/environment.py](/Users/yumini/Projects/eco-world/src/core/environment.py)
-4. [src/core/creature.py](/Users/yumini/Projects/eco-world/src/core/creature.py)
-5. [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py)
-6. [src/entities/plants.py](/Users/yumini/Projects/eco-world/src/entities/plants.py)
-7. [src/entities/aquatic.py](/Users/yumini/Projects/eco-world/src/entities/aquatic.py)
-8. [src/renderer/advanced_gui.py](/Users/yumini/Projects/eco-world/src/renderer/advanced_gui.py)
-
-## 文档导航
-
-- [docs/ARCHITECTURE.md](/Users/yumini/Projects/eco-world/docs/ARCHITECTURE.md)
-- [docs/ECOSYSTEM.md](/Users/yumini/Projects/eco-world/docs/ECOSYSTEM.md)
-- [docs/SPECIES.md](/Users/yumini/Projects/eco-world/docs/SPECIES.md)
-- [docs/MECHANICS.md](/Users/yumini/Projects/eco-world/docs/MECHANICS.md)
-- [docs/USAGE.md](/Users/yumini/Projects/eco-world/docs/USAGE.md)
-- [docs/ADVANCED-GUI.md](/Users/yumini/Projects/eco-world/docs/ADVANCED-GUI.md)
-
-## 验证
-
-已持续验证：
-
-- `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py`
-- `PYTHONDONTWRITEBYTECODE=1 python3 test_foodchain.py`
-- 默认大地图性能基准
-- GUI 冒烟渲染
-
-更新时间：2026-04-07
+- 真实
+- 可扩展
+- 丰富
+- 可观察
+- 可干预
+- 可游玩的完整虚拟生态世界

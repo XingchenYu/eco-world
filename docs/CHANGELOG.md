@@ -26,6 +26,19 @@
 
 ## 版本历史
 
+### v3.5 (2026-04-07 16:20)
+
+**设计文档**：
+- ✅ 重写 README，明确区分当前 `v3.x` 原型与 `v4.0` 升级方向
+- ✅ 新增 [V4-WORLD.md](/Users/yumini/Projects/eco-world/docs/V4-WORLD.md)
+- ✅ 新增 [V4-SPECIES.md](/Users/yumini/Projects/eco-world/docs/V4-SPECIES.md)
+- ✅ 新增 [V4-RELATIONS.md](/Users/yumini/Projects/eco-world/docs/V4-RELATIONS.md)
+- ✅ 新增 [V4-ROADMAP.md](/Users/yumini/Projects/eco-world/docs/V4-ROADMAP.md)
+
+**目标**：
+- ✅ 将后续开发从“继续堆原型功能”转向“按 v4 总体架构实施”
+- ✅ 提前锁定世界结构、物种模板、生态关系和路线图，减少后续大重构风险
+
 ### v3.4 (2026-04-07 15:10)
 
 **性能与结构**：
