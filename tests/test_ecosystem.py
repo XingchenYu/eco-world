@@ -11,9 +11,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.core.ecosystem import Ecosystem, Environment
 from src.core.environment import TerrainType
+from src.data.defaults import (
+    build_default_relation_tables,
+    build_default_species_templates,
+    build_default_species_variants,
+)
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
 from src.main import load_config
+from src.sim.region_simulation import RegionSimulation
+from src.world.world_map import build_default_world_map
 
 
 def test_environment():
@@ -218,6 +225,30 @@ def test_night_moth_registration_and_spawn():
     print("✅ Night moth registration test passed")
 
 
+def test_v4_world_and_data_skeleton():
+    """v4 世界、数据和区域模拟骨架应可正常构建。"""
+    world_map = build_default_world_map()
+    templates = build_default_species_templates()
+    variants = build_default_species_variants()
+    relations = build_default_relation_tables()
+
+    assert len(world_map.regions) == 6
+    assert "temperate_forest" in world_map.regions
+    assert "megaherbivore_engineer" in templates
+    assert "african_elephant" in variants
+    assert any(link.relation_type == "engineering" for link in relations)
+
+    region = world_map.get_region("temperate_forest")
+    sim = RegionSimulation(region=region, config={"world": {"width": 200, "height": 200, "grid_size": 20}})
+
+    assert sim.region_id == "temperate_forest"
+    assert sim.region_name == "温带森林区"
+    assert sim.width == 10
+    assert sim.height == 10
+
+    print("✅ V4 skeleton test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -234,6 +265,7 @@ def run_all_tests():
     test_land_animals_do_not_spawn_in_water()
     test_amphibious_animals_can_spawn_in_water()
     test_night_moth_registration_and_spawn()
+    test_v4_world_and_data_skeleton()
     
     print("\n✅ All tests passed!")
 
