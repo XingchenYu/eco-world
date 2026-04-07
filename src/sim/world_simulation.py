@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Optional
 
+from src.data import WorldRegistry, build_default_world_registry
 from src.sim.region_simulation import RegionSimulation
 from src.world import Region, WorldMap, build_default_world_map
 
@@ -24,11 +25,13 @@ class WorldSimulation:
     def __init__(
         self,
         world_map: Optional[WorldMap] = None,
+        registry: Optional[WorldRegistry] = None,
         region_configs: Optional[Dict[str, dict]] = None,
         default_region_config: Optional[dict] = None,
         initial_region_id: Optional[str] = None,
     ):
         self.world_map = world_map or build_default_world_map()
+        self.registry = registry or build_default_world_registry()
         self.region_configs = region_configs or {}
         self.default_region_config = default_region_config or {"world": {"width": 200, "height": 200, "grid_size": 20}}
         self.region_simulations: Dict[str, RegionSimulation] = {}
@@ -75,6 +78,7 @@ class WorldSimulation:
         active_region = self.get_active_region()
         active_simulation = self.get_active_simulation()
         simulation_stats = active_simulation.get_statistics()
+        regional_species = self.registry.species_for_region(active_region.region_id)
 
         return {
             "world_tick": self.tick_count,
@@ -86,6 +90,13 @@ class WorldSimulation:
             },
             "loaded_regions": len(self.region_simulations),
             "regions_total": len(self.world_map.regions),
+            "registry": {
+                "templates": len(self.registry.templates),
+                "species": len(self.registry.species),
+                "relations": len(self.registry.relations),
+                "regional_species": sorted(regional_species),
+                "relation_summary": self.registry.relation_summary(),
+            },
             "simulation": simulation_stats,
         }
 

@@ -17,12 +17,14 @@ from .models import (
     SpeciesVariant,
     TerritoryProfile,
 )
+from .registry import WorldRegistry, build_default_world_registry
 
 __all__ = [
     "BehaviorProfile",
     "build_default_relation_tables",
     "build_default_species_templates",
     "build_default_species_variants",
+    "build_default_world_registry",
     "DietProfile",
     "EcologicalFlags",
     "HabitatProfile",
@@ -32,4 +34,5 @@ __all__ = [
     "SpeciesTemplate",
     "SpeciesVariant",
     "TerritoryProfile",
+    "WorldRegistry",
 ]

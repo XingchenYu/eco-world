@@ -16,6 +16,7 @@ from src.data.defaults import (
     build_default_species_templates,
     build_default_species_variants,
 )
+from src.data.registry import build_default_world_registry
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
 from src.main import load_config
@@ -265,12 +266,29 @@ def test_v4_world_simulation_skeleton():
     assert stats["world_tick"] == 1
     assert stats["active_region"]["id"] == "temperate_forest"
     assert stats["regions_total"] == 6
+    assert stats["registry"]["templates"] >= 8
+    assert "beaver" in stats["registry"]["regional_species"]
+    assert stats["registry"]["relation_summary"]["engineering"] >= 1
 
     world_sim.set_active_region("wetland_lake")
     assert world_sim.active_region_id == "wetland_lake"
     assert world_sim.get_active_region().name == "湿地与湖泊区"
 
     print("✅ V4 world simulation test passed")
+
+
+def test_v4_registry_queries():
+    """v4 注册表应支持按区域和物种关系查询。"""
+    registry = build_default_world_registry()
+
+    wetland_species = registry.species_for_region("wetland_lake")
+    crocodile_relations = registry.relations_for_species("nile_crocodile")
+
+    assert "hippopotamus" in wetland_species
+    assert "nile_crocodile" in wetland_species
+    assert any(relation.relation_type == "competition" for relation in crocodile_relations)
+
+    print("✅ V4 registry test passed")
 
 
 def run_all_tests():
@@ -291,6 +309,7 @@ def run_all_tests():
     test_night_moth_registration_and_spawn()
     test_v4_world_and_data_skeleton()
     test_v4_world_simulation_skeleton()
+    test_v4_registry_queries()
     
     print("\n✅ All tests passed!")
 
