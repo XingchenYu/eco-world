@@ -64,3 +64,15 @@ class Region:
 
     def add_biome_patch(self, patch: BiomePatch) -> None:
         self.biome_patches.append(patch)
+
+    @property
+    def biome_count(self) -> int:
+        return len(self.biome_patches)
+
+    @property
+    def habitat_count(self) -> int:
+        return sum(len(patch.habitats) for patch in self.biome_patches)
+
+    @property
+    def species_count(self) -> int:
+        return len(self.species_pool)

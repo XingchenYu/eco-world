@@ -239,6 +239,9 @@ def test_v4_world_and_data_skeleton():
     assert "megaherbivore_engineer" in templates
     assert "african_elephant" in variants
     assert any(link.relation_type == "engineering" for link in relations)
+    assert world_map.get_region("temperate_forest").biome_count >= 2
+    assert world_map.get_region("wetland_lake").habitat_count >= 4
+    assert world_map.get_region("coastal_shelf").species_count >= 4
 
     region = world_map.get_region("temperate_forest")
     sim = RegionSimulation(region=region, config={"world": {"width": 200, "height": 200, "grid_size": 20}})
@@ -266,6 +269,10 @@ def test_v4_world_simulation_skeleton():
     assert stats["world_tick"] == 1
     assert stats["active_region"]["id"] == "temperate_forest"
     assert stats["regions_total"] == 6
+    assert stats["active_region"]["biome_count"] >= 2
+    assert stats["active_region"]["habitat_count"] >= 4
+    assert stats["active_region"]["species_pool_count"] >= 6
+    assert stats["active_region"]["resource_state"]["canopy_cover"] > 0.8
     assert stats["registry"]["templates"] >= 8
     assert "beaver" in stats["registry"]["regional_species"]
     assert stats["registry"]["relation_summary"]["engineering"] >= 1
