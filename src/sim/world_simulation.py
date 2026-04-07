@@ -80,6 +80,7 @@ class WorldSimulation:
         active_simulation = self.get_active_simulation()
         simulation_stats = active_simulation.get_statistics()
         regional_species = self.registry.species_for_region(active_region.region_id)
+        regional_bridges = self.registry.bridged_species_for_region(active_region.region_id)
         food_web = build_region_food_web(active_region, self.registry)
 
         return {
@@ -102,8 +103,18 @@ class WorldSimulation:
                 "templates": len(self.registry.templates),
                 "species": len(self.registry.species),
                 "relations": len(self.registry.relations),
+                "bridges": len(self.registry.runtime_bridges),
                 "regional_species": sorted(regional_species),
                 "relation_summary": self.registry.relation_summary(),
+                "bridge_summary": self.registry.bridge_summary(),
+                "regional_bridges": {
+                    species_id: {
+                        "runtime_species_id": bridge.runtime_species_id,
+                        "support_level": bridge.support_level,
+                        "runtime_domain": bridge.runtime_domain,
+                    }
+                    for species_id, bridge in regional_bridges.items()
+                },
             },
             "food_web": {
                 "resident_species": sorted(food_web.resident_species),

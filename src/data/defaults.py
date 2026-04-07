@@ -9,6 +9,7 @@ from .models import (
     HabitatProfile,
     LifeStageProfile,
     RelationTable,
+    RuntimeSpeciesBridge,
     SocialProfile,
     SpeciesTemplate,
     SpeciesVariant,
@@ -268,3 +269,62 @@ def build_default_relation_tables() -> List[RelationTable]:
             notes="鳄鱼与河马在岸边浅滩和巢位上存在空间竞争。",
         ),
     ]
+
+
+def build_default_runtime_species_bridges() -> Dict[str, RuntimeSpeciesBridge]:
+    return {
+        "african_elephant": RuntimeSpeciesBridge(
+            species_id="african_elephant",
+            runtime_species_id="deer",
+            support_level="proxy",
+            runtime_domain="land_animal",
+            notes="当前用鹿类承载大型植食者占位，尚未实现真正工程师级巨型植食动物。",
+        ),
+        "white_rhino": RuntimeSpeciesBridge(
+            species_id="white_rhino",
+            runtime_species_id="deer",
+            support_level="proxy",
+            runtime_domain="land_animal",
+            notes="当前用鹿类承载大型草食与领地占位，犀牛专属防御和泥浴逻辑待实现。",
+        ),
+        "giraffe": RuntimeSpeciesBridge(
+            species_id="giraffe",
+            runtime_species_id="deer",
+            support_level="proxy",
+            runtime_domain="land_animal",
+            notes="当前用鹿类占位高浏览食草者，树冠取食垂直分层待实现。",
+        ),
+        "hippopotamus": RuntimeSpeciesBridge(
+            species_id="hippopotamus",
+            support_level="planned",
+            runtime_domain="amphibious",
+            notes="当前缺少真正的大型半水生食草动物运行体，需后续单独实现。",
+        ),
+        "nile_crocodile": RuntimeSpeciesBridge(
+            species_id="nile_crocodile",
+            runtime_species_id="pike",
+            support_level="proxy",
+            runtime_domain="aquatic",
+            notes="当前用狗鱼占位水边伏击捕食者，鳄类晒背、巢位和饮水点风险逻辑待实现。",
+        ),
+        "beaver": RuntimeSpeciesBridge(
+            species_id="beaver",
+            support_level="planned",
+            runtime_domain="amphibious",
+            notes="当前未实现河狸筑坝与湿地工程师行为。",
+        ),
+        "kingfisher_v4": RuntimeSpeciesBridge(
+            species_id="kingfisher_v4",
+            runtime_species_id="kingfisher",
+            support_level="native",
+            runtime_domain="land_animal",
+            notes="当前已有可运行翠鸟实现。",
+        ),
+        "bat_v4": RuntimeSpeciesBridge(
+            species_id="bat_v4",
+            runtime_species_id="bat",
+            support_level="native",
+            runtime_domain="land_animal",
+            notes="当前已有可运行蝙蝠实现。",
+        ),
+    }

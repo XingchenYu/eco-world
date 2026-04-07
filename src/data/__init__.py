@@ -2,6 +2,7 @@
 
 from .defaults import (
     build_default_relation_tables,
+    build_default_runtime_species_bridges,
     build_default_species_templates,
     build_default_species_variants,
 )
@@ -12,6 +13,7 @@ from .models import (
     HabitatProfile,
     LifeStageProfile,
     RelationTable,
+    RuntimeSpeciesBridge,
     SocialProfile,
     SpeciesTemplate,
     SpeciesVariant,
@@ -22,6 +24,7 @@ from .registry import WorldRegistry, build_default_world_registry
 __all__ = [
     "BehaviorProfile",
     "build_default_relation_tables",
+    "build_default_runtime_species_bridges",
     "build_default_species_templates",
     "build_default_species_variants",
     "build_default_world_registry",
@@ -30,6 +33,7 @@ __all__ = [
     "HabitatProfile",
     "LifeStageProfile",
     "RelationTable",
+    "RuntimeSpeciesBridge",
     "SocialProfile",
     "SpeciesTemplate",
     "SpeciesVariant",

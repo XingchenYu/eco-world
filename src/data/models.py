@@ -102,3 +102,14 @@ class RelationTable:
     habitat_constraints: Tuple[str, ...] = ()
     strength: float = 1.0
     notes: str = ""
+
+
+@dataclass(frozen=True)
+class RuntimeSpeciesBridge:
+    """v4 物种到当前可运行 v3 物种体系的桥接定义。"""
+
+    species_id: str
+    runtime_species_id: Optional[str] = None
+    support_level: str = "planned"
+    runtime_domain: str = "none"
+    notes: str = ""

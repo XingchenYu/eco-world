@@ -13,6 +13,7 @@ from src.core.ecosystem import Ecosystem, Environment
 from src.core.environment import TerrainType
 from src.data.defaults import (
     build_default_relation_tables,
+    build_default_runtime_species_bridges,
     build_default_species_templates,
     build_default_species_variants,
 )
@@ -234,12 +235,15 @@ def test_v4_world_and_data_skeleton():
     templates = build_default_species_templates()
     variants = build_default_species_variants()
     relations = build_default_relation_tables()
+    bridges = build_default_runtime_species_bridges()
 
     assert len(world_map.regions) == 6
     assert "temperate_forest" in world_map.regions
     assert "megaherbivore_engineer" in templates
     assert "african_elephant" in variants
     assert any(link.relation_type == "engineering" for link in relations)
+    assert bridges["kingfisher_v4"].support_level == "native"
+    assert bridges["beaver"].support_level == "planned"
     assert world_map.get_region("temperate_forest").biome_count >= 2
     assert world_map.get_region("wetland_lake").habitat_count >= 4
     assert world_map.get_region("coastal_shelf").species_count >= 4
@@ -277,6 +281,9 @@ def test_v4_world_simulation_skeleton():
     assert stats["registry"]["templates"] >= 8
     assert "beaver" in stats["registry"]["regional_species"]
     assert stats["registry"]["relation_summary"]["engineering"] >= 1
+    assert stats["registry"]["bridges"] >= 8
+    assert stats["registry"]["bridge_summary"]["native"] >= 2
+    assert stats["registry"]["regional_bridges"]["beaver"]["support_level"] == "planned"
     assert "beaver" in stats["food_web"]["resident_species"]
 
     world_sim.set_active_region("wetland_lake")
@@ -294,10 +301,13 @@ def test_v4_registry_queries():
 
     wetland_species = registry.species_for_region("wetland_lake")
     crocodile_relations = registry.relations_for_species("nile_crocodile")
+    crocodile_bridge = registry.get_runtime_bridge("nile_crocodile")
 
     assert "hippopotamus" in wetland_species
     assert "nile_crocodile" in wetland_species
     assert any(relation.relation_type == "competition" for relation in crocodile_relations)
+    assert crocodile_bridge.runtime_species_id == "pike"
+    assert crocodile_bridge.support_level == "proxy"
 
     print("✅ V4 registry test passed")
 
