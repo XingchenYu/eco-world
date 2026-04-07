@@ -6,7 +6,12 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 
 from src.data import WorldRegistry, build_default_world_registry
-from src.ecology import apply_region_cascade_feedback, build_region_cascade_summary, build_region_food_web
+from src.ecology import (
+    apply_region_cascade_feedback,
+    apply_region_competition_feedback,
+    build_region_cascade_summary,
+    build_region_food_web,
+)
 from src.sim.region_simulation import RegionSimulation
 from src.world import Region, WorldMap, build_default_world_map
 
@@ -37,6 +42,7 @@ class WorldSimulation:
         self.default_region_config = default_region_config or {"world": {"width": 200, "height": 200, "grid_size": 20}}
         self.region_simulations: Dict[str, RegionSimulation] = {}
         self.tick_count = 0
+        self.last_competition_adjustments: Dict[str, list[dict]] = {}
 
         self.active_region_id = initial_region_id or next(iter(self.world_map.regions))
         self.ensure_region_simulation(self.active_region_id)
@@ -71,6 +77,10 @@ class WorldSimulation:
         active_region = self.get_active_region()
         cascade = build_region_cascade_summary(active_region, self.registry)
         apply_region_cascade_feedback(active_region, cascade)
+        competition_adjustments: list[dict] = []
+        if self.tick_count % 8 == 0:
+            competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
+        self.last_competition_adjustments[active_region.region_id] = competition_adjustments
         self.tick_count += 1
         return WorldTickSummary(
             tick=self.tick_count,
@@ -134,6 +144,7 @@ class WorldSimulation:
                 "impact_scores": dict(cascade.impact_scores),
                 "active_pressures": list(cascade.active_pressures),
                 "narrative_impacts": list(cascade.narrative_impacts),
+                "competition_adjustments": list(self.last_competition_adjustments.get(active_region.region_id, [])),
             },
             "simulation": simulation_stats,
         }

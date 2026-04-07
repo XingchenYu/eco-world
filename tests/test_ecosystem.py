@@ -18,7 +18,11 @@ from src.data.defaults import (
     build_default_species_variants,
 )
 from src.data.registry import build_default_world_registry
-from src.ecology.cascade import apply_region_cascade_feedback, build_region_cascade_summary
+from src.ecology.cascade import (
+    apply_region_cascade_feedback,
+    apply_region_competition_feedback,
+    build_region_cascade_summary,
+)
 from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
@@ -388,6 +392,26 @@ def test_v4_cascade_feedback_updates_region_state():
     print("✅ V4 cascade feedback test passed")
 
 
+def test_v4_competition_feedback_rebalances_species_pool():
+    """v4 竞争反馈应能轻量重平衡关键种物种池。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    grassland = world_map.get_region("temperate_grassland")
+    assert grassland is not None
+
+    before_rhino = grassland.species_pool["white_rhino"]
+    before_giraffe = grassland.species_pool["giraffe"]
+
+    adjustments = apply_region_competition_feedback(grassland, registry)
+
+    assert any(item["target_species"] == "white_rhino" for item in adjustments)
+    assert any(item["target_species"] == "giraffe" for item in adjustments)
+    assert grassland.species_pool["white_rhino"] < before_rhino
+    assert grassland.species_pool["giraffe"] < before_giraffe
+
+    print("✅ V4 competition feedback test passed")
+
+
 def test_region_simulation_uses_region_defaults():
     """未显式覆盖尺寸时，RegionSimulation 应使用区域默认模拟尺寸。"""
     region = build_default_world_map().get_region("wetland_lake")
@@ -627,6 +651,7 @@ def run_all_tests():
     test_v4_region_food_web_summary()
     test_v4_region_cascade_summary()
     test_v4_cascade_feedback_updates_region_state()
+    test_v4_competition_feedback_rebalances_species_pool()
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()
     test_beaver_engineering_effect()

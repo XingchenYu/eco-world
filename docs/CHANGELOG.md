@@ -32,6 +32,7 @@
 - ✅ 新增 [src/ecology/cascade.py](/Users/yumini/Projects/eco-world/src/ecology/cascade.py)，引入第一版区域级联影响摘要
 - ✅ `WorldSimulation` 统计新增 `cascade` 区块，开始汇总关键种如何推动区域结构变化
 - ✅ 级联摘要已开始轻量反馈到区域 `resource_state / hazard_state / health_state`
+- ✅ 第一版关键种竞争反馈已接入区域 `species_pool` 轻量重平衡
 - ✅ 当前已接入湿地链与草原大型植食者链：
   - `beaver / hippopotamus / nile_crocodile`
   - `african_elephant / white_rhino / giraffe`

@@ -268,6 +268,42 @@ def build_default_relation_tables() -> List[RelationTable]:
             strength=0.35,
             notes="鳄鱼与河马在岸边浅滩和巢位上存在空间竞争。",
         ),
+        RelationTable(
+            relation_id="hippo_crocodile_competition",
+            relation_type="competition",
+            source_species="hippopotamus",
+            target_species="nile_crocodile",
+            habitat_constraints=("river_edge", "wetland"),
+            strength=0.42,
+            notes="河马通过岸带占用和踩踏压缩鳄鱼的稳定伏击位。",
+        ),
+        RelationTable(
+            relation_id="elephant_rhino_competition",
+            relation_type="competition",
+            source_species="african_elephant",
+            target_species="white_rhino",
+            habitat_constraints=("grassland", "open_woodland", "wetland_edge"),
+            strength=0.38,
+            notes="大象与白犀围绕水源、泥浴点和草灌结构发生资源竞争。",
+        ),
+        RelationTable(
+            relation_id="rhino_elephant_competition",
+            relation_type="competition",
+            source_species="white_rhino",
+            target_species="african_elephant",
+            habitat_constraints=("grassland", "wetland_edge"),
+            strength=0.24,
+            notes="白犀会通过高强度放牧和泥浴点占用，对大象形成局部反向压力。",
+        ),
+        RelationTable(
+            relation_id="elephant_giraffe_competition",
+            relation_type="competition",
+            source_species="african_elephant",
+            target_species="giraffe",
+            habitat_constraints=("savanna", "open_woodland"),
+            strength=0.22,
+            notes="大象开林与折枝会削弱部分高位树冠资源，对长颈鹿形成轻度竞争。",
+        ),
     ]
 
 

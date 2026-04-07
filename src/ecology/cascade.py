@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List
 
 from src.data import WorldRegistry
+from src.data.models import RelationTable
 from src.world import Region
 
 
@@ -47,6 +48,22 @@ def apply_region_cascade_feedback(region: Region, cascade: RegionCascadeSummary,
     _adjust(region.health_state, "resilience", impacts.get("wetland_expansion", 0.0) * 0.28, feedback_scale)
     _adjust(region.health_state, "resilience", impacts.get("nutrient_input", 0.0) * 0.25, feedback_scale)
     _adjust(region.health_state, "fragmentation", -impacts.get("canopy_opening", 0.0) * 0.12, feedback_scale)
+
+
+def apply_region_competition_feedback(region: Region, registry: WorldRegistry) -> List[dict]:
+    """根据关键竞争关系轻量调整区域物种池和资源压力。"""
+
+    adjustments: List[dict] = []
+    region_species = set(region.species_pool)
+
+    for relation in registry.relations:
+        if relation.relation_type != "competition":
+            continue
+        if relation.source_species not in region_species or relation.target_species not in region_species:
+            continue
+        _apply_competition_relation(region, relation, adjustments)
+
+    return adjustments
 
 
 def build_region_cascade_summary(region: Region, registry: WorldRegistry) -> RegionCascadeSummary:
@@ -158,3 +175,46 @@ def _adjust(state: Dict[str, float], key: str, raw_delta: float, feedback_scale:
         return
     current = state.get(key, 0.0)
     state[key] = round(max(0.0, min(1.0, current + raw_delta * feedback_scale)), 4)
+
+
+def _apply_competition_relation(region: Region, relation: RelationTable, adjustments: List[dict]) -> None:
+    source_count = region.species_pool.get(relation.source_species, 0)
+    target_count = region.species_pool.get(relation.target_species, 0)
+    if source_count <= 0 or target_count <= 0:
+        return
+
+    should_reduce_target = False
+    if relation.target_species == "white_rhino" and source_count >= 2 and target_count >= 2 and relation.strength >= 0.35:
+        should_reduce_target = True
+        _adjust(region.resource_state, "browse_cover", -0.08, 0.05)
+        _adjust(region.hazard_state, "predation_pressure", 0.04, 0.05)
+    elif relation.target_species == "nile_crocodile" and source_count >= 2 and target_count >= 2 and relation.strength >= 0.4:
+        should_reduce_target = True
+        _adjust(region.resource_state, "shore_hatch", 0.06, 0.05)
+        _adjust(region.hazard_state, "shoreline_risk", -0.08, 0.05)
+    elif relation.target_species == "giraffe" and source_count >= 2 and target_count >= 3 and relation.strength >= 0.2:
+        should_reduce_target = True
+        _adjust(region.resource_state, "canopy_cover", -0.06, 0.04)
+    elif relation.target_species == "african_elephant" and source_count >= 2 and target_count >= 2 and relation.strength >= 0.2:
+        should_reduce_target = True
+        _adjust(region.resource_state, "grazing_biomass", -0.05, 0.04)
+    elif relation.target_species == "hippopotamus" and source_count >= 2 and target_count >= 2 and relation.strength >= 0.3:
+        should_reduce_target = True
+        _adjust(region.hazard_state, "shoreline_risk", 0.05, 0.04)
+
+    if not should_reduce_target:
+        return
+
+    new_target_count = max(1, target_count - 1)
+    if new_target_count == target_count:
+        return
+
+    region.species_pool[relation.target_species] = new_target_count
+    adjustments.append(
+        {
+            "source_species": relation.source_species,
+            "target_species": relation.target_species,
+            "effect": "pressure_reduction",
+            "new_target_count": new_target_count,
+        }
+    )

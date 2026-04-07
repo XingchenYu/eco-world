@@ -121,3 +121,20 @@
 - `health_state`
 
 当前已经形成第一版“摘要 -> 状态反馈”闭环，为后续真正的区域级联事件、竞争挤压和资源再分配系统铺路。
+
+当前还额外接入了第一版**关键种竞争反馈**：
+
+- 湿地链
+  - `hippopotamus -> nile_crocodile`
+- 草原链
+  - `african_elephant -> white_rhino`
+  - `white_rhino -> african_elephant`
+  - `african_elephant -> giraffe`
+
+这层竞争反馈会以低频、轻量方式调整：
+
+- 区域 `species_pool`
+- 局部资源压力
+- 局部风险压力
+
+它的定位是第一版“区域级重平衡器”，用于表达关键种之间的长期资源挤压，而不是取代未来更完整的个体级竞争系统。
