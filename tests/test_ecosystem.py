@@ -298,6 +298,21 @@ def test_v4_registry_queries():
     print("✅ V4 registry test passed")
 
 
+def test_region_simulation_uses_region_defaults():
+    """未显式覆盖尺寸时，RegionSimulation 应使用区域默认模拟尺寸。"""
+    region = build_default_world_map().get_region("wetland_lake")
+    sim = RegionSimulation(region=region, config={"world": {"grid_size": 20}})
+    stats = sim.get_statistics()
+
+    assert sim.width == region.simulation_size[0]
+    assert sim.height == region.simulation_size[1]
+    assert stats["region"]["id"] == "wetland_lake"
+    assert stats["region"]["hydrology_type"] == "lake_system"
+    assert stats["region"]["species_pool"]["frog"] >= 20
+
+    print("✅ Region simulation default sizing test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -317,6 +332,7 @@ def run_all_tests():
     test_v4_world_and_data_skeleton()
     test_v4_world_simulation_skeleton()
     test_v4_registry_queries()
+    test_region_simulation_uses_region_defaults()
     
     print("\n✅ All tests passed!")
 
