@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 
 from src.data import WorldRegistry, build_default_world_registry
-from src.ecology import build_region_cascade_summary, build_region_food_web
+from src.ecology import apply_region_cascade_feedback, build_region_cascade_summary, build_region_food_web
 from src.sim.region_simulation import RegionSimulation
 from src.world import Region, WorldMap, build_default_world_map
 
@@ -68,6 +68,9 @@ class WorldSimulation:
     def update(self) -> WorldTickSummary:
         active_simulation = self.get_active_simulation()
         active_simulation.update()
+        active_region = self.get_active_region()
+        cascade = build_region_cascade_summary(active_region, self.registry)
+        apply_region_cascade_feedback(active_region, cascade)
         self.tick_count += 1
         return WorldTickSummary(
             tick=self.tick_count,

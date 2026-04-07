@@ -114,4 +114,10 @@
   - `white_rhino` -> `grazing_pressure` / `mud_wallow_disturbance`
   - `giraffe` -> `canopy_browsing`
 
-这层的定位不是替代完整关系系统，而是先把“关键种会把区域往哪边推”显式接进 `WorldSimulation` 统计，为后续真正的区域级联事件和资源反馈层铺路。
+这层的定位不是替代完整关系系统，而是先把“关键种会把区域往哪边推”显式接进 `WorldSimulation` 统计，并开始轻量反馈到区域的：
+
+- `resource_state`
+- `hazard_state`
+- `health_state`
+
+当前已经形成第一版“摘要 -> 状态反馈”闭环，为后续真正的区域级联事件、竞争挤压和资源再分配系统铺路。

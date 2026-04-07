@@ -18,7 +18,7 @@ from src.data.defaults import (
     build_default_species_variants,
 )
 from src.data.registry import build_default_world_registry
-from src.ecology.cascade import build_region_cascade_summary
+from src.ecology.cascade import apply_region_cascade_feedback, build_region_cascade_summary
 from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
@@ -367,6 +367,27 @@ def test_v4_region_cascade_summary():
     print("✅ V4 cascade summary test passed")
 
 
+def test_v4_cascade_feedback_updates_region_state():
+    """v4 级联反馈应轻量更新区域资源、风险和健康状态。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("wetland_lake")
+    assert region is not None
+
+    before_open_water = region.resource_state["open_water"]
+    before_risk = region.hazard_state.get("shoreline_risk", 0.0)
+    before_resilience = region.health_state["resilience"]
+
+    cascade = build_region_cascade_summary(region, registry)
+    apply_region_cascade_feedback(region, cascade, feedback_scale=0.05)
+
+    assert region.resource_state["open_water"] > before_open_water
+    assert region.hazard_state.get("shoreline_risk", 0.0) > before_risk
+    assert region.health_state["resilience"] > before_resilience
+
+    print("✅ V4 cascade feedback test passed")
+
+
 def test_region_simulation_uses_region_defaults():
     """未显式覆盖尺寸时，RegionSimulation 应使用区域默认模拟尺寸。"""
     region = build_default_world_map().get_region("wetland_lake")
@@ -605,6 +626,7 @@ def run_all_tests():
     test_v4_registry_queries()
     test_v4_region_food_web_summary()
     test_v4_region_cascade_summary()
+    test_v4_cascade_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()
     test_beaver_engineering_effect()

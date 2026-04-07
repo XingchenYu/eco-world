@@ -20,6 +20,35 @@ class RegionCascadeSummary:
     narrative_impacts: List[str] = field(default_factory=list)
 
 
+def apply_region_cascade_feedback(region: Region, cascade: RegionCascadeSummary, feedback_scale: float = 0.02) -> None:
+    """将区域级联摘要轻量回灌到区域状态。"""
+
+    impacts = cascade.impact_scores
+
+    _adjust(region.resource_state, "freshwater", impacts.get("wetland_expansion", 0.0) * 0.60, feedback_scale)
+    _adjust(region.resource_state, "surface_water", impacts.get("wetland_expansion", 0.0) * 0.60, feedback_scale)
+    _adjust(region.resource_state, "open_water", impacts.get("wetland_expansion", 0.0) * 0.55, feedback_scale)
+    _adjust(region.resource_state, "reed_cover", impacts.get("wetland_expansion", 0.0) * 0.42, feedback_scale)
+    _adjust(region.resource_state, "shore_hatch", impacts.get("nursery_habitat_gain", 0.0) * 0.60, feedback_scale)
+    _adjust(region.resource_state, "water_nutrients", impacts.get("nutrient_input", 0.0) * 0.75, feedback_scale)
+    _adjust(region.resource_state, "grazing_biomass", impacts.get("grazing_pressure", 0.0) * 0.50, feedback_scale)
+    _adjust(region.resource_state, "canopy_cover", -impacts.get("canopy_opening", 0.0) * 0.80, feedback_scale)
+    _adjust(region.resource_state, "browse_cover", -impacts.get("grazing_pressure", 0.0) * 0.55, feedback_scale)
+    _adjust(region.resource_state, "browse_cover", -impacts.get("canopy_browsing", 0.0) * 0.35, feedback_scale)
+    _adjust(region.resource_state, "fruit_pulse", impacts.get("seed_dispersal", 0.0) * 0.25, feedback_scale)
+
+    _adjust(region.hazard_state, "flood_risk", impacts.get("wetland_expansion", 0.0) * 0.20, feedback_scale)
+    _adjust(region.hazard_state, "shoreline_risk", impacts.get("shoreline_risk", 0.0), feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", impacts.get("shoreline_risk", 0.0) * 0.55, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", impacts.get("canopy_opening", 0.0) * 0.20, feedback_scale)
+
+    _adjust(region.health_state, "biodiversity", impacts.get("nursery_habitat_gain", 0.0) * 0.35, feedback_scale)
+    _adjust(region.health_state, "biodiversity", impacts.get("seed_dispersal", 0.0) * 0.20, feedback_scale)
+    _adjust(region.health_state, "resilience", impacts.get("wetland_expansion", 0.0) * 0.28, feedback_scale)
+    _adjust(region.health_state, "resilience", impacts.get("nutrient_input", 0.0) * 0.25, feedback_scale)
+    _adjust(region.health_state, "fragmentation", -impacts.get("canopy_opening", 0.0) * 0.12, feedback_scale)
+
+
 def build_region_cascade_summary(region: Region, registry: WorldRegistry) -> RegionCascadeSummary:
     """根据区域关键种和关系网生成粗粒度级联影响摘要。"""
 
@@ -122,3 +151,10 @@ def build_region_cascade_summary(region: Region, registry: WorldRegistry) -> Reg
         active_pressures=sorted(active_pressures),
         narrative_impacts=narrative_impacts,
     )
+
+
+def _adjust(state: Dict[str, float], key: str, raw_delta: float, feedback_scale: float) -> None:
+    if not raw_delta:
+        return
+    current = state.get(key, 0.0)
+    state[key] = round(max(0.0, min(1.0, current + raw_delta * feedback_scale)), 4)
