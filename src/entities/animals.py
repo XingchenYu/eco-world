@@ -809,9 +809,9 @@ class NightMoth(Animal):
         super().__init__(
             species="night_moth",
             position=position,
-            max_age=22,
+            max_age=40,
             hunger_rate=0.25,
-            reproduction_rate=0.16,
+            reproduction_rate=0.22,
             speed=2.1,
             vision_range=4,
             diet="herbivore",
@@ -881,17 +881,27 @@ class NightMoth(Animal):
             if p.species in self.get_food_sources() and p.alive
         )
         current_moths = ecosystem.get_species_count("night_moth") if hasattr(ecosystem, "get_species_count") else len([a for a in ecosystem.animals if a.species == "night_moth" and a.alive])
-        food_factor = max(0.25, min(1.8, flower_supply / max(1, current_moths * 0.6)))
+        food_factor = max(0.28, min(1.9, flower_supply / max(1, current_moths * 0.58)))
         patch_value = ecosystem.get_local_microhabitat_value(self.position, {"night_swarm", "nectar_patch"}, radius=4) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
-        patch_factor = max(0.52, min(1.5, 0.70 + patch_value * 0.38))
+        patch_factor = max(0.58, min(1.6, 0.74 + patch_value * 0.40))
+        if current_moths <= 12:
+            food_factor = min(2.35, food_factor * 1.34)
+            patch_factor = min(1.82, patch_factor * 1.20)
+        elif current_moths <= 24:
+            food_factor = min(2.12, food_factor * 1.20)
+            patch_factor = min(1.72, patch_factor * 1.12)
+        elif current_moths <= 40:
+            food_factor = min(1.96, food_factor * 1.10)
+            patch_factor = min(1.64, patch_factor * 1.06)
         predator_pressure = sum(
             ecosystem.get_species_count(sp) if hasattr(ecosystem, "get_species_count") else len([a for a in ecosystem.animals if a.species == sp and a.alive])
             for sp in ["bat", "owl", "bird", "frog", "spider", "kingfisher"]
         )
-        predator_factor = max(0.52, 1.0 - predator_pressure * 0.012)
+        predator_factor = max(0.60, 1.0 - predator_pressure * 0.010)
         season = getattr(ecosystem.environment, "season", "spring")
         season_factor = 1.0 if season in {"spring", "summer"} else 0.86 if season == "autumn" else 0.58
-        litter_size = max(1, min(3, int(food_factor * patch_factor * predator_factor * season_factor * 2.35)))
+        litter_cap = 6 if current_moths <= 12 else 5 if current_moths <= 24 else 4 if current_moths <= 40 else 3
+        litter_size = max(1, min(litter_cap, int(food_factor * patch_factor * predator_factor * season_factor * 2.95)))
         for _ in range(litter_size):
             pos = (
                 max(0, min(self.position[0] + random.randint(-2, 2), ecosystem.width - 1)),
@@ -1203,8 +1213,8 @@ class Mouse(Animal):
             species="mouse",
             position=position,
             max_age=40,
-            hunger_rate=0.34,
-            reproduction_rate=0.2,
+            hunger_rate=0.31,
+            reproduction_rate=0.23,
             speed=1.8,
             vision_range=4,
             diet="omnivore",
@@ -1212,7 +1222,9 @@ class Mouse(Animal):
         )
         self.emoji = "🐭"
         self.color = (150, 120, 90)
-        self.pregnancy_duration = 5
+        self.pregnancy_duration = 4
+        self.can_hide = True
+        self.forms_groups = True
         
     def get_predators(self) -> List[str]:
         return ["fox", "snake", "bird"]
@@ -1222,6 +1234,57 @@ class Mouse(Animal):
         
     def get_prey_species(self) -> List[str]:
         return ["insect", "bee", "spider"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["bush", "berry", "blueberry", "strawberry", "mushroom", "fern"]
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["shrub_shelter", "nectar_patch"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.08
+
+    def _give_birth(self, ecosystem):
+        food_count = sum(
+            1 for p in ecosystem.plants
+            if p.alive and p.species in self.get_food_sources()
+        )
+        insect_supply = (
+            ecosystem.get_species_count("insect")
+            + ecosystem.get_species_count("spider")
+        ) if hasattr(ecosystem, "get_species_count") else len([
+            a for a in ecosystem.animals if a.alive and a.species in {"insect", "spider"}
+        ])
+        current_mouse = ecosystem.get_species_count("mouse") if hasattr(ecosystem, "get_species_count") else len([
+            a for a in ecosystem.animals if a.alive and a.species == "mouse"
+        ])
+        predator_count = sum(
+            ecosystem.get_species_count(sp) if hasattr(ecosystem, "get_species_count") else len([
+                a for a in ecosystem.animals if a.alive and a.species == sp
+            ])
+            for sp in self.get_predators()
+        )
+
+        food_factor = max(0.40, min(1.85, (food_count + insect_supply * 1.2) / max(1, current_mouse * 4.0)))
+        predator_factor = max(0.55, 1.0 - predator_count * 0.010)
+        if current_mouse <= 10:
+            food_factor = min(2.0, food_factor * 1.25)
+            predator_factor = min(1.08, predator_factor * 1.06)
+
+        litter_size = max(1, min(4, int(food_factor * predator_factor * 2.2)))
+        for _ in range(litter_size):
+            offspring_pos = (
+                max(0, min(self.position[0] + random.randint(-2, 2), ecosystem.width - 1)),
+                max(0, min(self.position[1] + random.randint(-2, 2), ecosystem.height - 1))
+            )
+            ecosystem.spawn_animal("mouse", offspring_pos, is_offspring=True)
+
+        self.pregnant = False
+        self.pregnancy_timer = 0
+        self.mate_cooldown = 6
 
 
 class Bird(Animal):
@@ -1431,9 +1494,9 @@ class Owl(Animal):
         super().__init__(
             species="owl",
             position=position,
-            max_age=60,
-            hunger_rate=0.22,
-            reproduction_rate=0.05,
+            max_age=72,
+            hunger_rate=0.18,
+            reproduction_rate=0.07,
             speed=3.5,
             vision_range=10,
             diet="carnivore",
@@ -1441,7 +1504,7 @@ class Owl(Animal):
         )
         self.emoji = "🦉"
         self.color = (102, 51, 0)  # 深棕色
-        self.pregnancy_duration = 12
+        self.pregnancy_duration = 10
         self.is_nocturnal = True  # 夜行性
         
     def get_predators(self) -> List[str]:
@@ -1477,16 +1540,21 @@ class Owl(Animal):
         hour = ecosystem.environment.hour
         if 18 <= hour or hour < 6:
             nearby = self._cached_nearby_creatures(ecosystem, self.vision_range)
-            preferred = [
-                creature for creature in nearby
-                if creature.alive and creature.species in {"night_moth", "mouse", "bat", "frog", "sparrow", "bird"}
-            ]
+            preferred = []
+            for creature in nearby:
+                if not creature.alive or creature.species not in {"night_moth", "mouse", "bat", "frog", "sparrow", "bird"}:
+                    continue
+                chance = ecosystem.get_predation_chance(self.species, creature.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if chance <= 0.0:
+                    continue
+                dist = abs(creature.position[0] - self.position[0]) + abs(creature.position[1] - self.position[1])
+                night_bonus = 0.05 if creature.species == "night_moth" else 0.0
+                preferred.append((dist, min(0.82, chance + night_bonus), creature))
             if preferred:
-                target = min(preferred, key=lambda c: abs(c.position[0] - self.position[0]) + abs(c.position[1] - self.position[1]))
+                _, attack_chance, target = min(preferred, key=lambda item: item[0])
                 self.move_towards(target.position, ecosystem)
                 dist = abs(target.position[0] - self.position[0]) + abs(target.position[1] - self.position[1])
-                chance = ecosystem.get_predation_chance(self.species, target.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
-                if dist <= 1 and random.random() < min(0.88, chance + (0.12 if target.species == "night_moth" else 0.0)):
+                if dist <= 1 and random.random() < attack_chance:
                     self.hunt(target, ecosystem)
                     return
         super().forage(ecosystem)
@@ -2132,9 +2200,9 @@ class Squirrel(Animal):
         super().__init__(
             species="squirrel",
             position=position,
-            max_age=38,
-            hunger_rate=0.18,
-            reproduction_rate=0.15,
+            max_age=44,
+            hunger_rate=0.16,
+            reproduction_rate=0.17,
             speed=3.0,
             vision_range=7,
             diet="herbivore",
@@ -2142,38 +2210,102 @@ class Squirrel(Animal):
         )
         self.emoji = "🐿️"
         self.color = (165, 42, 42)
-        self.pregnancy_duration = 8
+        self.pregnancy_duration = 7
         self.can_hide = True
+        self.has_camouflage = True
+        self.camouflage_skill = 0.24
         
     def get_predators(self) -> List[str]:
         return ["fox", "eagle", "owl", "snake"]
         
     def get_food_sources(self) -> List[str]:
-        return ["bush", "flower", "grass", "berry", "blueberry", "strawberry", "mushroom", "fern", "apple_tree", "cherry_tree", "orange_tree"]
+        return [
+            "bush", "flower", "grass", "berry", "blueberry", "strawberry",
+            "mushroom", "fern", "apple_tree", "cherry_tree", "orange_tree", "grape_vine"
+        ]
 
     def get_cover_plant_species(self) -> List[str]:
-        return ["tree", "bush", "apple_tree", "cherry_tree", "orange_tree"]
+        return ["tree", "bush", "berry", "apple_tree", "cherry_tree", "orange_tree"]
 
     def prefers_canopy_cover(self) -> bool:
         return True
 
     def breeding_microhabitat_kinds(self) -> List[str]:
-        return ["canopy_roost"]
+        return ["canopy_roost", "canopy_forage"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.08
 
     def microhabitat_foraging_profile(self):
         return {
             "kinds": {"canopy_roost", "canopy_forage"},
-            "amount": 0.14,
+            "amount": 0.18,
             "radius": 3,
-            "hunger_relief": 8.0,
-            "health_gain": 1.1,
-            "min_hunger": 14.0,
+            "hunger_relief": 10.0,
+            "health_gain": 1.4,
+            "min_hunger": 12.0,
         }
 
     def wander(self, ecosystem):
         if self.seek_habitat(ecosystem, radius=8):
             return
         super().wander(ecosystem)
+
+    def _give_birth(self, ecosystem):
+        if not self.pregnant:
+            return
+
+        current_squirrel = ecosystem.get_species_count("squirrel") if hasattr(ecosystem, "get_species_count") else len([
+            a for a in ecosystem.animals if a.species == "squirrel" and a.alive
+        ])
+        food_supply = sum(
+            ecosystem.get_species_count(sp) if hasattr(ecosystem, "get_species_count") else len([
+                p for p in ecosystem.plants if p.species == sp and p.alive
+            ])
+            for sp in ["tree", "bush", "berry", "blueberry", "strawberry", "mushroom", "fern", "apple_tree", "cherry_tree", "orange_tree", "grape_vine"]
+        )
+        predator_count = sum(
+            ecosystem.get_species_count(sp) if hasattr(ecosystem, "get_species_count") else len([
+                a for a in ecosystem.animals if a.species == sp and a.alive
+            ])
+            for sp in self.get_predators()
+        )
+        patch_value = ecosystem.get_local_microhabitat_value(
+            self.position, {"canopy_roost", "canopy_forage"}, radius=4
+        ) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
+        if patch_value < self.breeding_patch_threshold():
+            self.pregnant = False
+            self.pregnancy_timer = 0
+            self.mate_cooldown = max(self.mate_cooldown, 8)
+            return
+
+        food_factor = max(0.45, min(1.7, food_supply / max(1, current_squirrel * 3.0)))
+        predator_pressure = max(0.55, 1.06 - predator_count * 0.03)
+        patch_factor = max(0.45, min(1.5, patch_value * 1.4))
+
+        low_density = current_squirrel <= 6
+        base_litter = random.randint(2, 4) if low_density else random.randint(1, 3)
+        litter_cap = 4 if low_density else 3
+        litter_size = max(1, min(litter_cap, int(base_litter * food_factor * predator_pressure * patch_factor)))
+
+        for _ in range(litter_size):
+            offspring_pos = (
+                max(0, min(self.position[0] + random.randint(-2, 2), ecosystem.width - 1)),
+                max(0, min(self.position[1] + random.randint(-2, 2), ecosystem.height - 1))
+            )
+            ecosystem.spawn_animal(self.species, offspring_pos, is_offspring=True)
+
+        self.pregnant = False
+        self.pregnancy_timer = 0
+        self.mate_cooldown = 22 if low_density else 28
+
+        ecosystem.balance.record_causal_event(
+            cause="squirrel产仔",
+            effect=f"squirrel+{litter_size}",
+            impact=0.2,
+            tick=ecosystem.tick_count
+        )
+        ecosystem.log_event(f"{self.id} gave birth to {litter_size} offspring")
 
 
 class Hedgehog(Animal):
@@ -2209,9 +2341,9 @@ class Bat(Animal):
         super().__init__(
             species="bat",
             position=position,
-            max_age=32,
-            hunger_rate=0.30,
-            reproduction_rate=0.13,
+            max_age=52,
+            hunger_rate=0.20,
+            reproduction_rate=0.18,
             speed=4.5,
             vision_range=6,
             diet="carnivore",
@@ -2219,7 +2351,7 @@ class Bat(Animal):
         )
         self.emoji = "🦇"
         self.color = (60, 60, 60)
-        self.pregnancy_duration = 6
+        self.pregnancy_duration = 5
         self.is_nocturnal = True
         self.can_hide = True
         
@@ -2235,11 +2367,11 @@ class Bat(Animal):
     def microhabitat_foraging_profile(self):
         return {
             "kinds": {"night_roost", "canopy_roost", "night_swarm"},
-            "amount": 0.14,
+            "amount": 0.18,
             "radius": 3,
-            "hunger_relief": 9.0,
-            "health_gain": 1.2,
-            "min_hunger": 12.0,
+            "hunger_relief": 11.0,
+            "health_gain": 1.5,
+            "min_hunger": 10.0,
             "hours": (18, 6),
         }
         
@@ -2262,24 +2394,29 @@ class Bat(Animal):
             self.speed = 1.0
             self.vision_range = 3
             if self.seek_habitat(ecosystem, radius=7):
-                self.hunger = max(0, self.hunger - 0.8)
-                self.health = min(100, self.health + 0.35)
+                self.hunger = max(0, self.hunger - 1.1)
+                self.health = min(100, self.health + 0.50)
         super().execute_behavior(ecosystem)
 
     def forage(self, ecosystem):
         hour = ecosystem.environment.hour
         if 18 <= hour or hour < 6:
             nearby = self._cached_nearby_animals(ecosystem, self.vision_range)
-            prey = [
-                creature for creature in nearby
-                if creature.alive and creature.species in {"night_moth", "insect", "bee", "spider"}
-            ]
+            prey = []
+            for creature in nearby:
+                if not creature.alive or creature.species not in {"night_moth", "insect", "bee", "spider"}:
+                    continue
+                chance = ecosystem.get_predation_chance(self.species, creature.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
+                if chance <= 0.0:
+                    continue
+                dist = abs(creature.position[0] - self.position[0]) + abs(creature.position[1] - self.position[1])
+                moth_bonus = 0.0
+                prey.append((dist, min(0.80, chance + moth_bonus), creature))
             if prey:
-                target = min(prey, key=lambda c: abs(c.position[0] - self.position[0]) + abs(c.position[1] - self.position[1]))
+                _, attack_chance, target = min(prey, key=lambda item: item[0])
                 self.move_towards(target.position, ecosystem)
                 dist = abs(target.position[0] - self.position[0]) + abs(target.position[1] - self.position[1])
-                chance = ecosystem.get_predation_chance(self.species, target.species, self.hunger) if hasattr(ecosystem, "get_predation_chance") else 1.0
-                if dist <= 1 and random.random() < min(0.92, chance + (0.18 if target.species == "night_moth" else 0.0)):
+                if dist <= 1 and random.random() < attack_chance:
                     self.hunt(target, ecosystem)
                     return
         super().forage(ecosystem)

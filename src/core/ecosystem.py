@@ -81,15 +81,15 @@ class Ecosystem:
         "fox": "foxes",
     }
     PREY_RESERVE = {
-        "insect": 18, "night_moth": 14, "bee": 6, "spider": 4,
-        "rabbit": 10, "mouse": 8, "bird": 6, "sparrow": 14, "parrot": 4, "duck": 3,
+        "insect": 18, "night_moth": 24, "bee": 6, "spider": 4,
+        "rabbit": 10, "mouse": 16, "squirrel": 4, "bird": 6, "sparrow": 14, "parrot": 4, "duck": 3,
         "deer": 4, "frog": 16,
         "small_fish": 8, "minnow": 16, "carp": 4, "shrimp": 10, "tadpole": 8, "water_strider": 8,
     }
     PREDATOR_APPETITE = {
-        "fox": 2.5, "wolf": 2.2, "snake": 1.3, "bird": 1.2, "sparrow": 1.0, "eagle": 1.8, "owl": 1.6,
+        "fox": 2.5, "wolf": 2.2, "snake": 1.3, "bird": 1.2, "sparrow": 1.0, "eagle": 1.8, "owl": 1.9,
         "spider": 0.9, "blackfish": 2.1, "pike": 1.35, "large_fish": 1.7, "catfish": 1.6, "crab": 1.1,
-        "kingfisher": 1.2,
+        "kingfisher": 1.2, "bat": 1.8,
     }
 
     PLANT_SPECIES = [
@@ -1294,9 +1294,12 @@ class Ecosystem:
                 elif count > 120:
                     hunger_mult *= 1.08
                     reproduction_mult *= 0.62
+                elif count <= 24 and actors["bloom_abundance"] >= 18 and actors["wetland_support"] >= 10:
+                    hunger_mult *= 0.82
+                    reproduction_mult *= 1.28
                 elif count <= 40 and actors["bloom_abundance"] >= 20 and actors["wetland_support"] >= 12:
-                    hunger_mult *= 0.92
-                    reproduction_mult *= 1.08
+                    hunger_mult *= 0.86
+                    reproduction_mult *= 1.18
             elif species == "deer":
                 if count <= 3 and species_counts.get("grass", 0) + species_counts.get("bush", 0) + species_counts.get("fern", 0) > 32:
                     hunger_mult *= 0.90
@@ -1324,14 +1327,14 @@ class Ecosystem:
                     reproduction_mult *= 0.80
             elif species == "owl":
                 if count <= 2 and species_counts.get("mouse", 0) + species_counts.get("bat", 0) + species_counts.get("bird", 0) + species_counts.get("sparrow", 0) + species_counts.get("night_moth", 0) > 18:
-                    hunger_mult *= 0.82
-                    reproduction_mult *= 1.24
+                    hunger_mult *= 0.78
+                    reproduction_mult *= 1.28
                 if count <= 2 and actors["canopy_cover"] >= 8:
                     hunger_mult *= 0.90
                     reproduction_mult *= 1.10
                 if actors["nocturnal_insect_supply"] >= 14:
-                    hunger_mult *= 0.92
-                    reproduction_mult *= 1.06
+                    hunger_mult *= 0.90
+                    reproduction_mult *= 1.08
                 elif count > 4:
                     hunger_mult *= 1.08
                     reproduction_mult *= 0.80
@@ -1363,28 +1366,31 @@ class Ecosystem:
                 if actors["canopy_cover"] >= 12:
                     hunger_mult *= 0.94
             elif species == "squirrel":
-                if count <= 5 and species_counts.get("tree", 0) + species_counts.get("bush", 0) + species_counts.get("berry", 0) > 14:
-                    hunger_mult *= 0.68
-                    reproduction_mult *= 1.42
+                if count <= 8 and species_counts.get("tree", 0) + species_counts.get("bush", 0) + species_counts.get("berry", 0) + species_counts.get("mushroom", 0) + species_counts.get("fern", 0) > 18:
+                    hunger_mult *= 0.60
+                    reproduction_mult *= 1.58
+                if count <= 3 and actors["canopy_cover"] >= 10 and actors["shrub_cover"] >= 6:
+                    hunger_mult *= 0.82
+                    reproduction_mult *= 1.20
                 if actors["canopy_cover"] >= 12:
-                    hunger_mult *= 0.86
-                    reproduction_mult *= 1.08
+                    hunger_mult *= 0.84
+                    reproduction_mult *= 1.10
                 if actors["canopy_cover"] >= 10 and actors["shrub_cover"] >= 8:
-                    hunger_mult *= 0.90
+                    hunger_mult *= 0.88
                 if actors["canopy_cover"] >= 18:
-                    reproduction_mult *= 1.06
+                    reproduction_mult *= 1.08
             elif species == "bat":
                 if count <= 4 and species_counts.get("insect", 0) + species_counts.get("night_moth", 0) + species_counts.get("bee", 0) > 18:
-                    hunger_mult *= 0.68
-                    reproduction_mult *= 1.42
+                    hunger_mult *= 0.64
+                    reproduction_mult *= 1.48
                 if count <= 2 and actors["canopy_cover"] >= 8 and actors["nocturnal_insect_supply"] >= 10:
-                    hunger_mult *= 0.78
-                    reproduction_mult *= 1.18
+                    hunger_mult *= 0.74
+                    reproduction_mult *= 1.22
                 if actors["canopy_cover"] >= 10 and actors["nocturnal_insect_supply"] >= 14:
-                    hunger_mult *= 0.86
-                    reproduction_mult *= 1.12
+                    hunger_mult *= 0.84
+                    reproduction_mult *= 1.14
                 if actors["nocturnal_insect_supply"] >= 24:
-                    hunger_mult *= 0.92
+                    hunger_mult *= 0.90
             elif species == "bear":
                 if count <= 2 and land_prey_total > 28:
                     hunger_mult *= 0.90
@@ -1538,29 +1544,29 @@ class Ecosystem:
                 "species": "owl",
                 "domain": "land",
                 "max_count": 2,
-                "food_min": sum(species_counts.get(sp, 0) for sp in ["mouse", "bat", "bird", "sparrow", "night_moth"]) >= 14,
-                "chance": 0.22,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["mouse", "bat", "bird", "sparrow", "night_moth"]) >= 10,
+                "chance": 0.46,
                 "position": self._random_edge_land_position,
                 "message": "一只猫头鹰借林带夜间迁入",
-                "cooldown": 84,
+                "cooldown": 56,
                 "habitat_check": lambda pos: len([
                     a for a in self.get_nearby_animals(pos, 10)
                     if a.species in {"mouse", "bat", "bird", "sparrow", "night_moth"} and a.alive
-                ]) >= 3 and self.get_local_microhabitat_value(pos, {"night_roost", "canopy_roost", "night_swarm"}, radius=6) >= 0.12,
+                ]) >= 2 and self.get_local_microhabitat_value(pos, {"night_roost", "canopy_roost", "night_swarm"}, radius=6) >= 0.08,
             },
             {
                 "species": "night_moth",
                 "domain": "land",
                 "max_count": 28,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["flower", "berry", "blueberry", "strawberry", "moss", "fern"]) >= 18,
-                "chance": 0.62 if weather in {"sunny", "cloudy", "foggy"} else 0.46,
+                "chance": 0.76 if weather in {"sunny", "cloudy", "foggy"} else 0.58,
                 "position": self._random_water_adjacent_position,
                 "message": "一群夜飞蛾沿湿地和花丛边缘迁入",
-                "cooldown": 14,
+                "cooldown": 10,
                 "habitat_check": lambda pos: len([
                     p for p in self.get_nearby_plants(pos, 5)
                     if p.species in {"flower", "berry", "blueberry", "strawberry", "moss", "fern", "bush"} and p.alive
-                ]) >= 4 and self.get_local_microhabitat_value(pos, {"night_swarm", "nectar_patch", "shrub_shelter"}, radius=5) >= 0.12,
+                ]) >= 3 and self.get_local_microhabitat_value(pos, {"night_swarm", "nectar_patch", "shrub_shelter"}, radius=5) >= 0.08,
             },
             {
                 "species": "sparrow",
@@ -1610,33 +1616,33 @@ class Ecosystem:
             {
                 "species": "squirrel",
                 "domain": "land",
-                "max_count": 16,
+                "max_count": 18,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["tree", "bush", "berry", "mushroom"]) >= 18,
-                "chance": 0.58,
+                "chance": 0.68,
                 "position": self._random_edge_land_position,
                 "message": "一只松鼠沿树林边缘迁入",
-                "cooldown": 24,
+                "cooldown": 18,
                 "habitat_check": lambda pos: len([
                     p for p in self.get_nearby_plants(pos, 5)
                     if p.species in {"tree", "bush", "berry", "apple_tree", "cherry_tree", "orange_tree"} and p.alive
-                ]) >= 3 and self.get_local_microhabitat_value(pos, {"canopy_roost", "canopy_forage"}, radius=5) >= 0.10,
+                ]) >= 2 and self.get_local_microhabitat_value(pos, {"canopy_roost", "canopy_forage"}, radius=5) >= 0.08,
             },
             {
                 "species": "bat",
                 "domain": "land",
-                "max_count": 14,
-                "food_min": sum(species_counts.get(sp, 0) for sp in ["insect", "night_moth", "bee", "spider"]) >= 24,
-                "chance": 0.60,
+                "max_count": 16,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["insect", "night_moth", "bee", "spider"]) >= 12,
+                "chance": 0.96,
                 "position": self._random_edge_land_position,
                 "message": "几只蝙蝠借夜色沿林带迁入",
-                "cooldown": 20,
+                "cooldown": 8,
                 "habitat_check": lambda pos: len([
                     a for a in self.get_nearby_animals(pos, 6)
                     if a.species in {"insect", "night_moth", "bee", "spider"} and a.alive
-                ]) >= 4 and len([
+                ]) >= 1 and len([
                     p for p in self.get_nearby_plants(pos, 5)
                     if p.species in {"tree", "bush", "apple_tree", "cherry_tree"} and p.alive
-                ]) >= 2 and self.get_local_microhabitat_value(pos, {"night_roost", "canopy_roost", "night_swarm"}, radius=5) >= 0.12,
+                ]) >= 1 and self.get_local_microhabitat_value(pos, {"night_roost", "canopy_roost", "night_swarm"}, radius=5) >= 0.06,
             },
             {
                 "species": "frog",
@@ -1723,14 +1729,28 @@ class Ecosystem:
                 ]) >= 2,
             },
             {
+                "species": "catfish",
+                "domain": "aquatic",
+                "max_count": 3,
+                "food_min": sum(species_counts.get(sp, 0) for sp in ["small_fish", "minnow", "shrimp", "carp", "frog"]) >= 18,
+                "chance": 0.22 if weather in {"rainy", "stormy"} else 0.18,
+                "position": lambda: self._random_inflow_water_position_for_body_type({"river_channel", "lake_shallow", "lake_deep"}),
+                "message": "一条鲶鱼沿连通河道和深水带回游进入该水域",
+                "cooldown": 64,
+                "habitat_check": lambda pos: len([
+                    a for a in self.get_nearby_aquatic(pos, 8)
+                    if a.species in {"small_fish", "minnow", "shrimp", "carp", "frog"} and a.alive
+                ]) >= 3,
+            },
+            {
                 "species": "pike",
                 "domain": "aquatic",
                 "max_count": 2,
                 "food_min": sum(species_counts.get(sp, 0) for sp in ["carp", "small_fish", "minnow", "frog"]) >= 20,
-                "chance": 0.20 if weather in {"rainy", "stormy"} else 0.15,
+                "chance": 0.30 if weather in {"rainy", "stormy"} else 0.24,
                 "position": lambda: self._random_inflow_water_position_for_body_type({"river_channel", "lake_shallow"}),
                 "message": "一条狗鱼沿河道迁入了该水域",
-                "cooldown": 72,
+                "cooldown": 56,
                 "habitat_check": lambda pos: len([
                     a for a in self.get_nearby_aquatic(pos, 8)
                     if a.species in {"carp", "small_fish", "minnow", "frog"} and a.alive

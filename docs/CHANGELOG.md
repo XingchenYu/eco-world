@@ -220,3 +220,72 @@ src/core/ecosystem.py        [修改] 导入新物种
 ---
 
 *创建时间：2026-04-05 20:00*
+# v3.4.8 - Recover squirrel through tick 200
+
+- ✅ 使用默认 `config.yaml` 先跑 `5 seeds x 200 ticks` 基线，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel / bear`
+- ✅ 基线 `tick 200` 存活数为：
+  - `deer`: `36 / 28 / 32 / 42 / 40`
+  - `rabbit`: `49 / 75 / 70 / 73 / 83`
+  - `fox`: `26 / 23 / 37 / 31 / 17`
+  - `wolf`: `30 / 26 / 30 / 29 / 31`
+  - `mouse`: `33 / 23 / 29 / 42 / 24`
+  - `wild_boar`: `25 / 22 / 19 / 24 / 38`
+  - `squirrel`: `1 / 0 / 0 / 0 / 1`
+  - `bear`: `253 / 235 / 277 / 256 / 259`
+- ✅ 仅对 `squirrel` 做低密度保种修复：略微延长寿命、降低基础饥饿、缩短孕期，放宽 `canopy_roost / canopy_forage` 繁殖阈值；同时加入低密度产仔逻辑、适度提高自然迁入兜底，并给 `squirrel` 加上小型 prey reserve，避免末端种群被捕食链打穿
+- ✅ 修复后再次执行同一组 `5 seeds x 200 ticks`，`tick 200` 存活数为：
+  - `deer`: `35 / 33 / 32 / 30 / 49`
+  - `rabbit`: `38 / 77 / 64 / 68 / 38`
+  - `fox`: `13 / 26 / 28 / 26 / 25`
+  - `wolf`: `21 / 30 / 20 / 24 / 23`
+  - `mouse`: `26 / 32 / 33 / 32 / 25`
+  - `wild_boar`: `34 / 15 / 17 / 24 / 37`
+  - `squirrel`: `48 / 48 / 102 / 31 / 95`
+  - `bear`: `242 / 275 / 296 / 266 / 226`
+- ✅ 对比基线确认：本轮修复把 `squirrel` 从 `3 / 5` seed 灭绝、其余 seed 仅剩 `1` 只，恢复到 `5 / 5` seed 稳定存活；同时其余 7 个被检查的陆地哺乳动物在修复前后都保持 `tick 200` 非零
+- ✅ 额外执行 `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py`，现有基础生态测试全部通过
+
+# v3.4.7 - Recover mouse through tick 200
+
+- ✅ 先用默认 `config.yaml` 复核当前 HEAD 的 `5 seeds x 200 ticks`：`night_moth` 与 `rabbit` 已恢复到目标线之上，真正仍然 `0 / 5` 的仅剩 `mouse`
+- ✅ 仅对 `mouse` 做低密度修复：提高 prey reserve（`8 -> 16`）、补上灌丛/菌丛躲藏与繁殖微栖位、缩短孕期，并改成更偏向“低密度保种”而不是“高密度扩张”的产仔公式
+- ✅ 修复后再次执行 `5 seeds x 200 ticks`，`tick 200` 存活数分别为：
+  - `night_moth`: `0 / 12 / 46 / 31 / 7`
+  - `rabbit`: `49 / 75 / 70 / 73 / 83`
+  - `mouse`: `33 / 23 / 29 / 42 / 24`
+  - `fox`: `26 / 23 / 37 / 31 / 17`
+  - `wolf`: `30 / 26 / 30 / 29 / 31`
+  - `wild_boar`: `25 / 22 / 19 / 24 / 38`
+- ✅ 按本轮目标判断：`night_moth` 达到 `4 / 5`、`rabbit` 达到 `5 / 5`、`mouse` 达到 `5 / 5`，且 `fox / wolf / wild_boar` 均自然保持非零
+
+# v3.4.6 - Verify land mammals through tick 200
+
+- ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
+- ✅ `tick 200` 存活数分别为：
+  - `deer`: `9 / 12 / 11 / 14 / 9`
+  - `rabbit`: `0 / 0 / 0 / 0 / 0`
+  - `fox`: `0 / 0 / 0 / 0 / 0`
+  - `wolf`: `0 / 0 / 0 / 0 / 0`
+  - `mouse`: `0 / 0 / 0 / 0 / 0`
+  - `wild_boar`: `1 / 0 / 0 / 0 / 0`
+  - `squirrel`: `0 / 1 / 0 / 1 / 0`
+- ✅ 同组 `owl tick 200` 为 `7 / 18 / 17 / 3 / 17`，已满足全 seed 非零，因此本轮未对 `owl` 做额外改动
+
+# v3.4.5 - Improve bat survival through tick 200
+
+- ✅ 仅调整 `Bat` 自身续航参数，未改动 `night_moth`：略微延长寿命、降低基础饥饿消耗，并提高夜间微栖息地恢复与白天栖息回血收益
+- ✅ 将 bat 的改动重点从“扩张”收回到“省着活”，去除对 `night_moth` 的额外追击加成，并下调夜间单次实猎成功上限，避免通过额外压榨猎物换存活
+- ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归；`bat` 在 `tick 200` 分别为 `6 / 5 / 4 / 11 / 3`，已达成全 seed 非零；同组 `night_moth tick 100-120` 最低值为 `80 / 38 / 65 / 76 / 73`
+
+# v3.4.4 - Stabilize night_moth -> bat/owl through tick 120
+
+- ✅ 仅调整 `night_moth -> bat/owl` 夜行链参数：增强 `night_moth` 的低密度恢复与保底存量，未改动任何水生参数
+- ✅ 下调 `bat` / `owl` 对 `night_moth` 的夜间优先捕食强度，并补强 `bat` / `owl` 的低密度续航与回补条件
+- ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归；`tick 100-120` 区间内 `night_moth` 最低值分别为 `75 / 73 / 47 / 73 / 82`，不再出现接近清零的 seed
+
+# v3.4.3 - Fix moth and minnow chain breaks
+
+- ✅ `night_moth` 略微延长寿命并提升低密度繁殖恢复，缓解首代在约 22 tick 集中老化后导致的夜行链断层
+- ✅ `bat` / `owl` 夜间优先捕食 `night_moth` 时，改为尊重 `get_predation_chance()` 的保底约束，不再绕过猎物保留量
+- ✅ `minnow` 略微延长寿命并增强低密度补群参数，减少约 42 tick 首代老化叠加高位鱼压力造成的 prey 断层
+- ✅ 针对 `night_moth -> bat/owl` 与 `minnow -> pike/catfish` 执行多 seed 200 tick 回归验证
