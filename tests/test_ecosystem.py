@@ -306,8 +306,8 @@ def test_v4_registry_queries():
     assert "hippopotamus" in wetland_species
     assert "nile_crocodile" in wetland_species
     assert any(relation.relation_type == "competition" for relation in crocodile_relations)
-    assert crocodile_bridge.runtime_species_id == "pike"
-    assert crocodile_bridge.support_level == "proxy"
+    assert crocodile_bridge.runtime_species_id == "crocodile"
+    assert crocodile_bridge.support_level == "native"
     assert registry.get_runtime_bridge("beaver").runtime_species_id == "beaver"
     assert registry.get_runtime_bridge("beaver").support_level == "native"
 
@@ -379,6 +379,38 @@ def test_beaver_engineering_effect():
     print("✅ Beaver engineering test passed")
 
 
+def test_crocodile_registration_and_spawn():
+    """鳄鱼应完成注册，并能在水边或浅水生成。"""
+    eco = Ecosystem()
+    position = eco._random_water_adjacent_position() or eco._random_water_position_for_body_type({"river_channel", "lake_shallow"})
+    assert position is not None
+
+    initial = eco.get_species_count("crocodile")
+    eco.spawn_animal("crocodile", position, source="manual")
+
+    assert eco.get_species_count("crocodile") == initial + 1
+    assert eco.animals[-1].species == "crocodile"
+
+    print("✅ Crocodile registration test passed")
+
+
+def test_crocodile_ambush_effect():
+    """鳄鱼应能触发基础水边伏击占位效果。"""
+    eco = Ecosystem()
+    position = eco._random_water_adjacent_position() or eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("crocodile", position, source="manual")
+    crocodile = eco.animals[-1]
+    before_events = len(eco.events)
+
+    crocodile._hold_ambush_position(eco)
+
+    assert len(eco.events) == before_events + 1
+
+    print("✅ Crocodile ambush test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -402,6 +434,8 @@ def run_all_tests():
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()
     test_beaver_engineering_effect()
+    test_crocodile_registration_and_spawn()
+    test_crocodile_ambush_effect()
     
     print("\n✅ All tests passed!")
 

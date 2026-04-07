@@ -27,7 +27,7 @@ from ..entities.animals import (
     Animal, Insect, Rabbit, Fox, Deer, Mouse, Bird, Snake, Bee, Gender,
     Eagle, Owl, Duck, Swan, Sparrow, Parrot, Kingfisher, Wolf, Spider,
     # 新增鸟类
-    Magpie, Crow, Woodpecker, Hummingbird, NightMoth,
+    Magpie, Crow, Woodpecker, Hummingbird, NightMoth, Crocodile,
     # 新增哺乳动物
     Squirrel, Hedgehog, Bat, Raccoon
 )
@@ -66,7 +66,7 @@ class Ecosystem:
         "apple_tree": 100, "cherry_tree": 80, "grape_vine": 150, "strawberry": 200,
         "blueberry": 150, "orange_tree": 80, "watermelon": 100,
         "insects": 200, "night_moths": 120, "rabbits": 150, "foxes": 50, "deer": 30, "mouse": 100, "bird": 60, "snake": 30, "bee": 80,
-        "eagle": 20, "owl": 30, "duck": 50, "swan": 30, "sparrow": 140, "parrot": 40, "kingfisher": 30,
+        "eagle": 20, "owl": 30, "duck": 50, "swan": 30, "sparrow": 140, "parrot": 40, "kingfisher": 30, "crocodile": 12,
         "wolf": 30, "spider": 100, "magpie": 80, "crow": 50, "woodpecker": 60, "hummingbird": 100,
         "squirrel": 120, "hedgehog": 80, "bat": 80, "raccoon": 60,
         "bear": 40, "beaver": 30, "wild_boar": 100, "badger": 80, "raccoon_dog": 60, "skunk": 80, "opossum": 100, "coati": 60, "armadillo": 60,
@@ -100,14 +100,14 @@ class Ecosystem:
     ]
     LAND_ANIMAL_SPECIES = [
         "insect", "night_moth", "rabbit", "fox", "deer", "mouse", "bird", "snake", "bee",
-        "eagle", "owl", "duck", "swan", "sparrow", "parrot", "kingfisher",
+        "eagle", "owl", "duck", "swan", "sparrow", "parrot", "kingfisher", "crocodile",
         "wolf", "spider",
         "magpie", "crow", "woodpecker", "hummingbird",
         "squirrel", "hedgehog", "bat", "raccoon",
         "bear", "beaver", "wild_boar", "badger", "raccoon_dog",
         "skunk", "opossum", "coati", "armadillo",
     ]
-    AMPHIBIOUS_ANIMAL_SPECIES = ["frog", "beaver"]
+    AMPHIBIOUS_ANIMAL_SPECIES = ["frog", "beaver", "crocodile"]
     ALL_ANIMAL_SPECIES = LAND_ANIMAL_SPECIES + AMPHIBIOUS_ANIMAL_SPECIES
     AQUATIC_SPECIES = [
         "algae", "seaweed", "plankton", "small_fish", "minnow", "carp", "catfish",
@@ -119,7 +119,7 @@ class Ecosystem:
     AQUATIC_PREDATORS = {"catfish", "large_fish", "blackfish", "pike", "crab"}
     LAND_PREY = {
         "insect", "night_moth", "rabbit", "mouse", "deer", "bird", "sparrow", "duck", "frog",
-        "bee", "squirrel", "hedgehog", "bat", "raccoon", "raccoon_dog", "beaver",
+        "bee", "squirrel", "hedgehog", "bat", "raccoon", "raccoon_dog", "beaver", "crocodile",
         "opossum", "armadillo", "magpie", "crow", "woodpecker", "parrot",
         "hummingbird",
     }
@@ -434,6 +434,11 @@ class Ecosystem:
             pos = self._random_land_position()
             if pos:
                 self.animals.append(Raccoon(pos))
+
+        for _ in range(initial.get("crocodile", 2)):
+            pos = self._random_water_adjacent_position() or self._random_water_position_for_body_type({"river_channel", "lake_shallow"})
+            if pos:
+                self.animals.append(Crocodile(pos))
             
         # === 新增杂食动物 ===
         for _ in range(initial.get("bear", 4)):
@@ -1894,7 +1899,7 @@ class Ecosystem:
             "insect": Insect, "night_moth": NightMoth, "rabbit": Rabbit, "fox": Fox, "deer": Deer,
             "mouse": Mouse, "bird": Bird, "snake": Snake, "bee": Bee, "frog": Frog,
             "eagle": Eagle, "owl": Owl, "duck": Duck, "swan": Swan,
-            "sparrow": Sparrow, "parrot": Parrot, "kingfisher": Kingfisher,
+            "sparrow": Sparrow, "parrot": Parrot, "kingfisher": Kingfisher, "crocodile": Crocodile,
             "wolf": Wolf, "spider": Spider,
             # 新增鸟类
             "magpie": Magpie, "crow": Crow, "woodpecker": Woodpecker, "hummingbird": Hummingbird,

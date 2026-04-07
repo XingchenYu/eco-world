@@ -2384,6 +2384,75 @@ class Bat(Animal):
     def prefers_canopy_cover(self) -> bool:
         return True
 
+
+class Crocodile(Animal):
+    """鳄鱼 - 水边顶级伏击捕食者。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="crocodile",
+            position=position,
+            max_age=140,
+            hunger_rate=0.16,
+            reproduction_rate=0.04,
+            speed=1.8,
+            vision_range=7,
+            diet="carnivore",
+            gender=gender
+        )
+        self.emoji = "🐊"
+        self.color = (85, 107, 47)
+        self.pregnancy_duration = 18
+        self.ambush_interval = random.randint(6, 10)
+        self._ambush_timer = 0
+
+    def get_predators(self) -> List[str]:
+        return []
+
+    def get_prey_species(self) -> List[str]:
+        return ["small_fish", "minnow", "carp", "shrimp", "frog", "duck", "swan", "rabbit", "deer"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["moss", "fern", "bush", "tree", "berry"]
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["wetland_patch", "riparian_perch", "shore_hatch"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.16
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"wetland_patch", "riparian_perch", "shore_hatch"},
+            "amount": 0.10,
+            "radius": 3,
+            "hunger_relief": 7.5,
+            "health_gain": 1.0,
+            "min_hunger": 16.0,
+        }
+
+    def execute_behavior(self, ecosystem):
+        self._ambush_timer += 1
+        super().execute_behavior(ecosystem)
+        if not self.alive:
+            return
+        if self._ambush_timer >= self.ambush_interval:
+            self._ambush_timer = 0
+            self._hold_ambush_position(ecosystem)
+
+    def _hold_ambush_position(self, ecosystem):
+        water_score = ecosystem.get_adjacent_water_score(self.position, radius=2) if hasattr(ecosystem, "get_adjacent_water_score") else 0.0
+        wetland_value = ecosystem.get_local_microhabitat_value(self.position, {"wetland_patch", "riparian_perch"}, radius=3) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
+        if water_score <= 0 and wetland_value < 0.08:
+            return
+        if hasattr(ecosystem, "occupy_microhabitat"):
+            ecosystem.occupy_microhabitat(self.species, {"wetland_patch", "riparian_perch"}, self.position, amount=0.18, radius=3)
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} held an ambush position near the shoreline")
+
     def execute_behavior(self, ecosystem):
         """蝙蝠夜间活动"""
         hour = ecosystem.environment.hour

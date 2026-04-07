@@ -302,10 +302,10 @@ def build_default_runtime_species_bridges() -> Dict[str, RuntimeSpeciesBridge]:
         ),
         "nile_crocodile": RuntimeSpeciesBridge(
             species_id="nile_crocodile",
-            runtime_species_id="pike",
-            support_level="proxy",
-            runtime_domain="aquatic",
-            notes="当前用狗鱼占位水边伏击捕食者，鳄类晒背、巢位和饮水点风险逻辑待实现。",
+            runtime_species_id="crocodile",
+            support_level="native",
+            runtime_domain="land_animal",
+            notes="当前已有可运行鳄鱼实现，具备基础水边伏击与风险事件行为。",
         ),
         "beaver": RuntimeSpeciesBridge(
             species_id="beaver",
