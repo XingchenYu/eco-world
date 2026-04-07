@@ -311,6 +311,8 @@ def test_v4_registry_queries():
     assert registry.get_runtime_bridge("african_elephant").support_level == "native"
     assert registry.get_runtime_bridge("white_rhino").runtime_species_id == "white_rhino"
     assert registry.get_runtime_bridge("white_rhino").support_level == "native"
+    assert registry.get_runtime_bridge("giraffe").runtime_species_id == "giraffe"
+    assert registry.get_runtime_bridge("giraffe").support_level == "native"
     assert registry.get_runtime_bridge("hippopotamus").runtime_species_id == "hippopotamus"
     assert registry.get_runtime_bridge("hippopotamus").support_level == "native"
     assert crocodile_bridge.runtime_species_id == "crocodile"
@@ -521,6 +523,38 @@ def test_white_rhino_grazing_effect():
     print("✅ White rhino grazing test passed")
 
 
+def test_giraffe_registration_and_spawn():
+    """长颈鹿应完成注册，并能在陆地生成。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("giraffe")
+    eco.spawn_animal("giraffe", position, source="manual")
+
+    assert eco.get_species_count("giraffe") == initial + 1
+    assert eco.animals[-1].species == "giraffe"
+
+    print("✅ Giraffe registration test passed")
+
+
+def test_giraffe_canopy_effect():
+    """长颈鹿应能触发基础树冠浏览效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("giraffe", position, source="manual")
+    giraffe = eco.animals[-1]
+    before_events = len(eco.events)
+
+    giraffe._shape_canopy(eco)
+
+    assert len(eco.events) == before_events + 1
+
+    print("✅ Giraffe canopy test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -552,6 +586,8 @@ def run_all_tests():
     test_elephant_engineering_effect()
     test_white_rhino_registration_and_spawn()
     test_white_rhino_grazing_effect()
+    test_giraffe_registration_and_spawn()
+    test_giraffe_canopy_effect()
     
     print("\n✅ All tests passed!")
 

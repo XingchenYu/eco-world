@@ -289,10 +289,10 @@ def build_default_runtime_species_bridges() -> Dict[str, RuntimeSpeciesBridge]:
         ),
         "giraffe": RuntimeSpeciesBridge(
             species_id="giraffe",
-            runtime_species_id="deer",
-            support_level="proxy",
+            runtime_species_id="giraffe",
+            support_level="native",
             runtime_domain="land_animal",
-            notes="当前用鹿类占位高浏览食草者，树冠取食垂直分层待实现。",
+            notes="当前已有可运行长颈鹿实现，具备基础高层树冠浏览行为。",
         ),
         "hippopotamus": RuntimeSpeciesBridge(
             species_id="hippopotamus",

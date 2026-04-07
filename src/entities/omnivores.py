@@ -382,6 +382,77 @@ class WhiteRhino(Animal):
             ecosystem.log_event(f"{self.id} opened a mud-wallow grazing patch")
 
 
+class Giraffe(Animal):
+    """长颈鹿 - 高层树冠浏览者。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="giraffe",
+            position=position,
+            max_age=110,
+            hunger_rate=0.20,
+            reproduction_rate=0.022,
+            speed=1.9,
+            vision_range=8,
+            diet="herbivore",
+            gender=gender
+        )
+        self.emoji = "🦒"
+        self.color = (210, 170, 95)
+        self.pregnancy_duration = 20
+        self.browse_interval = random.randint(7, 12)
+        self._browse_timer = 0
+
+    def get_predators(self) -> List[str]:
+        return ["crocodile"]
+
+    def get_food_sources(self) -> List[str]:
+        return ["tree", "apple_tree", "cherry_tree", "orange_tree", "bush", "berry", "fern"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "apple_tree", "cherry_tree", "orange_tree"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"canopy_forage", "canopy_roost"},
+            "amount": 0.10,
+            "radius": 4,
+            "hunger_relief": 7.0,
+            "health_gain": 1.0,
+            "min_hunger": 14.0,
+        }
+
+    def execute_behavior(self, ecosystem):
+        self._browse_timer += 1
+        super().execute_behavior(ecosystem)
+        if self.alive and self._browse_timer >= self.browse_interval:
+            self._browse_timer = 0
+            self._shape_canopy(ecosystem)
+
+    def _shape_canopy(self, ecosystem):
+        nearby_plants = ecosystem.get_nearby_plants(self.position, 3) if hasattr(ecosystem, "get_nearby_plants") else []
+        canopy_plants = [
+            plant for plant in nearby_plants
+            if plant.alive and plant.species in {"tree", "apple_tree", "cherry_tree", "orange_tree"}
+        ]
+        if not canopy_plants:
+            return
+
+        for plant in canopy_plants[:2]:
+            plant.health = max(0, plant.health - 12)
+            if hasattr(plant, "size"):
+                plant.size = max(0.7, plant.size - 0.05)
+
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} pruned the upper canopy")
+
+
 class WildBoar(Animal):
     """野猪 - 杂食，用鼻子掘食"""
     
