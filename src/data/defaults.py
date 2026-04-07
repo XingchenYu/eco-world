@@ -309,9 +309,10 @@ def build_default_runtime_species_bridges() -> Dict[str, RuntimeSpeciesBridge]:
         ),
         "beaver": RuntimeSpeciesBridge(
             species_id="beaver",
-            support_level="planned",
-            runtime_domain="amphibious",
-            notes="当前未实现河狸筑坝与湿地工程师行为。",
+            runtime_species_id="beaver",
+            support_level="native",
+            runtime_domain="land_animal",
+            notes="当前已有可运行河狸实现，具备基础湿地工程师行为。",
         ),
         "kingfisher_v4": RuntimeSpeciesBridge(
             species_id="kingfisher_v4",

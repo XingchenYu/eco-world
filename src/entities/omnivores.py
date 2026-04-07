@@ -59,6 +59,88 @@ class Bear(Animal):
         self.eat(nutrition)
 
 
+class Beaver(Animal):
+    """河狸 - 半水生湿地工程师。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="beaver",
+            position=position,
+            max_age=65,
+            hunger_rate=0.22,
+            reproduction_rate=0.05,
+            speed=1.6,
+            vision_range=5,
+            diet="herbivore",
+            gender=gender
+        )
+        self.emoji = "🦫"
+        self.color = (130, 92, 55)
+        self.pregnancy_duration = 12
+        self.dam_build_interval = random.randint(10, 16)
+        self._dam_timer = 0
+
+    def get_predators(self) -> List[str]:
+        return ["wolf", "fox", "bear", "eagle"]
+
+    def get_food_sources(self) -> List[str]:
+        return [
+            "tree", "apple_tree", "cherry_tree", "orange_tree",
+            "grass", "moss", "fern", "bush", "berry"
+        ]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "apple_tree", "cherry_tree", "orange_tree", "bush", "berry", "moss", "fern"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"wetland_patch", "riparian_perch"},
+            "amount": 0.10,
+            "radius": 3,
+            "hunger_relief": 7.0,
+            "health_gain": 1.2,
+            "min_hunger": 15.0,
+        }
+
+    def execute_behavior(self, ecosystem):
+        self._dam_timer += 1
+        super().execute_behavior(ecosystem)
+        if self.alive and self._dam_timer >= self.dam_build_interval:
+            self._dam_timer = 0
+            self._engineer_habitat(ecosystem)
+
+    def _engineer_habitat(self, ecosystem):
+        water_score = ecosystem.get_adjacent_water_score(self.position, radius=2) if hasattr(ecosystem, "get_adjacent_water_score") else 0.0
+        wetland_value = ecosystem.get_local_microhabitat_value(self.position, {"wetland_patch", "riparian_perch"}, radius=3) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
+        if water_score <= 0 and wetland_value < 0.08:
+            return
+
+        if hasattr(ecosystem, "get_microhabitat_patches"):
+            patches = ecosystem.get_microhabitat_patches({"wetland_patch", "riparian_perch"}, self.position, radius=3)
+            for patch in patches[:4]:
+                patch.available = min(patch.capacity * max(1.0, patch.seasonal_multiplier), patch.available + 0.18)
+                patch.occupancy = min(patch.capacity, patch.occupancy + 0.05)
+
+        # 轻量持久化效果：在水边补植湿地植物，下一轮会转化成稳定微栖位。
+        if random.random() < 0.45:
+            candidate = ecosystem._random_water_adjacent_position()
+            if candidate and abs(candidate[0] - self.position[0]) + abs(candidate[1] - self.position[1]) <= 6:
+                plant_species = "moss" if random.random() < 0.6 else "fern"
+                ecosystem.spawn_plant(plant_species, candidate, source="natural")
+
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} reinforced a wetland corridor")
+
+
 class WildBoar(Animal):
     """野猪 - 杂食，用鼻子掘食"""
     

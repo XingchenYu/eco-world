@@ -243,7 +243,7 @@ def test_v4_world_and_data_skeleton():
     assert "african_elephant" in variants
     assert any(link.relation_type == "engineering" for link in relations)
     assert bridges["kingfisher_v4"].support_level == "native"
-    assert bridges["beaver"].support_level == "planned"
+    assert bridges["beaver"].support_level == "native"
     assert world_map.get_region("temperate_forest").biome_count >= 2
     assert world_map.get_region("wetland_lake").habitat_count >= 4
     assert world_map.get_region("coastal_shelf").species_count >= 4
@@ -283,7 +283,7 @@ def test_v4_world_simulation_skeleton():
     assert stats["registry"]["relation_summary"]["engineering"] >= 1
     assert stats["registry"]["bridges"] >= 8
     assert stats["registry"]["bridge_summary"]["native"] >= 2
-    assert stats["registry"]["regional_bridges"]["beaver"]["support_level"] == "planned"
+    assert stats["registry"]["regional_bridges"]["beaver"]["support_level"] == "native"
     assert "beaver" in stats["food_web"]["resident_species"]
 
     world_sim.set_active_region("wetland_lake")
@@ -308,6 +308,8 @@ def test_v4_registry_queries():
     assert any(relation.relation_type == "competition" for relation in crocodile_relations)
     assert crocodile_bridge.runtime_species_id == "pike"
     assert crocodile_bridge.support_level == "proxy"
+    assert registry.get_runtime_bridge("beaver").runtime_species_id == "beaver"
+    assert registry.get_runtime_bridge("beaver").support_level == "native"
 
     print("✅ V4 registry test passed")
 
@@ -342,6 +344,41 @@ def test_region_simulation_uses_region_defaults():
     print("✅ Region simulation default sizing test passed")
 
 
+def test_beaver_registration_and_spawn():
+    """河狸应完成注册，并能在水边生成。"""
+    eco = Ecosystem()
+    position = eco._random_water_adjacent_position()
+    assert position is not None
+
+    initial = eco.get_species_count("beaver")
+    eco.spawn_animal("beaver", position, source="manual")
+
+    assert eco.get_species_count("beaver") == initial + 1
+    assert eco.animals[-1].species == "beaver"
+
+    print("✅ Beaver registration test passed")
+
+
+def test_beaver_engineering_effect():
+    """河狸应能在水边触发基础湿地工程师效果。"""
+    eco = Ecosystem()
+    position = eco._random_water_adjacent_position()
+    assert position is not None
+
+    eco.spawn_animal("beaver", position, source="manual")
+    beaver = eco.animals[-1]
+    before_events = len(eco.events)
+    before_value = eco.get_local_microhabitat_value(position, {"wetland_patch", "riparian_perch"}, radius=3)
+
+    beaver._engineer_habitat(eco)
+
+    after_value = eco.get_local_microhabitat_value(position, {"wetland_patch", "riparian_perch"}, radius=3)
+    assert len(eco.events) == before_events + 1
+    assert after_value >= before_value
+
+    print("✅ Beaver engineering test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -363,6 +400,8 @@ def run_all_tests():
     test_v4_registry_queries()
     test_v4_region_food_web_summary()
     test_region_simulation_uses_region_defaults()
+    test_beaver_registration_and_spawn()
+    test_beaver_engineering_effect()
     
     print("\n✅ All tests passed!")
 
