@@ -17,6 +17,7 @@ from src.data.defaults import (
     build_default_species_variants,
 )
 from src.data.registry import build_default_world_registry
+from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
 from src.main import load_config
@@ -276,10 +277,13 @@ def test_v4_world_simulation_skeleton():
     assert stats["registry"]["templates"] >= 8
     assert "beaver" in stats["registry"]["regional_species"]
     assert stats["registry"]["relation_summary"]["engineering"] >= 1
+    assert "beaver" in stats["food_web"]["resident_species"]
 
     world_sim.set_active_region("wetland_lake")
     assert world_sim.active_region_id == "wetland_lake"
     assert world_sim.get_active_region().name == "湿地与湖泊区"
+    wetland_stats = world_sim.get_statistics()
+    assert wetland_stats["food_web"]["active_relations"] >= 1
 
     print("✅ V4 world simulation test passed")
 
@@ -296,6 +300,21 @@ def test_v4_registry_queries():
     assert any(relation.relation_type == "competition" for relation in crocodile_relations)
 
     print("✅ V4 registry test passed")
+
+
+def test_v4_region_food_web_summary():
+    """v4 区域食物网应返回区域级关系和关键种摘要。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    food_web = build_region_food_web(world_map.get_region("wetland_lake"), registry)
+
+    assert "hippopotamus" in food_web.resident_species
+    assert "nile_crocodile" in food_web.resident_species
+    assert food_web.relation_summary["competition"] >= 1
+    assert "hippopotamus" in food_web.keystone_species
+    assert "beaver" in food_web.engineer_species
+
+    print("✅ V4 food web test passed")
 
 
 def test_region_simulation_uses_region_defaults():
@@ -332,6 +351,7 @@ def run_all_tests():
     test_v4_world_and_data_skeleton()
     test_v4_world_simulation_skeleton()
     test_v4_registry_queries()
+    test_v4_region_food_web_summary()
     test_region_simulation_uses_region_defaults()
     
     print("\n✅ All tests passed!")

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 
 from src.data import WorldRegistry, build_default_world_registry
+from src.ecology import build_region_food_web
 from src.sim.region_simulation import RegionSimulation
 from src.world import Region, WorldMap, build_default_world_map
 
@@ -79,6 +80,7 @@ class WorldSimulation:
         active_simulation = self.get_active_simulation()
         simulation_stats = active_simulation.get_statistics()
         regional_species = self.registry.species_for_region(active_region.region_id)
+        food_web = build_region_food_web(active_region, self.registry)
 
         return {
             "world_tick": self.tick_count,
@@ -102,6 +104,15 @@ class WorldSimulation:
                 "relations": len(self.registry.relations),
                 "regional_species": sorted(regional_species),
                 "relation_summary": self.registry.relation_summary(),
+            },
+            "food_web": {
+                "resident_species": sorted(food_web.resident_species),
+                "active_relations": len(food_web.active_relations),
+                "relation_summary": dict(food_web.relation_summary),
+                "role_summary": dict(food_web.role_summary),
+                "keystone_species": list(food_web.keystone_species),
+                "engineer_species": list(food_web.engineer_species),
+                "flagship_species": list(food_web.flagship_species),
             },
             "simulation": simulation_stats,
         }
