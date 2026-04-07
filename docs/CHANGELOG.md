@@ -26,6 +26,20 @@
 
 ## 版本历史
 
+### v3.4 (2026-04-07 15:10)
+
+**性能与结构**：
+- ✅ `Ecosystem` 新增 tick 级 actor 缓存
+- ✅ 主循环中的 `_apply_population_pressure()` 与 `get_statistics()` / GUI 统计共用同一份 actor 结果
+- ✅ 该优化不改变生态语义，只减少 `canopy_cover / bloom_abundance / wetland_support / nocturnal_insect_supply` 等 actor 的重复计算
+
+**文档**：
+- ✅ README、ARCHITECTURE、ECOSYSTEM、MECHANICS 已同步记录 actor 缓存层
+
+**验证**：
+- ✅ `tests/test_ecosystem.py`
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/core/ecosystem.py src/entities/animals.py src/entities/aquatic.py`
+
 ### v3.3 (2026-04-07 11:40)
 
 **性能与结构**：

@@ -193,6 +193,7 @@ Config / Docs / Tests
 - 植物、动物、水生生物都接入了轻量空间索引
 - `_query_spatial_index()` 使用 offset 预计算缓存
 - `get_nearby_plants()` 使用 tick 级缓存
+- ecosystem actor 使用 tick 级缓存，主循环与统计面板共用同一份结果
 - 动物行为使用个体级短缓存
 - 动物繁殖率更新已优先复用物种数和食性计数缓存
 - 水生移动采用“两阶段选点”
