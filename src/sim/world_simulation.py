@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional
 
 from src.data import WorldRegistry, build_default_world_registry
-from src.ecology import build_region_food_web
+from src.ecology import build_region_cascade_summary, build_region_food_web
 from src.sim.region_simulation import RegionSimulation
 from src.world import Region, WorldMap, build_default_world_map
 
@@ -82,6 +82,7 @@ class WorldSimulation:
         regional_species = self.registry.species_for_region(active_region.region_id)
         regional_bridges = self.registry.bridged_species_for_region(active_region.region_id)
         food_web = build_region_food_web(active_region, self.registry)
+        cascade = build_region_cascade_summary(active_region, self.registry)
 
         return {
             "world_tick": self.tick_count,
@@ -124,6 +125,12 @@ class WorldSimulation:
                 "keystone_species": list(food_web.keystone_species),
                 "engineer_species": list(food_web.engineer_species),
                 "flagship_species": list(food_web.flagship_species),
+            },
+            "cascade": {
+                "driver_species": list(cascade.driver_species),
+                "impact_scores": dict(cascade.impact_scores),
+                "active_pressures": list(cascade.active_pressures),
+                "narrative_impacts": list(cascade.narrative_impacts),
             },
             "simulation": simulation_stats,
         }

@@ -1,0 +1,124 @@
+"""v4 区域级关键种级联影响摘要。"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Dict, List
+
+from src.data import WorldRegistry
+from src.world import Region
+
+
+@dataclass
+class RegionCascadeSummary:
+    """区域级关键种级联影响摘要。"""
+
+    region_id: str
+    driver_species: List[str] = field(default_factory=list)
+    impact_scores: Dict[str, float] = field(default_factory=dict)
+    active_pressures: List[str] = field(default_factory=list)
+    narrative_impacts: List[str] = field(default_factory=list)
+
+
+def build_region_cascade_summary(region: Region, registry: WorldRegistry) -> RegionCascadeSummary:
+    """根据区域关键种和关系网生成粗粒度级联影响摘要。"""
+
+    resident_species = registry.species_for_region(region.region_id)
+    region_species = set(region.species_pool) if region.species_pool else set(resident_species)
+
+    driver_species = sorted(
+        species_id
+        for species_id, variant in resident_species.items()
+        if species_id in region_species and (variant.flags.keystone or variant.flags.engineer or variant.flags.flagship)
+    )
+
+    impact_scores: Dict[str, float] = {}
+    active_pressures: List[str] = []
+    narrative_impacts: List[str] = []
+
+    def add_impact(key: str, value: float, pressure: str, narrative: str) -> None:
+        impact_scores[key] = round(impact_scores.get(key, 0.0) + value, 2)
+        if pressure not in active_pressures:
+            active_pressures.append(pressure)
+        if narrative not in narrative_impacts:
+            narrative_impacts.append(narrative)
+
+    if "beaver" in region_species:
+        add_impact(
+            "wetland_expansion",
+            0.9,
+            "hydrology_retention",
+            "河狸通过筑坝和拦水提升湿地面积与岸带复杂度。",
+        )
+        add_impact(
+            "nursery_habitat_gain",
+            0.55,
+            "riparian_complexity",
+            "河狸创造的缓流水域提升了两栖和岸带幼体的庇护价值。",
+        )
+
+    if "hippopotamus" in region_species:
+        add_impact(
+            "nutrient_input",
+            0.85,
+            "shoreline_grazing",
+            "河马在水陆之间搬运营养，增强岸带和浅水带生产力。",
+        )
+        add_impact(
+            "shoreline_disturbance",
+            0.45,
+            "bank_disturbance",
+            "河马的上岸取食和踩踏会重塑岸带植被和浅滩结构。",
+        )
+
+    if "nile_crocodile" in region_species:
+        add_impact(
+            "shoreline_risk",
+            0.88,
+            "ambush_predation",
+            "鳄鱼提高饮水点和浅滩的伏击风险，改变岸线使用方式。",
+        )
+
+    if "african_elephant" in region_species:
+        add_impact(
+            "canopy_opening",
+            0.82,
+            "megaherbivore_engineering",
+            "大象通过折断乔木和踩踏灌丛扩大开阔草地与通道。",
+        )
+        add_impact(
+            "seed_dispersal",
+            0.5,
+            "landscape_redistribution",
+            "大象促进大型种子跨斑块扩散，改变区域植被更新方向。",
+        )
+
+    if "white_rhino" in region_species:
+        add_impact(
+            "grazing_pressure",
+            0.76,
+            "grazer_competition",
+            "白犀维持低矮草场并压制灌丛回侵。",
+        )
+        add_impact(
+            "mud_wallow_disturbance",
+            0.42,
+            "wallow_site_competition",
+            "白犀围绕泥浴点和水源形成局部踩踏与资源竞争。",
+        )
+
+    if "giraffe" in region_species:
+        add_impact(
+            "canopy_browsing",
+            0.72,
+            "vertical_foraging_partition",
+            "长颈鹿利用高树冠资源，形成与地面食草兽分层的取食格局。",
+        )
+
+    return RegionCascadeSummary(
+        region_id=region.region_id,
+        driver_species=driver_species,
+        impact_scores=dict(sorted(impact_scores.items())),
+        active_pressures=sorted(active_pressures),
+        narrative_impacts=narrative_impacts,
+    )

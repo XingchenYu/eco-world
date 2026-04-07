@@ -98,3 +98,20 @@
 - 栖息地约束
 - 密度阈值
 - 资源阈值
+
+## 6. 当前已落地的 v4 级联摘要
+
+当前仓库已经有第一版区域级联摘要模块，用于把关键种的方向性影响汇总到世界统计里。
+
+当前已接入的区域级联驱动包括：
+
+- 湿地链
+  - `beaver` -> `wetland_expansion` / `hydrology_retention`
+  - `hippopotamus` -> `nutrient_input` / `shoreline_disturbance`
+  - `nile_crocodile` -> `shoreline_risk`
+- 草原大型植食者链
+  - `african_elephant` -> `canopy_opening` / `seed_dispersal`
+  - `white_rhino` -> `grazing_pressure` / `mud_wallow_disturbance`
+  - `giraffe` -> `canopy_browsing`
+
+这层的定位不是替代完整关系系统，而是先把“关键种会把区域往哪边推”显式接进 `WorldSimulation` 统计，为后续真正的区域级联事件和资源反馈层铺路。

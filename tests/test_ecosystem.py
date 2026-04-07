@@ -18,6 +18,7 @@ from src.data.defaults import (
     build_default_species_variants,
 )
 from src.data.registry import build_default_world_registry
+from src.ecology.cascade import build_region_cascade_summary
 from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
@@ -286,12 +287,15 @@ def test_v4_world_simulation_skeleton():
     assert stats["registry"]["bridge_summary"]["native"] >= 2
     assert stats["registry"]["regional_bridges"]["beaver"]["support_level"] == "native"
     assert "beaver" in stats["food_web"]["resident_species"]
+    assert "beaver" in stats["cascade"]["driver_species"]
+    assert stats["cascade"]["impact_scores"]["wetland_expansion"] > 0.0
 
     world_sim.set_active_region("wetland_lake")
     assert world_sim.active_region_id == "wetland_lake"
     assert world_sim.get_active_region().name == "湿地与湖泊区"
     wetland_stats = world_sim.get_statistics()
     assert wetland_stats["food_web"]["active_relations"] >= 1
+    assert wetland_stats["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
 
     print("✅ V4 world simulation test passed")
 
@@ -336,6 +340,31 @@ def test_v4_region_food_web_summary():
     assert "beaver" in food_web.engineer_species
 
     print("✅ V4 food web test passed")
+
+
+def test_v4_region_cascade_summary():
+    """v4 区域级联摘要应反映关键种对区域结构的推动方向。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+
+    wetland_cascade = build_region_cascade_summary(world_map.get_region("wetland_lake"), registry)
+    grassland_cascade = build_region_cascade_summary(world_map.get_region("temperate_grassland"), registry)
+
+    assert "beaver" in wetland_cascade.driver_species
+    assert "hippopotamus" in wetland_cascade.driver_species
+    assert "nile_crocodile" in wetland_cascade.driver_species
+    assert wetland_cascade.impact_scores["wetland_expansion"] > 0.0
+    assert wetland_cascade.impact_scores["shoreline_risk"] > 0.0
+    assert "hydrology_retention" in wetland_cascade.active_pressures
+
+    assert "african_elephant" in grassland_cascade.driver_species
+    assert "white_rhino" in grassland_cascade.driver_species
+    assert "giraffe" in grassland_cascade.driver_species
+    assert grassland_cascade.impact_scores["canopy_opening"] > 0.0
+    assert grassland_cascade.impact_scores["grazing_pressure"] > 0.0
+    assert grassland_cascade.impact_scores["canopy_browsing"] > 0.0
+
+    print("✅ V4 cascade summary test passed")
 
 
 def test_region_simulation_uses_region_defaults():
@@ -575,6 +604,7 @@ def run_all_tests():
     test_v4_world_simulation_skeleton()
     test_v4_registry_queries()
     test_v4_region_food_web_summary()
+    test_v4_region_cascade_summary()
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()
     test_beaver_engineering_effect()

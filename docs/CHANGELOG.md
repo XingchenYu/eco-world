@@ -26,6 +26,22 @@
 
 ## 版本历史
 
+### v3.6 (2026-04-08 16:40)
+
+**v4 架构推进**：
+- ✅ 新增 [src/ecology/cascade.py](/Users/yumini/Projects/eco-world/src/ecology/cascade.py)，引入第一版区域级联影响摘要
+- ✅ `WorldSimulation` 统计新增 `cascade` 区块，开始汇总关键种如何推动区域结构变化
+- ✅ 当前已接入湿地链与草原大型植食者链：
+  - `beaver / hippopotamus / nile_crocodile`
+  - `african_elephant / white_rhino / giraffe`
+
+**文档更新**：
+- ✅ 更新 [docs/V4-RELATIONS.md](/Users/yumini/Projects/eco-world/docs/V4-RELATIONS.md)，补充已落地的级联摘要实现状态
+
+**验证**：
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 新增 `v4` 级联摘要测试并通过
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/ecology/cascade.py src/ecology/__init__.py src/sim/world_simulation.py tests/test_ecosystem.py`
+
 ### v3.5 (2026-04-07 16:20)
 
 **设计文档**：
