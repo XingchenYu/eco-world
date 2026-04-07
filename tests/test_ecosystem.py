@@ -242,6 +242,7 @@ def test_v4_world_and_data_skeleton():
     assert "megaherbivore_engineer" in templates
     assert "african_elephant" in variants
     assert any(link.relation_type == "engineering" for link in relations)
+    assert bridges["african_elephant"].support_level == "native"
     assert bridges["kingfisher_v4"].support_level == "native"
     assert bridges["beaver"].support_level == "native"
     assert world_map.get_region("temperate_forest").biome_count >= 2
@@ -306,6 +307,8 @@ def test_v4_registry_queries():
     assert "hippopotamus" in wetland_species
     assert "nile_crocodile" in wetland_species
     assert any(relation.relation_type == "competition" for relation in crocodile_relations)
+    assert registry.get_runtime_bridge("african_elephant").runtime_species_id == "elephant"
+    assert registry.get_runtime_bridge("african_elephant").support_level == "native"
     assert registry.get_runtime_bridge("hippopotamus").runtime_species_id == "hippopotamus"
     assert registry.get_runtime_bridge("hippopotamus").support_level == "native"
     assert crocodile_bridge.runtime_species_id == "crocodile"
@@ -448,6 +451,40 @@ def test_hippopotamus_nutrient_cycle_effect():
     print("✅ Hippopotamus nutrient cycle test passed")
 
 
+def test_elephant_registration_and_spawn():
+    """大象应完成注册，并能在陆地生成。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("elephant")
+    eco.spawn_animal("elephant", position, source="manual")
+
+    assert eco.get_species_count("elephant") == initial + 1
+    assert eco.animals[-1].species == "elephant"
+
+    print("✅ Elephant registration test passed")
+
+
+def test_elephant_engineering_effect():
+    """大象应能触发基础植被工程师效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("elephant", position, source="manual")
+    elephant = eco.animals[-1]
+    before_events = len(eco.events)
+    before_grass = eco.get_species_count("grass")
+
+    elephant._engineer_landscape(eco)
+
+    assert len(eco.events) == before_events + 1
+    assert eco.get_species_count("grass") >= before_grass
+
+    print("✅ Elephant engineering test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -475,6 +512,8 @@ def run_all_tests():
     test_crocodile_ambush_effect()
     test_hippopotamus_registration_and_spawn()
     test_hippopotamus_nutrient_cycle_effect()
+    test_elephant_registration_and_spawn()
+    test_elephant_engineering_effect()
     
     print("\n✅ All tests passed!")
 

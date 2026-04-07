@@ -20,7 +20,7 @@ from ..entities.plants import (
     Blueberry, OrangeTree, Watermelon
 )
 from ..entities.omnivores import (
-    Bear, Beaver, Hippopotamus, WildBoar, Badger, RaccoonDog, Skunk, 
+    Bear, Beaver, Hippopotamus, Elephant, WildBoar, Badger, RaccoonDog, Skunk, 
     Opossum, Coati, Armadillo
 )
 from ..entities.animals import (
@@ -69,7 +69,7 @@ class Ecosystem:
         "eagle": 20, "owl": 30, "duck": 50, "swan": 30, "sparrow": 140, "parrot": 40, "kingfisher": 30, "crocodile": 12,
         "wolf": 30, "spider": 100, "magpie": 80, "crow": 50, "woodpecker": 60, "hummingbird": 100,
         "squirrel": 120, "hedgehog": 80, "bat": 80, "raccoon": 60,
-        "bear": 40, "beaver": 30, "hippopotamus": 16, "wild_boar": 100, "badger": 80, "raccoon_dog": 60, "skunk": 80, "opossum": 100, "coati": 60, "armadillo": 60,
+        "bear": 40, "beaver": 30, "hippopotamus": 16, "elephant": 12, "wild_boar": 100, "badger": 80, "raccoon_dog": 60, "skunk": 80, "opossum": 100, "coati": 60, "armadillo": 60,
         "algae": 300, "seaweed": 150, "plankton": 400, "small_fish": 150, "minnow": 120, "carp": 80, "catfish": 50,
         "large_fish": 30, "pufferfish": 40, "blackfish": 40, "pike": 30, "shrimp": 200, "crab": 60, "frog": 80,
         "tadpole": 80, "water_strider": 100,
@@ -104,7 +104,7 @@ class Ecosystem:
         "wolf", "spider",
         "magpie", "crow", "woodpecker", "hummingbird",
         "squirrel", "hedgehog", "bat", "raccoon",
-        "bear", "beaver", "hippopotamus", "wild_boar", "badger", "raccoon_dog",
+        "bear", "beaver", "hippopotamus", "elephant", "wild_boar", "badger", "raccoon_dog",
         "skunk", "opossum", "coati", "armadillo",
     ]
     AMPHIBIOUS_ANIMAL_SPECIES = ["frog", "beaver", "crocodile", "hippopotamus"]
@@ -119,7 +119,7 @@ class Ecosystem:
     AQUATIC_PREDATORS = {"catfish", "large_fish", "blackfish", "pike", "crab"}
     LAND_PREY = {
         "insect", "night_moth", "rabbit", "mouse", "deer", "bird", "sparrow", "duck", "frog",
-        "bee", "squirrel", "hedgehog", "bat", "raccoon", "raccoon_dog", "beaver", "crocodile", "hippopotamus",
+        "bee", "squirrel", "hedgehog", "bat", "raccoon", "raccoon_dog", "beaver", "crocodile", "hippopotamus", "elephant",
         "opossum", "armadillo", "magpie", "crow", "woodpecker", "parrot",
         "hummingbird",
     }
@@ -455,6 +455,11 @@ class Ecosystem:
             pos = self._random_water_adjacent_position() or self._random_water_position_for_body_type({"river_channel", "lake_shallow"})
             if pos:
                 self.animals.append(Hippopotamus(pos))
+
+        for _ in range(initial.get("elephant", 2)):
+            pos = self._random_land_position()
+            if pos:
+                self.animals.append(Elephant(pos))
             
         for _ in range(initial.get("wild_boar", 10)):
             pos = self._random_land_position()
@@ -1911,7 +1916,7 @@ class Ecosystem:
             # 新增哺乳动物
             "squirrel": Squirrel, "hedgehog": Hedgehog, "bat": Bat, "raccoon": Raccoon,
             # 新增杂食动物
-            "bear": Bear, "beaver": Beaver, "hippopotamus": Hippopotamus, "wild_boar": WildBoar, "badger": Badger,
+            "bear": Bear, "beaver": Beaver, "hippopotamus": Hippopotamus, "elephant": Elephant, "wild_boar": WildBoar, "badger": Badger,
             "raccoon_dog": RaccoonDog, "skunk": Skunk, "opossum": Opossum,
             "coati": Coati, "armadillo": Armadillo
         }

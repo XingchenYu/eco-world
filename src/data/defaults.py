@@ -275,10 +275,10 @@ def build_default_runtime_species_bridges() -> Dict[str, RuntimeSpeciesBridge]:
     return {
         "african_elephant": RuntimeSpeciesBridge(
             species_id="african_elephant",
-            runtime_species_id="deer",
-            support_level="proxy",
+            runtime_species_id="elephant",
+            support_level="native",
             runtime_domain="land_animal",
-            notes="当前用鹿类承载大型植食者占位，尚未实现真正工程师级巨型植食动物。",
+            notes="当前已有可运行大象实现，具备基础植被工程师行为。",
         ),
         "white_rhino": RuntimeSpeciesBridge(
             species_id="white_rhino",

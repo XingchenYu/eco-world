@@ -221,6 +221,90 @@ class Hippopotamus(Animal):
             ecosystem.log_event(f"{self.id} enriched a shoreline feeding ground")
 
 
+class Elephant(Animal):
+    """大象 - 巨型工程师植食动物。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="elephant",
+            position=position,
+            max_age=160,
+            hunger_rate=0.24,
+            reproduction_rate=0.025,
+            speed=1.8,
+            vision_range=8,
+            diet="herbivore",
+            gender=gender
+        )
+        self.emoji = "🐘"
+        self.color = (145, 145, 145)
+        self.pregnancy_duration = 24
+        self.engineer_interval = random.randint(9, 15)
+        self._engineer_timer = 0
+
+    def get_predators(self) -> List[str]:
+        return []
+
+    def get_food_sources(self) -> List[str]:
+        return [
+            "grass", "bush", "tree", "apple_tree", "cherry_tree",
+            "orange_tree", "berry", "fern", "moss"
+        ]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "apple_tree", "cherry_tree", "orange_tree", "bush", "berry"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"canopy_forage", "canopy_roost", "riparian_perch"},
+            "amount": 0.12,
+            "radius": 4,
+            "hunger_relief": 8.0,
+            "health_gain": 1.1,
+            "min_hunger": 16.0,
+        }
+
+    def execute_behavior(self, ecosystem):
+        self._engineer_timer += 1
+        super().execute_behavior(ecosystem)
+        if self.alive and self._engineer_timer >= self.engineer_interval:
+            self._engineer_timer = 0
+            self._engineer_landscape(ecosystem)
+
+    def _engineer_landscape(self, ecosystem):
+        nearby_plants = ecosystem.get_nearby_plants(self.position, 3) if hasattr(ecosystem, "get_nearby_plants") else []
+        tall_plants = [
+            plant for plant in nearby_plants
+            if plant.alive and plant.species in {"tree", "apple_tree", "cherry_tree", "orange_tree", "bush", "berry"}
+        ]
+        if not tall_plants:
+            return
+
+        modified = 0
+        for plant in tall_plants[:3]:
+            plant.health = max(0, plant.health - 18)
+            if hasattr(plant, "size"):
+                plant.size = max(0.6, plant.size - 0.08)
+            modified += 1
+
+        if random.random() < 0.55:
+            candidate = ecosystem._random_land_position()
+            if candidate and abs(candidate[0] - self.position[0]) + abs(candidate[1] - self.position[1]) <= 6:
+                ecosystem.spawn_plant("grass", candidate, source="natural")
+
+        if hasattr(ecosystem, "log_event") and modified:
+            ecosystem.log_event(f"{self.id} opened a grazing corridor")
+
+
 class WildBoar(Animal):
     """野猪 - 杂食，用鼻子掘食"""
     
