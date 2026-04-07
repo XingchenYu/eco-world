@@ -20,6 +20,7 @@ from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
 from src.main import load_config
 from src.sim.region_simulation import RegionSimulation
+from src.sim.world_simulation import build_default_world_simulation
 from src.world.world_map import build_default_world_map
 
 
@@ -249,6 +250,29 @@ def test_v4_world_and_data_skeleton():
     print("✅ V4 skeleton test passed")
 
 
+def test_v4_world_simulation_skeleton():
+    """v4 世界模拟器应可管理区域并执行焦点区域更新。"""
+    world_sim = build_default_world_simulation()
+
+    assert world_sim.active_region_id == "temperate_forest"
+    assert world_sim.get_active_region().name == "温带森林区"
+
+    summary = world_sim.update()
+    stats = world_sim.get_statistics()
+
+    assert summary.tick == 1
+    assert summary.active_region_id == "temperate_forest"
+    assert stats["world_tick"] == 1
+    assert stats["active_region"]["id"] == "temperate_forest"
+    assert stats["regions_total"] == 6
+
+    world_sim.set_active_region("wetland_lake")
+    assert world_sim.active_region_id == "wetland_lake"
+    assert world_sim.get_active_region().name == "湿地与湖泊区"
+
+    print("✅ V4 world simulation test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -266,6 +290,7 @@ def run_all_tests():
     test_amphibious_animals_can_spawn_in_water()
     test_night_moth_registration_and_spawn()
     test_v4_world_and_data_skeleton()
+    test_v4_world_simulation_skeleton()
     
     print("\n✅ All tests passed!")
 

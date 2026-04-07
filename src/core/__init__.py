@@ -9,6 +9,7 @@ __all__ = [
     "BehaviorState",
     "Ecosystem",
     "RegionSimulation",
+    "WorldSimulation",
     "Environment",
     "TerrainType",
     "Weather",
@@ -28,4 +29,8 @@ def __getattr__(name):
         from src.sim.region_simulation import RegionSimulation
 
         return RegionSimulation
+    if name == "WorldSimulation":
+        from src.sim.world_simulation import WorldSimulation
+
+        return WorldSimulation
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

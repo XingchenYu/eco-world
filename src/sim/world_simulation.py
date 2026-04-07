@@ -1,0 +1,96 @@
+"""v4 世界级模拟骨架。"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, Optional
+
+from src.sim.region_simulation import RegionSimulation
+from src.world import Region, WorldMap, build_default_world_map
+
+
+@dataclass
+class WorldTickSummary:
+    """单次世界更新后的摘要。"""
+
+    tick: int
+    active_region_id: str
+    loaded_regions: int
+
+
+class WorldSimulation:
+    """管理多个区域模拟的世界容器。"""
+
+    def __init__(
+        self,
+        world_map: Optional[WorldMap] = None,
+        region_configs: Optional[Dict[str, dict]] = None,
+        default_region_config: Optional[dict] = None,
+        initial_region_id: Optional[str] = None,
+    ):
+        self.world_map = world_map or build_default_world_map()
+        self.region_configs = region_configs or {}
+        self.default_region_config = default_region_config or {"world": {"width": 200, "height": 200, "grid_size": 20}}
+        self.region_simulations: Dict[str, RegionSimulation] = {}
+        self.tick_count = 0
+
+        self.active_region_id = initial_region_id or next(iter(self.world_map.regions))
+        self.ensure_region_simulation(self.active_region_id)
+
+    def _build_region_config(self, region_id: str) -> dict:
+        return self.region_configs.get(region_id, self.default_region_config)
+
+    def ensure_region_simulation(self, region_id: str) -> RegionSimulation:
+        simulation = self.region_simulations.get(region_id)
+        if simulation is not None:
+            return simulation
+
+        region = self.world_map.get_region(region_id)
+        simulation = RegionSimulation(region=region, config=self._build_region_config(region_id))
+        self.region_simulations[region_id] = simulation
+        return simulation
+
+    def set_active_region(self, region_id: str) -> RegionSimulation:
+        simulation = self.ensure_region_simulation(region_id)
+        self.active_region_id = region_id
+        return simulation
+
+    def get_active_region(self) -> Region:
+        return self.world_map.get_region(self.active_region_id)
+
+    def get_active_simulation(self) -> RegionSimulation:
+        return self.ensure_region_simulation(self.active_region_id)
+
+    def update(self) -> WorldTickSummary:
+        active_simulation = self.get_active_simulation()
+        active_simulation.update()
+        self.tick_count += 1
+        return WorldTickSummary(
+            tick=self.tick_count,
+            active_region_id=self.active_region_id,
+            loaded_regions=len(self.region_simulations),
+        )
+
+    def get_statistics(self) -> dict:
+        active_region = self.get_active_region()
+        active_simulation = self.get_active_simulation()
+        simulation_stats = active_simulation.get_statistics()
+
+        return {
+            "world_tick": self.tick_count,
+            "active_region": {
+                "id": active_region.region_id,
+                "name": active_region.name,
+                "climate_zone": active_region.climate_zone,
+                "dominant_biomes": active_region.dominant_biomes,
+            },
+            "loaded_regions": len(self.region_simulations),
+            "regions_total": len(self.world_map.regions),
+            "simulation": simulation_stats,
+        }
+
+
+def build_default_world_simulation() -> WorldSimulation:
+    """创建默认 v4 世界模拟骨架。"""
+
+    return WorldSimulation()
