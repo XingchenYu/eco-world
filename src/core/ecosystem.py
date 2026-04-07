@@ -163,6 +163,7 @@ class Ecosystem:
         self._latest_species_counts: Optional[Dict[str, int]] = None
         self._latest_gender_counts: Optional[Dict[str, Dict[str, int]]] = None
         self._latest_diet_counts: Optional[Dict[str, int]] = None
+        self._latest_actors: Optional[Dict[str, float]] = None
         self._nearby_plant_cache: Dict[Tuple[int, int, int, int], List[Plant]] = {}
         self._nearby_creature_cache: Dict[Tuple[int, int, int, int], List[Creature]] = {}
         self._nearby_aquatic_cache: Dict[Tuple[int, int, int, int], List[AquaticCreature]] = {}
@@ -1120,6 +1121,7 @@ class Ecosystem:
         self._latest_species_counts = None
         self._latest_gender_counts = None
         self._latest_diet_counts = None
+        self._latest_actors = None
         self._nearby_plant_cache = {}
         self._nearby_creature_cache = {}
         self._nearby_aquatic_cache = {}
@@ -1218,7 +1220,8 @@ class Ecosystem:
         land_prey_total = sum(species_counts.get(sp, 0) for sp in self.LAND_PREY)
         aquatic_producer_total = sum(species_counts.get(sp, 0) for sp in self.AQUATIC_PRODUCERS)
         aquatic_consumer_total = sum(species_counts.get(sp, 0) for sp in self.AQUATIC_CONSUMERS)
-        actors = self._compute_ecosystem_actors(species_counts)
+        actors = self._latest_actors or self._compute_ecosystem_actors(species_counts)
+        self._latest_actors = actors
 
         def modifiers(species: str) -> Tuple[float, float]:
             hunger_mult = 1.0
@@ -1780,6 +1783,7 @@ class Ecosystem:
 
         species_counts = self._get_species_counts()
         self._latest_species_counts = species_counts
+        self._latest_actors = self._compute_ecosystem_actors(species_counts)
         self._apply_population_pressure(species_counts)
         
         # 获取生物数量用于环境更新
@@ -1812,6 +1816,7 @@ class Ecosystem:
 
         current_counts = self._get_species_counts()
         self._latest_species_counts = current_counts
+        self._latest_actors = self._compute_ecosystem_actors(current_counts)
         self._maybe_recolonize_species(current_counts)
         
         # 蝴蝶效应分析
@@ -2057,7 +2062,8 @@ class Ecosystem:
         }
             
         env_summary = self.environment.get_environment_summary()
-        actors = self._compute_ecosystem_actors(species_counts)
+        actors = self._latest_actors or self._compute_ecosystem_actors(species_counts)
+        self._latest_actors = actors
         microhabitat_summary = {}
         for patch in self.microhabitats:
             stats = microhabitat_summary.setdefault(patch.kind, {"capacity": 0.0, "available": 0.0, "occupancy": 0.0, "count": 0})
