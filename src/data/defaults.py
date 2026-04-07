@@ -282,10 +282,10 @@ def build_default_runtime_species_bridges() -> Dict[str, RuntimeSpeciesBridge]:
         ),
         "white_rhino": RuntimeSpeciesBridge(
             species_id="white_rhino",
-            runtime_species_id="deer",
-            support_level="proxy",
+            runtime_species_id="white_rhino",
+            support_level="native",
             runtime_domain="land_animal",
-            notes="当前用鹿类承载大型草食与领地占位，犀牛专属防御和泥浴逻辑待实现。",
+            notes="当前已有可运行白犀实现，具备基础草灌结构与泥浴点效应。",
         ),
         "giraffe": RuntimeSpeciesBridge(
             species_id="giraffe",

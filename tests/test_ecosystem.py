@@ -309,6 +309,8 @@ def test_v4_registry_queries():
     assert any(relation.relation_type == "competition" for relation in crocodile_relations)
     assert registry.get_runtime_bridge("african_elephant").runtime_species_id == "elephant"
     assert registry.get_runtime_bridge("african_elephant").support_level == "native"
+    assert registry.get_runtime_bridge("white_rhino").runtime_species_id == "white_rhino"
+    assert registry.get_runtime_bridge("white_rhino").support_level == "native"
     assert registry.get_runtime_bridge("hippopotamus").runtime_species_id == "hippopotamus"
     assert registry.get_runtime_bridge("hippopotamus").support_level == "native"
     assert crocodile_bridge.runtime_species_id == "crocodile"
@@ -485,6 +487,40 @@ def test_elephant_engineering_effect():
     print("✅ Elephant engineering test passed")
 
 
+def test_white_rhino_registration_and_spawn():
+    """白犀应完成注册，并能在陆地生成。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("white_rhino")
+    eco.spawn_animal("white_rhino", position, source="manual")
+
+    assert eco.get_species_count("white_rhino") == initial + 1
+    assert eco.animals[-1].species == "white_rhino"
+
+    print("✅ White rhino registration test passed")
+
+
+def test_white_rhino_grazing_effect():
+    """白犀应能触发基础草灌结构调节效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("white_rhino", position, source="manual")
+    rhino = eco.animals[-1]
+    before_events = len(eco.events)
+    before_grass = eco.get_species_count("grass")
+
+    rhino._maintain_grazing_patch(eco)
+
+    assert len(eco.events) == before_events + 1
+    assert eco.get_species_count("grass") >= before_grass
+
+    print("✅ White rhino grazing test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -514,6 +550,8 @@ def run_all_tests():
     test_hippopotamus_nutrient_cycle_effect()
     test_elephant_registration_and_spawn()
     test_elephant_engineering_effect()
+    test_white_rhino_registration_and_spawn()
+    test_white_rhino_grazing_effect()
     
     print("\n✅ All tests passed!")
 

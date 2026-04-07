@@ -305,6 +305,83 @@ class Elephant(Animal):
             ecosystem.log_event(f"{self.id} opened a grazing corridor")
 
 
+class WhiteRhino(Animal):
+    """白犀 - 高防御大型草食动物，偏好草地和泥浴点。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="white_rhino",
+            position=position,
+            max_age=120,
+            hunger_rate=0.22,
+            reproduction_rate=0.02,
+            speed=1.4,
+            vision_range=6,
+            diet="herbivore",
+            gender=gender
+        )
+        self.emoji = "🦏"
+        self.color = (120, 120, 120)
+        self.pregnancy_duration = 22
+        self.defense_rating = 2.8
+        self.walllow_interval = random.randint(8, 14)
+        self._wallow_timer = 0
+
+    def get_predators(self) -> List[str]:
+        return []
+
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "bush", "fern", "moss", "flower", "berry"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["bush", "berry", "moss", "fern"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"wetland_patch", "riparian_perch"},
+            "amount": 0.08,
+            "radius": 3,
+            "hunger_relief": 6.5,
+            "health_gain": 1.0,
+            "min_hunger": 14.0,
+        }
+
+    def execute_behavior(self, ecosystem):
+        self._wallow_timer += 1
+        super().execute_behavior(ecosystem)
+        if self.alive and self._wallow_timer >= self.walllow_interval:
+            self._wallow_timer = 0
+            self._maintain_grazing_patch(ecosystem)
+
+    def _maintain_grazing_patch(self, ecosystem):
+        nearby_plants = ecosystem.get_nearby_plants(self.position, 3) if hasattr(ecosystem, "get_nearby_plants") else []
+        dense_cover = [
+            plant for plant in nearby_plants
+            if plant.alive and plant.species in {"bush", "berry", "moss", "fern"}
+        ]
+        if not dense_cover:
+            return
+
+        for plant in dense_cover[:2]:
+            plant.health = max(0, plant.health - 14)
+            if hasattr(plant, "size"):
+                plant.size = max(0.5, plant.size - 0.06)
+
+        if random.random() < 0.45:
+            candidate = ecosystem._random_land_position()
+            if candidate and abs(candidate[0] - self.position[0]) + abs(candidate[1] - self.position[1]) <= 5:
+                ecosystem.spawn_plant("grass", candidate, source="natural")
+
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} opened a mud-wallow grazing patch")
+
+
 class WildBoar(Animal):
     """野猪 - 杂食，用鼻子掘食"""
     
