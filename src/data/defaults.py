@@ -296,9 +296,10 @@ def build_default_runtime_species_bridges() -> Dict[str, RuntimeSpeciesBridge]:
         ),
         "hippopotamus": RuntimeSpeciesBridge(
             species_id="hippopotamus",
-            support_level="planned",
-            runtime_domain="amphibious",
-            notes="当前缺少真正的大型半水生食草动物运行体，需后续单独实现。",
+            runtime_species_id="hippopotamus",
+            support_level="native",
+            runtime_domain="land_animal",
+            notes="当前已有可运行河马实现，具备基础岸带营养回流效果。",
         ),
         "nile_crocodile": RuntimeSpeciesBridge(
             species_id="nile_crocodile",

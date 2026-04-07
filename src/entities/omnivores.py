@@ -141,6 +141,86 @@ class Beaver(Animal):
             ecosystem.log_event(f"{self.id} reinforced a wetland corridor")
 
 
+class Hippopotamus(Animal):
+    """河马 - 大型半水生草食动物，连接陆水营养循环。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="hippopotamus",
+            position=position,
+            max_age=95,
+            hunger_rate=0.20,
+            reproduction_rate=0.035,
+            speed=1.7,
+            vision_range=5,
+            diet="herbivore",
+            gender=gender
+        )
+        self.emoji = "🦛"
+        self.color = (122, 104, 117)
+        self.pregnancy_duration = 20
+        self.nutrient_cycle_interval = random.randint(7, 12)
+        self._nutrient_timer = 0
+
+    def get_predators(self) -> List[str]:
+        return ["crocodile"]
+
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "moss", "fern", "flower", "bush", "reed", "berry"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["moss", "fern", "bush", "tree", "berry"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["wetland_patch", "shore_hatch", "riparian_perch"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.18
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"wetland_patch", "shore_hatch"},
+            "amount": 0.12,
+            "radius": 3,
+            "hunger_relief": 8.5,
+            "health_gain": 1.3,
+            "min_hunger": 14.0,
+        }
+
+    def execute_behavior(self, ecosystem):
+        self._nutrient_timer += 1
+        super().execute_behavior(ecosystem)
+        if self.alive and self._nutrient_timer >= self.nutrient_cycle_interval:
+            self._nutrient_timer = 0
+            self._cycle_nutrients(ecosystem)
+
+    def _cycle_nutrients(self, ecosystem):
+        water_score = ecosystem.get_adjacent_water_score(self.position, radius=2) if hasattr(ecosystem, "get_adjacent_water_score") else 0.0
+        wetland_value = ecosystem.get_local_microhabitat_value(self.position, {"wetland_patch", "shore_hatch"}, radius=3) if hasattr(ecosystem, "get_local_microhabitat_value") else 0.0
+        if water_score <= 0 and wetland_value < 0.08:
+            return
+
+        if hasattr(ecosystem, "get_microhabitat_patches"):
+            patches = ecosystem.get_microhabitat_patches({"wetland_patch", "shore_hatch"}, self.position, radius=3)
+            for patch in patches[:4]:
+                patch.available = min(patch.capacity * max(1.0, patch.seasonal_multiplier), patch.available + 0.15)
+
+        if random.random() < 0.35:
+            candidate = ecosystem._random_water_adjacent_position()
+            if candidate and abs(candidate[0] - self.position[0]) + abs(candidate[1] - self.position[1]) <= 6:
+                plant_species = "moss" if random.random() < 0.5 else "fern"
+                ecosystem.spawn_plant(plant_species, candidate, source="natural")
+
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} enriched a shoreline feeding ground")
+
+
 class WildBoar(Animal):
     """野猪 - 杂食，用鼻子掘食"""
     

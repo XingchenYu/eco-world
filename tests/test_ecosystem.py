@@ -306,6 +306,8 @@ def test_v4_registry_queries():
     assert "hippopotamus" in wetland_species
     assert "nile_crocodile" in wetland_species
     assert any(relation.relation_type == "competition" for relation in crocodile_relations)
+    assert registry.get_runtime_bridge("hippopotamus").runtime_species_id == "hippopotamus"
+    assert registry.get_runtime_bridge("hippopotamus").support_level == "native"
     assert crocodile_bridge.runtime_species_id == "crocodile"
     assert crocodile_bridge.support_level == "native"
     assert registry.get_runtime_bridge("beaver").runtime_species_id == "beaver"
@@ -411,6 +413,41 @@ def test_crocodile_ambush_effect():
     print("✅ Crocodile ambush test passed")
 
 
+def test_hippopotamus_registration_and_spawn():
+    """河马应完成注册，并能在水边或浅水生成。"""
+    eco = Ecosystem()
+    position = eco._random_water_adjacent_position() or eco._random_water_position_for_body_type({"river_channel", "lake_shallow"})
+    assert position is not None
+
+    initial = eco.get_species_count("hippopotamus")
+    eco.spawn_animal("hippopotamus", position, source="manual")
+
+    assert eco.get_species_count("hippopotamus") == initial + 1
+    assert eco.animals[-1].species == "hippopotamus"
+
+    print("✅ Hippopotamus registration test passed")
+
+
+def test_hippopotamus_nutrient_cycle_effect():
+    """河马应能触发基础岸带营养回流效果。"""
+    eco = Ecosystem()
+    position = eco._random_water_adjacent_position() or eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("hippopotamus", position, source="manual")
+    hippo = eco.animals[-1]
+    before_events = len(eco.events)
+    before_value = eco.get_local_microhabitat_value(position, {"wetland_patch", "shore_hatch"}, radius=3)
+
+    hippo._cycle_nutrients(eco)
+
+    after_value = eco.get_local_microhabitat_value(position, {"wetland_patch", "shore_hatch"}, radius=3)
+    assert len(eco.events) == before_events + 1
+    assert after_value >= before_value
+
+    print("✅ Hippopotamus nutrient cycle test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -436,6 +473,8 @@ def run_all_tests():
     test_beaver_engineering_effect()
     test_crocodile_registration_and_spawn()
     test_crocodile_ambush_effect()
+    test_hippopotamus_registration_and_spawn()
+    test_hippopotamus_nutrient_cycle_effect()
     
     print("\n✅ All tests passed!")
 
