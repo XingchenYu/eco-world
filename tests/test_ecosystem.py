@@ -39,6 +39,11 @@ from src.ecology.grassland import (
     apply_region_grassland_chain_rebalancing,
     build_region_grassland_chain_summary,
 )
+from src.ecology.carrion import (
+    apply_region_carrion_chain_feedback,
+    apply_region_carrion_chain_rebalancing,
+    build_region_carrion_chain_summary,
+)
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
 from src.main import load_config
@@ -312,12 +317,15 @@ def test_v4_world_simulation_skeleton():
     assert stats["symbiosis"]["active_relations"] >= 1
     assert stats["wetland_chain"]["key_species"] == []
     assert stats["grassland_chain"]["key_species"] == []
+    assert stats["carrion_chain"]["key_species"] == []
     assert "cascade" in stats["active_region"]["relationship_state"]
     assert "competition" in stats["active_region"]["relationship_state"]
     assert "predation" in stats["active_region"]["relationship_state"]
     assert "symbiosis" in stats["active_region"]["relationship_state"]
     assert "grassland_chain" in stats["active_region"]["relationship_state"]
     assert "grassland_rebalancing" in stats["active_region"]["relationship_state"]
+    assert "carrion_chain" in stats["active_region"]["relationship_state"]
+    assert "carrion_rebalancing" in stats["active_region"]["relationship_state"]
     assert stats["active_region"]["ecological_pressures"]
 
     world_sim.set_active_region("wetland_lake")
@@ -339,6 +347,8 @@ def test_v4_world_simulation_skeleton():
     assert grassland_stats["grassland_chain"]["key_species"]
     assert grassland_stats["grassland_chain"]["layer_scores"]["engineering_layer"] > 0.0
     assert "grassland_rebalancing" in grassland_stats
+    assert grassland_stats["carrion_chain"]["key_species"]
+    assert grassland_stats["carrion_chain"]["resource_scores"]["carcass_competition_loop"] > 0.0
 
     print("✅ V4 world simulation test passed")
 
@@ -359,6 +369,8 @@ def test_v4_region_relationship_state_persists():
     assert "grassland_chain" in region.relationship_state
     assert "wetland_rebalancing" in region.relationship_state
     assert "grassland_rebalancing" in region.relationship_state
+    assert "carrion_chain" in region.relationship_state
+    assert "carrion_rebalancing" in region.relationship_state
     assert region.ecological_pressures
     assert region.relationship_state["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
     assert region.relationship_state["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
@@ -667,6 +679,38 @@ def test_v4_grassland_chain_summary():
     print("✅ V4 grassland chain summary test passed")
 
 
+def test_v4_carrion_chain_summary():
+    """v4 尸体资源链摘要应识别草原尸体资源闭环。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+
+    grassland = world_map.get_region("temperate_grassland")
+    wetland = world_map.get_region("wetland_lake")
+
+    grassland_chain = build_region_carrion_chain_summary(grassland, registry)
+    wetland_chain = build_region_carrion_chain_summary(wetland, registry)
+
+    assert "lion" in grassland_chain.key_species
+    assert "hyena" in grassland_chain.key_species
+    assert "antelope" in grassland_chain.key_species
+    assert "zebra" in grassland_chain.key_species
+    assert grassland_chain.resource_scores["kill_generation"] > 0.0
+    assert grassland_chain.resource_scores["scavenger_pressure"] > 0.0
+    assert grassland_chain.resource_scores["carcass_competition_loop"] > 0.0
+    assert grassland_chain.resource_scores["carrion_energy_loop"] > 0.0
+    assert grassland_chain.layer_scores["kill_layer"] > 0.0
+    assert grassland_chain.layer_scores["scavenge_layer"] > 0.0
+    assert grassland_chain.layer_scores["herd_source_layer"] > 0.0
+    assert "lion" in grassland_chain.layer_species["kill_layer"]
+    assert "hyena" in grassland_chain.layer_species["scavenge_layer"]
+    assert "antelope" in grassland_chain.layer_species["herd_source_layer"]
+
+    assert wetland_chain.key_species == []
+    assert wetland_chain.resource_scores == {}
+
+    print("✅ V4 carrion chain summary test passed")
+
+
 def test_v4_wetland_chain_feedback_updates_region_state():
     """v4 湿地链反馈应轻量更新区域资源、风险和健康状态。"""
     world_map = build_default_world_map()
@@ -748,6 +792,48 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     )
 
     print("✅ V4 grassland chain rebalancing test passed")
+
+
+def test_v4_carrion_chain_feedback_updates_region_state():
+    """v4 尸体资源链反馈应轻量更新草原资源与健康状态。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("temperate_grassland")
+
+    initial_carrion = region.resource_state["carcass_availability"]
+    initial_resilience = region.health_state["resilience"]
+
+    summary = build_region_carrion_chain_summary(region, registry)
+    apply_region_carrion_chain_feedback(region, summary, feedback_scale=0.05)
+
+    assert region.resource_state["carcass_availability"] >= initial_carrion
+    assert region.health_state["resilience"] >= initial_resilience
+
+    print("✅ V4 carrion chain feedback test passed")
+
+
+def test_v4_carrion_chain_rebalancing_updates_species_pool():
+    """v4 尸体资源链重平衡应轻量调整草原关键物种池。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("temperate_grassland")
+
+    initial_antelope = region.species_pool["antelope"]
+    initial_zebra = region.species_pool["zebra"]
+    initial_hyena = region.species_pool["hyena"]
+
+    summary = build_region_carrion_chain_summary(region, registry)
+    adjustments = apply_region_carrion_chain_rebalancing(region, summary)
+
+    assert adjustments
+    assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "herd_source_layer"} for item in adjustments)
+    assert (
+        region.species_pool["antelope"] != initial_antelope
+        or region.species_pool["zebra"] != initial_zebra
+        or region.species_pool["hyena"] != initial_hyena
+    )
+
+    print("✅ V4 carrion chain rebalancing test passed")
 
 
 def test_v4_predation_feedback_updates_region_state():
@@ -1128,10 +1214,13 @@ def run_all_tests():
     test_v4_region_symbiosis_summary()
     test_v4_wetland_chain_summary()
     test_v4_grassland_chain_summary()
+    test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()
     test_v4_grassland_chain_feedback_updates_region_state()
     test_v4_grassland_chain_rebalancing_updates_species_pool()
+    test_v4_carrion_chain_feedback_updates_region_state()
+    test_v4_carrion_chain_rebalancing_updates_species_pool()
     test_v4_predation_feedback_updates_region_state()
     test_v4_symbiosis_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()

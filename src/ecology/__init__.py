@@ -5,6 +5,12 @@ from .cascade import (
     apply_region_cascade_feedback,
     build_region_cascade_summary,
 )
+from .carrion import (
+    RegionCarrionChainSummary,
+    apply_region_carrion_chain_feedback,
+    apply_region_carrion_chain_rebalancing,
+    build_region_carrion_chain_summary,
+)
 from .competition import (
     RegionCompetitionSummary,
     apply_region_competition_feedback,
@@ -29,12 +35,15 @@ from .wetland import (
 __all__ = [
     "RegionFoodWeb",
     "RegionCascadeSummary",
+    "RegionCarrionChainSummary",
     "RegionCompetitionSummary",
     "RegionGrasslandChainSummary",
     "RegionPredationSummary",
     "RegionSymbiosisSummary",
     "RegionWetlandChainSummary",
     "apply_region_cascade_feedback",
+    "apply_region_carrion_chain_feedback",
+    "apply_region_carrion_chain_rebalancing",
     "apply_region_competition_feedback",
     "apply_region_grassland_chain_feedback",
     "apply_region_grassland_chain_rebalancing",
@@ -43,6 +52,7 @@ __all__ = [
     "apply_region_wetland_chain_feedback",
     "apply_region_wetland_chain_rebalancing",
     "build_region_food_web",
+    "build_region_carrion_chain_summary",
     "build_region_competition_summary",
     "build_region_cascade_summary",
     "build_region_grassland_chain_summary",

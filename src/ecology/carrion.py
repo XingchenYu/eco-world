@@ -1,0 +1,165 @@
+"""v4 尸体资源链摘要、反馈与重平衡。"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Dict, List
+
+from src.data import WorldRegistry
+from src.world import Region
+
+
+@dataclass
+class RegionCarrionChainSummary:
+    """草原尸体资源链摘要。"""
+
+    region_id: str
+    key_species: List[str] = field(default_factory=list)
+    resource_scores: Dict[str, float] = field(default_factory=dict)
+    layer_scores: Dict[str, float] = field(default_factory=dict)
+    layer_species: Dict[str, List[str]] = field(default_factory=dict)
+    narrative_chain: List[str] = field(default_factory=list)
+
+
+def build_region_carrion_chain_summary(region: Region, registry: WorldRegistry) -> RegionCarrionChainSummary:
+    """构建草原区尸体资源链摘要。"""
+
+    if "grassland" not in region.dominant_biomes:
+        return RegionCarrionChainSummary(region_id=region.region_id)
+
+    region_species = set(region.species_pool)
+    key_species = [species for species in ("lion", "hyena", "antelope", "zebra") if species in region_species]
+    resource_scores: Dict[str, float] = {}
+    layer_scores: Dict[str, float] = {}
+    layer_species: Dict[str, List[str]] = {
+        "kill_layer": [],
+        "scavenge_layer": [],
+        "herd_source_layer": [],
+    }
+    narrative_chain: List[str] = []
+
+    def add_score(key: str, value: float, narrative: str) -> None:
+        resource_scores[key] = round(resource_scores.get(key, 0.0) + value, 2)
+        if narrative not in narrative_chain:
+            narrative_chain.append(narrative)
+
+    def add_layer(layer: str, species: str, value: float) -> None:
+        layer_scores[layer] = round(layer_scores.get(layer, 0.0) + value, 2)
+        if species not in layer_species[layer]:
+            layer_species[layer].append(species)
+
+    if "lion" in region_species:
+        add_score("kill_generation", 0.74, "狮群会把草食群猎杀事件转化成局部尸体资源热点。")
+        add_score("kill_site_control", 0.62, "狮群会优先控制击杀点周边的草原空间。")
+        add_layer("kill_layer", "lion", 0.74)
+    if "hyena" in region_species:
+        add_score("scavenger_pressure", 0.68, "鬣狗群会高频利用残食和尸体，把草原能量回收到清道夫链。")
+        add_score("carcass_recycling", 0.57, "鬣狗群提升尸体资源的周转速度。")
+        add_layer("scavenge_layer", "hyena", 0.68)
+    if "antelope" in region_species:
+        add_score("herd_mortality_supply", 0.46, "羚羊群为草原尸体资源链提供稳定的中型猎物来源。")
+        add_layer("herd_source_layer", "antelope", 0.46)
+    if "zebra" in region_species:
+        add_score("large_carcass_supply", 0.52, "斑马群提供更大体量的尸体资源峰值。")
+        add_layer("herd_source_layer", "zebra", 0.52)
+    if {"lion", "hyena"} <= region_species:
+        add_score("carcass_competition_loop", 0.66, "狮群与鬣狗围绕尸体与击杀点形成持续争夺。")
+    if {"lion", "hyena"} <= region_species and {"antelope", "zebra"} & region_species:
+        add_score("carrion_energy_loop", 0.71, "草食群、狮群和鬣狗共同闭合草原尸体资源链。")
+
+    return RegionCarrionChainSummary(
+        region_id=region.region_id,
+        key_species=key_species,
+        resource_scores=dict(sorted(resource_scores.items())),
+        layer_scores=dict(sorted(layer_scores.items())),
+        layer_species={layer: sorted(species) for layer, species in layer_species.items() if species},
+        narrative_chain=narrative_chain,
+    )
+
+
+def apply_region_carrion_chain_feedback(
+    region: Region,
+    carrion_chain: RegionCarrionChainSummary,
+    feedback_scale: float = 0.02,
+) -> None:
+    """将尸体资源链轻量回灌到区域状态。"""
+
+    scores = carrion_chain.resource_scores
+    _adjust(region.resource_state, "carcass_availability", scores.get("kill_generation", 0.0) * 0.26, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("large_carcass_supply", 0.0) * 0.24, feedback_scale)
+    _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14, feedback_scale)
+
+
+def apply_region_carrion_chain_rebalancing(region: Region, carrion_chain: RegionCarrionChainSummary) -> List[dict]:
+    """根据尸体资源链对草原关键物种池做低频、轻量重平衡。"""
+
+    if not carrion_chain.resource_scores:
+        return []
+
+    adjustments: List[dict] = []
+    species_pool = region.species_pool
+    scores = carrion_chain.resource_scores
+
+    lion_count = species_pool.get("lion", 0)
+    hyena_count = species_pool.get("hyena", 0)
+    antelope_count = species_pool.get("antelope", 0)
+    zebra_count = species_pool.get("zebra", 0)
+
+    if scores.get("carrion_energy_loop", 0.0) >= 0.7 and antelope_count < 20:
+        species_pool["antelope"] = antelope_count + 1
+        adjustments.append(
+            {
+                "source_species": "carrion_chain",
+                "target_species": "antelope",
+                "layer_group": "herd_source_layer",
+                "effect": "carrion_source_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
+
+    if scores.get("carcass_competition_loop", 0.0) >= 0.6 and lion_count >= 3 and hyena_count >= 4:
+        species_pool["hyena"] = hyena_count - 1
+        adjustments.append(
+            {
+                "source_species": "lion",
+                "target_species": "hyena",
+                "layer_group": "scavenge_layer",
+                "effect": "kill_site_exclusion",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    elif scores.get("scavenger_pressure", 0.0) >= 0.65 and hyena_count >= 4 and lion_count >= 2:
+        species_pool["lion"] = lion_count - 1
+        adjustments.append(
+            {
+                "source_species": "hyena",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "scavenger_pushback",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+
+    if scores.get("large_carcass_supply", 0.0) >= 0.5 and zebra_count < 14:
+        species_pool["zebra"] = zebra_count + 1
+        adjustments.append(
+            {
+                "source_species": "carrion_chain",
+                "target_species": "zebra",
+                "layer_group": "herd_source_layer",
+                "effect": "large_carcass_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+
+    return adjustments
+
+
+def _adjust(state: Dict[str, float], key: str, raw_delta: float, feedback_scale: float) -> None:
+    if not raw_delta:
+        return
+    current = state.get(key, 0.0)
+    state[key] = round(max(0.0, min(1.0, current + raw_delta * feedback_scale)), 4)

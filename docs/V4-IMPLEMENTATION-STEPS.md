@@ -250,6 +250,15 @@
   - `species_pool`
   - `carcass_availability`
   - `predation_pressure`
+- 草原区现已新增独立 `carrion_chain`
+- `carrion_chain` 现已显式输出：
+  - `kill_layer`
+  - `scavenge_layer`
+  - `herd_source_layer`
+- 尸体资源链现已支持：
+  - 状态反馈
+  - 低频 `species_pool` 重平衡
+  - 区域关系状态持久化
 
 ### Step 9
 补草原顶级捕食与清道夫组

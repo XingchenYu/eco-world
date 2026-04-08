@@ -34,6 +34,22 @@
   - `predation_pressure`
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增狮鬣狗尸体资源竞争断言并通过
 
+### v4.0-alpha5 (2026-04-08 20:55)
+
+- ✅ 新增 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py)，把草原尸体资源链从竞争摘要中拆成独立模块
+- ✅ `WorldSimulation` 统计新增：
+  - `carrion_chain`
+  - `carrion_rebalancing`
+- ✅ `carrion_chain` 现已显式输出：
+  - `kill_layer`
+  - `scavenge_layer`
+  - `herd_source_layer`
+- ✅ 尸体资源链现已支持：
+  - 状态反馈
+  - 低频 `species_pool` 重平衡
+  - 区域关系状态持久化
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `carrion_chain` 摘要、反馈、重平衡断言并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要

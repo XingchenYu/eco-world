@@ -8,6 +8,8 @@ from typing import Dict, Optional
 from src.data import WorldRegistry, build_default_world_registry
 from src.ecology import (
     apply_region_cascade_feedback,
+    apply_region_carrion_chain_feedback,
+    apply_region_carrion_chain_rebalancing,
     apply_region_competition_feedback,
     apply_region_grassland_chain_feedback,
     apply_region_grassland_chain_rebalancing,
@@ -16,6 +18,7 @@ from src.ecology import (
     apply_region_wetland_chain_feedback,
     apply_region_wetland_chain_rebalancing,
     build_region_cascade_summary,
+    build_region_carrion_chain_summary,
     build_region_competition_summary,
     build_region_food_web,
     build_region_grassland_chain_summary,
@@ -54,6 +57,7 @@ class WorldSimulation:
         self.region_simulations: Dict[str, RegionSimulation] = {}
         self.tick_count = 0
         self.last_competition_adjustments: Dict[str, list[dict]] = {}
+        self.last_carrion_adjustments: Dict[str, list[dict]] = {}
         self.last_wetland_adjustments: Dict[str, list[dict]] = {}
         self.last_grassland_adjustments: Dict[str, list[dict]] = {}
 
@@ -65,6 +69,7 @@ class WorldSimulation:
         region: Region,
         cascade: object,
         competition: object,
+        carrion_chain: object,
         predation: object,
         symbiosis: object,
         wetland_chain: object,
@@ -72,6 +77,7 @@ class WorldSimulation:
         competition_adjustments: list[dict],
         wetland_adjustments: list[dict],
         grassland_adjustments: list[dict],
+        carrion_adjustments: list[dict],
     ) -> None:
         region.record_relationship_state(
             "cascade",
@@ -88,6 +94,16 @@ class WorldSimulation:
                 "active_relations": len(competition.active_relations),
                 "pressure_scores": dict(competition.pressure_scores),
                 "contested_resources": list(competition.contested_resources),
+            },
+        )
+        region.record_relationship_state(
+            "carrion_chain",
+            {
+                "key_species": list(carrion_chain.key_species),
+                "resource_scores": dict(carrion_chain.resource_scores),
+                "layer_scores": dict(carrion_chain.layer_scores),
+                "layer_species": {key: list(value) for key, value in carrion_chain.layer_species.items()},
+                "narrative_chain": list(carrion_chain.narrative_chain),
             },
         )
         region.record_relationship_state(
@@ -148,7 +164,18 @@ class WorldSimulation:
                 "layer_groups": grassland_layer_groups,
             },
         )
-        region.append_adjustments(competition_adjustments + wetland_adjustments + grassland_adjustments)
+        carrion_layer_groups: Dict[str, int] = {}
+        for item in carrion_adjustments:
+            layer_group = item.get("layer_group", "ungrouped")
+            carrion_layer_groups[layer_group] = carrion_layer_groups.get(layer_group, 0) + 1
+        region.record_relationship_state(
+            "carrion_rebalancing",
+            {
+                "adjustments": list(carrion_adjustments),
+                "layer_groups": carrion_layer_groups,
+            },
+        )
+        region.append_adjustments(competition_adjustments + wetland_adjustments + grassland_adjustments + carrion_adjustments)
 
         combined_pressures: Dict[str, float] = {}
         for source in (
@@ -158,6 +185,7 @@ class WorldSimulation:
             symbiosis.supported_resources,
             wetland_chain.key_species,
             grassland_chain.key_species,
+            carrion_chain.key_species,
         ):
             for key in source:
                 combined_pressures[key] = combined_pressures.get(key, 0.0) + 1.0
@@ -172,6 +200,8 @@ class WorldSimulation:
         for key, value in wetland_chain.trophic_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in grassland_chain.trophic_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in carrion_chain.resource_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
 
         region.update_ecological_pressures(combined_pressures)
@@ -209,6 +239,7 @@ class WorldSimulation:
         predation = build_region_predation_summary(active_region, self.registry)
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         grassland_chain = build_region_grassland_chain_summary(active_region, self.registry)
+        carrion_chain = build_region_carrion_chain_summary(active_region, self.registry)
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -221,18 +252,22 @@ class WorldSimulation:
         apply_region_symbiosis_feedback(active_region, symbiosis)
         apply_region_wetland_chain_feedback(active_region, wetland_chain)
         apply_region_grassland_chain_feedback(active_region, grassland_chain)
+        apply_region_carrion_chain_feedback(active_region, carrion_chain)
         competition_adjustments: list[dict] = []
         wetland_adjustments: list[dict] = []
         grassland_adjustments: list[dict] = []
+        carrion_adjustments: list[dict] = []
         if self.tick_count % 8 == 0:
             competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
         if self.tick_count % 6 == 0:
             wetland_adjustments = apply_region_wetland_chain_rebalancing(active_region, wetland_chain)
             grassland_adjustments = apply_region_grassland_chain_rebalancing(active_region, grassland_chain)
+            carrion_adjustments = apply_region_carrion_chain_rebalancing(active_region, carrion_chain)
         self._persist_region_relationships(
             active_region,
             cascade=cascade,
             competition=competition,
+            carrion_chain=carrion_chain,
             predation=predation,
             symbiosis=symbiosis,
             wetland_chain=wetland_chain,
@@ -240,10 +275,12 @@ class WorldSimulation:
             competition_adjustments=competition_adjustments,
             wetland_adjustments=wetland_adjustments,
             grassland_adjustments=grassland_adjustments,
+            carrion_adjustments=carrion_adjustments,
         )
         self.last_competition_adjustments[active_region.region_id] = competition_adjustments
         self.last_wetland_adjustments[active_region.region_id] = wetland_adjustments
         self.last_grassland_adjustments[active_region.region_id] = grassland_adjustments
+        self.last_carrion_adjustments[active_region.region_id] = carrion_adjustments
         self.tick_count += 1
         return WorldTickSummary(
             tick=self.tick_count,
@@ -263,6 +300,7 @@ class WorldSimulation:
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         grassland_chain = build_region_grassland_chain_summary(active_region, self.registry)
+        carrion_chain = build_region_carrion_chain_summary(active_region, self.registry)
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -332,6 +370,7 @@ class WorldSimulation:
             },
             "wetland_rebalancing": list(self.last_wetland_adjustments.get(active_region.region_id, [])),
             "grassland_rebalancing": list(self.last_grassland_adjustments.get(active_region.region_id, [])),
+            "carrion_rebalancing": list(self.last_carrion_adjustments.get(active_region.region_id, [])),
             "predation": {
                 "active_relations": len(predation.active_relations),
                 "pressure_scores": dict(predation.pressure_scores),
@@ -357,6 +396,13 @@ class WorldSimulation:
                 "layer_scores": dict(grassland_chain.layer_scores),
                 "layer_species": {key: list(value) for key, value in grassland_chain.layer_species.items()},
                 "narrative_chain": list(grassland_chain.narrative_chain),
+            },
+            "carrion_chain": {
+                "key_species": list(carrion_chain.key_species),
+                "resource_scores": dict(carrion_chain.resource_scores),
+                "layer_scores": dict(carrion_chain.layer_scores),
+                "layer_species": {key: list(value) for key, value in carrion_chain.layer_species.items()},
+                "narrative_chain": list(carrion_chain.narrative_chain),
             },
             "simulation": simulation_stats,
         }
