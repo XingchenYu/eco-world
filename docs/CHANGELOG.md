@@ -88,6 +88,20 @@
   - `stable_clan_carrion_recovery`
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `social_state` 低频重平衡断言并通过
 
+### v4.0-alpha20 (2026-04-09 01:10)
+
+- ✅ `social_state` 现在不仅会触发低频恢复，还会在条件满足时打开：
+  - `pride_expansion_window`
+  - `clan_expansion_window`
+  - `pride_carrion_expansion_window`
+  - `clan_carrion_expansion_window`
+- ✅ 这些扩张窗口同时要求：
+  - 高稳定度
+  - 足够的 group 数量
+  - 可扩张的热点布局
+  - 充足的草食群或尸体资源
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增扩张窗口断言并通过
+
 ---
 
 ## 更新规范

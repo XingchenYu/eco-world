@@ -959,6 +959,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer", "social_layer"} for item in adjustments)
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
+    assert any(item["effect"] in {"pride_expansion_window", "clan_expansion_window"} for item in adjustments)
     assert (
         region.species_pool["rabbit"] != initial_rabbit
         or region.species_pool["hyena"] != initial_hyena
@@ -1003,7 +1004,9 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
         registry,
         runtime_state={
             "lion_pride_strength": 0.7,
+            "lion_pride_count": 2.0,
             "hyena_clan_cohesion": 0.6,
+            "hyena_clan_count": 2.0,
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
             "shared_hotspot_overlap": 1.0,
@@ -1016,6 +1019,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "aerial_scavenge_layer", "herd_source_layer"} for item in adjustments)
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
+    assert any(item["effect"] in {"pride_carrion_expansion_window", "clan_carrion_expansion_window"} for item in adjustments)
     assert (
         region.species_pool["antelope"] != initial_antelope
         or region.species_pool["zebra"] != initial_zebra

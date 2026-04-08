@@ -94,6 +94,14 @@
   - `grassland_rebalancing`
   - `carrion_rebalancing`
   用于 `stable pride / clan` 的低频恢复
+- 当：
+  - 社群稳定度高
+  - 群体数量足够
+  - 热点分布可扩张
+  - 草食群与尸体资源充足
+  时，这层稳定度现在也会打开：
+  - `pride expansion window`
+  - `clan expansion window`
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`

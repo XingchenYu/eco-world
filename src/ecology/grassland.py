@@ -363,6 +363,42 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["hyena"],
             }
         )
+    if (
+        pride_strength >= 0.68
+        and pride_count_signal >= 2
+        and lion_hotspots >= 2
+        and hotspot_overlap <= 1
+        and antelope_count + zebra_count >= 24
+        and lion_count < 6
+    ):
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_state",
+                "target_species": "lion",
+                "layer_group": "social_layer",
+                "effect": "pride_expansion_window",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if (
+        clan_cohesion >= 0.65
+        and clan_count_signal >= 2
+        and hyena_hotspots >= 2
+        and hotspot_overlap <= 1
+        and antelope_count + zebra_count >= 24
+        and hyena_count < 7
+    ):
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_state",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "clan_expansion_window",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
 
     if apex_predation >= 0.7 and giraffe_count > 3 and lion_count >= 2:
         species_pool["giraffe"] = giraffe_count - 1

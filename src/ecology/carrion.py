@@ -143,6 +143,8 @@ def apply_region_carrion_chain_rebalancing(
     hyena_hotspots = 0
     pride_strength = 0.0
     clan_cohesion = 0.0
+    pride_count = 0
+    clan_count = 0
     if territory_summary is not None:
         runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
         hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
@@ -150,6 +152,8 @@ def apply_region_carrion_chain_rebalancing(
         hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
         pride_strength = float(runtime_signals.get("lion_pride_strength", 0.0))
         clan_cohesion = float(runtime_signals.get("hyena_clan_cohesion", 0.0))
+        pride_count = int(runtime_signals.get("lion_pride_count", 0))
+        clan_count = int(runtime_signals.get("hyena_clan_count", 0))
 
     if scores.get("carrion_energy_loop", 0.0) >= 0.7 and antelope_count < 20:
         species_pool["antelope"] = antelope_count + 1
@@ -260,6 +264,44 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "hyena",
                 "layer_group": "scavenge_layer",
                 "effect": "stable_clan_carrion_recovery",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if (
+        pride_strength >= 0.68
+        and pride_count >= 2
+        and lion_hotspots >= 2
+        and hotspot_overlap <= 1
+        and scores.get("kill_generation", 0.0) >= 0.58
+        and scores.get("carrion_energy_loop", 0.0) >= 0.70
+        and lion_count < 6
+    ):
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_state",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "pride_carrion_expansion_window",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if (
+        clan_cohesion >= 0.65
+        and clan_count >= 2
+        and hyena_hotspots >= 2
+        and hotspot_overlap <= 1
+        and scores.get("scavenger_pressure", 0.0) >= 0.58
+        and scores.get("carrion_energy_loop", 0.0) >= 0.70
+        and hyena_count < 7
+    ):
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_state",
+                "target_species": "hyena",
+                "layer_group": "scavenge_layer",
+                "effect": "clan_carrion_expansion_window",
                 "new_target_count": species_pool["hyena"],
             }
         )
