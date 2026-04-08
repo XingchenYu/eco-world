@@ -28,7 +28,11 @@ from src.ecology.competition import (
 )
 from src.ecology.predation import apply_region_predation_feedback, build_region_predation_summary
 from src.ecology.symbiosis import apply_region_symbiosis_feedback, build_region_symbiosis_summary
-from src.ecology.wetland import apply_region_wetland_chain_feedback, build_region_wetland_chain_summary
+from src.ecology.wetland import (
+    apply_region_wetland_chain_feedback,
+    apply_region_wetland_chain_rebalancing,
+    build_region_wetland_chain_summary,
+)
 from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
@@ -316,6 +320,7 @@ def test_v4_world_simulation_skeleton():
     assert wetland_stats["wetland_chain"]["key_species"]
     assert wetland_stats["wetland_chain"]["trophic_scores"]["wetland_engineering"] > 0.0
     assert wetland_stats["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
+    assert "wetland_rebalancing" in wetland_stats
     assert wetland_stats["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
     assert wetland_stats["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
 
@@ -589,6 +594,24 @@ def test_v4_wetland_chain_feedback_updates_region_state():
     assert region.health_state["resilience"] >= initial_resilience
 
     print("✅ V4 wetland chain feedback test passed")
+
+
+def test_v4_wetland_chain_rebalancing_updates_species_pool():
+    """v4 湿地链重平衡应轻量调整湿地关键物种池。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("wetland_lake")
+
+    initial_minnow = region.species_pool["minnow"]
+    initial_frog = region.species_pool["frog"]
+
+    summary = build_region_wetland_chain_summary(region, registry)
+    adjustments = apply_region_wetland_chain_rebalancing(region, summary)
+
+    assert adjustments
+    assert region.species_pool["minnow"] != initial_minnow or region.species_pool["frog"] != initial_frog
+
+    print("✅ V4 wetland chain rebalancing test passed")
 
 
 def test_v4_predation_feedback_updates_region_state():
@@ -875,6 +898,7 @@ def run_all_tests():
     test_v4_region_symbiosis_summary()
     test_v4_wetland_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
+    test_v4_wetland_chain_rebalancing_updates_species_pool()
     test_v4_predation_feedback_updates_region_state()
     test_v4_symbiosis_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()

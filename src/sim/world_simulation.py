@@ -12,6 +12,7 @@ from src.ecology import (
     apply_region_predation_feedback,
     apply_region_symbiosis_feedback,
     apply_region_wetland_chain_feedback,
+    apply_region_wetland_chain_rebalancing,
     build_region_cascade_summary,
     build_region_competition_summary,
     build_region_food_web,
@@ -50,6 +51,7 @@ class WorldSimulation:
         self.region_simulations: Dict[str, RegionSimulation] = {}
         self.tick_count = 0
         self.last_competition_adjustments: Dict[str, list[dict]] = {}
+        self.last_wetland_adjustments: Dict[str, list[dict]] = {}
 
         self.active_region_id = initial_region_id or next(iter(self.world_map.regions))
         self.ensure_region_simulation(self.active_region_id)
@@ -63,6 +65,7 @@ class WorldSimulation:
         symbiosis: object,
         wetland_chain: object,
         competition_adjustments: list[dict],
+        wetland_adjustments: list[dict],
     ) -> None:
         region.record_relationship_state(
             "cascade",
@@ -105,7 +108,7 @@ class WorldSimulation:
                 "narrative_chain": list(wetland_chain.narrative_chain),
             },
         )
-        region.append_adjustments(competition_adjustments)
+        region.append_adjustments(competition_adjustments + wetland_adjustments)
 
         combined_pressures: Dict[str, float] = {}
         for source in (
@@ -174,8 +177,11 @@ class WorldSimulation:
         apply_region_symbiosis_feedback(active_region, symbiosis)
         apply_region_wetland_chain_feedback(active_region, wetland_chain)
         competition_adjustments: list[dict] = []
+        wetland_adjustments: list[dict] = []
         if self.tick_count % 8 == 0:
             competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
+        if self.tick_count % 6 == 0:
+            wetland_adjustments = apply_region_wetland_chain_rebalancing(active_region, wetland_chain)
         self._persist_region_relationships(
             active_region,
             cascade=cascade,
@@ -184,8 +190,10 @@ class WorldSimulation:
             symbiosis=symbiosis,
             wetland_chain=wetland_chain,
             competition_adjustments=competition_adjustments,
+            wetland_adjustments=wetland_adjustments,
         )
         self.last_competition_adjustments[active_region.region_id] = competition_adjustments
+        self.last_wetland_adjustments[active_region.region_id] = wetland_adjustments
         self.tick_count += 1
         return WorldTickSummary(
             tick=self.tick_count,
@@ -271,6 +279,7 @@ class WorldSimulation:
                 "narrative_competition": list(competition.narrative_competition),
                 "competition_adjustments": list(self.last_competition_adjustments.get(active_region.region_id, [])),
             },
+            "wetland_rebalancing": list(self.last_wetland_adjustments.get(active_region.region_id, [])),
             "predation": {
                 "active_relations": len(predation.active_relations),
                 "pressure_scores": dict(predation.pressure_scores),

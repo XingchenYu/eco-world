@@ -27,6 +27,7 @@
 - ✅ 新增湿地链测试并修正世界统计测试中的区域语义断言
 - ✅ 湿地链现在会轻量反馈到区域 `resource_state / hazard_state / health_state`，并持久写入 `relationship_state["wetland_chain"]`
 - ✅ 新增 [src/ecology/predation.py](/Users/yumini/Projects/eco-world/src/ecology/predation.py)，把湿地链与夜行链的分层捕食压力从摘要中拆成独立模块
+- ✅ 湿地链现已支持低频 `species_pool` 重平衡，开始把岸带耦合与顶层压制反馈到关键湿地物种池
 | fruits-omnivores.md | entities/omnivores.py | 杂食动物变更 |
 | ECOSYSTEM.md | 所有 | 总览更新 |
 | USAGE.md | main.py | 启动参数变更 |

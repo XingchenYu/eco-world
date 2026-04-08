@@ -104,6 +104,85 @@ def apply_region_wetland_chain_feedback(
     _adjust(region.health_state, "connectivity", scores.get("shoreline_trophic_coupling", 0.0) * 0.2, feedback_scale)
 
 
+def apply_region_wetland_chain_rebalancing(region: Region, wetland_chain: RegionWetlandChainSummary) -> List[dict]:
+    """根据湿地链结构对物种池做低频、轻量重平衡。"""
+
+    if not wetland_chain.trophic_scores:
+        return []
+
+    adjustments: List[dict] = []
+    species_pool = region.species_pool
+    scores = wetland_chain.trophic_scores
+
+    minnow_count = species_pool.get("minnow", 0)
+    catfish_count = species_pool.get("catfish", 0)
+    blackfish_count = species_pool.get("blackfish", 0)
+    kingfisher_count = species_pool.get("kingfisher_v4", 0)
+    frog_count = species_pool.get("frog", 0)
+    crocodile_count = species_pool.get("nile_crocodile", 0)
+
+    layered_pressure = scores.get("layered_fish_pressure", 0.0)
+    shoreline_coupling = scores.get("shoreline_trophic_coupling", 0.0)
+    shoreline_risk = scores.get("apex_shoreline_risk", 0.0)
+
+    if minnow_count > 0 and layered_pressure >= 0.6 and minnow_count > max(10, catfish_count + blackfish_count):
+        species_pool["minnow"] = max(8, minnow_count - 2)
+        adjustments.append(
+            {
+                "source_species": "wetland_chain",
+                "target_species": "minnow",
+                "effect": "nursery_trim",
+                "new_target_count": species_pool["minnow"],
+            }
+        )
+
+    if shoreline_coupling >= 0.5 and kingfisher_count > 0 and frog_count > 0:
+        if minnow_count < 16:
+            species_pool["minnow"] = minnow_count + 1
+            adjustments.append(
+                {
+                    "source_species": "wetland_chain",
+                    "target_species": "minnow",
+                    "effect": "shoreline_support",
+                    "new_target_count": species_pool["minnow"],
+                }
+            )
+        if frog_count < 30:
+            species_pool["frog"] = frog_count + 1
+            adjustments.append(
+                {
+                    "source_species": "wetland_chain",
+                    "target_species": "frog",
+                    "effect": "amphibian_support",
+                    "new_target_count": species_pool["frog"],
+                }
+            )
+
+    if shoreline_risk >= 0.8 and crocodile_count >= 2:
+        if kingfisher_count > 2:
+            species_pool["kingfisher_v4"] = kingfisher_count - 1
+            adjustments.append(
+                {
+                    "source_species": "nile_crocodile",
+                    "target_species": "kingfisher_v4",
+                    "effect": "shoreline_suppression",
+                    "new_target_count": species_pool["kingfisher_v4"],
+                }
+            )
+        if frog_count > 8:
+            species_pool["frog"] = frog_count - 1
+            adjustments.append(
+                {
+                    "source_species": "nile_crocodile",
+                    "target_species": "frog",
+                    "effect": "shoreline_suppression",
+                    "new_target_count": species_pool["frog"],
+                }
+            )
+
+    return adjustments
+
+
 def _is_wetland_region(region: Region) -> bool:
     if region.region_id == "wetland_lake":
         return True

@@ -16,6 +16,7 @@ from .symbiosis import RegionSymbiosisSummary, apply_region_symbiosis_feedback, 
 from .wetland import (
     RegionWetlandChainSummary,
     apply_region_wetland_chain_feedback,
+    apply_region_wetland_chain_rebalancing,
     build_region_wetland_chain_summary,
 )
 
@@ -31,6 +32,7 @@ __all__ = [
     "apply_region_predation_feedback",
     "apply_region_symbiosis_feedback",
     "apply_region_wetland_chain_feedback",
+    "apply_region_wetland_chain_rebalancing",
     "build_region_food_web",
     "build_region_competition_summary",
     "build_region_cascade_summary",
