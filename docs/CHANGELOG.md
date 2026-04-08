@@ -56,6 +56,21 @@
   - `reproduction_rate`
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion / hyena` 社群稳定度测试并通过
 
+### v4.0-alpha18 (2026-04-09 00:40)
+
+- ✅ `Lion / Hyena` 的社群稳定度现在开始影响：
+  - `litter outcomes`
+  - `postpartum cooldown`
+- ✅ `Lion` 现已支持：
+  - `stable pride support`
+  - `pride instability`
+  两类社群产仔结果记录
+- ✅ `Hyena` 现已支持：
+  - `stable clan support`
+  - `clan instability`
+  两类社群产仔结果记录
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion / hyena` 社群产仔缩放测试并通过
+
 ---
 
 ## 更新规范

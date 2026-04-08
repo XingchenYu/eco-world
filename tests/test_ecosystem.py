@@ -4,6 +4,7 @@
 
 import sys
 import os
+import random
 from copy import deepcopy
 
 # 添加项目根目录到路径
@@ -46,7 +47,7 @@ from src.ecology.carrion import (
     build_region_carrion_chain_summary,
 )
 from src.entities.plants import Grass, Tree
-from src.entities.animals import Rabbit, Fox
+from src.entities.animals import Rabbit, Fox, Gender
 from src.main import load_config
 from src.sim.region_simulation import RegionSimulation
 from src.sim.world_simulation import build_default_world_simulation
@@ -1399,6 +1400,48 @@ def test_lion_social_stability_effect():
     print("✅ Lion social stability test passed")
 
 
+def test_lion_social_birth_scaling():
+    """狮群稳定度应影响产后冷却和幼崽规模。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("lion", pos_high, source="manual")
+    lion_high = eco_high.animals[-1]
+    lion_high.gender = Gender.FEMALE
+    lion_high.pregnant = True
+    lion_high.pride_stability = 0.8
+    before_high = eco_high.get_species_count("lion")
+
+    random.seed(42)
+    lion_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("lion")
+    high_cooldown = lion_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("lion", pos_low, source="manual")
+    lion_low = eco_low.animals[-1]
+    lion_low.gender = Gender.FEMALE
+    lion_low.pregnant = True
+    lion_low.pride_stability = 0.0
+    before_low = eco_low.get_species_count("lion")
+
+    random.seed(42)
+    lion_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("lion")
+    low_cooldown = lion_low.mate_cooldown
+
+    assert high_count > before_high
+    assert low_count > before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Lion social birth scaling test passed")
+
+
 def test_hyena_registration_and_spawn():
     """鬣狗应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -1496,6 +1539,48 @@ def test_hyena_clan_stability_effect():
     print("✅ Hyena clan stability test passed")
 
 
+def test_hyena_social_birth_scaling():
+    """鬣狗 clan 稳定度应影响产后冷却和幼崽规模。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("hyena", pos_high, source="manual")
+    hyena_high = eco_high.animals[-1]
+    hyena_high.gender = Gender.FEMALE
+    hyena_high.pregnant = True
+    hyena_high.clan_stability = 0.8
+    before_high = eco_high.get_species_count("hyena")
+
+    random.seed(24)
+    hyena_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("hyena")
+    high_cooldown = hyena_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("hyena", pos_low, source="manual")
+    hyena_low = eco_low.animals[-1]
+    hyena_low.gender = Gender.FEMALE
+    hyena_low.pregnant = True
+    hyena_low.clan_stability = 0.0
+    before_low = eco_low.get_species_count("hyena")
+
+    random.seed(24)
+    hyena_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("hyena")
+    low_cooldown = hyena_low.mate_cooldown
+
+    assert high_count > before_high
+    assert low_count > before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Hyena social birth scaling test passed")
+
+
 def test_vulture_registration_and_spawn():
     """秃鹫应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -1573,11 +1658,13 @@ def run_all_tests():
     test_lion_pride_core_effect()
     test_lion_male_takeover_effect()
     test_lion_social_stability_effect()
+    test_lion_social_birth_scaling()
     test_hyena_registration_and_spawn()
     test_hyena_scavenging_effect()
     test_hyena_den_cluster_effect()
     test_hyena_clan_front_effect()
     test_hyena_clan_stability_effect()
+    test_hyena_social_birth_scaling()
     test_vulture_registration_and_spawn()
     
     print("\n✅ All tests passed!")

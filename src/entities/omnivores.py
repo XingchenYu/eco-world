@@ -7,6 +7,95 @@ from enum import Enum
 from .animals import Animal, Gender
 
 
+def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_label: str, unstable_label: str):
+    """将社群稳定度接入产仔规模与产后恢复。"""
+    if not animal.pregnant:
+        return
+
+    species_counts = (
+        ecosystem._latest_species_counts
+        if hasattr(ecosystem, "_latest_species_counts") and ecosystem._latest_species_counts
+        else None
+    )
+
+    def species_count(species: str) -> int:
+        if species_counts is not None:
+            return species_counts.get(species, 0)
+        if hasattr(ecosystem, "get_species_count"):
+            return ecosystem.get_species_count(species)
+        return len([a for a in ecosystem.animals if a.species == species and a.alive])
+
+    def diet_count(diet: str) -> int:
+        if hasattr(ecosystem, "get_diet_count"):
+            return ecosystem.get_diet_count(diet)
+        return sum(1 for a in ecosystem.animals if hasattr(a, "diet") and a.diet == diet and a.alive)
+
+    if animal.diet == "herbivore":
+        if species_counts is not None and hasattr(ecosystem, "PLANT_SPECIES"):
+            food_count = sum(species_counts.get(sp, 0) for sp in ecosystem.PLANT_SPECIES)
+        else:
+            food_count = len([p for p in ecosystem.plants if p.alive])
+        food_factor = max(0.2, min(1.5, food_count / max(1, diet_count("herbivore")) / 2))
+    elif animal.diet == "carnivore":
+        prey_species = animal.get_prey_species() if hasattr(animal, "get_prey_species") else []
+        if hasattr(ecosystem, "get_sustainable_population"):
+            food_count = sum(ecosystem.get_sustainable_population(sp) for sp in prey_species)
+        else:
+            food_count = sum(species_count(sp) for sp in prey_species)
+        food_factor = max(0.1, min(1.5, food_count / max(1, diet_count("carnivore")) / 3))
+    else:
+        if species_counts is not None and hasattr(ecosystem, "PLANT_SPECIES"):
+            food_count = sum(species_counts.get(sp, 0) for sp in ecosystem.PLANT_SPECIES)
+        else:
+            food_count = len([p for p in ecosystem.plants if p.alive])
+        food_factor = max(0.2, min(1.5, food_count / max(1, diet_count("omnivore")) / 2))
+
+    predator_pressure = 1.0
+    if hasattr(animal, "get_predators"):
+        predator_count = sum(species_count(sp) for sp in animal.get_predators())
+        predator_pressure = max(0.3, 1.0 - predator_count * 0.05)
+
+    patch_factor = 1.0
+    preferred_kinds = animal.breeding_microhabitat_kinds()
+    if preferred_kinds and hasattr(ecosystem, "get_local_microhabitat_value"):
+        patch_value = ecosystem.get_local_microhabitat_value(animal.position, preferred_kinds, radius=4)
+        patch_factor = max(0.2, min(1.4, patch_value))
+        if patch_value < animal.breeding_patch_threshold():
+            animal.pregnant = False
+            animal.pregnancy_timer = 0
+            animal.mate_cooldown = max(animal.mate_cooldown, 8)
+            return
+
+    base_litter = random.randint(1, 3)
+    litter_size = max(1, min(6, int(round(base_litter * food_factor * predator_pressure * patch_factor * social_factor))))
+
+    for _ in range(litter_size):
+        offspring_pos = (
+            animal.position[0] + random.randint(-2, 2),
+            animal.position[1] + random.randint(-2, 2)
+        )
+        offspring_pos = (
+            max(0, min(offspring_pos[0], ecosystem.width - 1)),
+            max(0, min(offspring_pos[1], ecosystem.height - 1))
+        )
+        ecosystem.spawn_animal(animal.species, offspring_pos, is_offspring=True)
+
+    animal.pregnant = False
+    animal.pregnancy_timer = 0
+    postpartum_cooldown = max(18, min(36, int(round(30 - (social_factor - 1.0) * 12))))
+    animal.mate_cooldown = postpartum_cooldown
+
+    support_label = stable_label if social_factor >= 1.0 else unstable_label
+
+    ecosystem.balance.record_causal_event(
+        cause=f"{animal.species}产仔",
+        effect=f"{animal.species}+{litter_size} ({support_label})",
+        impact=0.2 + max(0.0, social_factor - 1.0) * 0.05,
+        tick=ecosystem.tick_count
+    )
+    ecosystem.log_event(f"{animal.id} gave birth to {litter_size} offspring ({support_label})")
+
+
 class Bear(Animal):
     """熊 - 大型杂食动物，什么都吃"""
     
@@ -592,6 +681,16 @@ class Lion(Animal):
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} pressed a male takeover front")
 
+    def _give_birth(self, ecosystem):
+        social_factor = max(0.65, min(1.35, 0.75 + self.pride_stability))
+        _social_group_birth(
+            self,
+            ecosystem,
+            social_factor=social_factor,
+            stable_label="stable pride support",
+            unstable_label="pride instability",
+        )
+
 
 class Hyena(Animal):
     """鬣狗 - 草原腐食竞争者与机会型捕食者。"""
@@ -734,6 +833,16 @@ class Hyena(Animal):
         self.clan_front_pressure = min(1.0, self.clan_front_pressure + 0.15)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} expanded a clan frontier")
+
+    def _give_birth(self, ecosystem):
+        social_factor = max(0.65, min(1.40, 0.78 + self.clan_stability))
+        _social_group_birth(
+            self,
+            ecosystem,
+            social_factor=social_factor,
+            stable_label="stable clan support",
+            unstable_label="clan instability",
+        )
 
 
 class WildBoar(Animal):

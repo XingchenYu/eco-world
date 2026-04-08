@@ -87,6 +87,9 @@
   - `hunger`
   - `mate_cooldown`
   - `reproduction_rate`
+- 这层稳定度现在也开始影响：
+  - `litter outcomes`
+  - `postpartum cooldown`
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`
