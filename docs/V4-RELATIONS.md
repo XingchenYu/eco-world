@@ -32,6 +32,18 @@
 当前仓库已开始独立实现竞争模块，见：
 - [competition.py](/Users/yumini/Projects/eco-world/src/ecology/competition.py)
 
+### 领地与社群空间
+
+- 狮群核心巡猎带
+- 雄性接管前线
+- 鬣狗 clan 洞穴与尸体通道
+- 河马夜间上岸通道
+- 鳄鱼晒背岸与伏击岸段
+- 大型植食者围绕水源和泥浴位点的共享竞争
+
+当前仓库已开始独立实现第一版领地压力模块，见：
+- [territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py)
+
 ### 共生
 
 - 授粉

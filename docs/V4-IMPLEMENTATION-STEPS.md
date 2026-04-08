@@ -127,7 +127,7 @@
   - `relationship_state`
   - `recent_adjustments`
   - `ecological_pressures`
-- `WorldSimulation` 更新后已开始将 `cascade / competition / symbiosis` 结果持久写回区域对象
+- `WorldSimulation` 更新后已开始将 `cascade / competition / symbiosis / territory` 结果持久写回区域对象
 
 ### Step 6
 收缩 `src/ecology/cascade.py`
@@ -142,7 +142,23 @@
 当前状态：
 - 已完成第一版落地
 - `cascade.py` 已开始汇总 `competition / symbiosis` 的结果
+- `cascade.py` 已开始汇总 `competition / symbiosis / territory` 的结果
 - `cascade` 现在承担上层方向性整合作用，而不再独自承载所有关系实现
+
+### Step 6.5
+新建 `src/ecology/territory.py`
+
+目标：
+- 把草原与湿地的领地、核心活动区和边界冲突拆成独立摘要模块
+- 为后续狮群、鬣狗 clan、河马和鳄鱼的真实领地逻辑预留接口
+
+当前状态：
+- 已完成第一版落地
+- 已新增 [territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py)
+- `WorldSimulation` 统计已新增独立 `territory` 区块
+- 当前已覆盖：
+  - `lion / hyena` 的草原领地压力
+  - `hippopotamus / nile_crocodile / beaver` 的湿地岸带领地压力
 
 ---
 
@@ -217,6 +233,11 @@
   - `browse_layer`
   - `predator_layer`
   - `scavenger_layer`
+- 草原区现已新增独立 `territory` 关系层，用于表达：
+  - `pride_core_range`
+  - `male_takeover_front`
+  - `clan_den_range`
+  - `apex_boundary_conflict`
 - 当前已原生接入：
   - `lion`
   - `hyena`

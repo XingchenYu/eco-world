@@ -76,6 +76,16 @@
 - ✅ `grassland_rebalancing` 现已支持 `social_layer`，开始对 `lion / hyena` 做轻量社群层重平衡
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增草原社群层断言并通过
 
+### v4.0-alpha8 (2026-04-08 22:05)
+
+- ✅ 新增 [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py)，把草原和湿地的领地压力拆成独立关系模块
+- ✅ `WorldSimulation` 统计新增独立 `territory` 区块，并将其持久写入区域 `relationship_state`
+- ✅ 当前 `territory` 已覆盖：
+  - 草原：`pride_core_range`、`male_takeover_front`、`clan_den_range`、`apex_boundary_conflict`
+  - 湿地：`channel_claim`、`basking_bank_claim`、`shoreline_standoff`、`dam_complex_claim`
+- ✅ `cascade.py` 现已开始汇总 `territory`，新增 `territorial_stress`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `territory` 摘要、反馈、世界统计和区域持久化断言并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要

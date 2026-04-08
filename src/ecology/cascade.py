@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .competition import RegionCompetitionSummary
     from .predation import RegionPredationSummary
     from .symbiosis import RegionSymbiosisSummary
+    from .territory import RegionTerritorySummary
 
 
 @dataclass
@@ -64,6 +65,7 @@ def build_region_cascade_summary(
     competition: Optional["RegionCompetitionSummary"] = None,
     predation: Optional["RegionPredationSummary"] = None,
     symbiosis: Optional["RegionSymbiosisSummary"] = None,
+    territory: Optional["RegionTerritorySummary"] = None,
 ) -> RegionCascadeSummary:
     """根据区域关键种和关系网生成粗粒度级联影响摘要。"""
 
@@ -190,6 +192,17 @@ def build_region_cascade_summary(
             if resource not in active_pressures:
                 active_pressures.append(resource)
         for narrative in symbiosis.narrative_symbiosis:
+            if narrative not in narrative_impacts:
+                narrative_impacts.append(narrative)
+
+    if territory is not None:
+        source_modules.append("territory")
+        if territory.pressure_scores:
+            impact_scores["territorial_stress"] = round(sum(territory.pressure_scores.values()), 2)
+        for zone in territory.contested_zones:
+            if zone not in active_pressures:
+                active_pressures.append(zone)
+        for narrative in territory.narrative_territory:
             if narrative not in narrative_impacts:
                 narrative_impacts.append(narrative)
 

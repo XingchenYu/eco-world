@@ -28,6 +28,7 @@ from src.ecology.competition import (
 )
 from src.ecology.predation import apply_region_predation_feedback, build_region_predation_summary
 from src.ecology.symbiosis import apply_region_symbiosis_feedback, build_region_symbiosis_summary
+from src.ecology.territory import apply_region_territory_feedback, build_region_territory_summary
 from src.ecology.wetland import (
     apply_region_wetland_chain_feedback,
     apply_region_wetland_chain_rebalancing,
@@ -322,6 +323,7 @@ def test_v4_world_simulation_skeleton():
     assert "competition" in stats["active_region"]["relationship_state"]
     assert "predation" in stats["active_region"]["relationship_state"]
     assert "symbiosis" in stats["active_region"]["relationship_state"]
+    assert "territory" in stats["active_region"]["relationship_state"]
     assert "grassland_chain" in stats["active_region"]["relationship_state"]
     assert "grassland_rebalancing" in stats["active_region"]["relationship_state"]
     assert "carrion_chain" in stats["active_region"]["relationship_state"]
@@ -341,11 +343,13 @@ def test_v4_world_simulation_skeleton():
     assert "wetland_rebalancing" in wetland_stats
     assert wetland_stats["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
     assert wetland_stats["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
+    assert wetland_stats["territory"]["pressure_scores"]["shoreline_standoff"] > 0.0
 
     world_sim.set_active_region("temperate_grassland")
     grassland_stats = world_sim.get_statistics()
     assert grassland_stats["grassland_chain"]["key_species"]
     assert grassland_stats["grassland_chain"]["layer_scores"]["engineering_layer"] > 0.0
+    assert grassland_stats["territory"]["pressure_scores"]["apex_boundary_conflict"] > 0.0
     assert "grassland_rebalancing" in grassland_stats
     assert grassland_stats["carrion_chain"]["key_species"]
     assert grassland_stats["carrion_chain"]["resource_scores"]["carcass_competition_loop"] > 0.0
@@ -365,6 +369,7 @@ def test_v4_region_relationship_state_persists():
     assert "competition" in region.relationship_state
     assert "predation" in region.relationship_state
     assert "symbiosis" in region.relationship_state
+    assert "territory" in region.relationship_state
     assert "wetland_chain" in region.relationship_state
     assert "grassland_chain" in region.relationship_state
     assert "wetland_rebalancing" in region.relationship_state
@@ -375,6 +380,7 @@ def test_v4_region_relationship_state_persists():
     assert region.relationship_state["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
     assert region.relationship_state["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
     assert region.relationship_state["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
+    assert region.relationship_state["territory"]["pressure_scores"]["shoreline_standoff"] > 0.0
     assert region.relationship_state["wetland_chain"]["trophic_scores"]["wetland_keystone_stack"] > 0.0
     assert region.relationship_state["wetland_chain"]["layer_scores"]["apex_layer"] > 0.0
     assert "nile_crocodile" in region.relationship_state["wetland_chain"]["layer_species"]["apex_layer"]
@@ -687,6 +693,33 @@ def test_v4_grassland_chain_summary():
     print("✅ V4 grassland chain summary test passed")
 
 
+def test_v4_territory_summary():
+    """v4 领地摘要应识别草原和湿地的热点领地冲突。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+
+    grassland = world_map.get_region("temperate_grassland")
+    wetland = world_map.get_region("wetland_lake")
+
+    grassland_territory = build_region_territory_summary(grassland, registry)
+    wetland_territory = build_region_territory_summary(wetland, registry)
+
+    assert "lion" in grassland_territory.active_species
+    assert "hyena" in grassland_territory.active_species
+    assert grassland_territory.pressure_scores["pride_core_range"] > 0.0
+    assert grassland_territory.pressure_scores["clan_den_range"] > 0.0
+    assert grassland_territory.pressure_scores["apex_boundary_conflict"] > 0.0
+    assert "seasonal_waterhole" in grassland_territory.contested_zones
+    assert "carcass_site" in grassland_territory.contested_zones
+
+    assert "hippopotamus" in wetland_territory.active_species
+    assert "nile_crocodile" in wetland_territory.active_species
+    assert wetland_territory.pressure_scores["shoreline_standoff"] > 0.0
+    assert "mud_bank" in wetland_territory.contested_zones
+
+    print("✅ V4 territory summary test passed")
+
+
 def test_v4_carrion_chain_summary():
     """v4 尸体资源链摘要应识别草原尸体资源闭环。"""
     world_map = build_default_world_map()
@@ -721,6 +754,24 @@ def test_v4_carrion_chain_summary():
     assert wetland_chain.resource_scores == {}
 
     print("✅ V4 carrion chain summary test passed")
+
+
+def test_v4_territory_feedback_updates_region_state():
+    """v4 领地反馈应轻量更新区域风险与碎片化。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("temperate_grassland")
+
+    initial_conflict = region.hazard_state.get("territorial_conflict", 0.0)
+    initial_fragmentation = region.health_state["fragmentation"]
+
+    summary = build_region_territory_summary(region, registry)
+    apply_region_territory_feedback(region, summary, feedback_scale=0.05)
+
+    assert region.hazard_state["territorial_conflict"] >= initial_conflict
+    assert region.health_state["fragmentation"] >= initial_fragmentation
+
+    print("✅ V4 territory feedback test passed")
 
 
 def test_v4_wetland_chain_feedback_updates_region_state():
@@ -1245,11 +1296,13 @@ def run_all_tests():
     test_v4_region_symbiosis_summary()
     test_v4_wetland_chain_summary()
     test_v4_grassland_chain_summary()
+    test_v4_territory_summary()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()
     test_v4_grassland_chain_feedback_updates_region_state()
     test_v4_grassland_chain_rebalancing_updates_species_pool()
+    test_v4_territory_feedback_updates_region_state()
     test_v4_carrion_chain_feedback_updates_region_state()
     test_v4_carrion_chain_rebalancing_updates_species_pool()
     test_v4_predation_feedback_updates_region_state()
