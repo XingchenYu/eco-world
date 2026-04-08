@@ -32,6 +32,17 @@
   - `carcass_availability`
   - `predation_pressure`
 
+### v4.0-alpha16 (2026-04-09 00:10)
+
+- ✅ `grassland_rebalancing` 现已开始吸收 `territory` 的空间群体格局输入
+- ✅ `carrion_rebalancing` 现已开始吸收 `territory` 的空间群体格局输入
+- ✅ 热点数量和热点重叠现在不只影响摘要和状态反馈，也会影响：
+  - `lion`
+  - `hyena`
+  - `vulture`
+  的低频物种池重平衡
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `territory -> rebalancing` 断言并通过
+
 ---
 
 ## 更新规范

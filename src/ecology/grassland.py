@@ -166,7 +166,11 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.health_state, "fragmentation", scores.get("hotspot_overlap_pressure", 0.0) * 0.10, feedback_scale)
 
 
-def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: RegionGrasslandChainSummary) -> List[dict]:
+def apply_region_grassland_chain_rebalancing(
+    region: Region,
+    grassland_chain: RegionGrasslandChainSummary,
+    territory_summary: Optional[object] = None,
+) -> List[dict]:
     """根据草原链结构对物种池做低频、轻量重平衡。"""
 
     if not grassland_chain.trophic_scores:
@@ -192,6 +196,14 @@ def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: Re
     pride_patrol = scores.get("pride_patrol", 0.0)
     clan_pressure = scores.get("clan_pressure", 0.0)
     apex_rivalry = scores.get("apex_rivalry", 0.0)
+    hotspot_overlap = 0
+    lion_hotspots = 0
+    hyena_hotspots = 0
+    if territory_summary is not None:
+        runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
+        hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
+        lion_hotspots = int(runtime_signals.get("lion_hotspot_count", 0))
+        hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
 
     if megaherbivore_stack >= 0.7 and elephant_count > 0 and rhino_count > 0 and giraffe_count > 0:
         if rabbit_count < 24:
@@ -273,6 +285,51 @@ def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: Re
                 "target_species": "hyena",
                 "layer_group": "social_layer",
                 "effect": "rivalry_trim",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if hotspot_overlap > 0 and lion_count >= 3 and hyena_count >= 3:
+        if hyena_count >= lion_count:
+            species_pool["hyena"] = hyena_count - 1
+            adjustments.append(
+                {
+                    "source_species": "territory",
+                    "target_species": "hyena",
+                    "layer_group": "social_layer",
+                    "effect": "hotspot_overlap_trim",
+                    "new_target_count": species_pool["hyena"],
+                }
+            )
+        else:
+            species_pool["lion"] = lion_count - 1
+            adjustments.append(
+                {
+                    "source_species": "territory",
+                    "target_species": "lion",
+                    "layer_group": "social_layer",
+                    "effect": "hotspot_overlap_trim",
+                    "new_target_count": species_pool["lion"],
+                }
+            )
+    if lion_hotspots >= 2 and lion_count < 5 and antelope_count + zebra_count >= 24:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "territory",
+                "target_species": "lion",
+                "layer_group": "social_layer",
+                "effect": "distributed_pride_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if hyena_hotspots >= 2 and hyena_count < 6 and antelope_count + zebra_count >= 24:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "territory",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "distributed_clan_support",
                 "new_target_count": species_pool["hyena"],
             }
         )

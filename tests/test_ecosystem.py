@@ -938,11 +938,21 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     initial_hyena = region.species_pool["hyena"]
     initial_lion = region.species_pool["lion"]
 
-    summary = build_region_grassland_chain_summary(region, registry)
-    adjustments = apply_region_grassland_chain_rebalancing(region, summary)
+    territory = build_region_territory_summary(
+        region,
+        registry,
+        runtime_state={
+            "lion_hotspot_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
+        },
+    )
+    summary = build_region_grassland_chain_summary(region, registry, territory_summary=territory)
+    adjustments = apply_region_grassland_chain_rebalancing(region, summary, territory_summary=territory)
 
     assert adjustments
     assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer", "social_layer"} for item in adjustments)
+    assert any(item["source_species"] == "territory" for item in adjustments)
     assert (
         region.species_pool["rabbit"] != initial_rabbit
         or region.species_pool["hyena"] != initial_hyena
@@ -982,11 +992,21 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     initial_hyena = region.species_pool["hyena"]
     initial_vulture = region.species_pool["vulture"]
 
-    summary = build_region_carrion_chain_summary(region, registry)
-    adjustments = apply_region_carrion_chain_rebalancing(region, summary)
+    territory = build_region_territory_summary(
+        region,
+        registry,
+        runtime_state={
+            "lion_hotspot_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
+        },
+    )
+    summary = build_region_carrion_chain_summary(region, registry, territory_summary=territory)
+    adjustments = apply_region_carrion_chain_rebalancing(region, summary, territory_summary=territory)
 
     assert adjustments
     assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "aerial_scavenge_layer", "herd_source_layer"} for item in adjustments)
+    assert any(item["source_species"] == "territory" for item in adjustments)
     assert (
         region.species_pool["antelope"] != initial_antelope
         or region.species_pool["zebra"] != initial_zebra

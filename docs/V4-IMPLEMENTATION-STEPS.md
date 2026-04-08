@@ -74,6 +74,11 @@
   - `grassland_chain`
   - `carrion_chain`
   - 草原资源通道与尸体资源通道
+- `grassland_rebalancing / carrion_rebalancing` 现已开始读取：
+  - `lion_hotspot_count`
+  - `hyena_hotspot_count`
+  - `shared_hotspot_overlap`
+- 这使得 `lion / hyena / vulture` 的低频重平衡也开始受空间群体格局影响
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`

@@ -119,7 +119,11 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12, feedback_scale)
 
 
-def apply_region_carrion_chain_rebalancing(region: Region, carrion_chain: RegionCarrionChainSummary) -> List[dict]:
+def apply_region_carrion_chain_rebalancing(
+    region: Region,
+    carrion_chain: RegionCarrionChainSummary,
+    territory_summary: Optional[object] = None,
+) -> List[dict]:
     """根据尸体资源链对草原关键物种池做低频、轻量重平衡。"""
 
     if not carrion_chain.resource_scores:
@@ -134,6 +138,14 @@ def apply_region_carrion_chain_rebalancing(region: Region, carrion_chain: Region
     vulture_count = species_pool.get("vulture", 0)
     antelope_count = species_pool.get("antelope", 0)
     zebra_count = species_pool.get("zebra", 0)
+    hotspot_overlap = 0
+    lion_hotspots = 0
+    hyena_hotspots = 0
+    if territory_summary is not None:
+        runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
+        hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
+        lion_hotspots = int(runtime_signals.get("lion_hotspot_count", 0))
+        hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
 
     if scores.get("carrion_energy_loop", 0.0) >= 0.7 and antelope_count < 20:
         species_pool["antelope"] = antelope_count + 1
@@ -190,6 +202,39 @@ def apply_region_carrion_chain_rebalancing(region: Region, carrion_chain: Region
                 "layer_group": "aerial_scavenge_layer",
                 "effect": "aerial_scavenger_support",
                 "new_target_count": species_pool["vulture"],
+            }
+        )
+    if hotspot_overlap > 0 and vulture_count < 9:
+        species_pool["vulture"] = species_pool["vulture"] + 1
+        adjustments.append(
+            {
+                "source_species": "territory",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "overlap_tracking_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
+    if hotspot_overlap > 0 and lion_hotspots >= hyena_hotspots and hyena_count >= 4:
+        species_pool["hyena"] = hyena_count - 1
+        adjustments.append(
+            {
+                "source_species": "territory",
+                "target_species": "hyena",
+                "layer_group": "scavenge_layer",
+                "effect": "kill_corridor_exclusion",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    elif hotspot_overlap > 0 and hyena_hotspots > lion_hotspots and lion_count >= 3:
+        species_pool["lion"] = lion_count - 1
+        adjustments.append(
+            {
+                "source_species": "territory",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "kill_corridor_exclusion",
+                "new_target_count": species_pool["lion"],
             }
         )
 

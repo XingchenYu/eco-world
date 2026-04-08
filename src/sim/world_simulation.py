@@ -323,8 +323,8 @@ class WorldSimulation:
             competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
         if self.tick_count % 6 == 0:
             wetland_adjustments = apply_region_wetland_chain_rebalancing(active_region, wetland_chain)
-            grassland_adjustments = apply_region_grassland_chain_rebalancing(active_region, grassland_chain)
-            carrion_adjustments = apply_region_carrion_chain_rebalancing(active_region, carrion_chain)
+            grassland_adjustments = apply_region_grassland_chain_rebalancing(active_region, grassland_chain, territory_summary=territory)
+            carrion_adjustments = apply_region_carrion_chain_rebalancing(active_region, carrion_chain, territory_summary=territory)
         self._persist_region_relationships(
             active_region,
             cascade=cascade,
