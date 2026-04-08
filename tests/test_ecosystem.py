@@ -509,13 +509,18 @@ def test_v4_competition_feedback_rebalances_species_pool():
 
     before_rhino = grassland.species_pool["white_rhino"]
     before_giraffe = grassland.species_pool["giraffe"]
+    before_hyena = grassland.species_pool["hyena"]
+    before_carcass = grassland.resource_state["carcass_availability"]
 
     adjustments = apply_region_competition_feedback(grassland, registry)
 
     assert any(item["target_species"] == "white_rhino" for item in adjustments)
     assert any(item["target_species"] == "giraffe" for item in adjustments)
+    assert any(item["target_species"] == "hyena" for item in adjustments)
     assert grassland.species_pool["white_rhino"] < before_rhino
     assert grassland.species_pool["giraffe"] < before_giraffe
+    assert grassland.species_pool["hyena"] < before_hyena
+    assert grassland.resource_state["carcass_availability"] < before_carcass
 
     print("✅ V4 competition feedback test passed")
 
@@ -533,7 +538,10 @@ def test_v4_region_competition_summary():
     assert grassland_summary.active_relations
     assert grassland_summary.pressure_scores["waterhole_competition"] > 0.0
     assert grassland_summary.pressure_scores["browse_layer_competition"] > 0.0
+    assert grassland_summary.pressure_scores["carcass_site_competition"] > 0.0
+    assert grassland_summary.pressure_scores["herd_route_interference"] > 0.0
     assert "waterhole" in grassland_summary.contested_resources
+    assert "carcass_site" in grassland_summary.contested_resources
 
     assert wetland_summary.active_relations
     assert wetland_summary.pressure_scores["shoreline_space_competition"] > 0.0

@@ -227,6 +227,12 @@
   - `carrion_scavenging`
   - `carcass_competition`
   - `grassland_predator_closure`
+- 草原区现已新增 `carcass_availability` 资源维度
+- `competition.py` 已开始独立表达：
+  - `carcass_site_competition`
+  - `kill_site_competition`
+  - `scavenger_pushback`
+  - `herd_route_interference`
 - 草原链已扩展 `herd_layer`
 - 草原链现已开始表达：
   - `herd_grazing`
@@ -240,6 +246,10 @@
   - `browse_layer`
   - `predator_layer`
   - `scavenger_layer`
+- 草原竞争反馈现已开始轻量回灌：
+  - `species_pool`
+  - `carcass_availability`
+  - `predation_pressure`
 
 ### Step 9
 补草原顶级捕食与清道夫组
@@ -254,6 +264,11 @@
 - 尸体资源竞争
 - 基础雄性竞争接口
 - 狮群和鬣狗群的领地接口预留
+
+当前状态：
+- 已完成第一版落地
+- `lion / hyena` 已进入 `v4` 模板、关系表与原生运行体
+- 草原区已具备尸体资源与顶层竞争的低频反馈骨架
 
 ---
 

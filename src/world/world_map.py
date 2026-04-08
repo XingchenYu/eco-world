@@ -210,6 +210,7 @@ def _configure_temperate_grassland(region: Optional[Region]) -> None:
             "browse_cover": 0.28,
             "open_visibility": 0.91,
             "dung_cycle": 0.64,
+            "carcass_availability": 0.27,
         }
     )
     region.hazard_state.update({"fire_risk": 0.47, "drought_risk": 0.44, "predation_pressure": 0.57})

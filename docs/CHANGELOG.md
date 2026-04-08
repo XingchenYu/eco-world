@@ -19,6 +19,21 @@
 | MECHANICS.md | core/*.py | 新增/修改机制 |
 | competition-defense.md | entities/competition.py | 竞争/防御机制变更 |
 
+## v4.0-alpha4 (2026-04-08 20:35)
+
+- ✅ 草原区新增 `carcass_availability` 资源维度，用于表达狮鬣狗围绕尸体与击杀点的竞争压力
+- ✅ [src/ecology/competition.py](/Users/yumini/Projects/eco-world/src/ecology/competition.py) 现已独立表达：
+  - `carcass_site_competition`
+  - `kill_site_competition`
+  - `scavenger_pushback`
+  - `herd_route_interference`
+- ✅ 草原竞争反馈现已轻量回灌：
+  - `hyena`
+  - `lion`
+  - `carcass_availability`
+  - `predation_pressure`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增狮鬣狗尸体资源竞争断言并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要

@@ -80,6 +80,32 @@ def build_region_competition_summary(region: Region, registry: WorldRegistry) ->
                 "browse_layer",
                 "大象开林与折枝会压缩部分高位树冠资源，对长颈鹿形成竞争。",
             )
+        elif relation.source_species == "lion" and relation.target_species == "hyena":
+            add_pressure(
+                "carcass_site_competition",
+                relation.strength,
+                "carcass_site",
+                "狮群会围绕猎物残体和击杀点压制鬣狗群的抢食窗口。",
+            )
+            add_pressure(
+                "kill_site_competition",
+                relation.strength * 0.74,
+                "kill_site",
+                "狮群通过占据击杀点与水源边缘走廊提高鬣狗取食成本。",
+            )
+        elif relation.source_species == "hyena" and relation.target_species == "lion":
+            add_pressure(
+                "scavenger_pushback",
+                relation.strength,
+                "carcass_site",
+                "鬣狗群会围绕尸体和残食持续反压狮群的稳定取食优势。",
+            )
+            add_pressure(
+                "herd_route_interference",
+                relation.strength * 0.68,
+                "herd_corridor",
+                "鬣狗沿猎物走廊的高频活动会干扰狮群对草食群的稳定封锁。",
+            )
 
     return RegionCompetitionSummary(
         region_id=region.region_id,
@@ -130,6 +156,15 @@ def _apply_competition_relation(region: Region, relation: RelationTable, adjustm
     elif relation.target_species == "hippopotamus" and source_count >= 2 and target_count >= 2 and relation.strength >= 0.3:
         should_reduce_target = True
         _adjust(region.hazard_state, "shoreline_risk", 0.05, 0.04)
+    elif relation.source_species == "lion" and relation.target_species == "hyena" and source_count >= 3 and target_count >= 4 and relation.strength >= 0.4:
+        should_reduce_target = True
+        _adjust(region.resource_state, "carcass_availability", -0.10, 0.05)
+        _adjust(region.resource_state, "surface_water", -0.04, 0.04)
+        _adjust(region.hazard_state, "predation_pressure", 0.05, 0.05)
+    elif relation.source_species == "hyena" and relation.target_species == "lion" and source_count >= 4 and target_count >= 3 and relation.strength >= 0.38:
+        should_reduce_target = True
+        _adjust(region.resource_state, "carcass_availability", -0.08, 0.05)
+        _adjust(region.hazard_state, "predation_pressure", 0.03, 0.04)
 
     if not should_reduce_target:
         return
