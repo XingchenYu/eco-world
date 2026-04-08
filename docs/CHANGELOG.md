@@ -25,6 +25,7 @@
 - ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 统计新增 `wetland_chain`，可直接查看关键物种、营养级得分和叙事链
 - ✅ 补充 `frog -> shore_hatch`、`catfish -> minnow`、`blackfish -> minnow/frog` 关系表，用于湿地链条表达
 - ✅ 新增湿地链测试并修正世界统计测试中的区域语义断言
+- ✅ 湿地链现在会轻量反馈到区域 `resource_state / hazard_state / health_state`，并持久写入 `relationship_state["wetland_chain"]`
 | fruits-omnivores.md | entities/omnivores.py | 杂食动物变更 |
 | ECOSYSTEM.md | 所有 | 总览更新 |
 | USAGE.md | main.py | 启动参数变更 |

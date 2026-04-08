@@ -10,6 +10,7 @@ from src.ecology import (
     apply_region_cascade_feedback,
     apply_region_competition_feedback,
     apply_region_symbiosis_feedback,
+    apply_region_wetland_chain_feedback,
     build_region_cascade_summary,
     build_region_competition_summary,
     build_region_food_web,
@@ -57,6 +58,7 @@ class WorldSimulation:
         cascade: object,
         competition: object,
         symbiosis: object,
+        wetland_chain: object,
         competition_adjustments: list[dict],
     ) -> None:
         region.record_relationship_state(
@@ -84,10 +86,23 @@ class WorldSimulation:
                 "supported_resources": list(symbiosis.supported_resources),
             },
         )
+        region.record_relationship_state(
+            "wetland_chain",
+            {
+                "key_species": list(wetland_chain.key_species),
+                "trophic_scores": dict(wetland_chain.trophic_scores),
+                "narrative_chain": list(wetland_chain.narrative_chain),
+            },
+        )
         region.append_adjustments(competition_adjustments)
 
         combined_pressures: Dict[str, float] = {}
-        for source in (cascade.active_pressures, competition.contested_resources, symbiosis.supported_resources):
+        for source in (
+            cascade.active_pressures,
+            competition.contested_resources,
+            symbiosis.supported_resources,
+            wetland_chain.key_species,
+        ):
             for key in source:
                 combined_pressures[key] = combined_pressures.get(key, 0.0) + 1.0
         for key, value in cascade.impact_scores.items():
@@ -95,6 +110,8 @@ class WorldSimulation:
         for key, value in competition.pressure_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in symbiosis.support_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in wetland_chain.trophic_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
 
         region.update_ecological_pressures(combined_pressures)
@@ -129,6 +146,7 @@ class WorldSimulation:
         active_region = self.get_active_region()
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
+        wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -137,6 +155,7 @@ class WorldSimulation:
         )
         apply_region_cascade_feedback(active_region, cascade)
         apply_region_symbiosis_feedback(active_region, symbiosis)
+        apply_region_wetland_chain_feedback(active_region, wetland_chain)
         competition_adjustments: list[dict] = []
         if self.tick_count % 8 == 0:
             competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
@@ -145,6 +164,7 @@ class WorldSimulation:
             cascade=cascade,
             competition=competition,
             symbiosis=symbiosis,
+            wetland_chain=wetland_chain,
             competition_adjustments=competition_adjustments,
         )
         self.last_competition_adjustments[active_region.region_id] = competition_adjustments

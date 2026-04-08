@@ -179,6 +179,8 @@
 - 已完成第一版湿地链摘要
 - 已新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)
 - `WorldSimulation` 统计已新增 `wetland_chain`
+- 湿地链反馈现已轻量回灌区域 `resource_state / hazard_state / health_state`
+- 区域对象已开始持久保存 `wetland_chain` 关系状态
 
 ### Step 8
 完成草原大型植食者链

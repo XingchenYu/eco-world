@@ -27,7 +27,7 @@ from src.ecology.competition import (
     build_region_competition_summary,
 )
 from src.ecology.symbiosis import apply_region_symbiosis_feedback, build_region_symbiosis_summary
-from src.ecology.wetland import build_region_wetland_chain_summary
+from src.ecology.wetland import apply_region_wetland_chain_feedback, build_region_wetland_chain_summary
 from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
@@ -330,9 +330,11 @@ def test_v4_region_relationship_state_persists():
     assert "cascade" in region.relationship_state
     assert "competition" in region.relationship_state
     assert "symbiosis" in region.relationship_state
+    assert "wetland_chain" in region.relationship_state
     assert region.ecological_pressures
     assert region.relationship_state["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
     assert region.relationship_state["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
+    assert region.relationship_state["wetland_chain"]["trophic_scores"]["wetland_keystone_stack"] > 0.0
 
     print("✅ V4 region relationship state test passed")
 
@@ -531,6 +533,28 @@ def test_v4_wetland_chain_summary():
     assert grassland_chain.trophic_scores == {}
 
     print("✅ V4 wetland chain summary test passed")
+
+
+def test_v4_wetland_chain_feedback_updates_region_state():
+    """v4 湿地链反馈应轻量更新区域资源、风险和健康状态。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("wetland_lake")
+
+    initial_open_water = region.resource_state["open_water"]
+    initial_shore_hatch = region.resource_state["shore_hatch"]
+    initial_risk = region.hazard_state.get("shoreline_risk", 0.0)
+    initial_resilience = region.health_state["resilience"]
+
+    summary = build_region_wetland_chain_summary(region, registry)
+    apply_region_wetland_chain_feedback(region, summary, feedback_scale=0.05)
+
+    assert region.resource_state["open_water"] >= initial_open_water
+    assert region.resource_state["shore_hatch"] >= initial_shore_hatch
+    assert region.hazard_state.get("shoreline_risk", 0.0) >= initial_risk
+    assert region.health_state["resilience"] >= initial_resilience
+
+    print("✅ V4 wetland chain feedback test passed")
 
 
 def test_v4_symbiosis_feedback_updates_region_state():
@@ -795,6 +819,7 @@ def run_all_tests():
     test_v4_competition_feedback_rebalances_species_pool()
     test_v4_region_symbiosis_summary()
     test_v4_wetland_chain_summary()
+    test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_symbiosis_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()
