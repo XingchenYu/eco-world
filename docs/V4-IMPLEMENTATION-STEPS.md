@@ -181,6 +181,8 @@
 - `WorldSimulation` 统计已新增 `wetland_chain`
 - 湿地链反馈现已轻量回灌区域 `resource_state / hazard_state / health_state`
 - 区域对象已开始持久保存 `wetland_chain` 关系状态
+- 已新增 [src/ecology/predation.py](/Users/yumini/Projects/eco-world/src/ecology/predation.py)
+- 湿地链与夜行链的分层捕食压力现已独立进入 `predation` 模块，并纳入 `cascade`
 
 ### Step 8
 完成草原大型植食者链

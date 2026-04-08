@@ -26,6 +26,7 @@ from src.ecology.competition import (
     apply_region_competition_feedback,
     build_region_competition_summary,
 )
+from src.ecology.predation import apply_region_predation_feedback, build_region_predation_summary
 from src.ecology.symbiosis import apply_region_symbiosis_feedback, build_region_symbiosis_summary
 from src.ecology.wetland import apply_region_wetland_chain_feedback, build_region_wetland_chain_summary
 from src.ecology.food_web import build_region_food_web
@@ -303,6 +304,7 @@ def test_v4_world_simulation_skeleton():
     assert stats["wetland_chain"]["key_species"] == []
     assert "cascade" in stats["active_region"]["relationship_state"]
     assert "competition" in stats["active_region"]["relationship_state"]
+    assert "predation" in stats["active_region"]["relationship_state"]
     assert "symbiosis" in stats["active_region"]["relationship_state"]
     assert stats["active_region"]["ecological_pressures"]
 
@@ -314,6 +316,7 @@ def test_v4_world_simulation_skeleton():
     assert wetland_stats["wetland_chain"]["key_species"]
     assert wetland_stats["wetland_chain"]["trophic_scores"]["wetland_engineering"] > 0.0
     assert wetland_stats["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
+    assert wetland_stats["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
     assert wetland_stats["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
 
     print("✅ V4 world simulation test passed")
@@ -329,10 +332,12 @@ def test_v4_region_relationship_state_persists():
 
     assert "cascade" in region.relationship_state
     assert "competition" in region.relationship_state
+    assert "predation" in region.relationship_state
     assert "symbiosis" in region.relationship_state
     assert "wetland_chain" in region.relationship_state
     assert region.ecological_pressures
     assert region.relationship_state["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
+    assert region.relationship_state["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
     assert region.relationship_state["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
     assert region.relationship_state["wetland_chain"]["trophic_scores"]["wetland_keystone_stack"] > 0.0
 
@@ -375,6 +380,7 @@ def test_v4_region_food_web_summary():
     assert "hippopotamus" in food_web.resident_species
     assert "nile_crocodile" in food_web.resident_species
     assert food_web.relation_summary["competition"] >= 1
+    assert food_web.relation_summary["predation"] >= 1
     assert "hippopotamus" in food_web.keystone_species
     assert "beaver" in food_web.engineer_species
 
@@ -389,20 +395,24 @@ def test_v4_region_cascade_summary():
     wetland_region = world_map.get_region("wetland_lake")
     grassland_region = world_map.get_region("temperate_grassland")
     wetland_competition = build_region_competition_summary(wetland_region, registry)
+    wetland_predation = build_region_predation_summary(wetland_region, registry)
     wetland_symbiosis = build_region_symbiosis_summary(wetland_region, registry)
     grassland_competition = build_region_competition_summary(grassland_region, registry)
+    grassland_predation = build_region_predation_summary(grassland_region, registry)
     grassland_symbiosis = build_region_symbiosis_summary(grassland_region, registry)
 
     wetland_cascade = build_region_cascade_summary(
         wetland_region,
         registry,
         competition=wetland_competition,
+        predation=wetland_predation,
         symbiosis=wetland_symbiosis,
     )
     grassland_cascade = build_region_cascade_summary(
         grassland_region,
         registry,
         competition=grassland_competition,
+        predation=grassland_predation,
         symbiosis=grassland_symbiosis,
     )
 
@@ -412,9 +422,11 @@ def test_v4_region_cascade_summary():
     assert wetland_cascade.impact_scores["wetland_expansion"] > 0.0
     assert wetland_cascade.impact_scores["shoreline_risk"] > 0.0
     assert wetland_cascade.impact_scores["competitive_stress"] > 0.0
+    assert wetland_cascade.impact_scores["predation_load"] > 0.0
     assert wetland_cascade.impact_scores["mutualist_support"] > 0.0
     assert "hydrology_retention" in wetland_cascade.active_pressures
     assert "competition" in wetland_cascade.source_modules
+    assert "predation" in wetland_cascade.source_modules
     assert "symbiosis" in wetland_cascade.source_modules
 
     assert "african_elephant" in grassland_cascade.driver_species
@@ -491,6 +503,28 @@ def test_v4_region_competition_summary():
     print("✅ V4 competition summary test passed")
 
 
+def test_v4_region_predation_summary():
+    """v4 捕食摘要应独立汇总区域分层捕食压力。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    wetland = world_map.get_region("wetland_lake")
+    rainforest = world_map.get_region("rainforest_river")
+
+    wetland_summary = build_region_predation_summary(wetland, registry)
+    rainforest_summary = build_region_predation_summary(rainforest, registry)
+
+    assert wetland_summary.active_relations
+    assert wetland_summary.pressure_scores["shoreline_bird_predation"] > 0.0
+    assert wetland_summary.pressure_scores["benthic_fish_predation"] > 0.0
+    assert wetland_summary.pressure_scores["midwater_fish_predation"] > 0.0
+    assert "fish_cover" in wetland_summary.vulnerable_resources
+
+    assert rainforest_summary.active_relations
+    assert rainforest_summary.pressure_scores["nocturnal_insect_predation"] > 0.0
+
+    print("✅ V4 predation summary test passed")
+
+
 def test_v4_region_symbiosis_summary():
     """v4 共生摘要应独立汇总区域资源支持关系。"""
     world_map = build_default_world_map()
@@ -555,6 +589,26 @@ def test_v4_wetland_chain_feedback_updates_region_state():
     assert region.health_state["resilience"] >= initial_resilience
 
     print("✅ V4 wetland chain feedback test passed")
+
+
+def test_v4_predation_feedback_updates_region_state():
+    """v4 捕食反馈应轻量更新区域资源、风险和健康状态。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("wetland_lake")
+
+    initial_fish_cover = region.resource_state.get("fish_cover", 0.0)
+    initial_predation = region.hazard_state.get("predation_pressure", 0.0)
+    initial_biodiversity = region.health_state["biodiversity"]
+
+    summary = build_region_predation_summary(region, registry)
+    apply_region_predation_feedback(region, summary, feedback_scale=0.05)
+
+    assert region.resource_state.get("fish_cover", 0.0) <= initial_fish_cover
+    assert region.hazard_state.get("predation_pressure", 0.0) >= initial_predation
+    assert region.health_state["biodiversity"] <= initial_biodiversity
+
+    print("✅ V4 predation feedback test passed")
 
 
 def test_v4_symbiosis_feedback_updates_region_state():
@@ -817,9 +871,11 @@ def run_all_tests():
     test_v4_cascade_feedback_updates_region_state()
     test_v4_region_competition_summary()
     test_v4_competition_feedback_rebalances_species_pool()
+    test_v4_region_predation_summary()
     test_v4_region_symbiosis_summary()
     test_v4_wetland_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
+    test_v4_predation_feedback_updates_region_state()
     test_v4_symbiosis_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()

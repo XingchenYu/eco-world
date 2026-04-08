@@ -16,6 +16,10 @@
 - 水边伏击
 - 夜间捕食
 
+当前仓库已开始独立实现第一版捕食压力模块，见：
+- [predation.py](/Users/yumini/Projects/eco-world/src/ecology/predation.py)
+- 第一版重点覆盖湿地链与夜行链的分层捕食压力
+
 ### 竞争
 
 - 食物竞争

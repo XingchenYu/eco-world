@@ -26,6 +26,7 @@
 - ✅ 补充 `frog -> shore_hatch`、`catfish -> minnow`、`blackfish -> minnow/frog` 关系表，用于湿地链条表达
 - ✅ 新增湿地链测试并修正世界统计测试中的区域语义断言
 - ✅ 湿地链现在会轻量反馈到区域 `resource_state / hazard_state / health_state`，并持久写入 `relationship_state["wetland_chain"]`
+- ✅ 新增 [src/ecology/predation.py](/Users/yumini/Projects/eco-world/src/ecology/predation.py)，把湿地链与夜行链的分层捕食压力从摘要中拆成独立模块
 | fruits-omnivores.md | entities/omnivores.py | 杂食动物变更 |
 | ECOSYSTEM.md | 所有 | 总览更新 |
 | USAGE.md | main.py | 启动参数变更 |
