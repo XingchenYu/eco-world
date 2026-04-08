@@ -2,6 +2,15 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha24 (2026-04-09 03:55)
+
+- ✅ `social_trends.phase_scores` 现已开始回灌到 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行体
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 在区域更新前会先注入当前社群周期状态
+- ✅ `Lion / Hyena` 新增周期相位行为影响：
+  - 扩张期会轻量改善健康、缓解饥饿、缩短交配冷却、提升繁殖节奏
+  - 收缩期会轻量增加饥饿、拖慢繁殖节奏并施加体况压力
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增区域社群周期注入测试和个体级周期行为测试
+
 ### v4.0-alpha14 (2026-04-08 23:40)
 
 - ✅ `Lion / Hyena` 现已新增轻量核心区中心：

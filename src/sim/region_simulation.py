@@ -29,6 +29,28 @@ class RegionSimulation(Ecosystem):
         merged["world"] = world_cfg
         return merged
 
+    def apply_relationship_runtime_state(self) -> None:
+        """将区域级关系状态回灌到当前运行中的个体。"""
+        if self.region is None:
+            return
+
+        social_state = self.region.relationship_state.get("social_trends", {})
+        phase_scores = social_state.get("phase_scores", {})
+        lion_expansion = float(phase_scores.get("lion_expansion_phase", 0.0))
+        lion_contraction = float(phase_scores.get("lion_contraction_phase", 0.0))
+        hyena_expansion = float(phase_scores.get("hyena_expansion_phase", 0.0))
+        hyena_contraction = float(phase_scores.get("hyena_contraction_phase", 0.0))
+
+        for animal in self.animals:
+            if not animal.alive:
+                continue
+            if animal.species == "lion":
+                animal.cycle_expansion_phase = lion_expansion
+                animal.cycle_contraction_phase = lion_contraction
+            elif animal.species == "hyena":
+                animal.cycle_expansion_phase = hyena_expansion
+                animal.cycle_contraction_phase = hyena_contraction
+
     def get_statistics(self) -> dict:
         stats = super().get_statistics()
         if self.region is None:

@@ -47,6 +47,7 @@ from src.ecology.carrion import (
     apply_region_carrion_chain_rebalancing,
     build_region_carrion_chain_summary,
 )
+from src.entities.omnivores import Hyena, Lion
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox, Gender
 from src.main import load_config
@@ -1267,6 +1268,38 @@ def test_v4_social_trend_rebalancing_support():
     print("✅ V4 social trend rebalancing test passed")
 
 
+def test_region_simulation_applies_social_phase_state():
+    """RegionSimulation 应将区域社群周期相位回灌到运行体。"""
+    world_map = build_default_world_map()
+    region = world_map.get_region("temperate_grassland")
+    region.record_relationship_state(
+        "social_trends",
+        {
+            "phase_scores": {
+                "lion_expansion_phase": 0.62,
+                "lion_contraction_phase": 0.14,
+                "hyena_expansion_phase": 0.58,
+                "hyena_contraction_phase": 0.18,
+            }
+        },
+    )
+
+    sim = RegionSimulation(region=region, config={"world": {"grid_size": 20}})
+    sim.spawn_animal("lion", sim._random_land_position(), source="manual")
+    sim.spawn_animal("hyena", sim._random_land_position(), source="manual")
+    lion = next(animal for animal in sim.animals if animal.species == "lion" and animal.alive)
+    hyena = next(animal for animal in sim.animals if animal.species == "hyena" and animal.alive)
+
+    sim.apply_relationship_runtime_state()
+
+    assert lion.cycle_expansion_phase == 0.62
+    assert lion.cycle_contraction_phase == 0.14
+    assert hyena.cycle_expansion_phase == 0.58
+    assert hyena.cycle_contraction_phase == 0.18
+
+    print("✅ Region simulation social phase injection test passed")
+
+
 def test_v4_predation_feedback_updates_region_state():
     """v4 捕食反馈应轻量更新区域资源、风险和健康状态。"""
     world_map = build_default_world_map()
@@ -1649,6 +1682,26 @@ def test_lion_social_stability_effect():
     print("✅ Lion social stability test passed")
 
 
+def test_lion_cycle_phase_effect():
+    """狮群周期相位应轻量影响当前个体状态。"""
+    lion = Lion((10, 10), Gender.MALE)
+    lion.health = 70
+    lion.hunger = 40
+    lion.mate_cooldown = 5
+    base_reproduction = lion.reproduction_rate
+    lion.cycle_expansion_phase = 0.6
+    lion.cycle_contraction_phase = 0.0
+
+    lion._apply_cycle_phase()
+
+    assert lion.health > 70
+    assert lion.hunger < 40
+    assert lion.mate_cooldown < 5
+    assert lion.reproduction_rate > base_reproduction
+
+    print("✅ Lion cycle phase test passed")
+
+
 def test_lion_social_birth_scaling():
     """狮群稳定度应影响产后冷却和幼崽规模。"""
     eco_high = Ecosystem()
@@ -1832,6 +1885,26 @@ def test_hyena_social_birth_scaling():
     print("✅ Hyena social birth scaling test passed")
 
 
+def test_hyena_cycle_phase_effect():
+    """鬣狗周期相位应轻量影响当前个体状态。"""
+    hyena = Hyena((10, 10), Gender.FEMALE)
+    hyena.health = 72
+    hyena.hunger = 38
+    hyena.mate_cooldown = 4
+    base_reproduction = hyena.reproduction_rate
+    hyena.cycle_expansion_phase = 0.55
+    hyena.cycle_contraction_phase = 0.0
+
+    hyena._apply_cycle_phase()
+
+    assert hyena.health > 72
+    assert hyena.hunger < 38
+    assert hyena.mate_cooldown < 4
+    assert hyena.reproduction_rate > base_reproduction
+
+    print("✅ Hyena cycle phase test passed")
+
+
 def test_vulture_registration_and_spawn():
     """秃鹫应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -1880,6 +1953,7 @@ def run_all_tests():
     test_v4_territory_summary_uses_runtime_events()
     test_v4_territory_summary_uses_runtime_state()
     test_v4_social_trend_summary_uses_memory()
+    test_region_simulation_applies_social_phase_state()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()
@@ -1913,6 +1987,7 @@ def run_all_tests():
     test_lion_pride_core_effect()
     test_lion_male_takeover_effect()
     test_lion_social_stability_effect()
+    test_lion_cycle_phase_effect()
     test_lion_social_birth_scaling()
     test_hyena_registration_and_spawn()
     test_hyena_scavenging_effect()
@@ -1920,6 +1995,7 @@ def run_all_tests():
     test_hyena_clan_front_effect()
     test_hyena_clan_stability_effect()
     test_hyena_social_birth_scaling()
+    test_hyena_cycle_phase_effect()
     test_vulture_registration_and_spawn()
     
     print("\n✅ All tests passed!")

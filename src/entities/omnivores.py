@@ -573,6 +573,8 @@ class Lion(Animal):
         self.pride_id = f"pride-{random.randint(1, 6)}"
         self.pride_center = position
         self.pride_stability = 0.0
+        self.cycle_expansion_phase = 0.0
+        self.cycle_contraction_phase = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -606,6 +608,7 @@ class Lion(Animal):
         self._pride_timer += 1
         self._pride_core_timer += 1
         self._takeover_timer += 1
+        self._apply_cycle_phase()
         self._apply_social_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._pride_timer >= self.pride_interval:
@@ -621,6 +624,20 @@ class Lion(Animal):
         self.pride_stability = max(0.0, self.pride_stability - 0.015)
         self.pride_strength = max(0.0, self.pride_strength - 0.02)
         self.takeover_pressure = max(0.0, self.takeover_pressure - 0.025)
+
+    def _apply_cycle_phase(self):
+        expansion = max(0.0, min(1.0, self.cycle_expansion_phase))
+        contraction = max(0.0, min(1.0, self.cycle_contraction_phase))
+        if expansion > 0.0:
+            self.health = min(getattr(self, "max_health", 100), self.health + expansion * 0.35)
+            self.hunger = max(0.0, self.hunger - expansion * 0.7)
+            self.mate_cooldown = max(0, self.mate_cooldown - int(expansion * 2))
+            self.reproduction_rate *= 1.0 + expansion * 0.08
+        if contraction > 0.0:
+            self.hunger = min(100.0, self.hunger + contraction * 0.55)
+            self.mate_cooldown += int(contraction * 2)
+            self.reproduction_rate *= max(0.78, 1.0 - contraction * 0.12)
+            self.health = max(0.0, self.health - contraction * 0.18)
 
     def _apply_social_stability(self, ecosystem):
         lions = [animal for animal in ecosystem.animals if animal.alive and animal.species == "lion"]
@@ -723,6 +740,8 @@ class Hyena(Animal):
         self.clan_id = f"clan-{random.randint(1, 7)}"
         self.clan_center = position
         self.clan_stability = 0.0
+        self.cycle_expansion_phase = 0.0
+        self.cycle_contraction_phase = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -759,6 +778,7 @@ class Hyena(Animal):
         self._scavenge_timer += 1
         self._clan_timer += 1
         self._clan_front_timer += 1
+        self._apply_cycle_phase()
         self._apply_clan_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._scavenge_timer >= self.scavenge_interval:
@@ -774,6 +794,20 @@ class Hyena(Animal):
         self.clan_stability = max(0.0, self.clan_stability - 0.015)
         self.clan_cohesion = max(0.0, self.clan_cohesion - 0.02)
         self.clan_front_pressure = max(0.0, self.clan_front_pressure - 0.025)
+
+    def _apply_cycle_phase(self):
+        expansion = max(0.0, min(1.0, self.cycle_expansion_phase))
+        contraction = max(0.0, min(1.0, self.cycle_contraction_phase))
+        if expansion > 0.0:
+            self.health = min(getattr(self, "max_health", 100), self.health + expansion * 0.30)
+            self.hunger = max(0.0, self.hunger - expansion * 0.65)
+            self.mate_cooldown = max(0, self.mate_cooldown - int(expansion * 2))
+            self.reproduction_rate *= 1.0 + expansion * 0.07
+        if contraction > 0.0:
+            self.hunger = min(100.0, self.hunger + contraction * 0.5)
+            self.mate_cooldown += int(contraction * 2)
+            self.reproduction_rate *= max(0.80, 1.0 - contraction * 0.10)
+            self.health = max(0.0, self.health - contraction * 0.16)
 
     def _apply_clan_stability(self, ecosystem):
         hyenas = [animal for animal in ecosystem.animals if animal.alive and animal.species == "hyena"]

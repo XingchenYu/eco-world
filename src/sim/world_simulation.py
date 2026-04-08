@@ -301,6 +301,7 @@ class WorldSimulation:
 
     def update(self) -> WorldTickSummary:
         active_simulation = self.get_active_simulation()
+        active_simulation.apply_relationship_runtime_state()
         active_simulation.update()
         active_region = self.get_active_region()
         recent_events = [event.description for event in active_simulation.events[-120:]]

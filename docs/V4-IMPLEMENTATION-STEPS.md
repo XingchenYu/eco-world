@@ -678,3 +678,9 @@
 3. [V4-RELATIONS.md](/Users/yumini/Projects/eco-world/docs/V4-RELATIONS.md)
 4. [V4-ROADMAP.md](/Users/yumini/Projects/eco-world/docs/V4-ROADMAP.md)
 5. 本文档
+
+## 最新推进
+
+- `social_trends.phase_scores` 已回灌到 `RegionSimulation`
+- `lion / hyena` 运行体会直接读取扩张期与收缩期信号
+- 周期层开始影响个体的健康、饥饿、繁殖节奏与交配冷却
