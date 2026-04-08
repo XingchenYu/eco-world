@@ -108,6 +108,17 @@ class WorldSimulation:
                 "narrative_chain": list(wetland_chain.narrative_chain),
             },
         )
+        wetland_layer_groups: Dict[str, int] = {}
+        for item in wetland_adjustments:
+            layer_group = item.get("layer_group", "ungrouped")
+            wetland_layer_groups[layer_group] = wetland_layer_groups.get(layer_group, 0) + 1
+        region.record_relationship_state(
+            "wetland_rebalancing",
+            {
+                "adjustments": list(wetland_adjustments),
+                "layer_groups": wetland_layer_groups,
+            },
+        )
         region.append_adjustments(competition_adjustments + wetland_adjustments)
 
         combined_pressures: Dict[str, float] = {}

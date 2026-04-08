@@ -131,6 +131,7 @@ def apply_region_wetland_chain_rebalancing(region: Region, wetland_chain: Region
             {
                 "source_species": "wetland_chain",
                 "target_species": "minnow",
+                "layer_group": "fish_layer",
                 "effect": "nursery_trim",
                 "new_target_count": species_pool["minnow"],
             }
@@ -143,6 +144,7 @@ def apply_region_wetland_chain_rebalancing(region: Region, wetland_chain: Region
                 {
                     "source_species": "wetland_chain",
                     "target_species": "minnow",
+                    "layer_group": "shoreline_layer",
                     "effect": "shoreline_support",
                     "new_target_count": species_pool["minnow"],
                 }
@@ -153,6 +155,7 @@ def apply_region_wetland_chain_rebalancing(region: Region, wetland_chain: Region
                 {
                     "source_species": "wetland_chain",
                     "target_species": "frog",
+                    "layer_group": "shoreline_layer",
                     "effect": "amphibian_support",
                     "new_target_count": species_pool["frog"],
                 }
@@ -165,6 +168,7 @@ def apply_region_wetland_chain_rebalancing(region: Region, wetland_chain: Region
                 {
                     "source_species": "nile_crocodile",
                     "target_species": "kingfisher_v4",
+                    "layer_group": "apex_layer",
                     "effect": "shoreline_suppression",
                     "new_target_count": species_pool["kingfisher_v4"],
                 }
@@ -175,6 +179,7 @@ def apply_region_wetland_chain_rebalancing(region: Region, wetland_chain: Region
                 {
                     "source_species": "nile_crocodile",
                     "target_species": "frog",
+                    "layer_group": "apex_layer",
                     "effect": "shoreline_suppression",
                     "new_target_count": species_pool["frog"],
                 }

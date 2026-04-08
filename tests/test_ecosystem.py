@@ -340,6 +340,7 @@ def test_v4_region_relationship_state_persists():
     assert "predation" in region.relationship_state
     assert "symbiosis" in region.relationship_state
     assert "wetland_chain" in region.relationship_state
+    assert "wetland_rebalancing" in region.relationship_state
     assert region.ecological_pressures
     assert region.relationship_state["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
     assert region.relationship_state["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
@@ -609,6 +610,7 @@ def test_v4_wetland_chain_rebalancing_updates_species_pool():
     adjustments = apply_region_wetland_chain_rebalancing(region, summary)
 
     assert adjustments
+    assert any(item["layer_group"] in {"shoreline_layer", "fish_layer", "apex_layer"} for item in adjustments)
     assert region.species_pool["minnow"] != initial_minnow or region.species_pool["frog"] != initial_frog
 
     print("✅ V4 wetland chain rebalancing test passed")
