@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from src.data import WorldRegistry
 from src.world import Region
+
+if TYPE_CHECKING:
+    from .competition import RegionCompetitionSummary
+    from .symbiosis import RegionSymbiosisSummary
 
 
 @dataclass
@@ -18,6 +22,7 @@ class RegionCascadeSummary:
     impact_scores: Dict[str, float] = field(default_factory=dict)
     active_pressures: List[str] = field(default_factory=list)
     narrative_impacts: List[str] = field(default_factory=list)
+    source_modules: List[str] = field(default_factory=list)
 
 
 def apply_region_cascade_feedback(region: Region, cascade: RegionCascadeSummary, feedback_scale: float = 0.02) -> None:
@@ -44,11 +49,20 @@ def apply_region_cascade_feedback(region: Region, cascade: RegionCascadeSummary,
 
     _adjust(region.health_state, "biodiversity", impacts.get("nursery_habitat_gain", 0.0) * 0.35, feedback_scale)
     _adjust(region.health_state, "biodiversity", impacts.get("seed_dispersal", 0.0) * 0.20, feedback_scale)
+    _adjust(region.health_state, "biodiversity", impacts.get("mutualist_support", 0.0) * 0.18, feedback_scale)
     _adjust(region.health_state, "resilience", impacts.get("wetland_expansion", 0.0) * 0.28, feedback_scale)
     _adjust(region.health_state, "resilience", impacts.get("nutrient_input", 0.0) * 0.25, feedback_scale)
+    _adjust(region.health_state, "resilience", impacts.get("mutualist_support", 0.0) * 0.22, feedback_scale)
+    _adjust(region.health_state, "fragmentation", impacts.get("competitive_stress", 0.0) * 0.06, feedback_scale)
     _adjust(region.health_state, "fragmentation", -impacts.get("canopy_opening", 0.0) * 0.12, feedback_scale)
 
-def build_region_cascade_summary(region: Region, registry: WorldRegistry) -> RegionCascadeSummary:
+
+def build_region_cascade_summary(
+    region: Region,
+    registry: WorldRegistry,
+    competition: Optional["RegionCompetitionSummary"] = None,
+    symbiosis: Optional["RegionSymbiosisSummary"] = None,
+) -> RegionCascadeSummary:
     """根据区域关键种和关系网生成粗粒度级联影响摘要。"""
 
     resident_species = registry.species_for_region(region.region_id)
@@ -63,6 +77,7 @@ def build_region_cascade_summary(region: Region, registry: WorldRegistry) -> Reg
     impact_scores: Dict[str, float] = {}
     active_pressures: List[str] = []
     narrative_impacts: List[str] = []
+    source_modules: List[str] = []
 
     def add_impact(key: str, value: float, pressure: str, narrative: str) -> None:
         impact_scores[key] = round(impact_scores.get(key, 0.0) + value, 2)
@@ -143,12 +158,35 @@ def build_region_cascade_summary(region: Region, registry: WorldRegistry) -> Reg
             "长颈鹿利用高树冠资源，形成与地面食草兽分层的取食格局。",
         )
 
+    if competition is not None:
+        source_modules.append("competition")
+        if competition.pressure_scores:
+            impact_scores["competitive_stress"] = round(sum(competition.pressure_scores.values()), 2)
+        for resource in competition.contested_resources:
+            if resource not in active_pressures:
+                active_pressures.append(resource)
+        for narrative in competition.narrative_competition:
+            if narrative not in narrative_impacts:
+                narrative_impacts.append(narrative)
+
+    if symbiosis is not None:
+        source_modules.append("symbiosis")
+        if symbiosis.support_scores:
+            impact_scores["mutualist_support"] = round(sum(symbiosis.support_scores.values()), 2)
+        for resource in symbiosis.supported_resources:
+            if resource not in active_pressures:
+                active_pressures.append(resource)
+        for narrative in symbiosis.narrative_symbiosis:
+            if narrative not in narrative_impacts:
+                narrative_impacts.append(narrative)
+
     return RegionCascadeSummary(
         region_id=region.region_id,
         driver_species=driver_species,
         impact_scores=dict(sorted(impact_scores.items())),
         active_pressures=sorted(active_pressures),
         narrative_impacts=narrative_impacts,
+        source_modules=source_modules,
     )
 
 

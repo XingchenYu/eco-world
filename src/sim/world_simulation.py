@@ -64,6 +64,7 @@ class WorldSimulation:
                 "driver_species": list(cascade.driver_species),
                 "impact_scores": dict(cascade.impact_scores),
                 "active_pressures": list(cascade.active_pressures),
+                "source_modules": list(cascade.source_modules),
             },
         )
         region.record_relationship_state(
@@ -125,9 +126,14 @@ class WorldSimulation:
         active_simulation = self.get_active_simulation()
         active_simulation.update()
         active_region = self.get_active_region()
-        cascade = build_region_cascade_summary(active_region, self.registry)
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
+        cascade = build_region_cascade_summary(
+            active_region,
+            self.registry,
+            competition=competition,
+            symbiosis=symbiosis,
+        )
         apply_region_cascade_feedback(active_region, cascade)
         apply_region_symbiosis_feedback(active_region, symbiosis)
         competition_adjustments: list[dict] = []
@@ -155,9 +161,14 @@ class WorldSimulation:
         regional_species = self.registry.species_for_region(active_region.region_id)
         regional_bridges = self.registry.bridged_species_for_region(active_region.region_id)
         food_web = build_region_food_web(active_region, self.registry)
-        cascade = build_region_cascade_summary(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
+        cascade = build_region_cascade_summary(
+            active_region,
+            self.registry,
+            competition=competition,
+            symbiosis=symbiosis,
+        )
 
         return {
             "world_tick": self.tick_count,
@@ -209,6 +220,7 @@ class WorldSimulation:
                 "impact_scores": dict(cascade.impact_scores),
                 "active_pressures": list(cascade.active_pressures),
                 "narrative_impacts": list(cascade.narrative_impacts),
+                "source_modules": list(cascade.source_modules),
             },
             "competition": {
                 "active_relations": len(competition.active_relations),

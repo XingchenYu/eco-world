@@ -26,6 +26,17 @@
 
 ## 版本历史
 
+### v4.0-alpha3 (2026-04-08 19:45)
+
+**v4 架构推进**：
+- ✅ `cascade.py` 已收缩为更明确的汇总层
+- ✅ `cascade` 开始显式整合 `competition / symbiosis` 的结果
+- ✅ `cascade` 统计新增 `source_modules`
+
+**验证**：
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已验证 `cascade` 聚合竞争与共生结果
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/ecology/cascade.py src/ecology/competition.py src/ecology/symbiosis.py src/ecology/__init__.py src/sim/world_simulation.py tests/test_ecosystem.py`
+
 ### v4.0-alpha2 (2026-04-08 19:25)
 
 **v4 架构推进**：

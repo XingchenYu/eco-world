@@ -297,6 +297,7 @@ def test_v4_world_simulation_skeleton():
     assert "beaver" in stats["food_web"]["resident_species"]
     assert "beaver" in stats["cascade"]["driver_species"]
     assert stats["cascade"]["impact_scores"]["wetland_expansion"] > 0.0
+    assert "symbiosis" in stats["cascade"]["source_modules"]
     assert stats["symbiosis"]["active_relations"] >= 1
     assert "cascade" in stats["active_region"]["relationship_state"]
     assert "competition" in stats["active_region"]["relationship_state"]
@@ -379,15 +380,36 @@ def test_v4_region_cascade_summary():
     world_map = build_default_world_map()
     registry = build_default_world_registry()
 
-    wetland_cascade = build_region_cascade_summary(world_map.get_region("wetland_lake"), registry)
-    grassland_cascade = build_region_cascade_summary(world_map.get_region("temperate_grassland"), registry)
+    wetland_region = world_map.get_region("wetland_lake")
+    grassland_region = world_map.get_region("temperate_grassland")
+    wetland_competition = build_region_competition_summary(wetland_region, registry)
+    wetland_symbiosis = build_region_symbiosis_summary(wetland_region, registry)
+    grassland_competition = build_region_competition_summary(grassland_region, registry)
+    grassland_symbiosis = build_region_symbiosis_summary(grassland_region, registry)
+
+    wetland_cascade = build_region_cascade_summary(
+        wetland_region,
+        registry,
+        competition=wetland_competition,
+        symbiosis=wetland_symbiosis,
+    )
+    grassland_cascade = build_region_cascade_summary(
+        grassland_region,
+        registry,
+        competition=grassland_competition,
+        symbiosis=grassland_symbiosis,
+    )
 
     assert "beaver" in wetland_cascade.driver_species
     assert "hippopotamus" in wetland_cascade.driver_species
     assert "nile_crocodile" in wetland_cascade.driver_species
     assert wetland_cascade.impact_scores["wetland_expansion"] > 0.0
     assert wetland_cascade.impact_scores["shoreline_risk"] > 0.0
+    assert wetland_cascade.impact_scores["competitive_stress"] > 0.0
+    assert wetland_cascade.impact_scores["mutualist_support"] > 0.0
     assert "hydrology_retention" in wetland_cascade.active_pressures
+    assert "competition" in wetland_cascade.source_modules
+    assert "symbiosis" in wetland_cascade.source_modules
 
     assert "african_elephant" in grassland_cascade.driver_species
     assert "white_rhino" in grassland_cascade.driver_species
@@ -395,6 +417,7 @@ def test_v4_region_cascade_summary():
     assert grassland_cascade.impact_scores["canopy_opening"] > 0.0
     assert grassland_cascade.impact_scores["grazing_pressure"] > 0.0
     assert grassland_cascade.impact_scores["canopy_browsing"] > 0.0
+    assert grassland_cascade.impact_scores["competitive_stress"] > 0.0
 
     print("✅ V4 cascade summary test passed")
 
