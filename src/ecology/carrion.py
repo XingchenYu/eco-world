@@ -150,6 +150,9 @@ def apply_region_carrion_chain_rebalancing(
     hyena_recovery_bias = 0.0
     lion_expansion_phase = 0.0
     hyena_expansion_phase = 0.0
+    lion_hotspot_memory = 0.0
+    hyena_hotspot_memory = 0.0
+    shared_hotspot_memory = 0.0
     if territory_summary is not None:
         runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
         hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
@@ -162,10 +165,14 @@ def apply_region_carrion_chain_rebalancing(
     if social_trend_summary is not None:
         trend_scores = getattr(social_trend_summary, "trend_scores", {}) or {}
         phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
+        hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
         lion_recovery_bias = float(trend_scores.get("lion_recovery_bias", 0.0))
         hyena_recovery_bias = float(trend_scores.get("hyena_recovery_bias", 0.0))
         lion_expansion_phase = float(phase_scores.get("lion_expansion_phase", 0.0))
         hyena_expansion_phase = float(phase_scores.get("hyena_expansion_phase", 0.0))
+        lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
+        hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
+        shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
 
     if scores.get("carrion_energy_loop", 0.0) >= 0.7 and antelope_count < 20:
         species_pool["antelope"] = antelope_count + 1
@@ -395,6 +402,39 @@ def apply_region_carrion_chain_rebalancing(
                 "layer_group": "scavenge_layer",
                 "effect": "cycle_carrion_expansion",
                 "new_target_count": species_pool["hyena"],
+            }
+        )
+    if lion_hotspot_memory >= 0.34 and lion_hotspots >= 2 and scores.get("kill_generation", 0.0) >= 0.42:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_hotspot",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "hotspot_memory_carrion_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if hyena_hotspot_memory >= 0.34 and hyena_hotspots >= 2 and scores.get("scavenger_pressure", 0.0) >= 0.42:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_hotspot",
+                "target_species": "hyena",
+                "layer_group": "scavenge_layer",
+                "effect": "hotspot_memory_carrion_support",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if shared_hotspot_memory >= 0.34 and vulture_count < 10:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_hotspot",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "shared_hotspot_tracking",
+                "new_target_count": species_pool["vulture"],
             }
         )
 

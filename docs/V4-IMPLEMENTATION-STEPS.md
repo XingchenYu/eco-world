@@ -13,11 +13,16 @@
   - `lion_hotspot_count`
   - `hyena_hotspot_count`
   - `shared_hotspot_overlap`
+- `social_trends.hotspot_scores` 现已开始继续反向影响：
+  - `Lion / Hyena` 的 `pride_center / clan_center` 漂移节律
+  - `grassland_rebalancing`
+  - `carrion_rebalancing`
 - 这使得草原领地层开始区分：
   - 群体数量
   - 社群强度
   - 热点数量
   - 热点重叠
+  - 热点持续与迁移记忆
 
 ## 总原则
 

@@ -212,6 +212,9 @@ def apply_region_grassland_chain_rebalancing(
     lion_contraction_phase = 0.0
     hyena_expansion_phase = 0.0
     hyena_contraction_phase = 0.0
+    lion_hotspot_memory = 0.0
+    hyena_hotspot_memory = 0.0
+    shared_hotspot_memory = 0.0
     if territory_summary is not None:
         runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
         hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
@@ -224,6 +227,7 @@ def apply_region_grassland_chain_rebalancing(
     if social_trend_summary is not None:
         trend_scores = getattr(social_trend_summary, "trend_scores", {}) or {}
         phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
+        hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
         lion_recovery_bias = float(trend_scores.get("lion_recovery_bias", 0.0))
         lion_decline_bias = float(trend_scores.get("lion_decline_bias", 0.0))
         hyena_recovery_bias = float(trend_scores.get("hyena_recovery_bias", 0.0))
@@ -232,6 +236,9 @@ def apply_region_grassland_chain_rebalancing(
         lion_contraction_phase = float(phase_scores.get("lion_contraction_phase", 0.0))
         hyena_expansion_phase = float(phase_scores.get("hyena_expansion_phase", 0.0))
         hyena_contraction_phase = float(phase_scores.get("hyena_contraction_phase", 0.0))
+        lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
+        hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
+        shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
 
     if megaherbivore_stack >= 0.7 and elephant_count > 0 and rhino_count > 0 and giraffe_count > 0:
         if rabbit_count < 24:
@@ -590,6 +597,51 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["antelope"],
             }
         )
+    if lion_hotspot_memory >= 0.34 and lion_hotspots >= 2 and antelope_count + zebra_count >= 16:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_hotspot",
+                "target_species": "lion",
+                "layer_group": "social_layer",
+                "effect": "hotspot_memory_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if hyena_hotspot_memory >= 0.34 and hyena_hotspots >= 2 and antelope_count + zebra_count >= 16:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_hotspot",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "hotspot_memory_support",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if shared_hotspot_memory >= 0.34 and hotspot_overlap > 0:
+        if species_pool.get("hyena", 0) >= max(2, species_pool.get("lion", 0)):
+            species_pool["hyena"] = species_pool["hyena"] - 1
+            adjustments.append(
+                {
+                    "source_species": "social_hotspot",
+                    "target_species": "hyena",
+                    "layer_group": "social_layer",
+                    "effect": "hotspot_memory_conflict_drag",
+                    "new_target_count": species_pool["hyena"],
+                }
+            )
+        elif species_pool.get("lion", 0) >= 2:
+            species_pool["lion"] = species_pool["lion"] - 1
+            adjustments.append(
+                {
+                    "source_species": "social_hotspot",
+                    "target_species": "lion",
+                    "layer_group": "social_layer",
+                    "effect": "hotspot_memory_conflict_drag",
+                    "new_target_count": species_pool["lion"],
+                }
+            )
 
     return adjustments
 

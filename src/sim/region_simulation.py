@@ -36,10 +36,14 @@ class RegionSimulation(Ecosystem):
 
         social_state = self.region.relationship_state.get("social_trends", {})
         phase_scores = social_state.get("phase_scores", {})
+        hotspot_scores = social_state.get("hotspot_scores", {})
         lion_expansion = float(phase_scores.get("lion_expansion_phase", 0.0))
         lion_contraction = float(phase_scores.get("lion_contraction_phase", 0.0))
         hyena_expansion = float(phase_scores.get("hyena_expansion_phase", 0.0))
         hyena_contraction = float(phase_scores.get("hyena_contraction_phase", 0.0))
+        lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
+        hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
+        shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
 
         for animal in self.animals:
             if not animal.alive:
@@ -47,9 +51,13 @@ class RegionSimulation(Ecosystem):
             if animal.species == "lion":
                 animal.cycle_expansion_phase = lion_expansion
                 animal.cycle_contraction_phase = lion_contraction
+                animal.hotspot_memory = lion_hotspot_memory
+                animal.shared_hotspot_memory = shared_hotspot_memory
             elif animal.species == "hyena":
                 animal.cycle_expansion_phase = hyena_expansion
                 animal.cycle_contraction_phase = hyena_contraction
+                animal.hotspot_memory = hyena_hotspot_memory
+                animal.shared_hotspot_memory = shared_hotspot_memory
 
     def get_statistics(self) -> dict:
         stats = super().get_statistics()

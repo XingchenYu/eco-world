@@ -575,6 +575,8 @@ class Lion(Animal):
         self.pride_stability = 0.0
         self.cycle_expansion_phase = 0.0
         self.cycle_contraction_phase = 0.0
+        self.hotspot_memory = 0.0
+        self.shared_hotspot_memory = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -662,6 +664,16 @@ class Lion(Animal):
         elif rival_hotspot_overlap > 0:
             self.mate_cooldown = max(self.mate_cooldown, 2)
 
+    def _update_pride_center_from_cycle(self):
+        stickiness = 0.72 + self.hotspot_memory * 0.18 - self.shared_hotspot_memory * 0.20
+        stickiness = max(0.15, min(0.88, stickiness))
+        old_x, old_y = self.pride_center
+        new_x, new_y = self.position
+        self.pride_center = (
+            int(round(old_x * stickiness + new_x * (1.0 - stickiness))),
+            int(round(old_y * stickiness + new_y * (1.0 - stickiness))),
+        )
+
     def _mark_hunt_corridor(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=4)
@@ -675,15 +687,21 @@ class Lion(Animal):
         occupy_amount = max(0.12, min(0.34, occupy_amount))
         if hasattr(ecosystem, "occupy_microhabitat"):
             ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=occupy_amount, radius=3)
-        self.pride_center = self.position
+        self._update_pride_center_from_cycle()
         if hasattr(ecosystem, "get_local_microhabitat_value"):
             core_value = ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "riparian_perch"}, radius=4)
             if core_value >= 0.10:
                 self.health = min(getattr(self, "max_health", 100), self.health + 0.8)
                 self.hunger = max(0.0, self.hunger - 1.8)
-                self.pride_strength = min(1.0, self.pride_strength + 0.18 + self.cycle_expansion_phase * 0.08)
+                self.pride_strength = min(
+                    1.0,
+                    self.pride_strength + 0.18 + self.cycle_expansion_phase * 0.08 + self.hotspot_memory * 0.03,
+                )
             else:
-                self.pride_strength = min(1.0, self.pride_strength + 0.08 + self.cycle_expansion_phase * 0.04)
+                self.pride_strength = min(
+                    1.0,
+                    self.pride_strength + 0.08 + self.cycle_expansion_phase * 0.04 + self.hotspot_memory * 0.02,
+                )
         if self.cycle_contraction_phase > 0.0:
             self.pride_strength = max(0.0, self.pride_strength - self.cycle_contraction_phase * 0.03)
         if hasattr(ecosystem, "log_event"):
@@ -694,13 +712,20 @@ class Lion(Animal):
         occupy_amount = max(0.10, min(0.28, occupy_amount))
         if hasattr(ecosystem, "occupy_microhabitat"):
             ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=occupy_amount, radius=4)
-        self.pride_center = self.position
+        self._update_pride_center_from_cycle()
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=5)
             for patch in patches[:2]:
                 patch.occupancy = min(patch.capacity, patch.occupancy + 0.06)
         self.health = max(0.0, self.health - 0.4)
-        self.takeover_pressure = min(1.0, self.takeover_pressure + 0.16 + self.cycle_expansion_phase * 0.05 + self.cycle_contraction_phase * 0.06)
+        self.takeover_pressure = min(
+            1.0,
+            self.takeover_pressure
+            + 0.16
+            + self.cycle_expansion_phase * 0.05
+            + self.cycle_contraction_phase * 0.06
+            + self.shared_hotspot_memory * 0.03,
+        )
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} pressed a male takeover front")
 
@@ -748,6 +773,8 @@ class Hyena(Animal):
         self.clan_stability = 0.0
         self.cycle_expansion_phase = 0.0
         self.cycle_contraction_phase = 0.0
+        self.hotspot_memory = 0.0
+        self.shared_hotspot_memory = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -838,6 +865,16 @@ class Hyena(Animal):
         elif rival_hotspot_overlap > 0:
             self.mate_cooldown = max(self.mate_cooldown, 2)
 
+    def _update_clan_center_from_cycle(self):
+        stickiness = 0.68 + self.hotspot_memory * 0.20 - self.shared_hotspot_memory * 0.16
+        stickiness = max(0.12, min(0.86, stickiness))
+        old_x, old_y = self.clan_center
+        new_x, new_y = self.position
+        self.clan_center = (
+            int(round(old_x * stickiness + new_x * (1.0 - stickiness))),
+            int(round(old_y * stickiness + new_y * (1.0 - stickiness))),
+        )
+
     def _scavenge_pressure(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=4)
@@ -851,15 +888,21 @@ class Hyena(Animal):
         occupy_amount = max(0.12, min(0.30, occupy_amount))
         if hasattr(ecosystem, "occupy_microhabitat"):
             ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=occupy_amount, radius=3)
-        self.clan_center = self.position
+        self._update_clan_center_from_cycle()
         if hasattr(ecosystem, "get_local_microhabitat_value"):
             den_value = ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "riparian_perch"}, radius=4)
             if den_value >= 0.08:
                 self.health = min(getattr(self, "max_health", 100), self.health + 0.6)
                 self.hunger = max(0.0, self.hunger - 1.2)
-                self.clan_cohesion = min(1.0, self.clan_cohesion + 0.16 + self.cycle_expansion_phase * 0.07)
+                self.clan_cohesion = min(
+                    1.0,
+                    self.clan_cohesion + 0.16 + self.cycle_expansion_phase * 0.07 + self.hotspot_memory * 0.03,
+                )
             else:
-                self.clan_cohesion = min(1.0, self.clan_cohesion + 0.07 + self.cycle_expansion_phase * 0.03)
+                self.clan_cohesion = min(
+                    1.0,
+                    self.clan_cohesion + 0.07 + self.cycle_expansion_phase * 0.03 + self.hotspot_memory * 0.02,
+                )
         if self.cycle_contraction_phase > 0.0:
             self.clan_cohesion = max(0.0, self.clan_cohesion - self.cycle_contraction_phase * 0.025)
         if hasattr(ecosystem, "log_event"):
@@ -870,13 +913,20 @@ class Hyena(Animal):
         occupy_amount = max(0.10, min(0.25, occupy_amount))
         if hasattr(ecosystem, "occupy_microhabitat"):
             ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=occupy_amount, radius=4)
-        self.clan_center = self.position
+        self._update_clan_center_from_cycle()
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=5)
             for patch in patches[:2]:
                 patch.available = min(patch.capacity * max(1.0, patch.seasonal_multiplier), patch.available + 0.06)
         self.hunger = max(0.0, self.hunger - 0.6)
-        self.clan_front_pressure = min(1.0, self.clan_front_pressure + 0.15 + self.cycle_expansion_phase * 0.05 + self.cycle_contraction_phase * 0.05)
+        self.clan_front_pressure = min(
+            1.0,
+            self.clan_front_pressure
+            + 0.15
+            + self.cycle_expansion_phase * 0.05
+            + self.cycle_contraction_phase * 0.05
+            + self.shared_hotspot_memory * 0.03,
+        )
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} expanded a clan frontier")
 

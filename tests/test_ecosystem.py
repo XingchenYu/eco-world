@@ -873,6 +873,11 @@ def test_v4_social_trend_summary_uses_memory():
                 "lion_expansion_phase": 0.45,
                 "hyena_expansion_phase": 0.42,
             },
+            "hotspot_scores": {
+                "lion_hotspot_memory": 0.46,
+                "hyena_hotspot_memory": 0.44,
+                "shared_hotspot_memory": 0.38,
+            },
         },
     )
     territory = build_region_territory_summary(
@@ -1236,6 +1241,16 @@ def test_v4_social_trend_rebalancing_support():
     grassland_region.species_pool["lion"] = 2
     grassland_region.species_pool["hyena"] = 2
     grassland_region.record_relationship_state(
+        "territory",
+        {
+            "runtime_signals": {
+                "lion_hotspot_count": 2.0,
+                "hyena_hotspot_count": 2.0,
+                "shared_hotspot_overlap": 1.0,
+            }
+        },
+    )
+    grassland_region.record_relationship_state(
         "social_trends",
         {
             "trend_scores": {
@@ -1245,6 +1260,11 @@ def test_v4_social_trend_rebalancing_support():
             "phase_scores": {
                 "lion_expansion_phase": 0.45,
                 "hyena_expansion_phase": 0.42,
+            },
+            "hotspot_scores": {
+                "lion_hotspot_memory": 0.46,
+                "hyena_hotspot_memory": 0.44,
+                "shared_hotspot_memory": 0.38,
             },
         },
     )
@@ -1276,6 +1296,16 @@ def test_v4_social_trend_rebalancing_support():
     carrion_region = world_map_carrion.get_region("temperate_grassland")
     carrion_region.species_pool["lion"] = 2
     carrion_region.species_pool["hyena"] = 2
+    carrion_region.record_relationship_state(
+        "territory",
+        {
+            "runtime_signals": {
+                "lion_hotspot_count": 2.0,
+                "hyena_hotspot_count": 2.0,
+                "shared_hotspot_overlap": 1.0,
+            }
+        },
+    )
     carrion_region.record_relationship_state(
         "social_trends",
         {
@@ -1313,8 +1343,10 @@ def test_v4_social_trend_rebalancing_support():
 
     assert any(item["source_species"] == "social_trend" for item in grassland_adjustments)
     assert any(item["source_species"] == "social_cycle" for item in grassland_adjustments)
+    assert any(item["source_species"] == "social_hotspot" for item in grassland_adjustments)
     assert any(item["source_species"] == "social_trend" for item in carrion_adjustments)
     assert any(item["source_species"] == "social_cycle" for item in carrion_adjustments)
+    assert any(item["source_species"] == "social_hotspot" for item in carrion_adjustments)
 
     print("✅ V4 social trend rebalancing test passed")
 
@@ -1331,7 +1363,12 @@ def test_region_simulation_applies_social_phase_state():
                 "lion_contraction_phase": 0.14,
                 "hyena_expansion_phase": 0.58,
                 "hyena_contraction_phase": 0.18,
-            }
+            },
+            "hotspot_scores": {
+                "lion_hotspot_memory": 0.52,
+                "hyena_hotspot_memory": 0.49,
+                "shared_hotspot_memory": 0.31,
+            },
         },
     )
 
@@ -1345,10 +1382,44 @@ def test_region_simulation_applies_social_phase_state():
 
     assert lion.cycle_expansion_phase == 0.62
     assert lion.cycle_contraction_phase == 0.14
+    assert lion.hotspot_memory == 0.52
+    assert lion.shared_hotspot_memory == 0.31
     assert hyena.cycle_expansion_phase == 0.58
     assert hyena.cycle_contraction_phase == 0.18
+    assert hyena.hotspot_memory == 0.49
+    assert hyena.shared_hotspot_memory == 0.31
 
     print("✅ Region simulation social phase injection test passed")
+
+
+def test_lion_hotspot_memory_center_effect():
+    """Lion 的热点记忆应让 pride_center 漂移而不是瞬间跳点。"""
+    lion = Lion(position=(16, 16), gender=Gender.MALE)
+    lion.pride_center = (0, 0)
+    lion.hotspot_memory = 0.8
+    lion.shared_hotspot_memory = 0.0
+
+    lion._update_pride_center_from_cycle()
+
+    assert lion.pride_center != (0, 0)
+    assert lion.pride_center != (16, 16)
+
+    print("✅ Lion hotspot memory center test passed")
+
+
+def test_hyena_hotspot_memory_center_effect():
+    """Hyena 的热点记忆应让 clan_center 漂移而不是瞬间跳点。"""
+    hyena = Hyena(position=(16, 16), gender=Gender.FEMALE)
+    hyena.clan_center = (0, 0)
+    hyena.hotspot_memory = 0.8
+    hyena.shared_hotspot_memory = 0.0
+
+    hyena._update_clan_center_from_cycle()
+
+    assert hyena.clan_center != (0, 0)
+    assert hyena.clan_center != (16, 16)
+
+    print("✅ Hyena hotspot memory center test passed")
 
 
 def test_v4_predation_feedback_updates_region_state():
@@ -2040,6 +2111,8 @@ def run_all_tests():
     test_v4_territory_summary_uses_hotspot_memory()
     test_v4_social_trend_summary_uses_memory()
     test_region_simulation_applies_social_phase_state()
+    test_lion_hotspot_memory_center_effect()
+    test_hyena_hotspot_memory_center_effect()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()
