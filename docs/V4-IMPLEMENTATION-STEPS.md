@@ -225,6 +225,12 @@
   - `carrion_scavenging`
   - `carcass_competition`
   - `grassland_predator_closure`
+- 草原链现已支持低频 `species_pool` 重平衡
+- `grassland_rebalancing` 已开始按层级持久写入区域关系状态：
+  - `grazing_layer`
+  - `browse_layer`
+  - `predator_layer`
+  - `scavenger_layer`
 
 ### Step 9
 补草原顶级捕食与清道夫组

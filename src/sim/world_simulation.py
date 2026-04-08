@@ -10,6 +10,7 @@ from src.ecology import (
     apply_region_cascade_feedback,
     apply_region_competition_feedback,
     apply_region_grassland_chain_feedback,
+    apply_region_grassland_chain_rebalancing,
     apply_region_predation_feedback,
     apply_region_symbiosis_feedback,
     apply_region_wetland_chain_feedback,
@@ -54,6 +55,7 @@ class WorldSimulation:
         self.tick_count = 0
         self.last_competition_adjustments: Dict[str, list[dict]] = {}
         self.last_wetland_adjustments: Dict[str, list[dict]] = {}
+        self.last_grassland_adjustments: Dict[str, list[dict]] = {}
 
         self.active_region_id = initial_region_id or next(iter(self.world_map.regions))
         self.ensure_region_simulation(self.active_region_id)
@@ -69,6 +71,7 @@ class WorldSimulation:
         grassland_chain: object,
         competition_adjustments: list[dict],
         wetland_adjustments: list[dict],
+        grassland_adjustments: list[dict],
     ) -> None:
         region.record_relationship_state(
             "cascade",
@@ -134,7 +137,18 @@ class WorldSimulation:
                 "layer_groups": wetland_layer_groups,
             },
         )
-        region.append_adjustments(competition_adjustments + wetland_adjustments)
+        grassland_layer_groups: Dict[str, int] = {}
+        for item in grassland_adjustments:
+            layer_group = item.get("layer_group", "ungrouped")
+            grassland_layer_groups[layer_group] = grassland_layer_groups.get(layer_group, 0) + 1
+        region.record_relationship_state(
+            "grassland_rebalancing",
+            {
+                "adjustments": list(grassland_adjustments),
+                "layer_groups": grassland_layer_groups,
+            },
+        )
+        region.append_adjustments(competition_adjustments + wetland_adjustments + grassland_adjustments)
 
         combined_pressures: Dict[str, float] = {}
         for source in (
@@ -209,10 +223,12 @@ class WorldSimulation:
         apply_region_grassland_chain_feedback(active_region, grassland_chain)
         competition_adjustments: list[dict] = []
         wetland_adjustments: list[dict] = []
+        grassland_adjustments: list[dict] = []
         if self.tick_count % 8 == 0:
             competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
         if self.tick_count % 6 == 0:
             wetland_adjustments = apply_region_wetland_chain_rebalancing(active_region, wetland_chain)
+            grassland_adjustments = apply_region_grassland_chain_rebalancing(active_region, grassland_chain)
         self._persist_region_relationships(
             active_region,
             cascade=cascade,
@@ -223,9 +239,11 @@ class WorldSimulation:
             grassland_chain=grassland_chain,
             competition_adjustments=competition_adjustments,
             wetland_adjustments=wetland_adjustments,
+            grassland_adjustments=grassland_adjustments,
         )
         self.last_competition_adjustments[active_region.region_id] = competition_adjustments
         self.last_wetland_adjustments[active_region.region_id] = wetland_adjustments
+        self.last_grassland_adjustments[active_region.region_id] = grassland_adjustments
         self.tick_count += 1
         return WorldTickSummary(
             tick=self.tick_count,
@@ -313,6 +331,7 @@ class WorldSimulation:
                 "competition_adjustments": list(self.last_competition_adjustments.get(active_region.region_id, [])),
             },
             "wetland_rebalancing": list(self.last_wetland_adjustments.get(active_region.region_id, [])),
+            "grassland_rebalancing": list(self.last_grassland_adjustments.get(active_region.region_id, [])),
             "predation": {
                 "active_relations": len(predation.active_relations),
                 "pressure_scores": dict(predation.pressure_scores),

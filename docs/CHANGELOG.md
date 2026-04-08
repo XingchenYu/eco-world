@@ -58,6 +58,12 @@
 - ✅ `predation.py` 已补上草原顶层捕食压力：
   - `lion -> rabbit`
   - `hyena -> rabbit`
+- ✅ 新增 `grassland_rebalancing`，草原链现在也具备低频物种池重平衡
+- ✅ `grassland_rebalancing` 已按层级持久写回区域关系状态，可区分：
+  - `grazing_layer`
+  - `browse_layer`
+  - `predator_layer`
+  - `scavenger_layer`
 
 **验证**：
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion / hyena` 注册、效果与草原链分层断言

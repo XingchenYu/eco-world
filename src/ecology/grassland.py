@@ -122,6 +122,93 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
 
 
+def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: RegionGrasslandChainSummary) -> List[dict]:
+    """根据草原链结构对物种池做低频、轻量重平衡。"""
+
+    if not grassland_chain.trophic_scores:
+        return []
+
+    adjustments: List[dict] = []
+    species_pool = region.species_pool
+    scores = grassland_chain.trophic_scores
+
+    elephant_count = species_pool.get("african_elephant", 0)
+    rhino_count = species_pool.get("white_rhino", 0)
+    giraffe_count = species_pool.get("giraffe", 0)
+    lion_count = species_pool.get("lion", 0)
+    hyena_count = species_pool.get("hyena", 0)
+    rabbit_count = species_pool.get("rabbit", 0)
+
+    megaherbivore_stack = scores.get("megaherbivore_stack", 0.0)
+    predator_closure = scores.get("grassland_predator_closure", 0.0)
+    carcass_competition = scores.get("carcass_competition", 0.0)
+    apex_predation = scores.get("apex_predation", 0.0)
+
+    if megaherbivore_stack >= 0.7 and elephant_count > 0 and rhino_count > 0 and giraffe_count > 0:
+        if rabbit_count < 24:
+            species_pool["rabbit"] = rabbit_count + 2
+            adjustments.append(
+                {
+                    "source_species": "grassland_chain",
+                    "target_species": "rabbit",
+                    "layer_group": "grazing_layer",
+                    "effect": "grazing_patch_support",
+                    "new_target_count": species_pool["rabbit"],
+                }
+            )
+
+    if predator_closure >= 0.6 and lion_count > 0 and hyena_count > 0:
+        if rabbit_count > 10:
+            species_pool["rabbit"] = rabbit_count - 1
+            adjustments.append(
+                {
+                    "source_species": "grassland_chain",
+                    "target_species": "rabbit",
+                    "layer_group": "predator_layer",
+                    "effect": "top_down_trim",
+                    "new_target_count": species_pool["rabbit"],
+                }
+            )
+
+    if carcass_competition >= 0.5 and lion_count >= 3 and hyena_count >= 4:
+        if hyena_count > lion_count:
+            species_pool["hyena"] = hyena_count - 1
+            adjustments.append(
+                {
+                    "source_species": "lion",
+                    "target_species": "hyena",
+                    "layer_group": "scavenger_layer",
+                    "effect": "carcass_pressure",
+                    "new_target_count": species_pool["hyena"],
+                }
+            )
+        elif lion_count > 2:
+            species_pool["lion"] = lion_count - 1
+            adjustments.append(
+                {
+                    "source_species": "hyena",
+                    "target_species": "lion",
+                    "layer_group": "predator_layer",
+                    "effect": "carcass_pressure",
+                    "new_target_count": species_pool["lion"],
+                }
+            )
+
+    if apex_predation >= 0.7 and giraffe_count > 3 and lion_count >= 2:
+        species_pool["giraffe"] = giraffe_count - 1
+        adjustments.append(
+            {
+                "source_species": "lion",
+                "target_species": "giraffe",
+                "layer_group": "browse_layer",
+                "effect": "apex_browse_pressure",
+                "new_target_count": species_pool["giraffe"],
+            }
+        )
+
+    return adjustments
+
+
 def _is_grassland_region(region: Region) -> bool:
     if region.region_id == "temperate_grassland":
         return True

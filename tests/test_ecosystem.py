@@ -34,7 +34,11 @@ from src.ecology.wetland import (
     build_region_wetland_chain_summary,
 )
 from src.ecology.food_web import build_region_food_web
-from src.ecology.grassland import apply_region_grassland_chain_feedback, build_region_grassland_chain_summary
+from src.ecology.grassland import (
+    apply_region_grassland_chain_feedback,
+    apply_region_grassland_chain_rebalancing,
+    build_region_grassland_chain_summary,
+)
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
 from src.main import load_config
@@ -313,6 +317,7 @@ def test_v4_world_simulation_skeleton():
     assert "predation" in stats["active_region"]["relationship_state"]
     assert "symbiosis" in stats["active_region"]["relationship_state"]
     assert "grassland_chain" in stats["active_region"]["relationship_state"]
+    assert "grassland_rebalancing" in stats["active_region"]["relationship_state"]
     assert stats["active_region"]["ecological_pressures"]
 
     world_sim.set_active_region("wetland_lake")
@@ -333,6 +338,7 @@ def test_v4_world_simulation_skeleton():
     grassland_stats = world_sim.get_statistics()
     assert grassland_stats["grassland_chain"]["key_species"]
     assert grassland_stats["grassland_chain"]["layer_scores"]["engineering_layer"] > 0.0
+    assert "grassland_rebalancing" in grassland_stats
 
     print("✅ V4 world simulation test passed")
 
@@ -352,6 +358,7 @@ def test_v4_region_relationship_state_persists():
     assert "wetland_chain" in region.relationship_state
     assert "grassland_chain" in region.relationship_state
     assert "wetland_rebalancing" in region.relationship_state
+    assert "grassland_rebalancing" in region.relationship_state
     assert region.ecological_pressures
     assert region.relationship_state["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
     assert region.relationship_state["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
@@ -696,6 +703,25 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert region.health_state["biodiversity"] >= initial_biodiversity
 
     print("✅ V4 grassland chain feedback test passed")
+
+
+def test_v4_grassland_chain_rebalancing_updates_species_pool():
+    """v4 草原链重平衡应轻量调整草原关键物种池。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("temperate_grassland")
+
+    initial_rabbit = region.species_pool["rabbit"]
+    initial_hyena = region.species_pool["hyena"]
+
+    summary = build_region_grassland_chain_summary(region, registry)
+    adjustments = apply_region_grassland_chain_rebalancing(region, summary)
+
+    assert adjustments
+    assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer"} for item in adjustments)
+    assert region.species_pool["rabbit"] != initial_rabbit or region.species_pool["hyena"] != initial_hyena
+
+    print("✅ V4 grassland chain rebalancing test passed")
 
 
 def test_v4_predation_feedback_updates_region_state():
@@ -1049,6 +1075,7 @@ def run_all_tests():
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()
     test_v4_grassland_chain_feedback_updates_region_state()
+    test_v4_grassland_chain_rebalancing_updates_species_pool()
     test_v4_predation_feedback_updates_region_state()
     test_v4_symbiosis_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()
