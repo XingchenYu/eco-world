@@ -762,19 +762,25 @@ def test_v4_territory_summary_uses_runtime_state():
         runtime_state={
             "lion_pride_strength": 0.7,
             "lion_takeover_pressure": 0.5,
+            "lion_pride_count": 2.0,
             "hyena_clan_cohesion": 0.6,
             "hyena_clan_front_pressure": 0.4,
+            "hyena_clan_count": 3.0,
         },
     )
 
     assert summary.runtime_signals["lion_pride_strength"] == 0.7
     assert summary.runtime_signals["lion_takeover_pressure"] == 0.5
+    assert summary.runtime_signals["lion_pride_count"] == 2
     assert summary.runtime_signals["hyena_clan_cohesion"] == 0.6
     assert summary.runtime_signals["hyena_clan_front_pressure"] == 0.4
+    assert summary.runtime_signals["hyena_clan_count"] == 3
     assert summary.pressure_scores["pride_core_range"] > 0.58
     assert summary.pressure_scores["male_takeover_front"] > 0.44
     assert summary.pressure_scores["clan_den_range"] > 0.55
     assert summary.pressure_scores["scavenger_perimeter"] > 0.41
+    assert summary.pressure_scores["apex_boundary_conflict"] > 0.63
+    assert summary.pressure_scores["carcass_route_overlap"] > 0.49
 
     print("✅ V4 territory runtime state test passed")
 
@@ -1258,6 +1264,7 @@ def test_lion_registration_and_spawn():
 
     assert eco.get_species_count("lion") == initial + 1
     assert eco.animals[-1].species == "lion"
+    assert eco.animals[-1].pride_id.startswith("pride-")
 
     print("✅ Lion registration test passed")
 
@@ -1328,6 +1335,7 @@ def test_hyena_registration_and_spawn():
 
     assert eco.get_species_count("hyena") == initial + 1
     assert eco.animals[-1].species == "hyena"
+    assert eco.animals[-1].clan_id.startswith("clan-")
 
     print("✅ Hyena registration test passed")
 

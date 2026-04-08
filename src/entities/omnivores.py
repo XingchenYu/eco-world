@@ -481,6 +481,7 @@ class Lion(Animal):
         self.dominance = 1.9
         self.pride_strength = 0.0
         self.takeover_pressure = 0.0
+        self.pride_id = f"pride-{random.randint(1, 6)}"
 
     def get_predators(self) -> List[str]:
         return []
@@ -590,6 +591,7 @@ class Hyena(Animal):
         self.dominance = 1.5
         self.clan_cohesion = 0.0
         self.clan_front_pressure = 0.0
+        self.clan_id = f"clan-{random.randint(1, 7)}"
 
     def get_predators(self) -> List[str]:
         return ["lion"]

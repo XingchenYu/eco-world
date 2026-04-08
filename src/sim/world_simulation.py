@@ -250,17 +250,21 @@ class WorldSimulation:
         state = {
             "lion_pride_strength": 0.0,
             "lion_takeover_pressure": 0.0,
+            "lion_pride_count": 0.0,
             "hyena_clan_cohesion": 0.0,
             "hyena_clan_front_pressure": 0.0,
+            "hyena_clan_count": 0.0,
         }
         lions = [animal for animal in simulation.animals if animal.alive and animal.species == "lion"]
         hyenas = [animal for animal in simulation.animals if animal.alive and animal.species == "hyena"]
         if lions:
             state["lion_pride_strength"] = max(getattr(animal, "pride_strength", 0.0) for animal in lions)
             state["lion_takeover_pressure"] = max(getattr(animal, "takeover_pressure", 0.0) for animal in lions)
+            state["lion_pride_count"] = float(len({getattr(animal, "pride_id", animal.id) for animal in lions}))
         if hyenas:
             state["hyena_clan_cohesion"] = max(getattr(animal, "clan_cohesion", 0.0) for animal in hyenas)
             state["hyena_clan_front_pressure"] = max(getattr(animal, "clan_front_pressure", 0.0) for animal in hyenas)
+            state["hyena_clan_count"] = float(len({getattr(animal, "clan_id", animal.id) for animal in hyenas}))
         return state
 
     def update(self) -> WorldTickSummary:

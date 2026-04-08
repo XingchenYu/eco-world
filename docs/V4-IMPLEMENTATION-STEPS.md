@@ -254,6 +254,12 @@
   - `lion_takeover_pressure`
   - `hyena_clan_cohesion`
   - `hyena_clan_front_pressure`
+- 草原捕食者现在还有轻量群体标识：
+  - `pride_id`
+  - `clan_id`
+- `territory` 现已开始吸收：
+  - `lion_pride_count`
+  - `hyena_clan_count`
 - 当前已原生接入：
   - `lion`
   - `hyena`

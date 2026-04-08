@@ -121,6 +121,17 @@
   - 运行期社群状态
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增运行期领地状态测试并通过
 
+### v4.0-alpha13 (2026-04-08 23:20)
+
+- ✅ `Lion / Hyena` 现已新增轻量群体标识：
+  - `pride_id`
+  - `clan_id`
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已汇总：
+  - `lion_pride_count`
+  - `hyena_clan_count`
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 开始把群体数量纳入领地压力计算
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增群体标识和群体数量相关断言并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要

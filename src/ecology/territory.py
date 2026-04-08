@@ -103,8 +103,10 @@ def build_region_territory_summary(
     runtime_state = runtime_state or {}
     pride_strength = float(runtime_state.get("lion_pride_strength", 0.0))
     takeover_strength = float(runtime_state.get("lion_takeover_pressure", 0.0))
+    pride_count = int(runtime_state.get("lion_pride_count", 0.0))
     clan_cohesion = float(runtime_state.get("hyena_clan_cohesion", 0.0))
     clan_front_strength = float(runtime_state.get("hyena_clan_front_pressure", 0.0))
+    clan_count = int(runtime_state.get("hyena_clan_count", 0.0))
 
     if pride_strength > 0.0:
         runtime_signals["lion_pride_strength"] = round(pride_strength, 3)
@@ -112,12 +114,26 @@ def build_region_territory_summary(
     if takeover_strength > 0.0:
         runtime_signals["lion_takeover_pressure"] = round(takeover_strength, 3)
         pressure_scores["male_takeover_front"] = round(pressure_scores.get("male_takeover_front", 0.0) + min(0.24, takeover_strength * 0.20), 2)
+    if pride_count > 0:
+        runtime_signals["lion_pride_count"] = pride_count
+        pressure_scores["pride_core_range"] = round(pressure_scores.get("pride_core_range", 0.0) + min(0.18, pride_count * 0.04), 2)
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + max(0.0, pride_count - 1) * 0.06,
+            2,
+        )
     if clan_cohesion > 0.0:
         runtime_signals["hyena_clan_cohesion"] = round(clan_cohesion, 3)
         pressure_scores["clan_den_range"] = round(pressure_scores.get("clan_den_range", 0.0) + min(0.24, clan_cohesion * 0.20), 2)
     if clan_front_strength > 0.0:
         runtime_signals["hyena_clan_front_pressure"] = round(clan_front_strength, 3)
         pressure_scores["scavenger_perimeter"] = round(pressure_scores.get("scavenger_perimeter", 0.0) + min(0.22, clan_front_strength * 0.18), 2)
+    if clan_count > 0:
+        runtime_signals["hyena_clan_count"] = clan_count
+        pressure_scores["clan_den_range"] = round(pressure_scores.get("clan_den_range", 0.0) + min(0.18, clan_count * 0.035), 2)
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + max(0.0, clan_count - 1) * 0.05,
+            2,
+        )
 
     return RegionTerritorySummary(
         region_id=region.region_id,
