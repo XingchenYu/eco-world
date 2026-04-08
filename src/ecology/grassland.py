@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from src.data import WorldRegistry
 from src.world import Region
@@ -21,7 +21,11 @@ class RegionGrasslandChainSummary:
     narrative_chain: List[str] = field(default_factory=list)
 
 
-def build_region_grassland_chain_summary(region: Region, registry: WorldRegistry) -> RegionGrasslandChainSummary:
+def build_region_grassland_chain_summary(
+    region: Region,
+    registry: WorldRegistry,
+    territory_summary: Optional[object] = None,
+) -> RegionGrasslandChainSummary:
     """构建草原大型植食者链摘要。非草原区返回空摘要。"""
 
     if not _is_grassland_region(region):
@@ -105,6 +109,16 @@ def build_region_grassland_chain_summary(region: Region, registry: WorldRegistry
     if {"lion", "hyena"} <= region_species and {"antelope", "zebra"} & region_species:
         add_score("herd_predator_loop", 0.67, "草原食草群与狮鬣狗共同形成更完整的顶层捕食闭环。")
         add_score("group_hunt_instability", 0.45, "猎物群规模越大，狮群与鬣狗 clan 的协同追逐和冲突越明显。")
+    if territory_summary is not None:
+        runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
+        shared_hotspots = int(runtime_signals.get("shared_hotspot_overlap", 0))
+        lion_hotspots = int(runtime_signals.get("lion_hotspot_count", 0))
+        hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
+        if shared_hotspots > 0:
+            add_score("hotspot_overlap_pressure", min(0.42, shared_hotspots * 0.16), "狮群与鬣狗 clan 的热点重叠会把草原资源通道挤压成更高冲突密度。")
+            add_score("carcass_channeling", min(0.36, shared_hotspots * 0.14), "领地热点重叠会把尸体与伏击资源进一步集中到少数核心通道。")
+        if lion_hotspots > 0 and hyena_hotspots > 0:
+            add_score("territory_channel_pressure", min(0.34, (lion_hotspots + hyena_hotspots) * 0.06), "多个 pride 与 clan 热点会强化草原顶层巡猎和清道夫路线的空间压缩。")
 
     return RegionGrasslandChainSummary(
         region_id=region.region_id,
@@ -134,10 +148,12 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("migration_pressure", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", -scores.get("clan_pressure", 0.0) * 0.06, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("carcass_channeling", 0.0) * 0.20, feedback_scale)
 
     _adjust(region.hazard_state, "predation_pressure", scores.get("canopy_opening", 0.0) * 0.16, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("apex_predation", 0.0) * 0.28, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("apex_rivalry", 0.0) * 0.14, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("territory_channel_pressure", 0.0) * 0.18, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)
 
     _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22, feedback_scale)
@@ -147,6 +163,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("pride_patrol", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("group_hunt_instability", 0.0) * 0.08, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("hotspot_overlap_pressure", 0.0) * 0.10, feedback_scale)
 
 
 def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: RegionGrasslandChainSummary) -> List[dict]:

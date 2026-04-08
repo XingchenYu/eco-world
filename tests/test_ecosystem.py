@@ -652,7 +652,16 @@ def test_v4_grassland_chain_summary():
     grassland = world_map.get_region("temperate_grassland")
     wetland = world_map.get_region("wetland_lake")
 
-    grassland_chain = build_region_grassland_chain_summary(grassland, registry)
+    territory = build_region_territory_summary(
+        grassland,
+        registry,
+        runtime_state={
+            "lion_hotspot_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
+        },
+    )
+    grassland_chain = build_region_grassland_chain_summary(grassland, registry, territory_summary=territory)
     wetland_chain = build_region_grassland_chain_summary(wetland, registry)
 
     assert "african_elephant" in grassland_chain.key_species
@@ -670,6 +679,9 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["pride_patrol"] > 0.0
     assert grassland_chain.trophic_scores["clan_pressure"] > 0.0
     assert grassland_chain.trophic_scores["apex_rivalry"] > 0.0
+    assert grassland_chain.trophic_scores["hotspot_overlap_pressure"] > 0.0
+    assert grassland_chain.trophic_scores["territory_channel_pressure"] > 0.0
+    assert grassland_chain.trophic_scores["carcass_channeling"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
     assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
     assert grassland_chain.layer_scores["engineering_layer"] > 0.0
@@ -799,7 +811,16 @@ def test_v4_carrion_chain_summary():
     grassland = world_map.get_region("temperate_grassland")
     wetland = world_map.get_region("wetland_lake")
 
-    grassland_chain = build_region_carrion_chain_summary(grassland, registry)
+    territory = build_region_territory_summary(
+        grassland,
+        registry,
+        runtime_state={
+            "lion_hotspot_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
+        },
+    )
+    grassland_chain = build_region_carrion_chain_summary(grassland, registry, territory_summary=territory)
     wetland_chain = build_region_carrion_chain_summary(wetland, registry)
 
     assert "lion" in grassland_chain.key_species
@@ -812,6 +833,8 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.resource_scores["aerial_scavenging"] > 0.0
     assert grassland_chain.resource_scores["carcass_competition_loop"] > 0.0
     assert grassland_chain.resource_scores["carrion_energy_loop"] > 0.0
+    assert grassland_chain.resource_scores["kill_corridor_overlap"] > 0.0
+    assert grassland_chain.resource_scores["scavenger_lane_pressure"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenge_layer"] > 0.0
     assert grassland_chain.layer_scores["aerial_scavenge_layer"] > 0.0

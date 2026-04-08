@@ -70,6 +70,10 @@
 - 已完成第一版落地
 - 已新增 [competition.py](/Users/yumini/Projects/eco-world/src/ecology/competition.py)
 - `WorldSimulation` 已开始输出独立 `competition` 统计
+- 草原领地热点现已开始反向影响：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 草原资源通道与尸体资源通道
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`

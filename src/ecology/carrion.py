@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from src.data import WorldRegistry
 from src.world import Region
@@ -21,7 +21,11 @@ class RegionCarrionChainSummary:
     narrative_chain: List[str] = field(default_factory=list)
 
 
-def build_region_carrion_chain_summary(region: Region, registry: WorldRegistry) -> RegionCarrionChainSummary:
+def build_region_carrion_chain_summary(
+    region: Region,
+    registry: WorldRegistry,
+    territory_summary: Optional[object] = None,
+) -> RegionCarrionChainSummary:
     """构建草原区尸体资源链摘要。"""
 
     if "grassland" not in region.dominant_biomes:
@@ -75,6 +79,15 @@ def build_region_carrion_chain_summary(region: Region, registry: WorldRegistry) 
         add_score("carrion_energy_loop", 0.71, "草食群、狮群和鬣狗共同闭合草原尸体资源链。")
     if {"lion", "hyena", "vulture"} <= region_species and {"antelope", "zebra"} & region_species:
         add_score("full_carrion_closure", 0.76, "草食群、顶级捕食者、地面清道夫和空中清道夫共同闭合更完整的草原尸体资源网络。")
+    if territory_summary is not None:
+        runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
+        shared_hotspots = int(runtime_signals.get("shared_hotspot_overlap", 0))
+        lion_hotspots = int(runtime_signals.get("lion_hotspot_count", 0))
+        hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
+        if shared_hotspots > 0:
+            add_score("kill_corridor_overlap", min(0.38, shared_hotspots * 0.15), "领地热点重叠会把击杀点和尸体点压缩进更少的高频通道。")
+        if lion_hotspots > 0 and hyena_hotspots > 0:
+            add_score("scavenger_lane_pressure", min(0.34, (lion_hotspots + hyena_hotspots) * 0.06), "多个顶层热点会强化地面与空中清道夫对尸体通道的跟随压力。")
 
     return RegionCarrionChainSummary(
         region_id=region.region_id,
@@ -97,9 +110,11 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("kill_generation", 0.0) * 0.26, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("large_carcass_supply", 0.0) * 0.24, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", -scores.get("aerial_scavenging", 0.0) * 0.10, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("kill_corridor_overlap", 0.0) * 0.18, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("scavenger_lane_pressure", 0.0) * 0.14, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12, feedback_scale)
 

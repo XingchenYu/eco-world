@@ -291,15 +291,15 @@ class WorldSimulation:
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
         predation = build_region_predation_summary(active_region, self.registry)
-        wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
-        grassland_chain = build_region_grassland_chain_summary(active_region, self.registry)
-        carrion_chain = build_region_carrion_chain_summary(active_region, self.registry)
         territory = build_region_territory_summary(
             active_region,
             self.registry,
             recent_events=recent_events,
             runtime_state=runtime_territory_state,
         )
+        wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
+        grassland_chain = build_region_grassland_chain_summary(active_region, self.registry, territory_summary=territory)
+        carrion_chain = build_region_carrion_chain_summary(active_region, self.registry, territory_summary=territory)
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -369,9 +369,6 @@ class WorldSimulation:
             recent_events=recent_events,
             runtime_state=runtime_territory_state,
         )
-        wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
-        grassland_chain = build_region_grassland_chain_summary(active_region, self.registry)
-        carrion_chain = build_region_carrion_chain_summary(active_region, self.registry)
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -380,6 +377,9 @@ class WorldSimulation:
             symbiosis=symbiosis,
             territory=territory,
         )
+        wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
+        grassland_chain = build_region_grassland_chain_summary(active_region, self.registry, territory_summary=territory)
+        carrion_chain = build_region_carrion_chain_summary(active_region, self.registry, territory_summary=territory)
 
         return {
             "world_tick": self.tick_count,

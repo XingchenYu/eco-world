@@ -14,6 +14,24 @@
 - ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 开始把热点数量和热点重叠纳入领地压力计算
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增热点相关断言并通过
 
+### v4.0-alpha15 (2026-04-08 23:55)
+
+- ✅ `territory` 的热点信号现已反向接入：
+  - [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py)
+  - [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py)
+- ✅ 草原链新增：
+  - `hotspot_overlap_pressure`
+  - `territory_channel_pressure`
+  - `carcass_channeling`
+- ✅ 尸体资源链新增：
+  - `kill_corridor_overlap`
+  - `scavenger_lane_pressure`
+- ✅ 草原热点重叠现在会继续影响：
+  - 草原资源通道
+  - 尸体资源通道
+  - `carcass_availability`
+  - `predation_pressure`
+
 ---
 
 ## 更新规范
