@@ -102,6 +102,20 @@
   - 充足的草食群或尸体资源
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增扩张窗口断言并通过
 
+### v4.0-alpha21 (2026-04-09 01:25)
+
+- ✅ `grassland_rebalancing / carrion_rebalancing` 现在在低谷条件下支持：
+  - `pride_recolonization_window`
+  - `clan_recolonization_window`
+  - `pride_carrion_recolonization_window`
+  - `clan_carrion_recolonization_window`
+- ✅ 这些重占窗口要求：
+  - 低数量状态
+  - 高稳定度
+  - 仍然存在的热点区
+  - 足够的草食群或尸体资源
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增草原链和尸体资源链的重占窗口测试并通过
+
 ---
 
 ## 更新规范

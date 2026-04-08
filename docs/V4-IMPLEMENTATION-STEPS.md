@@ -102,6 +102,12 @@
   时，这层稳定度现在也会打开：
   - `pride expansion window`
   - `clan expansion window`
+- 当：
+  - `lion / hyena` 跌入低谷
+  - 但社群信号、热点和资源通道仍保留
+  时，这层现在也会打开：
+  - `pride recolonization window`
+  - `clan recolonization window`
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`

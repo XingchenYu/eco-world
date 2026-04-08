@@ -305,6 +305,42 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["hyena"],
             }
         )
+    if (
+        lion_count <= 1
+        and pride_strength >= 0.72
+        and pride_count >= 2
+        and lion_hotspots >= 1
+        and scores.get("kill_generation", 0.0) >= 0.62
+        and scores.get("carrion_energy_loop", 0.0) >= 0.70
+    ):
+        species_pool["lion"] = species_pool.get("lion", 0) + 2
+        adjustments.append(
+            {
+                "source_species": "social_state",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "pride_carrion_recolonization_window",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if (
+        hyena_count <= 1
+        and clan_cohesion >= 0.7
+        and clan_count >= 2
+        and hyena_hotspots >= 1
+        and scores.get("scavenger_pressure", 0.0) >= 0.62
+        and scores.get("carrion_energy_loop", 0.0) >= 0.70
+    ):
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 2
+        adjustments.append(
+            {
+                "source_species": "social_state",
+                "target_species": "hyena",
+                "layer_group": "scavenge_layer",
+                "effect": "clan_carrion_recolonization_window",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
 
     return adjustments
 

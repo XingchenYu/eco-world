@@ -970,6 +970,38 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     print("✅ V4 grassland chain rebalancing test passed")
 
 
+def test_v4_grassland_chain_recolonization_window():
+    """v4 草原链应在低谷时打开社群重占窗口。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("temperate_grassland")
+    region.species_pool["lion"] = 1
+    region.species_pool["hyena"] = 1
+
+    territory = build_region_territory_summary(
+        region,
+        registry,
+        runtime_state={
+            "lion_pride_strength": 0.8,
+            "lion_pride_count": 2.0,
+            "hyena_clan_cohesion": 0.78,
+            "hyena_clan_count": 2.0,
+            "lion_hotspot_count": 1.0,
+            "hyena_hotspot_count": 1.0,
+            "shared_hotspot_overlap": 0.0,
+        },
+    )
+    summary = build_region_grassland_chain_summary(region, registry, territory_summary=territory)
+    adjustments = apply_region_grassland_chain_rebalancing(region, summary, territory_summary=territory)
+
+    assert any(item["effect"] == "pride_recolonization_window" for item in adjustments)
+    assert any(item["effect"] == "clan_recolonization_window" for item in adjustments)
+    assert region.species_pool["lion"] >= 3
+    assert region.species_pool["hyena"] >= 3
+
+    print("✅ V4 grassland recolonization test passed")
+
+
 def test_v4_carrion_chain_feedback_updates_region_state():
     """v4 尸体资源链反馈应轻量更新草原资源与健康状态。"""
     world_map = build_default_world_map()
@@ -1028,6 +1060,38 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     )
 
     print("✅ V4 carrion chain rebalancing test passed")
+
+
+def test_v4_carrion_chain_recolonization_window():
+    """v4 尸体资源链应在低谷时打开捕食者重占窗口。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("temperate_grassland")
+    region.species_pool["lion"] = 1
+    region.species_pool["hyena"] = 1
+
+    territory = build_region_territory_summary(
+        region,
+        registry,
+        runtime_state={
+            "lion_pride_strength": 0.8,
+            "lion_pride_count": 2.0,
+            "hyena_clan_cohesion": 0.78,
+            "hyena_clan_count": 2.0,
+            "lion_hotspot_count": 1.0,
+            "hyena_hotspot_count": 1.0,
+            "shared_hotspot_overlap": 0.0,
+        },
+    )
+    summary = build_region_carrion_chain_summary(region, registry, territory_summary=territory)
+    adjustments = apply_region_carrion_chain_rebalancing(region, summary, territory_summary=territory)
+
+    assert any(item["effect"] == "pride_carrion_recolonization_window" for item in adjustments)
+    assert any(item["effect"] == "clan_carrion_recolonization_window" for item in adjustments)
+    assert region.species_pool["lion"] >= 3
+    assert region.species_pool["hyena"] >= 3
+
+    print("✅ V4 carrion recolonization test passed")
 
 
 def test_v4_predation_feedback_updates_region_state():
@@ -1422,6 +1486,7 @@ def test_lion_social_birth_scaling():
     lion_high.gender = Gender.FEMALE
     lion_high.pregnant = True
     lion_high.pride_stability = 0.8
+    lion_high.breeding_patch_threshold = lambda: 0.0
     before_high = eco_high.get_species_count("lion")
 
     random.seed(42)
@@ -1438,6 +1503,7 @@ def test_lion_social_birth_scaling():
     lion_low.gender = Gender.FEMALE
     lion_low.pregnant = True
     lion_low.pride_stability = 0.0
+    lion_low.breeding_patch_threshold = lambda: 0.0
     before_low = eco_low.get_species_count("lion")
 
     random.seed(42)
@@ -1561,6 +1627,7 @@ def test_hyena_social_birth_scaling():
     hyena_high.gender = Gender.FEMALE
     hyena_high.pregnant = True
     hyena_high.clan_stability = 0.8
+    hyena_high.breeding_patch_threshold = lambda: 0.0
     before_high = eco_high.get_species_count("hyena")
 
     random.seed(24)
@@ -1577,6 +1644,7 @@ def test_hyena_social_birth_scaling():
     hyena_low.gender = Gender.FEMALE
     hyena_low.pregnant = True
     hyena_low.clan_stability = 0.0
+    hyena_low.breeding_patch_threshold = lambda: 0.0
     before_low = eco_low.get_species_count("hyena")
 
     random.seed(24)
@@ -1645,9 +1713,11 @@ def run_all_tests():
     test_v4_wetland_chain_rebalancing_updates_species_pool()
     test_v4_grassland_chain_feedback_updates_region_state()
     test_v4_grassland_chain_rebalancing_updates_species_pool()
+    test_v4_grassland_chain_recolonization_window()
     test_v4_territory_feedback_updates_region_state()
     test_v4_carrion_chain_feedback_updates_region_state()
     test_v4_carrion_chain_rebalancing_updates_species_pool()
+    test_v4_carrion_chain_recolonization_window()
     test_v4_predation_feedback_updates_region_state()
     test_v4_symbiosis_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()
