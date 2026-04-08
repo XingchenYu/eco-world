@@ -483,6 +483,7 @@ class Lion(Animal):
         self.takeover_pressure = 0.0
         self.pride_id = f"pride-{random.randint(1, 6)}"
         self.pride_center = position
+        self.pride_stability = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -516,6 +517,7 @@ class Lion(Animal):
         self._pride_timer += 1
         self._pride_core_timer += 1
         self._takeover_timer += 1
+        self._apply_social_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._pride_timer >= self.pride_interval:
             self._pride_timer = 0
@@ -526,8 +528,33 @@ class Lion(Animal):
         if self.alive and self._takeover_timer >= self.takeover_interval:
             self._takeover_timer = 0
             self._contest_male_front(ecosystem)
+        self.reproduction_rate *= max(0.75, 0.9 + self.pride_stability * 0.35)
+        self.pride_stability = max(0.0, self.pride_stability - 0.015)
         self.pride_strength = max(0.0, self.pride_strength - 0.02)
         self.takeover_pressure = max(0.0, self.takeover_pressure - 0.025)
+
+    def _apply_social_stability(self, ecosystem):
+        lions = [animal for animal in ecosystem.animals if animal.alive and animal.species == "lion"]
+        pride_size = sum(1 for animal in lions if getattr(animal, "pride_id", None) == self.pride_id)
+        same_hotspot = {
+            (getattr(animal, "pride_center", animal.position)[0] // 8, getattr(animal, "pride_center", animal.position)[1] // 8)
+            for animal in lions
+            if getattr(animal, "pride_id", None) == self.pride_id
+        }
+        rival_hotspot_overlap = sum(
+            1
+            for animal in lions
+            if getattr(animal, "pride_id", None) != self.pride_id
+            and (getattr(animal, "pride_center", animal.position)[0] // 8, getattr(animal, "pride_center", animal.position)[1] // 8) in same_hotspot
+        )
+        stability = min(1.0, 0.10 * max(0, pride_size - 1) + self.pride_strength * 0.55 - rival_hotspot_overlap * 0.08)
+        self.pride_stability = max(0.0, stability)
+        if self.pride_stability >= 0.35:
+            self.health = min(getattr(self, "max_health", 100), self.health + self.pride_stability * 0.4)
+            self.hunger = max(0.0, self.hunger - self.pride_stability * 0.8)
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        elif rival_hotspot_overlap > 0:
+            self.mate_cooldown = max(self.mate_cooldown, 2)
 
     def _mark_hunt_corridor(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
@@ -596,6 +623,7 @@ class Hyena(Animal):
         self.clan_front_pressure = 0.0
         self.clan_id = f"clan-{random.randint(1, 7)}"
         self.clan_center = position
+        self.clan_stability = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -632,6 +660,7 @@ class Hyena(Animal):
         self._scavenge_timer += 1
         self._clan_timer += 1
         self._clan_front_timer += 1
+        self._apply_clan_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._scavenge_timer >= self.scavenge_interval:
             self._scavenge_timer = 0
@@ -642,8 +671,33 @@ class Hyena(Animal):
         if self.alive and self._clan_front_timer >= self.clan_front_interval:
             self._clan_front_timer = 0
             self._expand_clan_front(ecosystem)
+        self.reproduction_rate *= max(0.75, 0.9 + self.clan_stability * 0.32)
+        self.clan_stability = max(0.0, self.clan_stability - 0.015)
         self.clan_cohesion = max(0.0, self.clan_cohesion - 0.02)
         self.clan_front_pressure = max(0.0, self.clan_front_pressure - 0.025)
+
+    def _apply_clan_stability(self, ecosystem):
+        hyenas = [animal for animal in ecosystem.animals if animal.alive and animal.species == "hyena"]
+        clan_size = sum(1 for animal in hyenas if getattr(animal, "clan_id", None) == self.clan_id)
+        same_hotspot = {
+            (getattr(animal, "clan_center", animal.position)[0] // 8, getattr(animal, "clan_center", animal.position)[1] // 8)
+            for animal in hyenas
+            if getattr(animal, "clan_id", None) == self.clan_id
+        }
+        rival_hotspot_overlap = sum(
+            1
+            for animal in hyenas
+            if getattr(animal, "clan_id", None) != self.clan_id
+            and (getattr(animal, "clan_center", animal.position)[0] // 8, getattr(animal, "clan_center", animal.position)[1] // 8) in same_hotspot
+        )
+        stability = min(1.0, 0.08 * max(0, clan_size - 1) + self.clan_cohesion * 0.55 - rival_hotspot_overlap * 0.07)
+        self.clan_stability = max(0.0, stability)
+        if self.clan_stability >= 0.35:
+            self.health = min(getattr(self, "max_health", 100), self.health + self.clan_stability * 0.35)
+            self.hunger = max(0.0, self.hunger - self.clan_stability * 0.7)
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        elif rival_hotspot_overlap > 0:
+            self.mate_cooldown = max(self.mate_cooldown, 2)
 
     def _scavenge_pressure(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):

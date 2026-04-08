@@ -79,6 +79,14 @@
   - `hyena_hotspot_count`
   - `shared_hotspot_overlap`
 - 这使得 `lion / hyena / vulture` 的低频重平衡也开始受空间群体格局影响
+- `Lion / Hyena` 运行体现在也开始记录：
+  - `pride_stability`
+  - `clan_stability`
+- 这层稳定度已经开始轻量影响：
+  - `health`
+  - `hunger`
+  - `mate_cooldown`
+  - `reproduction_rate`
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`

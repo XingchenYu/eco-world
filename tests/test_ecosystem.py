@@ -1374,6 +1374,31 @@ def test_lion_male_takeover_effect():
     print("✅ Lion male takeover test passed")
 
 
+def test_lion_social_stability_effect():
+    """狮群稳定度应影响体况和繁殖冷却。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("lion", position, source="manual")
+    eco.spawn_animal("lion", position, source="manual")
+    lion = eco.animals[-2]
+    partner = eco.animals[-1]
+    partner.pride_id = lion.pride_id
+    partner.pride_center = lion.position
+    lion.pride_strength = 0.6
+    lion.mate_cooldown = 3
+    before_hunger = lion.hunger
+
+    lion._apply_social_stability(eco)
+
+    assert lion.pride_stability > 0.0
+    assert lion.hunger <= before_hunger
+    assert lion.mate_cooldown <= 2
+
+    print("✅ Lion social stability test passed")
+
+
 def test_hyena_registration_and_spawn():
     """鬣狗应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -1444,6 +1469,31 @@ def test_hyena_clan_front_effect():
     assert hyena.clan_front_pressure > 0.0
 
     print("✅ Hyena clan front test passed")
+
+
+def test_hyena_clan_stability_effect():
+    """鬣狗 clan 稳定度应影响体况和繁殖冷却。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("hyena", position, source="manual")
+    eco.spawn_animal("hyena", position, source="manual")
+    hyena = eco.animals[-2]
+    partner = eco.animals[-1]
+    partner.clan_id = hyena.clan_id
+    partner.clan_center = hyena.position
+    hyena.clan_cohesion = 0.6
+    hyena.mate_cooldown = 3
+    before_hunger = hyena.hunger
+
+    hyena._apply_clan_stability(eco)
+
+    assert hyena.clan_stability > 0.0
+    assert hyena.hunger <= before_hunger
+    assert hyena.mate_cooldown <= 2
+
+    print("✅ Hyena clan stability test passed")
 
 
 def test_vulture_registration_and_spawn():
@@ -1522,10 +1572,12 @@ def run_all_tests():
     test_lion_hunt_corridor_effect()
     test_lion_pride_core_effect()
     test_lion_male_takeover_effect()
+    test_lion_social_stability_effect()
     test_hyena_registration_and_spawn()
     test_hyena_scavenging_effect()
     test_hyena_den_cluster_effect()
     test_hyena_clan_front_effect()
+    test_hyena_clan_stability_effect()
     test_vulture_registration_and_spawn()
     
     print("\n✅ All tests passed!")

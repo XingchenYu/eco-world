@@ -43,6 +43,19 @@
   的低频物种池重平衡
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `territory -> rebalancing` 断言并通过
 
+### v4.0-alpha17 (2026-04-09 00:25)
+
+- ✅ `Lion` 现已新增轻量社群稳定度：
+  - `pride_stability`
+- ✅ `Hyena` 现已新增轻量社群稳定度：
+  - `clan_stability`
+- ✅ 这层稳定度现在会开始轻量影响：
+  - `health`
+  - `hunger`
+  - `mate_cooldown`
+  - `reproduction_rate`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion / hyena` 社群稳定度测试并通过
+
 ---
 
 ## 更新规范
