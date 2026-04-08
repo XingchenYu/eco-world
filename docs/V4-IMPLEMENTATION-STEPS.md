@@ -239,6 +239,14 @@
   - `migration_pressure`
   - `prey_corridor_density`
   - `herd_predator_loop`
+- `grassland_chain` 现已扩展 `social_layer`
+- 草原捕食者社群结构现已开始表达：
+  - `pride_patrol`
+  - `male_competition_pressure`
+  - `clan_pressure`
+  - `den_cluster_pressure`
+  - `apex_rivalry`
+  - `group_hunt_instability`
 - 草原链现已支持低频 `species_pool` 重平衡
 - `grassland_rebalancing` 已开始按层级持久写入区域关系状态：
   - `herd_layer`
@@ -246,6 +254,7 @@
   - `browse_layer`
   - `predator_layer`
   - `scavenger_layer`
+  - `social_layer`
 - 草原竞争反馈现已开始轻量回灌：
   - `species_pool`
   - `carcass_availability`

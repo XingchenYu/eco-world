@@ -659,6 +659,9 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["megaherbivore_stack"] > 0.0
     assert grassland_chain.trophic_scores["apex_predation"] > 0.0
     assert grassland_chain.trophic_scores["carrion_scavenging"] > 0.0
+    assert grassland_chain.trophic_scores["pride_patrol"] > 0.0
+    assert grassland_chain.trophic_scores["clan_pressure"] > 0.0
+    assert grassland_chain.trophic_scores["apex_rivalry"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
     assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
     assert grassland_chain.layer_scores["engineering_layer"] > 0.0
@@ -667,6 +670,7 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.layer_scores["herd_layer"] > 0.0
     assert grassland_chain.layer_scores["predator_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenger_layer"] > 0.0
+    assert grassland_chain.layer_scores["social_layer"] > 0.0
     assert "african_elephant" in grassland_chain.layer_species["engineering_layer"]
     assert "white_rhino" in grassland_chain.layer_species["grazing_layer"]
     assert "giraffe" in grassland_chain.layer_species["browse_layer"]
@@ -674,6 +678,8 @@ def test_v4_grassland_chain_summary():
     assert "zebra" in grassland_chain.layer_species["herd_layer"]
     assert "lion" in grassland_chain.layer_species["predator_layer"]
     assert "hyena" in grassland_chain.layer_species["scavenger_layer"]
+    assert "lion" in grassland_chain.layer_species["social_layer"]
+    assert "hyena" in grassland_chain.layer_species["social_layer"]
 
     assert wetland_chain.key_species == []
     assert wetland_chain.trophic_scores == {}
@@ -785,16 +791,18 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     initial_rabbit = region.species_pool["rabbit"]
     initial_antelope = region.species_pool["antelope"]
     initial_hyena = region.species_pool["hyena"]
+    initial_lion = region.species_pool["lion"]
 
     summary = build_region_grassland_chain_summary(region, registry)
     adjustments = apply_region_grassland_chain_rebalancing(region, summary)
 
     assert adjustments
-    assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer"} for item in adjustments)
+    assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer", "social_layer"} for item in adjustments)
     assert (
         region.species_pool["rabbit"] != initial_rabbit
         or region.species_pool["hyena"] != initial_hyena
         or region.species_pool["antelope"] != initial_antelope
+        or region.species_pool["lion"] != initial_lion
     )
 
     print("✅ V4 grassland chain rebalancing test passed")

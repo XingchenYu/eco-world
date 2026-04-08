@@ -43,6 +43,7 @@ def build_region_grassland_chain_summary(region: Region, registry: WorldRegistry
         "herd_layer": [],
         "predator_layer": [],
         "scavenger_layer": [],
+        "social_layer": [],
     }
     narrative_chain: List[str] = []
 
@@ -85,17 +86,25 @@ def build_region_grassland_chain_summary(region: Region, registry: WorldRegistry
     if "lion" in region_species:
         add_score("apex_predation", 0.71, "狮群围绕草食动物通道与水源形成顶层捕食压力。")
         add_layer("predator_layer", "lion", 0.71)
+        add_score("pride_patrol", 0.56, "狮群会围绕草食走廊和水源形成稳定巡猎带。")
+        add_score("male_competition_pressure", 0.41, "雄狮之间的支配竞争会重新分配巡猎核心区。")
+        add_layer("social_layer", "lion", 0.56)
     if "hyena" in region_species:
         add_score("carrion_scavenging", 0.66, "鬣狗把尸体资源和机会型捕食重新接回草原营养循环。")
         add_layer("scavenger_layer", "hyena", 0.66)
+        add_score("clan_pressure", 0.54, "鬣狗 clan 会围绕尸体、水源和猎物走廊形成集群压力。")
+        add_score("den_cluster_pressure", 0.38, "鬣狗 clan 的稳定活动区会改变草原边缘资源利用。")
+        add_layer("social_layer", "hyena", 0.54)
     if {"lion", "hyena"} <= region_species:
         add_score("carcass_competition", 0.57, "狮与鬣狗围绕猎物残体和水源形成持续竞争。")
+        add_score("apex_rivalry", 0.59, "狮群与鬣狗 clan 的对抗会重新塑造顶层空间边界。")
     if {"antelope", "zebra"} & region_species:
         add_score("prey_corridor_density", 0.58, "草原猎物群提高了捕食者与清道夫的空间联动密度。")
     if {"lion", "hyena", "african_elephant", "white_rhino", "giraffe"} <= region_species:
         add_score("grassland_predator_closure", 0.63, "顶层捕食者与大型植食者共同闭合草原主食物链。")
     if {"lion", "hyena"} <= region_species and {"antelope", "zebra"} & region_species:
         add_score("herd_predator_loop", 0.67, "草原食草群与狮鬣狗共同形成更完整的顶层捕食闭环。")
+        add_score("group_hunt_instability", 0.45, "猎物群规模越大，狮群与鬣狗 clan 的协同追逐和冲突越明显。")
 
     return RegionGrasslandChainSummary(
         region_id=region.region_id,
@@ -124,16 +133,20 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("waterhole_competition_bridge", 0.0) * 0.12, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("migration_pressure", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", -scores.get("clan_pressure", 0.0) * 0.06, feedback_scale)
 
     _adjust(region.hazard_state, "predation_pressure", scores.get("canopy_opening", 0.0) * 0.16, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("apex_predation", 0.0) * 0.28, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("apex_rivalry", 0.0) * 0.14, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)
 
     _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("vertical_partitioning", 0.0) * 0.18, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("grassland_predator_closure", 0.0) * 0.16, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("herd_predator_loop", 0.0) * 0.16, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("pride_patrol", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("group_hunt_instability", 0.0) * 0.08, feedback_scale)
 
 
 def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: RegionGrasslandChainSummary) -> List[dict]:
@@ -152,11 +165,16 @@ def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: Re
     lion_count = species_pool.get("lion", 0)
     hyena_count = species_pool.get("hyena", 0)
     rabbit_count = species_pool.get("rabbit", 0)
+    antelope_count = species_pool.get("antelope", 0)
+    zebra_count = species_pool.get("zebra", 0)
 
     megaherbivore_stack = scores.get("megaherbivore_stack", 0.0)
     predator_closure = scores.get("grassland_predator_closure", 0.0)
     carcass_competition = scores.get("carcass_competition", 0.0)
     apex_predation = scores.get("apex_predation", 0.0)
+    pride_patrol = scores.get("pride_patrol", 0.0)
+    clan_pressure = scores.get("clan_pressure", 0.0)
+    apex_rivalry = scores.get("apex_rivalry", 0.0)
 
     if megaherbivore_stack >= 0.7 and elephant_count > 0 and rhino_count > 0 and giraffe_count > 0:
         if rabbit_count < 24:
@@ -208,6 +226,40 @@ def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: Re
                 }
             )
 
+    if pride_patrol >= 0.55 and lion_count < 4 and antelope_count >= 16:
+        species_pool["lion"] = lion_count + 1
+        adjustments.append(
+            {
+                "source_species": "grassland_chain",
+                "target_species": "lion",
+                "layer_group": "social_layer",
+                "effect": "pride_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if clan_pressure >= 0.5 and hyena_count < 5 and antelope_count + zebra_count >= 20:
+        species_pool["hyena"] = hyena_count + 1
+        adjustments.append(
+            {
+                "source_species": "grassland_chain",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "clan_support",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if apex_rivalry >= 0.55 and lion_count >= 4 and hyena_count >= 5:
+        species_pool["hyena"] = hyena_count - 1
+        adjustments.append(
+            {
+                "source_species": "lion",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "rivalry_trim",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+
     if apex_predation >= 0.7 and giraffe_count > 3 and lion_count >= 2:
         species_pool["giraffe"] = giraffe_count - 1
         adjustments.append(
@@ -220,8 +272,6 @@ def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: Re
             }
         )
 
-    antelope_count = species_pool.get("antelope", 0)
-    zebra_count = species_pool.get("zebra", 0)
     herd_loop = scores.get("herd_predator_loop", 0.0)
     prey_density = scores.get("prey_corridor_density", 0.0)
 

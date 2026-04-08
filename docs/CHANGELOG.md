@@ -63,6 +63,19 @@
 - ✅ `carrion_rebalancing` 现已支持对 `vulture` 的低频物种池扶持
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `vulture` 注册与草原尸体资源链断言并通过
 
+### v4.0-alpha7 (2026-04-08 21:25)
+
+- ✅ `grassland_chain` 新增 `social_layer`
+- ✅ 草原捕食者社群结构现已开始表达：
+  - `pride_patrol`
+  - `male_competition_pressure`
+  - `clan_pressure`
+  - `den_cluster_pressure`
+  - `apex_rivalry`
+  - `group_hunt_instability`
+- ✅ `grassland_rebalancing` 现已支持 `social_layer`，开始对 `lion / hyena` 做轻量社群层重平衡
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增草原社群层断言并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要
