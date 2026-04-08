@@ -50,6 +50,19 @@
   - 区域关系状态持久化
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `carrion_chain` 摘要、反馈、重平衡断言并通过
 
+### v4.0-alpha6 (2026-04-08 21:10)
+
+- ✅ 新增原生 `vulture` 运行体，作为草原空中清道夫接入 `v4`
+- ✅ `v4` 模板、物种变体、运行桥接、草原默认物种池已同步补齐 `vulture`
+- ✅ `carrion_chain` 已扩展：
+  - `aerial_scavenge_layer`
+  - `aerial_scavenging`
+  - `thermal_tracking`
+  - `scavenger_stack`
+  - `full_carrion_closure`
+- ✅ `carrion_rebalancing` 现已支持对 `vulture` 的低频物种池扶持
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `vulture` 注册与草原尸体资源链断言并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要

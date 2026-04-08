@@ -1574,6 +1574,62 @@ class Eagle(Animal):
         self.wander(ecosystem)
 
 
+class Vulture(Animal):
+    """秃鹫 - 空中清道夫，围绕尸体和热气流柱活动。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="vulture",
+            position=position,
+            max_age=90,
+            hunger_rate=0.22,
+            reproduction_rate=0.028,
+            speed=4.6,
+            vision_range=16,
+            diet="carnivore",
+            gender=gender
+        )
+        self.emoji = "🦅"
+        self.color = (120, 95, 72)
+        self.pregnancy_duration = 18
+        self.forms_groups = True
+
+    def get_predators(self) -> List[str]:
+        return []
+
+    def get_prey_species(self) -> List[str]:
+        return ["rabbit", "night_moth", "frog"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["tree", "apple_tree", "cherry_tree", "orange_tree", "bush"]
+
+    def prefers_canopy_cover(self) -> bool:
+        return True
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"thermal_column", "open_grazing_range"},
+            "amount": 0.08,
+            "radius": 4,
+            "hunger_relief": 5.5,
+            "health_gain": 0.8,
+            "min_hunger": 20.0,
+        }
+
+    def forage(self, ecosystem):
+        if hasattr(ecosystem, "get_local_microhabitat_value"):
+            carrion_window = ecosystem.get_local_microhabitat_value(self.position, {"open_grazing_range", "thermal_column"}, radius=5)
+            if carrion_window > 0.25 and self.hunger >= 18:
+                self.eat(10 + carrion_window * 10)
+                if hasattr(ecosystem, "log_event") and random.random() < 0.15:
+                    ecosystem.log_event(f"{self.id} circled over a carrion site")
+                return
+        super().forage(ecosystem)
+
+    def escape(self, ecosystem):
+        self.wander(ecosystem)
+
+
 class Owl(Animal):
     """猫头鹰 - 夜间捕食者，夜视能力强"""
     

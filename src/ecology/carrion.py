@@ -28,12 +28,13 @@ def build_region_carrion_chain_summary(region: Region, registry: WorldRegistry) 
         return RegionCarrionChainSummary(region_id=region.region_id)
 
     region_species = set(region.species_pool)
-    key_species = [species for species in ("lion", "hyena", "antelope", "zebra") if species in region_species]
+    key_species = [species for species in ("lion", "hyena", "vulture", "antelope", "zebra") if species in region_species]
     resource_scores: Dict[str, float] = {}
     layer_scores: Dict[str, float] = {}
     layer_species: Dict[str, List[str]] = {
         "kill_layer": [],
         "scavenge_layer": [],
+        "aerial_scavenge_layer": [],
         "herd_source_layer": [],
     }
     narrative_chain: List[str] = []
@@ -56,6 +57,10 @@ def build_region_carrion_chain_summary(region: Region, registry: WorldRegistry) 
         add_score("scavenger_pressure", 0.68, "鬣狗群会高频利用残食和尸体，把草原能量回收到清道夫链。")
         add_score("carcass_recycling", 0.57, "鬣狗群提升尸体资源的周转速度。")
         add_layer("scavenge_layer", "hyena", 0.68)
+    if "vulture" in region_species:
+        add_score("aerial_scavenging", 0.63, "秃鹫会把尸体热点转化成空中清道夫网络。")
+        add_score("thermal_tracking", 0.49, "秃鹫会围绕热气流柱快速锁定大范围尸体资源。")
+        add_layer("aerial_scavenge_layer", "vulture", 0.63)
     if "antelope" in region_species:
         add_score("herd_mortality_supply", 0.46, "羚羊群为草原尸体资源链提供稳定的中型猎物来源。")
         add_layer("herd_source_layer", "antelope", 0.46)
@@ -64,8 +69,12 @@ def build_region_carrion_chain_summary(region: Region, registry: WorldRegistry) 
         add_layer("herd_source_layer", "zebra", 0.52)
     if {"lion", "hyena"} <= region_species:
         add_score("carcass_competition_loop", 0.66, "狮群与鬣狗围绕尸体与击杀点形成持续争夺。")
+    if {"lion", "hyena", "vulture"} <= region_species:
+        add_score("scavenger_stack", 0.58, "地面与空中清道夫共同放大草原尸体资源链。")
     if {"lion", "hyena"} <= region_species and {"antelope", "zebra"} & region_species:
         add_score("carrion_energy_loop", 0.71, "草食群、狮群和鬣狗共同闭合草原尸体资源链。")
+    if {"lion", "hyena", "vulture"} <= region_species and {"antelope", "zebra"} & region_species:
+        add_score("full_carrion_closure", 0.76, "草食群、顶级捕食者、地面清道夫和空中清道夫共同闭合更完整的草原尸体资源网络。")
 
     return RegionCarrionChainSummary(
         region_id=region.region_id,
@@ -87,10 +96,12 @@ def apply_region_carrion_chain_feedback(
     scores = carrion_chain.resource_scores
     _adjust(region.resource_state, "carcass_availability", scores.get("kill_generation", 0.0) * 0.26, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("large_carcass_supply", 0.0) * 0.24, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", -scores.get("aerial_scavenging", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12, feedback_scale)
 
 
 def apply_region_carrion_chain_rebalancing(region: Region, carrion_chain: RegionCarrionChainSummary) -> List[dict]:
@@ -105,6 +116,7 @@ def apply_region_carrion_chain_rebalancing(region: Region, carrion_chain: Region
 
     lion_count = species_pool.get("lion", 0)
     hyena_count = species_pool.get("hyena", 0)
+    vulture_count = species_pool.get("vulture", 0)
     antelope_count = species_pool.get("antelope", 0)
     zebra_count = species_pool.get("zebra", 0)
 
@@ -152,6 +164,17 @@ def apply_region_carrion_chain_rebalancing(region: Region, carrion_chain: Region
                 "layer_group": "herd_source_layer",
                 "effect": "large_carcass_support",
                 "new_target_count": species_pool["zebra"],
+            }
+        )
+    if scores.get("scavenger_stack", 0.0) >= 0.55 and vulture_count < 8:
+        species_pool["vulture"] = vulture_count + 1
+        adjustments.append(
+            {
+                "source_species": "carrion_chain",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "aerial_scavenger_support",
+                "new_target_count": species_pool["vulture"],
             }
         )
 

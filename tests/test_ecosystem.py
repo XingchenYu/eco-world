@@ -407,6 +407,8 @@ def test_v4_registry_queries():
     assert registry.get_runtime_bridge("antelope").support_level == "native"
     assert registry.get_runtime_bridge("zebra").runtime_species_id == "zebra"
     assert registry.get_runtime_bridge("zebra").support_level == "native"
+    assert registry.get_runtime_bridge("vulture").runtime_species_id == "vulture"
+    assert registry.get_runtime_bridge("vulture").support_level == "native"
     assert registry.get_runtime_bridge("hippopotamus").runtime_species_id == "hippopotamus"
     assert registry.get_runtime_bridge("hippopotamus").support_level == "native"
     assert crocodile_bridge.runtime_species_id == "crocodile"
@@ -692,17 +694,21 @@ def test_v4_carrion_chain_summary():
 
     assert "lion" in grassland_chain.key_species
     assert "hyena" in grassland_chain.key_species
+    assert "vulture" in grassland_chain.key_species
     assert "antelope" in grassland_chain.key_species
     assert "zebra" in grassland_chain.key_species
     assert grassland_chain.resource_scores["kill_generation"] > 0.0
     assert grassland_chain.resource_scores["scavenger_pressure"] > 0.0
+    assert grassland_chain.resource_scores["aerial_scavenging"] > 0.0
     assert grassland_chain.resource_scores["carcass_competition_loop"] > 0.0
     assert grassland_chain.resource_scores["carrion_energy_loop"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenge_layer"] > 0.0
+    assert grassland_chain.layer_scores["aerial_scavenge_layer"] > 0.0
     assert grassland_chain.layer_scores["herd_source_layer"] > 0.0
     assert "lion" in grassland_chain.layer_species["kill_layer"]
     assert "hyena" in grassland_chain.layer_species["scavenge_layer"]
+    assert "vulture" in grassland_chain.layer_species["aerial_scavenge_layer"]
     assert "antelope" in grassland_chain.layer_species["herd_source_layer"]
 
     assert wetland_chain.key_species == []
@@ -821,16 +827,18 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     initial_antelope = region.species_pool["antelope"]
     initial_zebra = region.species_pool["zebra"]
     initial_hyena = region.species_pool["hyena"]
+    initial_vulture = region.species_pool["vulture"]
 
     summary = build_region_carrion_chain_summary(region, registry)
     adjustments = apply_region_carrion_chain_rebalancing(region, summary)
 
     assert adjustments
-    assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "herd_source_layer"} for item in adjustments)
+    assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "aerial_scavenge_layer", "herd_source_layer"} for item in adjustments)
     assert (
         region.species_pool["antelope"] != initial_antelope
         or region.species_pool["zebra"] != initial_zebra
         or region.species_pool["hyena"] != initial_hyena
+        or region.species_pool["vulture"] != initial_vulture
     )
 
     print("✅ V4 carrion chain rebalancing test passed")
@@ -1185,6 +1193,21 @@ def test_hyena_scavenging_effect():
     print("✅ Hyena scavenging test passed")
 
 
+def test_vulture_registration_and_spawn():
+    """秃鹫应完成注册，并能在陆地生成。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("vulture")
+    eco.spawn_animal("vulture", position, source="manual")
+
+    assert eco.get_species_count("vulture") == initial + 1
+    assert eco.animals[-1].species == "vulture"
+
+    print("✅ Vulture registration test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -1242,6 +1265,7 @@ def run_all_tests():
     test_lion_hunt_corridor_effect()
     test_hyena_registration_and_spawn()
     test_hyena_scavenging_effect()
+    test_vulture_registration_and_spawn()
     
     print("\n✅ All tests passed!")
 

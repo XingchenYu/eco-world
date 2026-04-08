@@ -27,7 +27,7 @@ from ..entities.animals import (
     Animal, Insect, Rabbit, Fox, Deer, Mouse, Bird, Snake, Bee, Gender,
     Eagle, Owl, Duck, Swan, Sparrow, Parrot, Kingfisher, Wolf, Spider, Antelope, Zebra,
     # 新增鸟类
-    Magpie, Crow, Woodpecker, Hummingbird, NightMoth, Crocodile,
+    Magpie, Crow, Woodpecker, Hummingbird, NightMoth, Crocodile, Vulture,
     # 新增哺乳动物
     Squirrel, Hedgehog, Bat, Raccoon
 )
@@ -67,7 +67,7 @@ class Ecosystem:
         "blueberry": 150, "orange_tree": 80, "watermelon": 100,
         "insects": 200, "night_moths": 120, "rabbits": 150, "foxes": 50, "deer": 30, "mouse": 100, "bird": 60, "snake": 30, "bee": 80,
         "eagle": 20, "owl": 30, "duck": 50, "swan": 30, "sparrow": 140, "parrot": 40, "kingfisher": 30, "crocodile": 12,
-        "wolf": 30, "spider": 100, "magpie": 80, "crow": 50, "woodpecker": 60, "hummingbird": 100,
+        "wolf": 30, "spider": 100, "magpie": 80, "crow": 50, "woodpecker": 60, "hummingbird": 100, "vulture": 24,
         "squirrel": 120, "hedgehog": 80, "bat": 80, "raccoon": 60,
         "bear": 40, "beaver": 30, "hippopotamus": 16, "elephant": 12, "white_rhino": 8, "giraffe": 10, "lion": 8, "hyena": 12, "antelope": 24, "zebra": 18, "wild_boar": 100, "badger": 80, "raccoon_dog": 60, "skunk": 80, "opossum": 100, "coati": 60, "armadillo": 60,
         "algae": 300, "seaweed": 150, "plankton": 400, "small_fish": 150, "minnow": 120, "carp": 80, "catfish": 50,
@@ -102,7 +102,7 @@ class Ecosystem:
         "insect", "night_moth", "rabbit", "fox", "deer", "mouse", "bird", "snake", "bee",
         "eagle", "owl", "duck", "swan", "sparrow", "parrot", "kingfisher", "crocodile",
         "wolf", "spider",
-        "magpie", "crow", "woodpecker", "hummingbird",
+        "magpie", "crow", "woodpecker", "hummingbird", "vulture",
         "squirrel", "hedgehog", "bat", "raccoon",
         "bear", "beaver", "hippopotamus", "elephant", "white_rhino", "giraffe", "lion", "hyena", "antelope", "zebra", "wild_boar", "badger", "raccoon_dog",
         "skunk", "opossum", "coati", "armadillo",
@@ -1922,7 +1922,7 @@ class Ecosystem:
             "sparrow": Sparrow, "parrot": Parrot, "kingfisher": Kingfisher, "crocodile": Crocodile,
             "wolf": Wolf, "spider": Spider,
             # 新增鸟类
-            "magpie": Magpie, "crow": Crow, "woodpecker": Woodpecker, "hummingbird": Hummingbird,
+            "magpie": Magpie, "crow": Crow, "woodpecker": Woodpecker, "hummingbird": Hummingbird, "vulture": Vulture,
             # 新增哺乳动物
             "squirrel": Squirrel, "hedgehog": Hedgehog, "bat": Bat, "raccoon": Raccoon,
             # 新增杂食动物

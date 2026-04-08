@@ -172,6 +172,19 @@ def build_default_species_templates() -> Dict[str, SpeciesTemplate]:
             life_stages=stages,
             notes="机会型捕食和腐食竞争者模板，适用于鬣狗类。",
         ),
+        "aerial_scavenger_bird": SpeciesTemplate(
+            template_id="aerial_scavenger_bird",
+            role="scavenger_bird",
+            domain="sky",
+            body_size_class="medium",
+            diet=DietProfile("carnivore", ("carrion", "rabbit", "night_moth"), ("insect", "fish")),
+            behavior=BehaviorProfile("soar", "loose_flock", "seasonal", forms_groups=True),
+            habitat=HabitatProfile(("grassland", "savanna", "open_woodland"), ("thermal_column", "open_grazing_range", "seasonal_waterhole")),
+            social=SocialProfile("loose_flock", "none", "pair"),
+            territory=TerritoryProfile("range", territory_radius=14.0, breeding_site_required=False),
+            life_stages=stages,
+            notes="空中清道夫模板，适用于秃鹫类。",
+        ),
     }
 
 
@@ -296,6 +309,16 @@ def build_default_species_variants() -> Dict[str, SpeciesVariant]:
             biome_affinity=("grassland", "savanna", "open_woodland"),
             flags=EcologicalFlags(flagship=True, seed_disperser=True),
             encyclopedia_entry="大型群居草食动物，会围绕草场和水源形成高可见度迁移通道。",
+        ),
+        "vulture": SpeciesVariant(
+            species_id="vulture",
+            cn_name="秃鹫",
+            scientific_name="Accipitridae spp.",
+            template_id="aerial_scavenger_bird",
+            native_regions=("temperate_grassland",),
+            biome_affinity=("grassland", "savanna", "open_woodland"),
+            flags=EcologicalFlags(flagship=True),
+            encyclopedia_entry="空中清道夫，会围绕尸体热点和热气流柱重塑草原清道夫网络。",
         ),
     }
 
@@ -518,6 +541,15 @@ def build_default_relation_tables() -> List[RelationTable]:
             strength=0.18,
             notes="鬣狗群会通过追逐和尸体利用，对斑马群形成轻度空间压力。",
         ),
+        RelationTable(
+            relation_id="vulture_carrion_support",
+            relation_type="symbiosis",
+            source_species="vulture",
+            target_species="carcass_site",
+            habitat_constraints=("grassland", "savanna", "open_woodland"),
+            strength=0.62,
+            notes="秃鹫会把尸体热点转化成稳定的空中清道夫资源窗口。",
+        ),
     ]
 
 
@@ -606,5 +638,12 @@ def build_default_runtime_species_bridges() -> Dict[str, RuntimeSpeciesBridge]:
             support_level="native",
             runtime_domain="land_animal",
             notes="当前已有可运行斑马实现，具备基础群居草食与迁移通道行为。",
+        ),
+        "vulture": RuntimeSpeciesBridge(
+            species_id="vulture",
+            runtime_species_id="vulture",
+            support_level="native",
+            runtime_domain="land_animal",
+            notes="当前已有可运行秃鹫实现，具备基础空中清道夫与尸体热点响应行为。",
         ),
     }

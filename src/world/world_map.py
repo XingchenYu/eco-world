@@ -222,6 +222,7 @@ def _configure_temperate_grassland(region: Optional[Region]) -> None:
             "giraffe": 4,
             "lion": 3,
             "hyena": 4,
+            "vulture": 6,
             "antelope": 18,
             "zebra": 12,
             "rabbit": 18,

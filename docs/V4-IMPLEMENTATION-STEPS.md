@@ -255,6 +255,14 @@
   - `kill_layer`
   - `scavenge_layer`
   - `herd_source_layer`
+- 草原区现已原生接入 `vulture`
+- `carrion_chain` 已扩展：
+  - `aerial_scavenge_layer`
+- 草原尸体资源链现已开始表达：
+  - `aerial_scavenging`
+  - `thermal_tracking`
+  - `scavenger_stack`
+  - `full_carrion_closure`
 - 尸体资源链现已支持：
   - 状态反馈
   - 低频 `species_pool` 重平衡
