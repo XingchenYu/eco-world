@@ -319,6 +319,8 @@ def test_v4_world_simulation_skeleton():
     assert wetland_stats["food_web"]["active_relations"] >= 1
     assert wetland_stats["wetland_chain"]["key_species"]
     assert wetland_stats["wetland_chain"]["trophic_scores"]["wetland_engineering"] > 0.0
+    assert wetland_stats["wetland_chain"]["layer_scores"]["shoreline_layer"] > 0.0
+    assert "kingfisher_v4" in wetland_stats["wetland_chain"]["layer_species"]["shoreline_layer"]
     assert wetland_stats["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
     assert "wetland_rebalancing" in wetland_stats
     assert wetland_stats["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
@@ -346,6 +348,8 @@ def test_v4_region_relationship_state_persists():
     assert region.relationship_state["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
     assert region.relationship_state["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
     assert region.relationship_state["wetland_chain"]["trophic_scores"]["wetland_keystone_stack"] > 0.0
+    assert region.relationship_state["wetland_chain"]["layer_scores"]["apex_layer"] > 0.0
+    assert "nile_crocodile" in region.relationship_state["wetland_chain"]["layer_species"]["apex_layer"]
 
     print("✅ V4 region relationship state test passed")
 
@@ -568,6 +572,12 @@ def test_v4_wetland_chain_summary():
     assert wetland_chain.trophic_scores["wetland_engineering"] > 0.0
     assert wetland_chain.trophic_scores["wetland_keystone_stack"] > 0.0
     assert wetland_chain.trophic_scores["shoreline_trophic_coupling"] > 0.0
+    assert wetland_chain.layer_scores["shoreline_layer"] > 0.0
+    assert wetland_chain.layer_scores["fish_layer"] > 0.0
+    assert wetland_chain.layer_scores["apex_layer"] > 0.0
+    assert "minnow" in wetland_chain.layer_species["fish_layer"]
+    assert "frog" in wetland_chain.layer_species["shoreline_layer"]
+    assert "hippopotamus" in wetland_chain.layer_species["apex_layer"]
 
     assert grassland_chain.key_species == []
     assert grassland_chain.trophic_scores == {}

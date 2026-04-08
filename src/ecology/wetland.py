@@ -16,6 +16,8 @@ class RegionWetlandChainSummary:
     region_id: str
     key_species: List[str] = field(default_factory=list)
     trophic_scores: Dict[str, float] = field(default_factory=dict)
+    layer_scores: Dict[str, float] = field(default_factory=dict)
+    layer_species: Dict[str, List[str]] = field(default_factory=dict)
     narrative_chain: List[str] = field(default_factory=list)
 
 
@@ -42,6 +44,12 @@ def build_region_wetland_chain_summary(region: Region, registry: WorldRegistry) 
     ]
 
     trophic_scores: Dict[str, float] = {}
+    layer_scores: Dict[str, float] = {}
+    layer_species: Dict[str, List[str]] = {
+        "shoreline_layer": [],
+        "fish_layer": [],
+        "apex_layer": [],
+    }
     narrative_chain: List[str] = []
 
     def add_score(key: str, value: float, narrative: str) -> None:
@@ -49,22 +57,35 @@ def build_region_wetland_chain_summary(region: Region, registry: WorldRegistry) 
         if narrative not in narrative_chain:
             narrative_chain.append(narrative)
 
+    def add_layer(layer: str, species: str, value: float) -> None:
+        layer_scores[layer] = round(layer_scores.get(layer, 0.0) + value, 2)
+        if species not in layer_species[layer]:
+            layer_species[layer].append(species)
+
     if "beaver" in region_species:
         add_score("wetland_engineering", 0.82, "河狸提升缓流水域、芦苇带和岸带复杂度。")
+        add_layer("shoreline_layer", "beaver", 0.82)
     if "hippopotamus" in region_species:
         add_score("nutrient_exchange", 0.78, "河马把陆地营养搬回水体，推高湿地生产力。")
+        add_layer("apex_layer", "hippopotamus", 0.78)
     if "frog" in region_species:
         add_score("amphibian_bridge", 0.72, "青蛙把岸带羽化资源与陆地捕食链连接起来。")
+        add_layer("shoreline_layer", "frog", 0.72)
     if "minnow" in region_species:
         add_score("nursery_fish_layer", 0.76, "米诺鱼构成湿地浅水带最敏感的小型鱼层。")
+        add_layer("fish_layer", "minnow", 0.76)
     if "catfish" in region_species:
         add_score("benthic_predation", 0.58, "鲶鱼对浅水和底栖小型猎物形成持续压力。")
+        add_layer("fish_layer", "catfish", 0.58)
     if "blackfish" in region_species:
         add_score("midwater_predation", 0.66, "黑鱼对中上层浅水猎物形成更强的机会型捕食压力。")
+        add_layer("fish_layer", "blackfish", 0.66)
     if "kingfisher_v4" in region_species:
         add_score("shoreline_bird_foraging", 0.63, "翠鸟把岸栖位、浅滩和小型鱼虾资源连接成岸带食物链。")
+        add_layer("shoreline_layer", "kingfisher_v4", 0.63)
     if "nile_crocodile" in region_species:
         add_score("apex_shoreline_risk", 0.84, "鳄鱼把岸线捕食风险推到顶层，并改变所有靠岸取食行为。")
+        add_layer("apex_layer", "nile_crocodile", 0.84)
 
     if {"frog", "minnow", "kingfisher_v4"} <= region_species:
         add_score("shoreline_trophic_coupling", 0.54, "羽化带、浅滩鱼群和岸栖鸟类形成稳定的湿地边缘耦合链。")
@@ -77,6 +98,8 @@ def build_region_wetland_chain_summary(region: Region, registry: WorldRegistry) 
         region_id=region.region_id,
         key_species=key_species,
         trophic_scores=dict(sorted(trophic_scores.items())),
+        layer_scores=dict(sorted(layer_scores.items())),
+        layer_species={layer: sorted(species) for layer, species in layer_species.items() if species},
         narrative_chain=narrative_chain,
     )
 

@@ -105,6 +105,8 @@ class WorldSimulation:
             {
                 "key_species": list(wetland_chain.key_species),
                 "trophic_scores": dict(wetland_chain.trophic_scores),
+                "layer_scores": dict(wetland_chain.layer_scores),
+                "layer_species": {key: list(value) for key, value in wetland_chain.layer_species.items()},
                 "narrative_chain": list(wetland_chain.narrative_chain),
             },
         )
@@ -306,6 +308,8 @@ class WorldSimulation:
             "wetland_chain": {
                 "key_species": list(wetland_chain.key_species),
                 "trophic_scores": dict(wetland_chain.trophic_scores),
+                "layer_scores": dict(wetland_chain.layer_scores),
+                "layer_species": {key: list(value) for key, value in wetland_chain.layer_species.items()},
                 "narrative_chain": list(wetland_chain.narrative_chain),
             },
             "simulation": simulation_stats,

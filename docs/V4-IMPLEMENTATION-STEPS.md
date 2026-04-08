@@ -185,6 +185,7 @@
 - 湿地链与夜行链的分层捕食压力现已独立进入 `predation` 模块，并纳入 `cascade`
 - 湿地链现已支持低频 `species_pool` 轻量重平衡，开始把岸带耦合和顶层压制写回区域物种池
 - `wetland_rebalancing` 现已按 `shoreline_layer / fish_layer / apex_layer` 分组持久写入区域关系状态
+- `wetland_chain` 本身现已显式输出 `layer_scores / layer_species`，可直接供 GUI 和事件系统消费
 
 ### Step 8
 完成草原大型植食者链
