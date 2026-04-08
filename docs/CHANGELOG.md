@@ -738,6 +738,21 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ 对比基线确认：本轮修复把 `squirrel` 从 `3 / 5` seed 灭绝、其余 seed 仅剩 `1` 只，恢复到 `5 / 5` seed 稳定存活；同时其余 7 个被检查的陆地哺乳动物在修复前后都保持 `tick 200` 非零
 - ✅ 额外执行 `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py`，现有基础生态测试全部通过
 
+# v4.0-alpha33 (2026-04-09 07:45)
+
+- `social.py` 新增区域级长期相位：
+  - `grassland_prosperity_phase`
+  - `grassland_collapse_phase`
+- 这层长期相位现已进入：
+  - `relationship_state["social_trends"]`
+  - `WorldSimulation` 综合生态压力
+- `grassland.py` 现已把区域长期相位接入草原链重平衡：
+  - `prosperity_phase_herd_gain`
+  - `collapse_phase_scavenger_loss`
+- `carrion.py` 现已把区域长期相位接入尸体资源链重平衡：
+  - `prosperity_phase_scavenger_gain`
+  - `collapse_phase_apex_loss`
+
 # v4.0-alpha32 (2026-04-09 07:25)
 
 - `social.py` 新增显式长期相位：

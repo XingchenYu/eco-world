@@ -29,6 +29,10 @@
   - `grassland_boom_phase`
   - `grassland_bust_phase`
   并开始分别驱动 herd、apex、scavenger 的长期繁荣/衰退振幅
+- 在这之上，区域级长期相位现在进一步汇总成：
+  - `grassland_prosperity_phase`
+  - `grassland_collapse_phase`
+  并开始作用到草原链和尸体资源链的长期 gain/loss 节律
 - 这使得草原领地层开始区分：
   - 群体数量
   - 社群强度

@@ -901,6 +901,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.phase_scores["lion_expansion_phase"] > 0.55
     assert summary.phase_scores["hyena_expansion_phase"] > 0.53
     assert summary.boom_bust_scores["grassland_boom_phase"] > 0.45
+    assert summary.prosperity_scores["grassland_prosperity_phase"] > 0.0
     assert summary.hotspot_scores["lion_hotspot_memory"] >= 0.12
     assert summary.hotspot_scores["hyena_hotspot_memory"] >= 0.12
     assert "lion_expansion_cycle" in summary.cycle_signals
@@ -1122,6 +1123,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_herd_release", "bust_phase_herd_drag", "boom_phase_apex_release", "bust_phase_apex_drag"} for item in adjustments)
+    assert any(item["effect"] in {"prosperity_phase_herd_gain", "collapse_phase_scavenger_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_expansion_window", "clan_expansion_window"} for item in adjustments)
     assert (
         region.species_pool["rabbit"] != initial_rabbit
@@ -1266,6 +1268,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_scavenger_release", "bust_phase_scavenger_drag"} for item in adjustments)
+    assert any(item["effect"] in {"prosperity_phase_scavenger_gain", "collapse_phase_apex_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_carrion_expansion_window", "clan_carrion_expansion_window"} for item in adjustments)
     assert (
         region.species_pool["antelope"] != initial_antelope

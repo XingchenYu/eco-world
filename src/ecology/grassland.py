@@ -229,6 +229,8 @@ def apply_region_grassland_chain_rebalancing(
     hyena_contraction_phase = 0.0
     grassland_boom_phase = 0.0
     grassland_bust_phase = 0.0
+    grassland_prosperity_phase = 0.0
+    grassland_collapse_phase = 0.0
     lion_hotspot_memory = 0.0
     hyena_hotspot_memory = 0.0
     shared_hotspot_memory = 0.0
@@ -254,8 +256,11 @@ def apply_region_grassland_chain_rebalancing(
         hyena_expansion_phase = float(phase_scores.get("hyena_expansion_phase", 0.0))
         hyena_contraction_phase = float(phase_scores.get("hyena_contraction_phase", 0.0))
         boom_bust_scores = getattr(social_trend_summary, "boom_bust_scores", {}) or {}
+        prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         grassland_boom_phase = float(boom_bust_scores.get("grassland_boom_phase", 0.0))
         grassland_bust_phase = float(boom_bust_scores.get("grassland_bust_phase", 0.0))
+        grassland_prosperity_phase = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
+        grassland_collapse_phase = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
@@ -717,6 +722,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["lion"],
             }
         )
+    if grassland_prosperity_phase >= 0.2 and antelope_count < 24:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "prosperity_phase_herd_gain",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if grassland_bust_phase >= 0.58 and lion_count >= 3:
         species_pool["lion"] = species_pool.get("lion", 0) - 1
         adjustments.append(
@@ -726,6 +742,17 @@ def apply_region_grassland_chain_rebalancing(
                 "layer_group": "predator_layer",
                 "effect": "bust_phase_apex_drag",
                 "new_target_count": species_pool["lion"],
+            }
+        )
+    if grassland_collapse_phase >= 0.2 and hyena_count >= 3:
+        species_pool["hyena"] = species_pool.get("hyena", 0) - 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "hyena",
+                "layer_group": "scavenger_layer",
+                "effect": "collapse_phase_scavenger_loss",
+                "new_target_count": species_pool["hyena"],
             }
         )
 

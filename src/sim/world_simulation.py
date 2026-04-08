@@ -126,6 +126,7 @@ class WorldSimulation:
                 "trend_scores": dict(social_trends.trend_scores),
                 "phase_scores": dict(social_trends.phase_scores),
                 "boom_bust_scores": dict(social_trends.boom_bust_scores),
+                "prosperity_scores": dict(social_trends.prosperity_scores),
                 "hotspot_scores": dict(social_trends.hotspot_scores),
                 "cycle_signals": list(social_trends.cycle_signals),
                 "narrative_trends": list(social_trends.narrative_trends),
@@ -231,6 +232,8 @@ class WorldSimulation:
         for key, value in social_trends.phase_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in social_trends.boom_bust_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in social_trends.prosperity_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in symbiosis.support_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
@@ -519,6 +522,7 @@ class WorldSimulation:
                 "trend_scores": dict(social_trends.trend_scores),
                 "phase_scores": dict(social_trends.phase_scores),
                 "boom_bust_scores": dict(social_trends.boom_bust_scores),
+                "prosperity_scores": dict(social_trends.prosperity_scores),
                 "hotspot_scores": dict(social_trends.hotspot_scores),
                 "cycle_signals": list(social_trends.cycle_signals),
                 "narrative_trends": list(social_trends.narrative_trends),
