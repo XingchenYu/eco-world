@@ -344,6 +344,7 @@ def test_v4_world_simulation_skeleton():
     assert wetland_stats["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
     assert wetland_stats["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
     assert wetland_stats["territory"]["pressure_scores"]["shoreline_standoff"] > 0.0
+    assert "runtime_signals" in wetland_stats["territory"]
 
     world_sim.set_active_region("temperate_grassland")
     grassland_stats = world_sim.get_statistics()
@@ -381,6 +382,7 @@ def test_v4_region_relationship_state_persists():
     assert region.relationship_state["predation"]["pressure_scores"]["shoreline_bird_predation"] > 0.0
     assert region.relationship_state["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
     assert region.relationship_state["territory"]["pressure_scores"]["shoreline_standoff"] > 0.0
+    assert "runtime_signals" in region.relationship_state["territory"]
     assert region.relationship_state["wetland_chain"]["trophic_scores"]["wetland_keystone_stack"] > 0.0
     assert region.relationship_state["wetland_chain"]["layer_scores"]["apex_layer"] > 0.0
     assert "nile_crocodile" in region.relationship_state["wetland_chain"]["layer_species"]["apex_layer"]
@@ -718,6 +720,34 @@ def test_v4_territory_summary():
     assert "mud_bank" in wetland_territory.contested_zones
 
     print("✅ V4 territory summary test passed")
+
+
+def test_v4_territory_summary_uses_runtime_events():
+    """v4 领地摘要应能吸收运行期社群事件信号。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    grassland = world_map.get_region("temperate_grassland")
+
+    summary = build_region_territory_summary(
+        grassland,
+        registry,
+        recent_events=[
+            "lion-1 established a pride core range",
+            "lion-1 pressed a male takeover front",
+            "hyena-2 reinforced a clan den corridor",
+            "hyena-2 expanded a clan frontier",
+        ],
+    )
+
+    assert summary.runtime_signals["pride_core_events"] == 1
+    assert summary.runtime_signals["male_takeover_events"] == 1
+    assert summary.runtime_signals["clan_den_events"] == 1
+    assert summary.runtime_signals["clan_front_events"] == 1
+    assert summary.pressure_scores["pride_core_range"] > 0.58
+    assert summary.pressure_scores["male_takeover_front"] > 0.44
+    assert summary.pressure_scores["clan_den_range"] > 0.55
+
+    print("✅ V4 territory runtime signal test passed")
 
 
 def test_v4_carrion_chain_summary():
@@ -1369,6 +1399,7 @@ def run_all_tests():
     test_v4_wetland_chain_summary()
     test_v4_grassland_chain_summary()
     test_v4_territory_summary()
+    test_v4_territory_summary_uses_runtime_events()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()

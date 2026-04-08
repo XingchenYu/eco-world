@@ -244,6 +244,11 @@
 - 草原捕食者社群运行体现已进一步补上：
   - `Lion._contest_male_front()`
   - `Hyena._expand_clan_front()`
+- `territory` 摘要现在开始吸收运行期事件信号，不再只看区域物种池存在：
+  - `pride_core_events`
+  - `male_takeover_events`
+  - `clan_den_events`
+  - `clan_front_events`
 - 当前已原生接入：
   - `lion`
   - `hyena`

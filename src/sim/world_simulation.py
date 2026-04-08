@@ -132,6 +132,7 @@ class WorldSimulation:
                 "pressure_scores": dict(territory.pressure_scores),
                 "contested_zones": list(territory.contested_zones),
                 "narrative_territory": list(territory.narrative_territory),
+                "runtime_signals": dict(territory.runtime_signals),
             },
         )
         region.record_relationship_state(
@@ -249,13 +250,14 @@ class WorldSimulation:
         active_simulation = self.get_active_simulation()
         active_simulation.update()
         active_region = self.get_active_region()
+        recent_events = [event.description for event in active_simulation.events[-120:]]
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
         predation = build_region_predation_summary(active_region, self.registry)
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         grassland_chain = build_region_grassland_chain_summary(active_region, self.registry)
         carrion_chain = build_region_carrion_chain_summary(active_region, self.registry)
-        territory = build_region_territory_summary(active_region, self.registry)
+        territory = build_region_territory_summary(active_region, self.registry, recent_events=recent_events)
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -311,13 +313,14 @@ class WorldSimulation:
         active_region = self.get_active_region()
         active_simulation = self.get_active_simulation()
         simulation_stats = active_simulation.get_statistics()
+        recent_events = [event.description for event in active_simulation.events[-120:]]
         regional_species = self.registry.species_for_region(active_region.region_id)
         regional_bridges = self.registry.bridged_species_for_region(active_region.region_id)
         food_web = build_region_food_web(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
         predation = build_region_predation_summary(active_region, self.registry)
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
-        territory = build_region_territory_summary(active_region, self.registry)
+        territory = build_region_territory_summary(active_region, self.registry, recent_events=recent_events)
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         grassland_chain = build_region_grassland_chain_summary(active_region, self.registry)
         carrion_chain = build_region_carrion_chain_summary(active_region, self.registry)
@@ -409,6 +412,7 @@ class WorldSimulation:
                 "pressure_scores": dict(territory.pressure_scores),
                 "contested_zones": list(territory.contested_zones),
                 "narrative_territory": list(territory.narrative_territory),
+                "runtime_signals": dict(territory.runtime_signals),
             },
             "wetland_chain": {
                 "key_species": list(wetland_chain.key_species),

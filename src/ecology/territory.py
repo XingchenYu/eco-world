@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from src.data import WorldRegistry
 from src.world import Region
@@ -18,9 +18,12 @@ class RegionTerritorySummary:
     pressure_scores: Dict[str, float] = field(default_factory=dict)
     contested_zones: List[str] = field(default_factory=list)
     narrative_territory: List[str] = field(default_factory=list)
+    runtime_signals: Dict[str, int] = field(default_factory=dict)
 
 
-def build_region_territory_summary(region: Region, registry: WorldRegistry) -> RegionTerritorySummary:
+def build_region_territory_summary(
+    region: Region, registry: WorldRegistry, recent_events: Optional[List[str]] = None
+) -> RegionTerritorySummary:
     """构建区域级领地压力摘要。"""
 
     resident_species = registry.species_for_region(region.region_id)
@@ -29,6 +32,7 @@ def build_region_territory_summary(region: Region, registry: WorldRegistry) -> R
     pressure_scores: Dict[str, float] = {}
     contested_zones: List[str] = []
     narrative_territory: List[str] = []
+    runtime_signals: Dict[str, int] = {}
 
     def add_pressure(species: str, key: str, value: float, zone: str, narrative: str) -> None:
         pressure_scores[key] = round(pressure_scores.get(key, 0.0) + value, 2)
@@ -64,12 +68,42 @@ def build_region_territory_summary(region: Region, registry: WorldRegistry) -> R
         if "beaver" in region_species:
             add_pressure("beaver", "dam_complex_claim", 0.47, "reed_belt", "河狸坝系会把缓流水和芦苇带变成长期工程师活动核心。")
 
+    for description in recent_events or []:
+        if "pride core range" in description:
+            runtime_signals["pride_core_events"] = runtime_signals.get("pride_core_events", 0) + 1
+        if "male takeover front" in description:
+            runtime_signals["male_takeover_events"] = runtime_signals.get("male_takeover_events", 0) + 1
+        if "clan den corridor" in description:
+            runtime_signals["clan_den_events"] = runtime_signals.get("clan_den_events", 0) + 1
+        if "clan frontier" in description:
+            runtime_signals["clan_front_events"] = runtime_signals.get("clan_front_events", 0) + 1
+        if "shoreline" in description and ("ambush" in description or "crocodile" in description):
+            runtime_signals["shoreline_conflict_events"] = runtime_signals.get("shoreline_conflict_events", 0) + 1
+
+    pride_events = runtime_signals.get("pride_core_events", 0)
+    takeover_events = runtime_signals.get("male_takeover_events", 0)
+    clan_den_events = runtime_signals.get("clan_den_events", 0)
+    clan_front_events = runtime_signals.get("clan_front_events", 0)
+    shoreline_events = runtime_signals.get("shoreline_conflict_events", 0)
+
+    if pride_events:
+        pressure_scores["pride_core_range"] = round(pressure_scores.get("pride_core_range", 0.0) + min(0.24, pride_events * 0.06), 2)
+    if takeover_events:
+        pressure_scores["male_takeover_front"] = round(pressure_scores.get("male_takeover_front", 0.0) + min(0.20, takeover_events * 0.05), 2)
+    if clan_den_events:
+        pressure_scores["clan_den_range"] = round(pressure_scores.get("clan_den_range", 0.0) + min(0.22, clan_den_events * 0.055), 2)
+    if clan_front_events:
+        pressure_scores["scavenger_perimeter"] = round(pressure_scores.get("scavenger_perimeter", 0.0) + min(0.18, clan_front_events * 0.045), 2)
+    if shoreline_events:
+        pressure_scores["shoreline_standoff"] = round(pressure_scores.get("shoreline_standoff", 0.0) + min(0.18, shoreline_events * 0.045), 2)
+
     return RegionTerritorySummary(
         region_id=region.region_id,
         active_species=active_species,
         pressure_scores=dict(sorted(pressure_scores.items())),
         contested_zones=sorted(contested_zones),
         narrative_territory=narrative_territory,
+        runtime_signals=runtime_signals,
     )
 
 
