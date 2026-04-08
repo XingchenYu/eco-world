@@ -11,6 +11,17 @@
   - 收缩期会轻量增加饥饿、拖慢繁殖节奏并施加体况压力
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增区域社群周期注入测试和个体级周期行为测试
 
+### v4.0-alpha25 (2026-04-09 04:20)
+
+- ✅ `social cycle` 现已继续影响 `lion / hyena` 的核心区建立与前线推进强度
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 的运行态汇总新增：
+  - `lion_cycle_expansion`
+  - `lion_cycle_contraction`
+  - `hyena_cycle_expansion`
+  - `hyena_cycle_contraction`
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 已开始把周期相位纳入领地压力计算
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增周期驱动的核心区效果测试
+
 ### v4.0-alpha14 (2026-04-08 23:40)
 
 - ✅ `Lion / Hyena` 现已新增轻量核心区中心：

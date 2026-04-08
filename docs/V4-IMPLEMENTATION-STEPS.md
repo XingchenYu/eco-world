@@ -684,3 +684,4 @@
 - `social_trends.phase_scores` 已回灌到 `RegionSimulation`
 - `lion / hyena` 运行体会直接读取扩张期与收缩期信号
 - 周期层开始影响个体的健康、饥饿、繁殖节奏与交配冷却
+- 周期层现已继续影响 `pride/clan` 的核心区建立强度与前线推进压力

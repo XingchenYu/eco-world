@@ -105,10 +105,14 @@ def build_region_territory_summary(
     takeover_strength = float(runtime_state.get("lion_takeover_pressure", 0.0))
     pride_count = int(runtime_state.get("lion_pride_count", 0.0))
     lion_hotspot_count = int(runtime_state.get("lion_hotspot_count", 0.0))
+    lion_cycle_expansion = float(runtime_state.get("lion_cycle_expansion", 0.0))
+    lion_cycle_contraction = float(runtime_state.get("lion_cycle_contraction", 0.0))
     clan_cohesion = float(runtime_state.get("hyena_clan_cohesion", 0.0))
     clan_front_strength = float(runtime_state.get("hyena_clan_front_pressure", 0.0))
     clan_count = int(runtime_state.get("hyena_clan_count", 0.0))
     hyena_hotspot_count = int(runtime_state.get("hyena_hotspot_count", 0.0))
+    hyena_cycle_expansion = float(runtime_state.get("hyena_cycle_expansion", 0.0))
+    hyena_cycle_contraction = float(runtime_state.get("hyena_cycle_contraction", 0.0))
     shared_hotspot_overlap = int(runtime_state.get("shared_hotspot_overlap", 0.0))
 
     if pride_strength > 0.0:
@@ -130,6 +134,18 @@ def build_region_territory_summary(
             pressure_scores.get("pride_core_range", 0.0) + min(0.12, lion_hotspot_count * 0.03),
             2,
         )
+    if lion_cycle_expansion > 0.0:
+        runtime_signals["lion_cycle_expansion"] = round(lion_cycle_expansion, 3)
+        pressure_scores["pride_core_range"] = round(
+            pressure_scores.get("pride_core_range", 0.0) + min(0.16, lion_cycle_expansion * 0.12),
+            2,
+        )
+    if lion_cycle_contraction > 0.0:
+        runtime_signals["lion_cycle_contraction"] = round(lion_cycle_contraction, 3)
+        pressure_scores["male_takeover_front"] = round(
+            pressure_scores.get("male_takeover_front", 0.0) + min(0.12, lion_cycle_contraction * 0.10),
+            2,
+        )
     if clan_cohesion > 0.0:
         runtime_signals["hyena_clan_cohesion"] = round(clan_cohesion, 3)
         pressure_scores["clan_den_range"] = round(pressure_scores.get("clan_den_range", 0.0) + min(0.24, clan_cohesion * 0.20), 2)
@@ -147,6 +163,18 @@ def build_region_territory_summary(
         runtime_signals["hyena_hotspot_count"] = hyena_hotspot_count
         pressure_scores["clan_den_range"] = round(
             pressure_scores.get("clan_den_range", 0.0) + min(0.10, hyena_hotspot_count * 0.025),
+            2,
+        )
+    if hyena_cycle_expansion > 0.0:
+        runtime_signals["hyena_cycle_expansion"] = round(hyena_cycle_expansion, 3)
+        pressure_scores["clan_den_range"] = round(
+            pressure_scores.get("clan_den_range", 0.0) + min(0.15, hyena_cycle_expansion * 0.11),
+            2,
+        )
+    if hyena_cycle_contraction > 0.0:
+        runtime_signals["hyena_cycle_contraction"] = round(hyena_cycle_contraction, 3)
+        pressure_scores["scavenger_perimeter"] = round(
+            pressure_scores.get("scavenger_perimeter", 0.0) + min(0.11, hyena_cycle_contraction * 0.09),
             2,
         )
     if shared_hotspot_overlap > 0:

@@ -671,30 +671,36 @@ class Lion(Animal):
             ecosystem.log_event(f"{self.id} marked a grassland hunt corridor")
 
     def _establish_pride_core(self, ecosystem):
+        occupy_amount = 0.22 + self.cycle_expansion_phase * 0.06 - self.cycle_contraction_phase * 0.04
+        occupy_amount = max(0.12, min(0.34, occupy_amount))
         if hasattr(ecosystem, "occupy_microhabitat"):
-            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.22, radius=3)
+            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=occupy_amount, radius=3)
         self.pride_center = self.position
         if hasattr(ecosystem, "get_local_microhabitat_value"):
             core_value = ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "riparian_perch"}, radius=4)
             if core_value >= 0.10:
                 self.health = min(getattr(self, "max_health", 100), self.health + 0.8)
                 self.hunger = max(0.0, self.hunger - 1.8)
-                self.pride_strength = min(1.0, self.pride_strength + 0.18)
+                self.pride_strength = min(1.0, self.pride_strength + 0.18 + self.cycle_expansion_phase * 0.08)
             else:
-                self.pride_strength = min(1.0, self.pride_strength + 0.08)
+                self.pride_strength = min(1.0, self.pride_strength + 0.08 + self.cycle_expansion_phase * 0.04)
+        if self.cycle_contraction_phase > 0.0:
+            self.pride_strength = max(0.0, self.pride_strength - self.cycle_contraction_phase * 0.03)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} established a pride core range")
 
     def _contest_male_front(self, ecosystem):
+        occupy_amount = 0.16 + self.cycle_expansion_phase * 0.05 + self.cycle_contraction_phase * 0.03
+        occupy_amount = max(0.10, min(0.28, occupy_amount))
         if hasattr(ecosystem, "occupy_microhabitat"):
-            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.16, radius=4)
+            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=occupy_amount, radius=4)
         self.pride_center = self.position
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=5)
             for patch in patches[:2]:
                 patch.occupancy = min(patch.capacity, patch.occupancy + 0.06)
         self.health = max(0.0, self.health - 0.4)
-        self.takeover_pressure = min(1.0, self.takeover_pressure + 0.16)
+        self.takeover_pressure = min(1.0, self.takeover_pressure + 0.16 + self.cycle_expansion_phase * 0.05 + self.cycle_contraction_phase * 0.06)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} pressed a male takeover front")
 
@@ -841,30 +847,36 @@ class Hyena(Animal):
             ecosystem.log_event(f"{self.id} intensified scavenging pressure on the grassland edge")
 
     def _mark_den_cluster(self, ecosystem):
+        occupy_amount = 0.18 + self.cycle_expansion_phase * 0.05 - self.cycle_contraction_phase * 0.03
+        occupy_amount = max(0.12, min(0.30, occupy_amount))
         if hasattr(ecosystem, "occupy_microhabitat"):
-            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.18, radius=3)
+            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=occupy_amount, radius=3)
         self.clan_center = self.position
         if hasattr(ecosystem, "get_local_microhabitat_value"):
             den_value = ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "riparian_perch"}, radius=4)
             if den_value >= 0.08:
                 self.health = min(getattr(self, "max_health", 100), self.health + 0.6)
                 self.hunger = max(0.0, self.hunger - 1.2)
-                self.clan_cohesion = min(1.0, self.clan_cohesion + 0.16)
+                self.clan_cohesion = min(1.0, self.clan_cohesion + 0.16 + self.cycle_expansion_phase * 0.07)
             else:
-                self.clan_cohesion = min(1.0, self.clan_cohesion + 0.07)
+                self.clan_cohesion = min(1.0, self.clan_cohesion + 0.07 + self.cycle_expansion_phase * 0.03)
+        if self.cycle_contraction_phase > 0.0:
+            self.clan_cohesion = max(0.0, self.clan_cohesion - self.cycle_contraction_phase * 0.025)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} reinforced a clan den corridor")
 
     def _expand_clan_front(self, ecosystem):
+        occupy_amount = 0.14 + self.cycle_expansion_phase * 0.05 + self.cycle_contraction_phase * 0.03
+        occupy_amount = max(0.10, min(0.25, occupy_amount))
         if hasattr(ecosystem, "occupy_microhabitat"):
-            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.14, radius=4)
+            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=occupy_amount, radius=4)
         self.clan_center = self.position
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=5)
             for patch in patches[:2]:
                 patch.available = min(patch.capacity * max(1.0, patch.seasonal_multiplier), patch.available + 0.06)
         self.hunger = max(0.0, self.hunger - 0.6)
-        self.clan_front_pressure = min(1.0, self.clan_front_pressure + 0.15)
+        self.clan_front_pressure = min(1.0, self.clan_front_pressure + 0.15 + self.cycle_expansion_phase * 0.05 + self.cycle_contraction_phase * 0.05)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} expanded a clan frontier")
 

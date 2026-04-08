@@ -269,10 +269,14 @@ class WorldSimulation:
             "lion_takeover_pressure": 0.0,
             "lion_pride_count": 0.0,
             "lion_hotspot_count": 0.0,
+            "lion_cycle_expansion": 0.0,
+            "lion_cycle_contraction": 0.0,
             "hyena_clan_cohesion": 0.0,
             "hyena_clan_front_pressure": 0.0,
             "hyena_clan_count": 0.0,
             "hyena_hotspot_count": 0.0,
+            "hyena_cycle_expansion": 0.0,
+            "hyena_cycle_contraction": 0.0,
             "shared_hotspot_overlap": 0.0,
         }
         lions = [animal for animal in simulation.animals if animal.alive and animal.species == "lion"]
@@ -283,12 +287,16 @@ class WorldSimulation:
             state["lion_pride_strength"] = max(getattr(animal, "pride_strength", 0.0) for animal in lions)
             state["lion_takeover_pressure"] = max(getattr(animal, "takeover_pressure", 0.0) for animal in lions)
             state["lion_pride_count"] = float(len({getattr(animal, "pride_id", animal.id) for animal in lions}))
+            state["lion_cycle_expansion"] = max(getattr(animal, "cycle_expansion_phase", 0.0) for animal in lions)
+            state["lion_cycle_contraction"] = max(getattr(animal, "cycle_contraction_phase", 0.0) for animal in lions)
             lion_hotspots = {self._territory_hotspot(getattr(animal, "pride_center", animal.position)) for animal in lions}
             state["lion_hotspot_count"] = float(len(lion_hotspots))
         if hyenas:
             state["hyena_clan_cohesion"] = max(getattr(animal, "clan_cohesion", 0.0) for animal in hyenas)
             state["hyena_clan_front_pressure"] = max(getattr(animal, "clan_front_pressure", 0.0) for animal in hyenas)
             state["hyena_clan_count"] = float(len({getattr(animal, "clan_id", animal.id) for animal in hyenas}))
+            state["hyena_cycle_expansion"] = max(getattr(animal, "cycle_expansion_phase", 0.0) for animal in hyenas)
+            state["hyena_cycle_contraction"] = max(getattr(animal, "cycle_contraction_phase", 0.0) for animal in hyenas)
             hyena_hotspots = {self._territory_hotspot(getattr(animal, "clan_center", animal.position)) for animal in hyenas}
             state["hyena_hotspot_count"] = float(len(hyena_hotspots))
         if lion_hotspots and hyena_hotspots:

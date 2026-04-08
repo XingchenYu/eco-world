@@ -779,10 +779,12 @@ def test_v4_territory_summary_uses_runtime_state():
             "lion_takeover_pressure": 0.5,
             "lion_pride_count": 2.0,
             "lion_hotspot_count": 2.0,
+            "lion_cycle_expansion": 0.6,
             "hyena_clan_cohesion": 0.6,
             "hyena_clan_front_pressure": 0.4,
             "hyena_clan_count": 3.0,
             "hyena_hotspot_count": 2.0,
+            "hyena_cycle_expansion": 0.5,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -791,10 +793,12 @@ def test_v4_territory_summary_uses_runtime_state():
     assert summary.runtime_signals["lion_takeover_pressure"] == 0.5
     assert summary.runtime_signals["lion_pride_count"] == 2
     assert summary.runtime_signals["lion_hotspot_count"] == 2
+    assert summary.runtime_signals["lion_cycle_expansion"] == 0.6
     assert summary.runtime_signals["hyena_clan_cohesion"] == 0.6
     assert summary.runtime_signals["hyena_clan_front_pressure"] == 0.4
     assert summary.runtime_signals["hyena_clan_count"] == 3
     assert summary.runtime_signals["hyena_hotspot_count"] == 2
+    assert summary.runtime_signals["hyena_cycle_expansion"] == 0.5
     assert summary.runtime_signals["shared_hotspot_overlap"] == 1
     assert summary.pressure_scores["pride_core_range"] > 0.58
     assert summary.pressure_scores["male_takeover_front"] > 0.44
@@ -1637,6 +1641,23 @@ def test_lion_pride_core_effect():
     print("✅ Lion pride core test passed")
 
 
+def test_lion_cycle_core_effect():
+    """扩张期应放大狮群核心区建立强度。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("lion", position, source="manual")
+    lion = eco.animals[-1]
+    lion.cycle_expansion_phase = 0.7
+
+    lion._establish_pride_core(eco)
+
+    assert lion.pride_strength >= 0.12
+
+    print("✅ Lion cycle core test passed")
+
+
 def test_lion_male_takeover_effect():
     """狮应能触发基础雄性接管前线效果。"""
     eco = Ecosystem()
@@ -1795,6 +1816,23 @@ def test_hyena_den_cluster_effect():
     assert hyena.clan_cohesion > 0.0
 
     print("✅ Hyena den cluster test passed")
+
+
+def test_hyena_cycle_den_effect():
+    """扩张期应放大鬣狗 clan 核心区凝聚效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("hyena", position, source="manual")
+    hyena = eco.animals[-1]
+    hyena.cycle_expansion_phase = 0.7
+
+    hyena._mark_den_cluster(eco)
+
+    assert hyena.clan_cohesion >= 0.10
+
+    print("✅ Hyena cycle den test passed")
 
 
 def test_hyena_clan_front_effect():
@@ -1985,6 +2023,7 @@ def run_all_tests():
     test_lion_registration_and_spawn()
     test_lion_hunt_corridor_effect()
     test_lion_pride_core_effect()
+    test_lion_cycle_core_effect()
     test_lion_male_takeover_effect()
     test_lion_social_stability_effect()
     test_lion_cycle_phase_effect()
@@ -1992,6 +2031,7 @@ def run_all_tests():
     test_hyena_registration_and_spawn()
     test_hyena_scavenging_effect()
     test_hyena_den_cluster_effect()
+    test_hyena_cycle_den_effect()
     test_hyena_clan_front_effect()
     test_hyena_clan_stability_effect()
     test_hyena_social_birth_scaling()
