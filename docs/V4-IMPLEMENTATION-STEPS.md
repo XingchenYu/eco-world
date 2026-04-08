@@ -238,6 +238,9 @@
   - `male_takeover_front`
   - `clan_den_range`
   - `apex_boundary_conflict`
+- 当前原生运行体也已补上最小个体级接口：
+  - `Lion._establish_pride_core()`
+  - `Hyena._mark_den_cluster()`
 - 当前已原生接入：
   - `lion`
   - `hyena`

@@ -86,6 +86,14 @@
 - ✅ `cascade.py` 现已开始汇总 `territory`，新增 `territorial_stress`
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `territory` 摘要、反馈、世界统计和区域持久化断言并通过
 
+### v4.0-alpha9 (2026-04-08 22:20)
+
+- ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 为 `Lion / Hyena` 新增个体级领地接口：
+  - `Lion._establish_pride_core()`
+  - `Hyena._mark_den_cluster()`
+- ✅ 狮群和鬣狗现在不仅有区域级 `territory` 摘要，还能在当前运行层真实占用草原边缘微栖位并记录事件
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion` 核心领地和 `hyena` clan 通道测试并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要

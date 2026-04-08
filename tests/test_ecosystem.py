@@ -1220,6 +1220,23 @@ def test_lion_hunt_corridor_effect():
     print("✅ Lion hunt corridor test passed")
 
 
+def test_lion_pride_core_effect():
+    """狮应能触发基础核心领地效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("lion", position, source="manual")
+    lion = eco.animals[-1]
+    before_events = len(eco.events)
+
+    lion._establish_pride_core(eco)
+
+    assert len(eco.events) == before_events + 1
+
+    print("✅ Lion pride core test passed")
+
+
 def test_hyena_registration_and_spawn():
     """鬣狗应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -1250,6 +1267,23 @@ def test_hyena_scavenging_effect():
     assert len(eco.events) == before_events + 1
 
     print("✅ Hyena scavenging test passed")
+
+
+def test_hyena_den_cluster_effect():
+    """鬣狗应能触发基础 clan 通道效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("hyena", position, source="manual")
+    hyena = eco.animals[-1]
+    before_events = len(eco.events)
+
+    hyena._mark_den_cluster(eco)
+
+    assert len(eco.events) == before_events + 1
+
+    print("✅ Hyena den cluster test passed")
 
 
 def test_vulture_registration_and_spawn():
@@ -1324,8 +1358,10 @@ def run_all_tests():
     test_zebra_registration_and_spawn()
     test_lion_registration_and_spawn()
     test_lion_hunt_corridor_effect()
+    test_lion_pride_core_effect()
     test_hyena_registration_and_spawn()
     test_hyena_scavenging_effect()
+    test_hyena_den_cluster_effect()
     test_vulture_registration_and_spawn()
     
     print("\n✅ All tests passed!")

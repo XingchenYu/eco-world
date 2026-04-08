@@ -472,7 +472,9 @@ class Lion(Animal):
         self.color = (197, 150, 73)
         self.pregnancy_duration = 16
         self.pride_interval = random.randint(8, 13)
+        self.pride_core_interval = random.randint(11, 17)
         self._pride_timer = 0
+        self._pride_core_timer = 0
         self.forms_groups = True
         self.dominance = 1.9
 
@@ -506,10 +508,14 @@ class Lion(Animal):
 
     def execute_behavior(self, ecosystem):
         self._pride_timer += 1
+        self._pride_core_timer += 1
         super().execute_behavior(ecosystem)
         if self.alive and self._pride_timer >= self.pride_interval:
             self._pride_timer = 0
             self._mark_hunt_corridor(ecosystem)
+        if self.alive and self._pride_core_timer >= self.pride_core_interval:
+            self._pride_core_timer = 0
+            self._establish_pride_core(ecosystem)
 
     def _mark_hunt_corridor(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
@@ -518,6 +524,17 @@ class Lion(Animal):
                 patch.occupancy = min(patch.capacity, patch.occupancy + 0.08)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} marked a grassland hunt corridor")
+
+    def _establish_pride_core(self, ecosystem):
+        if hasattr(ecosystem, "occupy_microhabitat"):
+            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.22, radius=3)
+        if hasattr(ecosystem, "get_local_microhabitat_value"):
+            core_value = ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "riparian_perch"}, radius=4)
+            if core_value >= 0.10:
+                self.health = min(getattr(self, "max_health", 100), self.health + 0.8)
+                self.hunger = max(0.0, self.hunger - 1.8)
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} established a pride core range")
 
 
 class Hyena(Animal):
@@ -539,7 +556,9 @@ class Hyena(Animal):
         self.color = (150, 124, 88)
         self.pregnancy_duration = 13
         self.scavenge_interval = random.randint(7, 12)
+        self.clan_interval = random.randint(10, 16)
         self._scavenge_timer = 0
+        self._clan_timer = 0
         self.forms_groups = True
         self.dominance = 1.5
 
@@ -576,10 +595,14 @@ class Hyena(Animal):
 
     def execute_behavior(self, ecosystem):
         self._scavenge_timer += 1
+        self._clan_timer += 1
         super().execute_behavior(ecosystem)
         if self.alive and self._scavenge_timer >= self.scavenge_interval:
             self._scavenge_timer = 0
             self._scavenge_pressure(ecosystem)
+        if self.alive and self._clan_timer >= self.clan_interval:
+            self._clan_timer = 0
+            self._mark_den_cluster(ecosystem)
 
     def _scavenge_pressure(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
@@ -588,6 +611,17 @@ class Hyena(Animal):
                 patch.available = min(patch.capacity * max(1.0, patch.seasonal_multiplier), patch.available + 0.10)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} intensified scavenging pressure on the grassland edge")
+
+    def _mark_den_cluster(self, ecosystem):
+        if hasattr(ecosystem, "occupy_microhabitat"):
+            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.18, radius=3)
+        if hasattr(ecosystem, "get_local_microhabitat_value"):
+            den_value = ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "riparian_perch"}, radius=4)
+            if den_value >= 0.08:
+                self.health = min(getattr(self, "max_health", 100), self.health + 0.6)
+                self.hunger = max(0.0, self.hunger - 1.2)
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} reinforced a clan den corridor")
 
 
 class WildBoar(Animal):
