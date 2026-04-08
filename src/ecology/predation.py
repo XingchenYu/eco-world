@@ -80,6 +80,20 @@ def build_region_predation_summary(region: Region, registry: WorldRegistry) -> R
                 "night_insects",
                 "蝙蝠把夜飞昆虫脉冲转化成夜行捕食压力。",
             )
+        elif relation.source_species == "lion" and relation.target_species == "rabbit":
+            add_pressure(
+                "grassland_apex_predation",
+                relation.strength,
+                "small_prey",
+                "狮群围绕草原小型猎物和通道形成顶层捕食压力。",
+            )
+        elif relation.source_species == "hyena" and relation.target_species == "rabbit":
+            add_pressure(
+                "grassland_scavenger_predation",
+                relation.strength,
+                "small_prey",
+                "鬣狗群会把机会型捕食与腐食压力同时施加到草原小型猎物层。",
+            )
 
     return RegionPredationSummary(
         region_id=region.region_id,
@@ -99,6 +113,8 @@ def apply_region_predation_feedback(region: Region, predation: RegionPredationSu
     _adjust(region.resource_state, "fish_cover", -pressures.get("benthic_fish_predation", 0.0) * 0.22, feedback_scale)
     _adjust(region.resource_state, "fish_cover", -pressures.get("midwater_fish_predation", 0.0) * 0.26, feedback_scale)
     _adjust(region.resource_state, "night_insects", -pressures.get("nocturnal_insect_predation", 0.0) * 0.18, feedback_scale)
+    _adjust(region.resource_state, "grazing_biomass", -pressures.get("grassland_apex_predation", 0.0) * 0.05, feedback_scale)
+    _adjust(region.resource_state, "dung_cycle", pressures.get("grassland_scavenger_predation", 0.0) * 0.08, feedback_scale)
 
     _adjust(region.hazard_state, "predation_pressure", sum(pressures.values()) * 0.2, feedback_scale)
     _adjust(region.hazard_state, "shoreline_risk", pressures.get("shoreline_bird_predation", 0.0) * 0.08, feedback_scale)

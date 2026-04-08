@@ -936,7 +936,7 @@ class Rabbit(Animal):
         self.forms_groups = True
         
     def get_predators(self) -> List[str]:
-        return ["fox", "wolf", "snake", "eagle"]  # 多种天敌
+        return ["fox", "wolf", "snake", "eagle", "lion", "hyena"]  # 多种天敌
         
     def get_food_sources(self) -> List[str]:
         return ["grass", "flower", "bush", "moss", "berry", "fern", "strawberry"]
@@ -1084,7 +1084,7 @@ class Deer(Animal):
         self.pregnancy_duration = 20
         
     def get_predators(self) -> List[str]:
-        return ["wolf"]  # 狼是鹿的天敌
+        return ["wolf", "lion", "hyena"]  # 大型犬科与猫科是鹿的主要天敌
         
     def get_food_sources(self) -> List[str]:
         return ["grass", "bush", "moss", "flower", "berry", "fern"]

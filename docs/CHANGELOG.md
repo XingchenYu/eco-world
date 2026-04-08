@@ -41,6 +41,28 @@
 
 ### v4.0-alpha3 (2026-04-08 19:45)
 
+**草原链补强**：
+- ✅ 新增 `lion / hyena` 的 `v4` 模板、变体、关系表与运行桥接
+- ✅ 当前可运行系统已原生接入狮和鬣狗，并打通注册、初始化、生成与事件链
+- ✅ `grassland_chain` 已扩展到：
+  - `engineering_layer`
+  - `grazing_layer`
+  - `browse_layer`
+  - `predator_layer`
+  - `scavenger_layer`
+- ✅ 草原链现在会显式表达：
+  - `apex_predation`
+  - `carrion_scavenging`
+  - `carcass_competition`
+  - `grassland_predator_closure`
+- ✅ `predation.py` 已补上草原顶层捕食压力：
+  - `lion -> rabbit`
+  - `hyena -> rabbit`
+
+**验证**：
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion / hyena` 注册、效果与草原链分层断言
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/data/defaults.py src/entities/omnivores.py src/entities/animals.py src/core/ecosystem.py src/world/world_map.py src/ecology/grassland.py src/ecology/predation.py tests/test_ecosystem.py`
+
 **v4 架构推进**：
 - ✅ `cascade.py` 已收缩为更明确的汇总层
 - ✅ `cascade` 开始显式整合 `competition / symbiosis` 的结果

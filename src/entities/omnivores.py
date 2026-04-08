@@ -163,7 +163,7 @@ class Hippopotamus(Animal):
         self._nutrient_timer = 0
 
     def get_predators(self) -> List[str]:
-        return ["crocodile"]
+        return ["crocodile", "lion"]
 
     def get_food_sources(self) -> List[str]:
         return ["grass", "moss", "fern", "flower", "bush", "reed", "berry"]
@@ -451,6 +451,143 @@ class Giraffe(Animal):
 
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} pruned the upper canopy")
+
+
+class Lion(Animal):
+    """狮 - 草原群居顶级捕食者。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="lion",
+            position=position,
+            max_age=105,
+            hunger_rate=0.28,
+            reproduction_rate=0.028,
+            speed=2.4,
+            vision_range=9,
+            diet="carnivore",
+            gender=gender
+        )
+        self.emoji = "🦁"
+        self.color = (197, 150, 73)
+        self.pregnancy_duration = 16
+        self.pride_interval = random.randint(8, 13)
+        self._pride_timer = 0
+        self.forms_groups = True
+        self.dominance = 1.9
+
+    def get_predators(self) -> List[str]:
+        return []
+
+    def get_prey_species(self) -> List[str]:
+        return ["rabbit", "deer", "giraffe", "wild_boar", "hippopotamus"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["bush", "berry", "tree", "moss"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"shrub_shelter", "riparian_perch"},
+            "amount": 0.06,
+            "radius": 4,
+            "hunger_relief": 4.5,
+            "health_gain": 0.9,
+            "min_hunger": 18.0,
+        }
+
+    def execute_behavior(self, ecosystem):
+        self._pride_timer += 1
+        super().execute_behavior(ecosystem)
+        if self.alive and self._pride_timer >= self.pride_interval:
+            self._pride_timer = 0
+            self._mark_hunt_corridor(ecosystem)
+
+    def _mark_hunt_corridor(self, ecosystem):
+        if hasattr(ecosystem, "get_microhabitat_patches"):
+            patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=4)
+            for patch in patches[:3]:
+                patch.occupancy = min(patch.capacity, patch.occupancy + 0.08)
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} marked a grassland hunt corridor")
+
+
+class Hyena(Animal):
+    """鬣狗 - 草原腐食竞争者与机会型捕食者。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="hyena",
+            position=position,
+            max_age=90,
+            hunger_rate=0.26,
+            reproduction_rate=0.034,
+            speed=2.2,
+            vision_range=8,
+            diet="omnivore",
+            gender=gender
+        )
+        self.emoji = "🐕"
+        self.color = (150, 124, 88)
+        self.pregnancy_duration = 13
+        self.scavenge_interval = random.randint(7, 12)
+        self._scavenge_timer = 0
+        self.forms_groups = True
+        self.dominance = 1.5
+
+    def get_predators(self) -> List[str]:
+        return ["lion"]
+
+    def get_food_sources(self) -> List[str]:
+        return ["berry", "bush", "mushroom", "grass"]
+
+    def get_prey_species(self) -> List[str]:
+        return ["rabbit", "mouse", "bird", "sparrow", "frog", "night_moth"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["bush", "berry", "moss", "fern"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def microhabitat_foraging_profile(self):
+        return {
+            "kinds": {"shrub_shelter", "riparian_perch"},
+            "amount": 0.08,
+            "radius": 4,
+            "hunger_relief": 5.5,
+            "health_gain": 0.9,
+            "min_hunger": 16.0,
+        }
+
+    def execute_behavior(self, ecosystem):
+        self._scavenge_timer += 1
+        super().execute_behavior(ecosystem)
+        if self.alive and self._scavenge_timer >= self.scavenge_interval:
+            self._scavenge_timer = 0
+            self._scavenge_pressure(ecosystem)
+
+    def _scavenge_pressure(self, ecosystem):
+        if hasattr(ecosystem, "get_microhabitat_patches"):
+            patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=4)
+            for patch in patches[:2]:
+                patch.available = min(patch.capacity * max(1.0, patch.seasonal_multiplier), patch.available + 0.10)
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} intensified scavenging pressure on the grassland edge")
 
 
 class WildBoar(Animal):

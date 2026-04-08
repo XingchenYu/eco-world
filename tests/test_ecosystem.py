@@ -380,6 +380,10 @@ def test_v4_registry_queries():
     assert registry.get_runtime_bridge("white_rhino").support_level == "native"
     assert registry.get_runtime_bridge("giraffe").runtime_species_id == "giraffe"
     assert registry.get_runtime_bridge("giraffe").support_level == "native"
+    assert registry.get_runtime_bridge("lion").runtime_species_id == "lion"
+    assert registry.get_runtime_bridge("lion").support_level == "native"
+    assert registry.get_runtime_bridge("hyena").runtime_species_id == "hyena"
+    assert registry.get_runtime_bridge("hyena").support_level == "native"
     assert registry.get_runtime_bridge("hippopotamus").runtime_species_id == "hippopotamus"
     assert registry.get_runtime_bridge("hippopotamus").support_level == "native"
     assert crocodile_bridge.runtime_species_id == "crocodile"
@@ -451,9 +455,12 @@ def test_v4_region_cascade_summary():
     assert "african_elephant" in grassland_cascade.driver_species
     assert "white_rhino" in grassland_cascade.driver_species
     assert "giraffe" in grassland_cascade.driver_species
+    assert "lion" in grassland_cascade.driver_species
+    assert "hyena" in grassland_cascade.driver_species
     assert grassland_cascade.impact_scores["canopy_opening"] > 0.0
     assert grassland_cascade.impact_scores["grazing_pressure"] > 0.0
     assert grassland_cascade.impact_scores["canopy_browsing"] > 0.0
+    assert grassland_cascade.impact_scores["predation_load"] > 0.0
     assert grassland_cascade.impact_scores["competitive_stress"] > 0.0
 
     print("✅ V4 cascade summary test passed")
@@ -608,15 +615,23 @@ def test_v4_grassland_chain_summary():
     assert "african_elephant" in grassland_chain.key_species
     assert "white_rhino" in grassland_chain.key_species
     assert "giraffe" in grassland_chain.key_species
+    assert "lion" in grassland_chain.key_species
+    assert "hyena" in grassland_chain.key_species
     assert grassland_chain.trophic_scores["canopy_opening"] > 0.0
     assert grassland_chain.trophic_scores["grazing_pressure"] > 0.0
     assert grassland_chain.trophic_scores["megaherbivore_stack"] > 0.0
+    assert grassland_chain.trophic_scores["apex_predation"] > 0.0
+    assert grassland_chain.trophic_scores["carrion_scavenging"] > 0.0
     assert grassland_chain.layer_scores["engineering_layer"] > 0.0
     assert grassland_chain.layer_scores["grazing_layer"] > 0.0
     assert grassland_chain.layer_scores["browse_layer"] > 0.0
+    assert grassland_chain.layer_scores["predator_layer"] > 0.0
+    assert grassland_chain.layer_scores["scavenger_layer"] > 0.0
     assert "african_elephant" in grassland_chain.layer_species["engineering_layer"]
     assert "white_rhino" in grassland_chain.layer_species["grazing_layer"]
     assert "giraffe" in grassland_chain.layer_species["browse_layer"]
+    assert "lion" in grassland_chain.layer_species["predator_layer"]
+    assert "hyena" in grassland_chain.layer_species["scavenger_layer"]
 
     assert wetland_chain.key_species == []
     assert wetland_chain.trophic_scores == {}
@@ -938,6 +953,70 @@ def test_giraffe_canopy_effect():
     print("✅ Giraffe canopy test passed")
 
 
+def test_lion_registration_and_spawn():
+    """狮应完成注册，并能在陆地生成。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("lion")
+    eco.spawn_animal("lion", position, source="manual")
+
+    assert eco.get_species_count("lion") == initial + 1
+    assert eco.animals[-1].species == "lion"
+
+    print("✅ Lion registration test passed")
+
+
+def test_lion_hunt_corridor_effect():
+    """狮应能触发基础巡猎走廊效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("lion", position, source="manual")
+    lion = eco.animals[-1]
+    before_events = len(eco.events)
+
+    lion._mark_hunt_corridor(eco)
+
+    assert len(eco.events) == before_events + 1
+
+    print("✅ Lion hunt corridor test passed")
+
+
+def test_hyena_registration_and_spawn():
+    """鬣狗应完成注册，并能在陆地生成。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("hyena")
+    eco.spawn_animal("hyena", position, source="manual")
+
+    assert eco.get_species_count("hyena") == initial + 1
+    assert eco.animals[-1].species == "hyena"
+
+    print("✅ Hyena registration test passed")
+
+
+def test_hyena_scavenging_effect():
+    """鬣狗应能触发基础腐食压力效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("hyena", position, source="manual")
+    hyena = eco.animals[-1]
+    before_events = len(eco.events)
+
+    hyena._scavenge_pressure(eco)
+
+    assert len(eco.events) == before_events + 1
+
+    print("✅ Hyena scavenging test passed")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("🧪 Running EcoWorld tests...\n")
@@ -985,6 +1064,10 @@ def run_all_tests():
     test_white_rhino_grazing_effect()
     test_giraffe_registration_and_spawn()
     test_giraffe_canopy_effect()
+    test_lion_registration_and_spawn()
+    test_lion_hunt_corridor_effect()
+    test_hyena_registration_and_spawn()
+    test_hyena_scavenging_effect()
     
     print("\n✅ All tests passed!")
 

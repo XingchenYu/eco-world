@@ -211,13 +211,27 @@
 当前状态：
 - 已新增 `grassland_chain` 第一版摘要与反馈
 - `WorldSimulation` 已开始输出 `grassland_chain`
-- 草原链已显式输出 `engineering_layer / grazing_layer / browse_layer`
+- 草原链已显式输出：
+  - `engineering_layer`
+  - `grazing_layer`
+  - `browse_layer`
+  - `predator_layer`
+  - `scavenger_layer`
+- 当前已原生接入：
+  - `lion`
+  - `hyena`
+- 草原链已开始表达顶层闭环：
+  - `apex_predation`
+  - `carrion_scavenging`
+  - `carcass_competition`
+  - `grassland_predator_closure`
 
 ### Step 9
 补草原顶级捕食与清道夫组
 
 优先新增：
 - `lion`
+- `hyena`
 - `hyena`
 
 第一阶段先做：
