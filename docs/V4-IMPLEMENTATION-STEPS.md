@@ -4,6 +4,21 @@
 
 目标不是继续堆功能，而是在不再做大重构的前提下，稳定把项目推进到多尺度虚拟生态世界。
 
+## 最新推进
+
+- `Lion / Hyena` 现已新增轻量核心区中心：
+  - `pride_center`
+  - `clan_center`
+- `territory` 现已开始吸收空间热点统计：
+  - `lion_hotspot_count`
+  - `hyena_hotspot_count`
+  - `shared_hotspot_overlap`
+- 这使得草原领地层开始区分：
+  - 群体数量
+  - 社群强度
+  - 热点数量
+  - 热点重叠
+
 ## 总原则
 
 - 先搭长期稳定骨架，再扩物种和玩法

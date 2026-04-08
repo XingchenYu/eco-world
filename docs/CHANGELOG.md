@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha14 (2026-04-08 23:40)
+
+- ✅ `Lion / Hyena` 现已新增轻量核心区中心：
+  - `pride_center`
+  - `clan_center`
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已汇总：
+  - `lion_hotspot_count`
+  - `hyena_hotspot_count`
+  - `shared_hotspot_overlap`
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 开始把热点数量和热点重叠纳入领地压力计算
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增热点相关断言并通过
+
 ---
 
 ## 更新规范

@@ -763,18 +763,24 @@ def test_v4_territory_summary_uses_runtime_state():
             "lion_pride_strength": 0.7,
             "lion_takeover_pressure": 0.5,
             "lion_pride_count": 2.0,
+            "lion_hotspot_count": 2.0,
             "hyena_clan_cohesion": 0.6,
             "hyena_clan_front_pressure": 0.4,
             "hyena_clan_count": 3.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
         },
     )
 
     assert summary.runtime_signals["lion_pride_strength"] == 0.7
     assert summary.runtime_signals["lion_takeover_pressure"] == 0.5
     assert summary.runtime_signals["lion_pride_count"] == 2
+    assert summary.runtime_signals["lion_hotspot_count"] == 2
     assert summary.runtime_signals["hyena_clan_cohesion"] == 0.6
     assert summary.runtime_signals["hyena_clan_front_pressure"] == 0.4
     assert summary.runtime_signals["hyena_clan_count"] == 3
+    assert summary.runtime_signals["hyena_hotspot_count"] == 2
+    assert summary.runtime_signals["shared_hotspot_overlap"] == 1
     assert summary.pressure_scores["pride_core_range"] > 0.58
     assert summary.pressure_scores["male_takeover_front"] > 0.44
     assert summary.pressure_scores["clan_den_range"] > 0.55
@@ -1265,6 +1271,7 @@ def test_lion_registration_and_spawn():
     assert eco.get_species_count("lion") == initial + 1
     assert eco.animals[-1].species == "lion"
     assert eco.animals[-1].pride_id.startswith("pride-")
+    assert eco.animals[-1].pride_center == position
 
     print("✅ Lion registration test passed")
 
@@ -1336,6 +1343,7 @@ def test_hyena_registration_and_spawn():
     assert eco.get_species_count("hyena") == initial + 1
     assert eco.animals[-1].species == "hyena"
     assert eco.animals[-1].clan_id.startswith("clan-")
+    assert eco.animals[-1].clan_center == position
 
     print("✅ Hyena registration test passed")
 

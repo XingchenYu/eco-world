@@ -104,9 +104,12 @@ def build_region_territory_summary(
     pride_strength = float(runtime_state.get("lion_pride_strength", 0.0))
     takeover_strength = float(runtime_state.get("lion_takeover_pressure", 0.0))
     pride_count = int(runtime_state.get("lion_pride_count", 0.0))
+    lion_hotspot_count = int(runtime_state.get("lion_hotspot_count", 0.0))
     clan_cohesion = float(runtime_state.get("hyena_clan_cohesion", 0.0))
     clan_front_strength = float(runtime_state.get("hyena_clan_front_pressure", 0.0))
     clan_count = int(runtime_state.get("hyena_clan_count", 0.0))
+    hyena_hotspot_count = int(runtime_state.get("hyena_hotspot_count", 0.0))
+    shared_hotspot_overlap = int(runtime_state.get("shared_hotspot_overlap", 0.0))
 
     if pride_strength > 0.0:
         runtime_signals["lion_pride_strength"] = round(pride_strength, 3)
@@ -121,6 +124,12 @@ def build_region_territory_summary(
             pressure_scores.get("apex_boundary_conflict", 0.0) + max(0.0, pride_count - 1) * 0.06,
             2,
         )
+    if lion_hotspot_count > 0:
+        runtime_signals["lion_hotspot_count"] = lion_hotspot_count
+        pressure_scores["pride_core_range"] = round(
+            pressure_scores.get("pride_core_range", 0.0) + min(0.12, lion_hotspot_count * 0.03),
+            2,
+        )
     if clan_cohesion > 0.0:
         runtime_signals["hyena_clan_cohesion"] = round(clan_cohesion, 3)
         pressure_scores["clan_den_range"] = round(pressure_scores.get("clan_den_range", 0.0) + min(0.24, clan_cohesion * 0.20), 2)
@@ -132,6 +141,22 @@ def build_region_territory_summary(
         pressure_scores["clan_den_range"] = round(pressure_scores.get("clan_den_range", 0.0) + min(0.18, clan_count * 0.035), 2)
         pressure_scores["carcass_route_overlap"] = round(
             pressure_scores.get("carcass_route_overlap", 0.0) + max(0.0, clan_count - 1) * 0.05,
+            2,
+        )
+    if hyena_hotspot_count > 0:
+        runtime_signals["hyena_hotspot_count"] = hyena_hotspot_count
+        pressure_scores["clan_den_range"] = round(
+            pressure_scores.get("clan_den_range", 0.0) + min(0.10, hyena_hotspot_count * 0.025),
+            2,
+        )
+    if shared_hotspot_overlap > 0:
+        runtime_signals["shared_hotspot_overlap"] = shared_hotspot_overlap
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.18, shared_hotspot_overlap * 0.09),
+            2,
+        )
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.15, shared_hotspot_overlap * 0.07),
             2,
         )
 

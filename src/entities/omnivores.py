@@ -482,6 +482,7 @@ class Lion(Animal):
         self.pride_strength = 0.0
         self.takeover_pressure = 0.0
         self.pride_id = f"pride-{random.randint(1, 6)}"
+        self.pride_center = position
 
     def get_predators(self) -> List[str]:
         return []
@@ -539,6 +540,7 @@ class Lion(Animal):
     def _establish_pride_core(self, ecosystem):
         if hasattr(ecosystem, "occupy_microhabitat"):
             ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.22, radius=3)
+        self.pride_center = self.position
         if hasattr(ecosystem, "get_local_microhabitat_value"):
             core_value = ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "riparian_perch"}, radius=4)
             if core_value >= 0.10:
@@ -553,6 +555,7 @@ class Lion(Animal):
     def _contest_male_front(self, ecosystem):
         if hasattr(ecosystem, "occupy_microhabitat"):
             ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.16, radius=4)
+        self.pride_center = self.position
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=5)
             for patch in patches[:2]:
@@ -592,6 +595,7 @@ class Hyena(Animal):
         self.clan_cohesion = 0.0
         self.clan_front_pressure = 0.0
         self.clan_id = f"clan-{random.randint(1, 7)}"
+        self.clan_center = position
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -652,6 +656,7 @@ class Hyena(Animal):
     def _mark_den_cluster(self, ecosystem):
         if hasattr(ecosystem, "occupy_microhabitat"):
             ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.18, radius=3)
+        self.clan_center = self.position
         if hasattr(ecosystem, "get_local_microhabitat_value"):
             den_value = ecosystem.get_local_microhabitat_value(self.position, {"shrub_shelter", "riparian_perch"}, radius=4)
             if den_value >= 0.08:
@@ -666,6 +671,7 @@ class Hyena(Animal):
     def _expand_clan_front(self, ecosystem):
         if hasattr(ecosystem, "occupy_microhabitat"):
             ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.14, radius=4)
+        self.clan_center = self.position
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=5)
             for patch in patches[:2]:
