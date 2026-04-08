@@ -108,6 +108,19 @@
 - ✅ `WorldSimulation` 现已把当前焦点区域最近事件传给 `territory`，并在世界统计与区域 `relationship_state` 中保留 `runtime_signals`
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增运行期领地信号测试并通过
 
+### v4.0-alpha12 (2026-04-08 23:05)
+
+- ✅ `Lion / Hyena` 运行体现已新增轻量社群状态：
+  - `pride_strength`
+  - `takeover_pressure`
+  - `clan_cohesion`
+  - `clan_front_pressure`
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已把运行层社群状态汇总给 `territory`
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 现在同时吸收：
+  - 运行期事件信号
+  - 运行期社群状态
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增运行期领地状态测试并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要

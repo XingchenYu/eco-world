@@ -249,6 +249,11 @@
   - `male_takeover_events`
   - `clan_den_events`
   - `clan_front_events`
+- `territory` 现已进一步吸收运行期社群状态：
+  - `lion_pride_strength`
+  - `lion_takeover_pressure`
+  - `hyena_clan_cohesion`
+  - `hyena_clan_front_pressure`
 - 当前已原生接入：
   - `lion`
   - `hyena`

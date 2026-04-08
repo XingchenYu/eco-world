@@ -479,6 +479,8 @@ class Lion(Animal):
         self._takeover_timer = 0
         self.forms_groups = True
         self.dominance = 1.9
+        self.pride_strength = 0.0
+        self.takeover_pressure = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -522,6 +524,8 @@ class Lion(Animal):
         if self.alive and self._takeover_timer >= self.takeover_interval:
             self._takeover_timer = 0
             self._contest_male_front(ecosystem)
+        self.pride_strength = max(0.0, self.pride_strength - 0.02)
+        self.takeover_pressure = max(0.0, self.takeover_pressure - 0.025)
 
     def _mark_hunt_corridor(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
@@ -539,6 +543,9 @@ class Lion(Animal):
             if core_value >= 0.10:
                 self.health = min(getattr(self, "max_health", 100), self.health + 0.8)
                 self.hunger = max(0.0, self.hunger - 1.8)
+                self.pride_strength = min(1.0, self.pride_strength + 0.18)
+            else:
+                self.pride_strength = min(1.0, self.pride_strength + 0.08)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} established a pride core range")
 
@@ -550,6 +557,7 @@ class Lion(Animal):
             for patch in patches[:2]:
                 patch.occupancy = min(patch.capacity, patch.occupancy + 0.06)
         self.health = max(0.0, self.health - 0.4)
+        self.takeover_pressure = min(1.0, self.takeover_pressure + 0.16)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} pressed a male takeover front")
 
@@ -580,6 +588,8 @@ class Hyena(Animal):
         self._clan_front_timer = 0
         self.forms_groups = True
         self.dominance = 1.5
+        self.clan_cohesion = 0.0
+        self.clan_front_pressure = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -626,6 +636,8 @@ class Hyena(Animal):
         if self.alive and self._clan_front_timer >= self.clan_front_interval:
             self._clan_front_timer = 0
             self._expand_clan_front(ecosystem)
+        self.clan_cohesion = max(0.0, self.clan_cohesion - 0.02)
+        self.clan_front_pressure = max(0.0, self.clan_front_pressure - 0.025)
 
     def _scavenge_pressure(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
@@ -643,6 +655,9 @@ class Hyena(Animal):
             if den_value >= 0.08:
                 self.health = min(getattr(self, "max_health", 100), self.health + 0.6)
                 self.hunger = max(0.0, self.hunger - 1.2)
+                self.clan_cohesion = min(1.0, self.clan_cohesion + 0.16)
+            else:
+                self.clan_cohesion = min(1.0, self.clan_cohesion + 0.07)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} reinforced a clan den corridor")
 
@@ -654,6 +669,7 @@ class Hyena(Animal):
             for patch in patches[:2]:
                 patch.available = min(patch.capacity * max(1.0, patch.seasonal_multiplier), patch.available + 0.06)
         self.hunger = max(0.0, self.hunger - 0.6)
+        self.clan_front_pressure = min(1.0, self.clan_front_pressure + 0.15)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} expanded a clan frontier")
 

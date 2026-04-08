@@ -750,6 +750,35 @@ def test_v4_territory_summary_uses_runtime_events():
     print("✅ V4 territory runtime signal test passed")
 
 
+def test_v4_territory_summary_uses_runtime_state():
+    """v4 领地摘要应能吸收运行期社群状态。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    grassland = world_map.get_region("temperate_grassland")
+
+    summary = build_region_territory_summary(
+        grassland,
+        registry,
+        runtime_state={
+            "lion_pride_strength": 0.7,
+            "lion_takeover_pressure": 0.5,
+            "hyena_clan_cohesion": 0.6,
+            "hyena_clan_front_pressure": 0.4,
+        },
+    )
+
+    assert summary.runtime_signals["lion_pride_strength"] == 0.7
+    assert summary.runtime_signals["lion_takeover_pressure"] == 0.5
+    assert summary.runtime_signals["hyena_clan_cohesion"] == 0.6
+    assert summary.runtime_signals["hyena_clan_front_pressure"] == 0.4
+    assert summary.pressure_scores["pride_core_range"] > 0.58
+    assert summary.pressure_scores["male_takeover_front"] > 0.44
+    assert summary.pressure_scores["clan_den_range"] > 0.55
+    assert summary.pressure_scores["scavenger_perimeter"] > 0.41
+
+    print("✅ V4 territory runtime state test passed")
+
+
 def test_v4_carrion_chain_summary():
     """v4 尸体资源链摘要应识别草原尸体资源闭环。"""
     world_map = build_default_world_map()
@@ -1263,6 +1292,7 @@ def test_lion_pride_core_effect():
     lion._establish_pride_core(eco)
 
     assert len(eco.events) == before_events + 1
+    assert lion.pride_strength > 0.0
 
     print("✅ Lion pride core test passed")
 
@@ -1282,6 +1312,7 @@ def test_lion_male_takeover_effect():
 
     assert len(eco.events) == before_events + 1
     assert lion.health <= before_health
+    assert lion.takeover_pressure > 0.0
 
     print("✅ Lion male takeover test passed")
 
@@ -1331,6 +1362,7 @@ def test_hyena_den_cluster_effect():
     hyena._mark_den_cluster(eco)
 
     assert len(eco.events) == before_events + 1
+    assert hyena.clan_cohesion > 0.0
 
     print("✅ Hyena den cluster test passed")
 
@@ -1350,6 +1382,7 @@ def test_hyena_clan_front_effect():
 
     assert len(eco.events) == before_events + 1
     assert hyena.hunger <= before_hunger
+    assert hyena.clan_front_pressure > 0.0
 
     print("✅ Hyena clan front test passed")
 
@@ -1400,6 +1433,7 @@ def run_all_tests():
     test_v4_grassland_chain_summary()
     test_v4_territory_summary()
     test_v4_territory_summary_uses_runtime_events()
+    test_v4_territory_summary_uses_runtime_state()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()

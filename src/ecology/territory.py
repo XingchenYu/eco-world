@@ -22,7 +22,10 @@ class RegionTerritorySummary:
 
 
 def build_region_territory_summary(
-    region: Region, registry: WorldRegistry, recent_events: Optional[List[str]] = None
+    region: Region,
+    registry: WorldRegistry,
+    recent_events: Optional[List[str]] = None,
+    runtime_state: Optional[Dict[str, float]] = None,
 ) -> RegionTerritorySummary:
     """构建区域级领地压力摘要。"""
 
@@ -96,6 +99,25 @@ def build_region_territory_summary(
         pressure_scores["scavenger_perimeter"] = round(pressure_scores.get("scavenger_perimeter", 0.0) + min(0.18, clan_front_events * 0.045), 2)
     if shoreline_events:
         pressure_scores["shoreline_standoff"] = round(pressure_scores.get("shoreline_standoff", 0.0) + min(0.18, shoreline_events * 0.045), 2)
+
+    runtime_state = runtime_state or {}
+    pride_strength = float(runtime_state.get("lion_pride_strength", 0.0))
+    takeover_strength = float(runtime_state.get("lion_takeover_pressure", 0.0))
+    clan_cohesion = float(runtime_state.get("hyena_clan_cohesion", 0.0))
+    clan_front_strength = float(runtime_state.get("hyena_clan_front_pressure", 0.0))
+
+    if pride_strength > 0.0:
+        runtime_signals["lion_pride_strength"] = round(pride_strength, 3)
+        pressure_scores["pride_core_range"] = round(pressure_scores.get("pride_core_range", 0.0) + min(0.28, pride_strength * 0.22), 2)
+    if takeover_strength > 0.0:
+        runtime_signals["lion_takeover_pressure"] = round(takeover_strength, 3)
+        pressure_scores["male_takeover_front"] = round(pressure_scores.get("male_takeover_front", 0.0) + min(0.24, takeover_strength * 0.20), 2)
+    if clan_cohesion > 0.0:
+        runtime_signals["hyena_clan_cohesion"] = round(clan_cohesion, 3)
+        pressure_scores["clan_den_range"] = round(pressure_scores.get("clan_den_range", 0.0) + min(0.24, clan_cohesion * 0.20), 2)
+    if clan_front_strength > 0.0:
+        runtime_signals["hyena_clan_front_pressure"] = round(clan_front_strength, 3)
+        pressure_scores["scavenger_perimeter"] = round(pressure_scores.get("scavenger_perimeter", 0.0) + min(0.22, clan_front_strength * 0.18), 2)
 
     return RegionTerritorySummary(
         region_id=region.region_id,

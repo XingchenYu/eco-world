@@ -246,18 +246,41 @@ class WorldSimulation:
     def get_active_simulation(self) -> RegionSimulation:
         return self.ensure_region_simulation(self.active_region_id)
 
+    def _build_runtime_territory_state(self, simulation: RegionSimulation) -> Dict[str, float]:
+        state = {
+            "lion_pride_strength": 0.0,
+            "lion_takeover_pressure": 0.0,
+            "hyena_clan_cohesion": 0.0,
+            "hyena_clan_front_pressure": 0.0,
+        }
+        lions = [animal for animal in simulation.animals if animal.alive and animal.species == "lion"]
+        hyenas = [animal for animal in simulation.animals if animal.alive and animal.species == "hyena"]
+        if lions:
+            state["lion_pride_strength"] = max(getattr(animal, "pride_strength", 0.0) for animal in lions)
+            state["lion_takeover_pressure"] = max(getattr(animal, "takeover_pressure", 0.0) for animal in lions)
+        if hyenas:
+            state["hyena_clan_cohesion"] = max(getattr(animal, "clan_cohesion", 0.0) for animal in hyenas)
+            state["hyena_clan_front_pressure"] = max(getattr(animal, "clan_front_pressure", 0.0) for animal in hyenas)
+        return state
+
     def update(self) -> WorldTickSummary:
         active_simulation = self.get_active_simulation()
         active_simulation.update()
         active_region = self.get_active_region()
         recent_events = [event.description for event in active_simulation.events[-120:]]
+        runtime_territory_state = self._build_runtime_territory_state(active_simulation)
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
         predation = build_region_predation_summary(active_region, self.registry)
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         grassland_chain = build_region_grassland_chain_summary(active_region, self.registry)
         carrion_chain = build_region_carrion_chain_summary(active_region, self.registry)
-        territory = build_region_territory_summary(active_region, self.registry, recent_events=recent_events)
+        territory = build_region_territory_summary(
+            active_region,
+            self.registry,
+            recent_events=recent_events,
+            runtime_state=runtime_territory_state,
+        )
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -314,13 +337,19 @@ class WorldSimulation:
         active_simulation = self.get_active_simulation()
         simulation_stats = active_simulation.get_statistics()
         recent_events = [event.description for event in active_simulation.events[-120:]]
+        runtime_territory_state = self._build_runtime_territory_state(active_simulation)
         regional_species = self.registry.species_for_region(active_region.region_id)
         regional_bridges = self.registry.bridged_species_for_region(active_region.region_id)
         food_web = build_region_food_web(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
         predation = build_region_predation_summary(active_region, self.registry)
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
-        territory = build_region_territory_summary(active_region, self.registry, recent_events=recent_events)
+        territory = build_region_territory_summary(
+            active_region,
+            self.registry,
+            recent_events=recent_events,
+            runtime_state=runtime_territory_state,
+        )
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         grassland_chain = build_region_grassland_chain_summary(active_region, self.registry)
         carrion_chain = build_region_carrion_chain_summary(active_region, self.registry)
