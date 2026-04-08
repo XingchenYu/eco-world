@@ -208,6 +208,11 @@
 验收标准：
 - `temperate_grassland` 的资源状态与物种池随三者组合而变化
 
+当前状态：
+- 已新增 `grassland_chain` 第一版摘要与反馈
+- `WorldSimulation` 已开始输出 `grassland_chain`
+- 草原链已显式输出 `engineering_layer / grazing_layer / browse_layer`
+
 ### Step 9
 补草原顶级捕食与清道夫组
 

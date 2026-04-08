@@ -30,6 +30,7 @@
 - ✅ 湿地链现已支持低频 `species_pool` 重平衡，开始把岸带耦合与顶层压制反馈到关键湿地物种池
 - ✅ 湿地链重平衡现在会按 `shoreline_layer / fish_layer / apex_layer` 分组持久写入区域关系状态
 - ✅ `wetland_chain` 现已显式输出 `layer_scores / layer_species`，让岸带层、鱼层、顶层成为可直接消费的结构化数据
+- ✅ 新增草原大型植食者链 `grassland_chain`，开始显式表达 `engineering_layer / grazing_layer / browse_layer`
 | fruits-omnivores.md | entities/omnivores.py | 杂食动物变更 |
 | ECOSYSTEM.md | 所有 | 总览更新 |
 | USAGE.md | main.py | 启动参数变更 |
