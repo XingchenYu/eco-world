@@ -115,6 +115,13 @@
   - 并反向进入：
     - `grassland_rebalancing`
     - `carrion_rebalancing`
+- `social_trends` 现在还会形成：
+  - `phase_scores`
+  - `cycle_signals`
+- 也就是说，系统已开始区分：
+  - 扩张期
+  - 收缩期
+  - 重占记忆期
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`

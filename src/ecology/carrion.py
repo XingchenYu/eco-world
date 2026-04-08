@@ -148,6 +148,8 @@ def apply_region_carrion_chain_rebalancing(
     clan_count = 0
     lion_recovery_bias = 0.0
     hyena_recovery_bias = 0.0
+    lion_expansion_phase = 0.0
+    hyena_expansion_phase = 0.0
     if territory_summary is not None:
         runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
         hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
@@ -159,8 +161,11 @@ def apply_region_carrion_chain_rebalancing(
         clan_count = int(runtime_signals.get("hyena_clan_count", 0))
     if social_trend_summary is not None:
         trend_scores = getattr(social_trend_summary, "trend_scores", {}) or {}
+        phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
         lion_recovery_bias = float(trend_scores.get("lion_recovery_bias", 0.0))
         hyena_recovery_bias = float(trend_scores.get("hyena_recovery_bias", 0.0))
+        lion_expansion_phase = float(phase_scores.get("lion_expansion_phase", 0.0))
+        hyena_expansion_phase = float(phase_scores.get("hyena_expansion_phase", 0.0))
 
     if scores.get("carrion_energy_loop", 0.0) >= 0.7 and antelope_count < 20:
         species_pool["antelope"] = antelope_count + 1
@@ -367,6 +372,28 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "hyena",
                 "layer_group": "scavenge_layer",
                 "effect": "trend_carrion_recovery",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if lion_expansion_phase >= 0.58 and 2 <= lion_count < 6 and scores.get("kill_generation", 0.0) >= 0.60:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "cycle_carrion_expansion",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if hyena_expansion_phase >= 0.56 and 2 <= hyena_count < 7 and scores.get("scavenger_pressure", 0.0) >= 0.60:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "hyena",
+                "layer_group": "scavenge_layer",
+                "effect": "cycle_carrion_expansion",
                 "new_target_count": species_pool["hyena"],
             }
         )

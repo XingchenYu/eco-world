@@ -818,7 +818,11 @@ def test_v4_social_trend_summary_uses_memory():
                 "lion_decline_bias": 0.1,
                 "hyena_recovery_bias": 0.35,
                 "hyena_decline_bias": 0.12,
-            }
+            },
+            "phase_scores": {
+                "lion_expansion_phase": 0.45,
+                "hyena_expansion_phase": 0.42,
+            },
         },
     )
     territory = build_region_territory_summary(
@@ -839,6 +843,8 @@ def test_v4_social_trend_summary_uses_memory():
 
     assert summary.trend_scores["lion_recovery_bias"] > 0.58
     assert summary.trend_scores["hyena_recovery_bias"] > 0.56
+    assert summary.phase_scores["lion_expansion_phase"] > 0.55
+    assert summary.phase_scores["hyena_expansion_phase"] > 0.53
     assert "lion_expansion_cycle" in summary.cycle_signals
     assert "hyena_expansion_cycle" in summary.cycle_signals
 
@@ -1183,7 +1189,11 @@ def test_v4_social_trend_rebalancing_support():
             "trend_scores": {
                 "lion_recovery_bias": 0.45,
                 "hyena_recovery_bias": 0.42,
-            }
+            },
+            "phase_scores": {
+                "lion_expansion_phase": 0.45,
+                "hyena_expansion_phase": 0.42,
+            },
         },
     )
 
@@ -1220,7 +1230,11 @@ def test_v4_social_trend_rebalancing_support():
             "trend_scores": {
                 "lion_recovery_bias": 0.45,
                 "hyena_recovery_bias": 0.42,
-            }
+            },
+            "phase_scores": {
+                "lion_expansion_phase": 0.45,
+                "hyena_expansion_phase": 0.42,
+            },
         },
     )
     carrion_territory = build_region_territory_summary(
@@ -1246,7 +1260,9 @@ def test_v4_social_trend_rebalancing_support():
     )
 
     assert any(item["source_species"] == "social_trend" for item in grassland_adjustments)
+    assert any(item["source_species"] == "social_cycle" for item in grassland_adjustments)
     assert any(item["source_species"] == "social_trend" for item in carrion_adjustments)
+    assert any(item["source_species"] == "social_cycle" for item in carrion_adjustments)
 
     print("✅ V4 social trend rebalancing test passed")
 

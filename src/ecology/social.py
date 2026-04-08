@@ -14,6 +14,7 @@ class RegionSocialTrendSummary:
 
     region_id: str
     trend_scores: Dict[str, float] = field(default_factory=dict)
+    phase_scores: Dict[str, float] = field(default_factory=dict)
     cycle_signals: List[str] = field(default_factory=list)
     narrative_trends: List[str] = field(default_factory=list)
 
@@ -26,6 +27,7 @@ def build_region_social_trend_summary(
 
     previous = region.relationship_state.get("social_trends", {})
     previous_scores = previous.get("trend_scores", {}) if isinstance(previous, dict) else {}
+    previous_phase_scores = previous.get("phase_scores", {}) if isinstance(previous, dict) else {}
     runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
 
     pride_strength = float(runtime_signals.get("lion_pride_strength", 0.0))
@@ -42,6 +44,9 @@ def build_region_social_trend_summary(
 
     def carry(key: str) -> float:
         return float(previous_scores.get(key, 0.0))
+
+    def carry_phase(key: str) -> float:
+        return float(previous_phase_scores.get(key, 0.0))
 
     lion_recovery = min(
         1.0,
@@ -81,23 +86,42 @@ def build_region_social_trend_summary(
         "hyena_decline_bias": round(max(0.0, hyena_decline), 3),
     }
 
+    phase_scores = {
+        "lion_expansion_phase": round(
+            max(0.0, min(1.0, carry_phase("lion_expansion_phase") * 0.64 + lion_recovery * 0.42 - lion_decline * 0.18)),
+            3,
+        ),
+        "lion_contraction_phase": round(
+            max(0.0, min(1.0, carry_phase("lion_contraction_phase") * 0.64 + lion_decline * 0.44 - lion_recovery * 0.14)),
+            3,
+        ),
+        "hyena_expansion_phase": round(
+            max(0.0, min(1.0, carry_phase("hyena_expansion_phase") * 0.64 + hyena_recovery * 0.40 - hyena_decline * 0.17)),
+            3,
+        ),
+        "hyena_contraction_phase": round(
+            max(0.0, min(1.0, carry_phase("hyena_contraction_phase") * 0.64 + hyena_decline * 0.42 - hyena_recovery * 0.14)),
+            3,
+        ),
+    }
+
     cycle_signals: List[str] = []
     narrative_trends: List[str] = []
 
-    if trend_scores["lion_recovery_bias"] >= 0.58 and trend_scores["lion_decline_bias"] < 0.45:
+    if phase_scores["lion_expansion_phase"] >= 0.55:
         cycle_signals.append("lion_expansion_cycle")
         narrative_trends.append("狮群稳定度和热点延续性正在推动新的扩张周期。")
-    if trend_scores["lion_decline_bias"] >= 0.56:
+    if phase_scores["lion_contraction_phase"] >= 0.52:
         cycle_signals.append("lion_contraction_cycle")
         narrative_trends.append("狮群接管压力与热点重叠正在积累收缩风险。")
     if pride_count <= 1 and trend_scores["lion_recovery_bias"] >= 0.62:
         cycle_signals.append("lion_recolonization_memory")
         narrative_trends.append("狮群虽处低谷，但保留了足以重占热点区的社群记忆。")
 
-    if trend_scores["hyena_recovery_bias"] >= 0.56 and trend_scores["hyena_decline_bias"] < 0.45:
+    if phase_scores["hyena_expansion_phase"] >= 0.53:
         cycle_signals.append("hyena_expansion_cycle")
         narrative_trends.append("鬣狗 clan 的凝聚度和活动热点支撑着稳定扩张。")
-    if trend_scores["hyena_decline_bias"] >= 0.54:
+    if phase_scores["hyena_contraction_phase"] >= 0.50:
         cycle_signals.append("hyena_contraction_cycle")
         narrative_trends.append("鬣狗 clan 前沿压力和热点拥挤正在推高收缩风险。")
     if clan_count <= 1 and trend_scores["hyena_recovery_bias"] >= 0.60:
@@ -107,6 +131,7 @@ def build_region_social_trend_summary(
     return RegionSocialTrendSummary(
         region_id=region.region_id,
         trend_scores=trend_scores,
+        phase_scores=phase_scores,
         cycle_signals=cycle_signals,
         narrative_trends=narrative_trends,
     )
@@ -120,9 +145,14 @@ def apply_region_social_trend_feedback(
     """将社群长期趋势轻量回灌到区域状态。"""
 
     scores = social_trends.trend_scores
+    phases = social_trends.phase_scores
     _adjust(region.health_state, "resilience", scores.get("lion_recovery_bias", 0.0) * 0.20, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("hyena_recovery_bias", 0.0) * 0.16, feedback_scale)
+    _adjust(region.health_state, "resilience", phases.get("lion_expansion_phase", 0.0) * 0.12, feedback_scale)
+    _adjust(region.health_state, "resilience", phases.get("hyena_expansion_phase", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("lion_decline_bias", 0.0) * 0.12, feedback_scale)
+    _adjust(region.health_state, "fragmentation", phases.get("lion_contraction_phase", 0.0) * 0.10, feedback_scale)
+    _adjust(region.health_state, "fragmentation", phases.get("hyena_contraction_phase", 0.0) * 0.08, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("lion_recovery_bias", 0.0) * 0.12, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("hyena_recovery_bias", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("hyena_recovery_bias", 0.0) * 0.08, feedback_scale)

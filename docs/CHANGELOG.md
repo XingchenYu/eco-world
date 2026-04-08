@@ -134,6 +134,19 @@
     - `carrion_rebalancing`
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `social_trends` 摘要与趋势驱动重平衡断言并通过
 
+### v4.0-alpha23 (2026-04-09 01:55)
+
+- ✅ `social_trends` 现在新增：
+  - `phase_scores`
+  - `cycle_signals`
+- ✅ 系统现在开始显式区分：
+  - `lion_expansion_phase / lion_contraction_phase`
+  - `hyena_expansion_phase / hyena_contraction_phase`
+- ✅ `grassland_rebalancing / carrion_rebalancing` 现在已开始读取：
+  - `social_cycle`
+  作为独立来源，而不只读取 `social_trend`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `phase_scores` 和 `social_cycle` 断言并通过
+
 ---
 
 ## 更新规范
