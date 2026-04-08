@@ -170,6 +170,7 @@ def apply_region_grassland_chain_rebalancing(
     region: Region,
     grassland_chain: RegionGrasslandChainSummary,
     territory_summary: Optional[object] = None,
+    social_trend_summary: Optional[object] = None,
 ) -> List[dict]:
     """根据草原链结构对物种池做低频、轻量重平衡。"""
 
@@ -203,6 +204,10 @@ def apply_region_grassland_chain_rebalancing(
     clan_cohesion = 0.0
     pride_count_signal = 0
     clan_count_signal = 0
+    lion_recovery_bias = 0.0
+    lion_decline_bias = 0.0
+    hyena_recovery_bias = 0.0
+    hyena_decline_bias = 0.0
     if territory_summary is not None:
         runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
         hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
@@ -212,6 +217,12 @@ def apply_region_grassland_chain_rebalancing(
         clan_cohesion = float(runtime_signals.get("hyena_clan_cohesion", 0.0))
         pride_count_signal = int(runtime_signals.get("lion_pride_count", 0))
         clan_count_signal = int(runtime_signals.get("hyena_clan_count", 0))
+    if social_trend_summary is not None:
+        trend_scores = getattr(social_trend_summary, "trend_scores", {}) or {}
+        lion_recovery_bias = float(trend_scores.get("lion_recovery_bias", 0.0))
+        lion_decline_bias = float(trend_scores.get("lion_decline_bias", 0.0))
+        hyena_recovery_bias = float(trend_scores.get("hyena_recovery_bias", 0.0))
+        hyena_decline_bias = float(trend_scores.get("hyena_decline_bias", 0.0))
 
     if megaherbivore_stack >= 0.7 and elephant_count > 0 and rhino_count > 0 and giraffe_count > 0:
         if rabbit_count < 24:
@@ -430,6 +441,50 @@ def apply_region_grassland_chain_rebalancing(
                 "target_species": "hyena",
                 "layer_group": "social_layer",
                 "effect": "clan_recolonization_window",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if lion_recovery_bias >= 0.58 and lion_count <= 2 and antelope_count + zebra_count >= 20:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_trend",
+                "target_species": "lion",
+                "layer_group": "social_layer",
+                "effect": "trend_recovery_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if hyena_recovery_bias >= 0.56 and hyena_count <= 2 and antelope_count + zebra_count >= 20:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_trend",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "trend_recovery_support",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if lion_decline_bias >= 0.62 and lion_count >= 5:
+        species_pool["lion"] = lion_count - 1
+        adjustments.append(
+            {
+                "source_species": "social_trend",
+                "target_species": "lion",
+                "layer_group": "social_layer",
+                "effect": "trend_contraction",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if hyena_decline_bias >= 0.60 and hyena_count >= 6:
+        species_pool["hyena"] = hyena_count - 1
+        adjustments.append(
+            {
+                "source_species": "social_trend",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "trend_contraction",
                 "new_target_count": species_pool["hyena"],
             }
         )

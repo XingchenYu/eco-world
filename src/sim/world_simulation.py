@@ -15,6 +15,7 @@ from src.ecology import (
     apply_region_grassland_chain_rebalancing,
     apply_region_predation_feedback,
     apply_region_symbiosis_feedback,
+    apply_region_social_trend_feedback,
     apply_region_territory_feedback,
     apply_region_wetland_chain_feedback,
     apply_region_wetland_chain_rebalancing,
@@ -25,6 +26,7 @@ from src.ecology import (
     build_region_grassland_chain_summary,
     build_region_predation_summary,
     build_region_symbiosis_summary,
+    build_region_social_trend_summary,
     build_region_territory_summary,
     build_region_wetland_chain_summary,
 )
@@ -73,6 +75,7 @@ class WorldSimulation:
         competition: object,
         carrion_chain: object,
         predation: object,
+        social_trends: object,
         symbiosis: object,
         territory: object,
         wetland_chain: object,
@@ -115,6 +118,14 @@ class WorldSimulation:
                 "active_relations": len(predation.active_relations),
                 "pressure_scores": dict(predation.pressure_scores),
                 "vulnerable_resources": list(predation.vulnerable_resources),
+            },
+        )
+        region.record_relationship_state(
+            "social_trends",
+            {
+                "trend_scores": dict(social_trends.trend_scores),
+                "cycle_signals": list(social_trends.cycle_signals),
+                "narrative_trends": list(social_trends.narrative_trends),
             },
         )
         region.record_relationship_state(
@@ -195,6 +206,7 @@ class WorldSimulation:
             cascade.active_pressures,
             competition.contested_resources,
             predation.vulnerable_resources,
+            social_trends.cycle_signals,
             symbiosis.supported_resources,
             territory.contested_zones,
             wetland_chain.key_species,
@@ -208,6 +220,8 @@ class WorldSimulation:
         for key, value in competition.pressure_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in predation.pressure_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in social_trends.trend_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in symbiosis.support_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
@@ -297,6 +311,7 @@ class WorldSimulation:
             recent_events=recent_events,
             runtime_state=runtime_territory_state,
         )
+        social_trends = build_region_social_trend_summary(active_region, territory_summary=territory)
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         grassland_chain = build_region_grassland_chain_summary(active_region, self.registry, territory_summary=territory)
         carrion_chain = build_region_carrion_chain_summary(active_region, self.registry, territory_summary=territory)
@@ -310,6 +325,7 @@ class WorldSimulation:
         )
         apply_region_cascade_feedback(active_region, cascade)
         apply_region_predation_feedback(active_region, predation)
+        apply_region_social_trend_feedback(active_region, social_trends)
         apply_region_symbiosis_feedback(active_region, symbiosis)
         apply_region_territory_feedback(active_region, territory)
         apply_region_wetland_chain_feedback(active_region, wetland_chain)
@@ -323,14 +339,25 @@ class WorldSimulation:
             competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
         if self.tick_count % 6 == 0:
             wetland_adjustments = apply_region_wetland_chain_rebalancing(active_region, wetland_chain)
-            grassland_adjustments = apply_region_grassland_chain_rebalancing(active_region, grassland_chain, territory_summary=territory)
-            carrion_adjustments = apply_region_carrion_chain_rebalancing(active_region, carrion_chain, territory_summary=territory)
+            grassland_adjustments = apply_region_grassland_chain_rebalancing(
+                active_region,
+                grassland_chain,
+                territory_summary=territory,
+                social_trend_summary=social_trends,
+            )
+            carrion_adjustments = apply_region_carrion_chain_rebalancing(
+                active_region,
+                carrion_chain,
+                territory_summary=territory,
+                social_trend_summary=social_trends,
+            )
         self._persist_region_relationships(
             active_region,
             cascade=cascade,
             competition=competition,
             carrion_chain=carrion_chain,
             predation=predation,
+            social_trends=social_trends,
             symbiosis=symbiosis,
             territory=territory,
             wetland_chain=wetland_chain,
@@ -369,6 +396,7 @@ class WorldSimulation:
             recent_events=recent_events,
             runtime_state=runtime_territory_state,
         )
+        social_trends = build_region_social_trend_summary(active_region, territory_summary=territory)
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -448,6 +476,11 @@ class WorldSimulation:
                 "pressure_scores": dict(predation.pressure_scores),
                 "vulnerable_resources": list(predation.vulnerable_resources),
                 "narrative_predation": list(predation.narrative_predation),
+            },
+            "social_trends": {
+                "trend_scores": dict(social_trends.trend_scores),
+                "cycle_signals": list(social_trends.cycle_signals),
+                "narrative_trends": list(social_trends.narrative_trends),
             },
             "symbiosis": {
                 "active_relations": len(symbiosis.active_relations),

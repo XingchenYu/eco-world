@@ -25,6 +25,7 @@ from .grassland import (
 )
 from .predation import RegionPredationSummary, apply_region_predation_feedback, build_region_predation_summary
 from .symbiosis import RegionSymbiosisSummary, apply_region_symbiosis_feedback, build_region_symbiosis_summary
+from .social import RegionSocialTrendSummary, apply_region_social_trend_feedback, build_region_social_trend_summary
 from .territory import RegionTerritorySummary, apply_region_territory_feedback, build_region_territory_summary
 from .wetland import (
     RegionWetlandChainSummary,
@@ -41,6 +42,7 @@ __all__ = [
     "RegionGrasslandChainSummary",
     "RegionPredationSummary",
     "RegionSymbiosisSummary",
+    "RegionSocialTrendSummary",
     "RegionTerritorySummary",
     "RegionWetlandChainSummary",
     "apply_region_cascade_feedback",
@@ -51,6 +53,7 @@ __all__ = [
     "apply_region_grassland_chain_rebalancing",
     "apply_region_predation_feedback",
     "apply_region_symbiosis_feedback",
+    "apply_region_social_trend_feedback",
     "apply_region_territory_feedback",
     "apply_region_wetland_chain_feedback",
     "apply_region_wetland_chain_rebalancing",
@@ -61,6 +64,7 @@ __all__ = [
     "build_region_grassland_chain_summary",
     "build_region_predation_summary",
     "build_region_symbiosis_summary",
+    "build_region_social_trend_summary",
     "build_region_territory_summary",
     "build_region_wetland_chain_summary",
 ]

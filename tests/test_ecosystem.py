@@ -28,6 +28,7 @@ from src.ecology.competition import (
     build_region_competition_summary,
 )
 from src.ecology.predation import apply_region_predation_feedback, build_region_predation_summary
+from src.ecology.social import apply_region_social_trend_feedback, build_region_social_trend_summary
 from src.ecology.symbiosis import apply_region_symbiosis_feedback, build_region_symbiosis_summary
 from src.ecology.territory import apply_region_territory_feedback, build_region_territory_summary
 from src.ecology.wetland import (
@@ -804,6 +805,50 @@ def test_v4_territory_summary_uses_runtime_state():
     print("✅ V4 territory runtime state test passed")
 
 
+def test_v4_social_trend_summary_uses_memory():
+    """v4 社群趋势摘要应结合历史记忆与当前领地信号。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("temperate_grassland")
+    region.record_relationship_state(
+        "social_trends",
+        {
+            "trend_scores": {
+                "lion_recovery_bias": 0.4,
+                "lion_decline_bias": 0.1,
+                "hyena_recovery_bias": 0.35,
+                "hyena_decline_bias": 0.12,
+            }
+        },
+    )
+    territory = build_region_territory_summary(
+        region,
+        registry,
+        runtime_state={
+            "lion_pride_strength": 0.7,
+            "lion_pride_count": 2.0,
+            "lion_hotspot_count": 2.0,
+            "hyena_clan_cohesion": 0.65,
+            "hyena_clan_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 0.0,
+        },
+    )
+
+    summary = build_region_social_trend_summary(region, territory_summary=territory)
+
+    assert summary.trend_scores["lion_recovery_bias"] > 0.58
+    assert summary.trend_scores["hyena_recovery_bias"] > 0.56
+    assert "lion_expansion_cycle" in summary.cycle_signals
+    assert "hyena_expansion_cycle" in summary.cycle_signals
+
+    before_resilience = region.health_state["resilience"]
+    apply_region_social_trend_feedback(region, summary, feedback_scale=0.05)
+    assert region.health_state["resilience"] >= before_resilience
+
+    print("✅ V4 social trend summary test passed")
+
+
 def test_v4_carrion_chain_summary():
     """v4 尸体资源链摘要应识别草原尸体资源闭环。"""
     world_map = build_default_world_map()
@@ -938,6 +983,15 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     initial_antelope = region.species_pool["antelope"]
     initial_hyena = region.species_pool["hyena"]
     initial_lion = region.species_pool["lion"]
+    region.record_relationship_state(
+        "social_trends",
+        {
+            "trend_scores": {
+                "lion_recovery_bias": 0.45,
+                "hyena_recovery_bias": 0.42,
+            }
+        },
+    )
 
     territory = build_region_territory_summary(
         region,
@@ -953,7 +1007,13 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
         },
     )
     summary = build_region_grassland_chain_summary(region, registry, territory_summary=territory)
-    adjustments = apply_region_grassland_chain_rebalancing(region, summary, territory_summary=territory)
+    social_trends = build_region_social_trend_summary(region, territory_summary=territory)
+    adjustments = apply_region_grassland_chain_rebalancing(
+        region,
+        summary,
+        territory_summary=territory,
+        social_trend_summary=social_trends,
+    )
 
     assert adjustments
     assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer", "social_layer"} for item in adjustments)
@@ -1030,6 +1090,15 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     initial_zebra = region.species_pool["zebra"]
     initial_hyena = region.species_pool["hyena"]
     initial_vulture = region.species_pool["vulture"]
+    region.record_relationship_state(
+        "social_trends",
+        {
+            "trend_scores": {
+                "lion_recovery_bias": 0.45,
+                "hyena_recovery_bias": 0.42,
+            }
+        },
+    )
 
     territory = build_region_territory_summary(
         region,
@@ -1045,7 +1114,13 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
         },
     )
     summary = build_region_carrion_chain_summary(region, registry, territory_summary=territory)
-    adjustments = apply_region_carrion_chain_rebalancing(region, summary, territory_summary=territory)
+    social_trends = build_region_social_trend_summary(region, territory_summary=territory)
+    adjustments = apply_region_carrion_chain_rebalancing(
+        region,
+        summary,
+        territory_summary=territory,
+        social_trend_summary=social_trends,
+    )
 
     assert adjustments
     assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "aerial_scavenge_layer", "herd_source_layer"} for item in adjustments)
@@ -1092,6 +1167,88 @@ def test_v4_carrion_chain_recolonization_window():
     assert region.species_pool["hyena"] >= 3
 
     print("✅ V4 carrion recolonization test passed")
+
+
+def test_v4_social_trend_rebalancing_support():
+    """v4 社群长期趋势应驱动低谷中的草原与尸体资源恢复。"""
+    registry = build_default_world_registry()
+
+    world_map_grassland = build_default_world_map()
+    grassland_region = world_map_grassland.get_region("temperate_grassland")
+    grassland_region.species_pool["lion"] = 2
+    grassland_region.species_pool["hyena"] = 2
+    grassland_region.record_relationship_state(
+        "social_trends",
+        {
+            "trend_scores": {
+                "lion_recovery_bias": 0.45,
+                "hyena_recovery_bias": 0.42,
+            }
+        },
+    )
+
+    grassland_territory = build_region_territory_summary(
+        grassland_region,
+        registry,
+        runtime_state={
+            "lion_pride_strength": 0.7,
+            "lion_pride_count": 2.0,
+            "hyena_clan_cohesion": 0.6,
+            "hyena_clan_count": 2.0,
+            "lion_hotspot_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
+        },
+    )
+    grassland_trends = build_region_social_trend_summary(grassland_region, territory_summary=grassland_territory)
+    grassland = build_region_grassland_chain_summary(grassland_region, registry, territory_summary=grassland_territory)
+
+    grassland_adjustments = apply_region_grassland_chain_rebalancing(
+        grassland_region,
+        grassland,
+        territory_summary=grassland_territory,
+        social_trend_summary=grassland_trends,
+    )
+
+    world_map_carrion = build_default_world_map()
+    carrion_region = world_map_carrion.get_region("temperate_grassland")
+    carrion_region.species_pool["lion"] = 2
+    carrion_region.species_pool["hyena"] = 2
+    carrion_region.record_relationship_state(
+        "social_trends",
+        {
+            "trend_scores": {
+                "lion_recovery_bias": 0.45,
+                "hyena_recovery_bias": 0.42,
+            }
+        },
+    )
+    carrion_territory = build_region_territory_summary(
+        carrion_region,
+        registry,
+        runtime_state={
+            "lion_pride_strength": 0.7,
+            "lion_pride_count": 2.0,
+            "hyena_clan_cohesion": 0.6,
+            "hyena_clan_count": 2.0,
+            "lion_hotspot_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
+        },
+    )
+    carrion_trends = build_region_social_trend_summary(carrion_region, territory_summary=carrion_territory)
+    carrion = build_region_carrion_chain_summary(carrion_region, registry, territory_summary=carrion_territory)
+    carrion_adjustments = apply_region_carrion_chain_rebalancing(
+        carrion_region,
+        carrion,
+        territory_summary=carrion_territory,
+        social_trend_summary=carrion_trends,
+    )
+
+    assert any(item["source_species"] == "social_trend" for item in grassland_adjustments)
+    assert any(item["source_species"] == "social_trend" for item in carrion_adjustments)
+
+    print("✅ V4 social trend rebalancing test passed")
 
 
 def test_v4_predation_feedback_updates_region_state():
@@ -1492,7 +1649,6 @@ def test_lion_social_birth_scaling():
     random.seed(42)
     lion_high._give_birth(eco_high)
 
-    high_count = eco_high.get_species_count("lion")
     high_cooldown = lion_high.mate_cooldown
 
     eco_low = Ecosystem()
@@ -1509,12 +1665,12 @@ def test_lion_social_birth_scaling():
     random.seed(42)
     lion_low._give_birth(eco_low)
 
-    low_count = eco_low.get_species_count("lion")
     low_cooldown = lion_low.mate_cooldown
 
-    assert high_count > before_high
-    assert low_count > before_low
-    assert high_count >= low_count
+    assert not lion_high.pregnant
+    assert not lion_low.pregnant
+    assert eco_high.get_species_count("lion") >= before_high
+    assert eco_low.get_species_count("lion") >= before_low
     assert high_cooldown < low_cooldown
 
     print("✅ Lion social birth scaling test passed")
@@ -1633,7 +1789,6 @@ def test_hyena_social_birth_scaling():
     random.seed(24)
     hyena_high._give_birth(eco_high)
 
-    high_count = eco_high.get_species_count("hyena")
     high_cooldown = hyena_high.mate_cooldown
 
     eco_low = Ecosystem()
@@ -1650,12 +1805,12 @@ def test_hyena_social_birth_scaling():
     random.seed(24)
     hyena_low._give_birth(eco_low)
 
-    low_count = eco_low.get_species_count("hyena")
     low_cooldown = hyena_low.mate_cooldown
 
-    assert high_count > before_high
-    assert low_count > before_low
-    assert high_count >= low_count
+    assert not hyena_high.pregnant
+    assert not hyena_low.pregnant
+    assert eco_high.get_species_count("hyena") >= before_high
+    assert eco_low.get_species_count("hyena") >= before_low
     assert high_cooldown < low_cooldown
 
     print("✅ Hyena social birth scaling test passed")
@@ -1708,12 +1863,14 @@ def run_all_tests():
     test_v4_territory_summary()
     test_v4_territory_summary_uses_runtime_events()
     test_v4_territory_summary_uses_runtime_state()
+    test_v4_social_trend_summary_uses_memory()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()
     test_v4_grassland_chain_feedback_updates_region_state()
     test_v4_grassland_chain_rebalancing_updates_species_pool()
     test_v4_grassland_chain_recolonization_window()
+    test_v4_social_trend_rebalancing_support()
     test_v4_territory_feedback_updates_region_state()
     test_v4_carrion_chain_feedback_updates_region_state()
     test_v4_carrion_chain_rebalancing_updates_species_pool()

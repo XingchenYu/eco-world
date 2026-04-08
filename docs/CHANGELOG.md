@@ -116,6 +116,24 @@
   - 足够的草食群或尸体资源
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增草原链和尸体资源链的重占窗口测试并通过
 
+### v4.0-alpha22 (2026-04-09 01:40)
+
+- ✅ 新增独立的 `social_trends` 层：
+  - 读取 `territory.runtime_signals`
+  - 读取上一轮 `social_trends`
+  - 形成：
+    - `lion_recovery_bias`
+    - `lion_decline_bias`
+    - `hyena_recovery_bias`
+    - `hyena_decline_bias`
+- ✅ `WorldSimulation` 现在会：
+  - 构建 `social_trends`
+  - 将其写回区域 `relationship_state`
+  - 并将其接入：
+    - `grassland_rebalancing`
+    - `carrion_rebalancing`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `social_trends` 摘要与趋势驱动重平衡断言并通过
+
 ---
 
 ## 更新规范

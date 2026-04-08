@@ -108,6 +108,13 @@
   时，这层现在也会打开：
   - `pride recolonization window`
   - `clan recolonization window`
+- 现在已新增独立的 `social_trends` 层：
+  - 读取 `territory.runtime_signals`
+  - 读取上一轮 `region.relationship_state["social_trends"]`
+  - 形成 `recovery / decline` 长期偏置
+  - 并反向进入：
+    - `grassland_rebalancing`
+    - `carrion_rebalancing`
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`
