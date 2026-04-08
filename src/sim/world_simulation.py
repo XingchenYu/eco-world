@@ -125,6 +125,7 @@ class WorldSimulation:
             {
                 "trend_scores": dict(social_trends.trend_scores),
                 "phase_scores": dict(social_trends.phase_scores),
+                "hotspot_scores": dict(social_trends.hotspot_scores),
                 "cycle_signals": list(social_trends.cycle_signals),
                 "narrative_trends": list(social_trends.narrative_trends),
             },
@@ -217,6 +218,8 @@ class WorldSimulation:
             for key in source:
                 combined_pressures[key] = combined_pressures.get(key, 0.0) + 1.0
         for key, value in cascade.impact_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in social_trends.hotspot_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in competition.pressure_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
@@ -492,6 +495,7 @@ class WorldSimulation:
             "social_trends": {
                 "trend_scores": dict(social_trends.trend_scores),
                 "phase_scores": dict(social_trends.phase_scores),
+                "hotspot_scores": dict(social_trends.hotspot_scores),
                 "cycle_signals": list(social_trends.cycle_signals),
                 "narrative_trends": list(social_trends.narrative_trends),
             },

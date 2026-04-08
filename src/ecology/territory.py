@@ -71,6 +71,9 @@ def build_region_territory_summary(
         if "beaver" in region_species:
             add_pressure("beaver", "dam_complex_claim", 0.47, "reed_belt", "河狸坝系会把缓流水和芦苇带变成长期工程师活动核心。")
 
+    previous_territory = region.relationship_state.get("territory", {})
+    previous_runtime = previous_territory.get("runtime_signals", {}) if isinstance(previous_territory, dict) else {}
+
     for description in recent_events or []:
         if "pride core range" in description:
             runtime_signals["pride_core_events"] = runtime_signals.get("pride_core_events", 0) + 1
@@ -185,6 +188,52 @@ def build_region_territory_summary(
         )
         pressure_scores["carcass_route_overlap"] = round(
             pressure_scores.get("carcass_route_overlap", 0.0) + min(0.15, shared_hotspot_overlap * 0.07),
+            2,
+        )
+
+    previous_lion_hotspots = int(previous_runtime.get("lion_hotspot_count", 0))
+    previous_hyena_hotspots = int(previous_runtime.get("hyena_hotspot_count", 0))
+    previous_shared_overlap = int(previous_runtime.get("shared_hotspot_overlap", 0))
+    if lion_hotspot_count > 0 and previous_lion_hotspots > 0:
+        persistence = min(lion_hotspot_count, previous_lion_hotspots)
+        runtime_signals["lion_hotspot_persistence"] = persistence
+        pressure_scores["pride_core_range"] = round(
+            pressure_scores.get("pride_core_range", 0.0) + min(0.12, persistence * 0.04),
+            2,
+        )
+    if hyena_hotspot_count > 0 and previous_hyena_hotspots > 0:
+        persistence = min(hyena_hotspot_count, previous_hyena_hotspots)
+        runtime_signals["hyena_hotspot_persistence"] = persistence
+        pressure_scores["clan_den_range"] = round(
+            pressure_scores.get("clan_den_range", 0.0) + min(0.10, persistence * 0.035),
+            2,
+        )
+    if shared_hotspot_overlap > 0 and previous_shared_overlap > 0:
+        persistence = min(shared_hotspot_overlap, previous_shared_overlap)
+        runtime_signals["shared_hotspot_persistence"] = persistence
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.10, persistence * 0.05),
+            2,
+        )
+    lion_shift = max(0, lion_hotspot_count - previous_lion_hotspots)
+    hyena_shift = max(0, hyena_hotspot_count - previous_hyena_hotspots)
+    overlap_shift = max(0, shared_hotspot_overlap - previous_shared_overlap)
+    if lion_shift > 0:
+        runtime_signals["lion_hotspot_shift"] = lion_shift
+        pressure_scores["male_takeover_front"] = round(
+            pressure_scores.get("male_takeover_front", 0.0) + min(0.09, lion_shift * 0.04),
+            2,
+        )
+    if hyena_shift > 0:
+        runtime_signals["hyena_hotspot_shift"] = hyena_shift
+        pressure_scores["scavenger_perimeter"] = round(
+            pressure_scores.get("scavenger_perimeter", 0.0) + min(0.08, hyena_shift * 0.035),
+            2,
+        )
+    if overlap_shift > 0:
+        runtime_signals["shared_hotspot_shift"] = overlap_shift
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.08, overlap_shift * 0.04),
             2,
         )
 

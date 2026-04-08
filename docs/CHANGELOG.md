@@ -22,6 +22,19 @@
 - ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 已开始把周期相位纳入领地压力计算
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增周期驱动的核心区效果测试
 
+### v4.0-alpha26 (2026-04-09 04:40)
+
+- ✅ 草原热点现已具备基础持续、衰减与迁移记忆
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 已新增：
+  - `lion_hotspot_persistence`
+  - `hyena_hotspot_persistence`
+  - `shared_hotspot_persistence`
+  - `lion_hotspot_shift`
+  - `hyena_hotspot_shift`
+  - `shared_hotspot_shift`
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 已新增 `hotspot_scores`
+- ✅ 热点记忆现已开始回灌区域 `resilience / territorial_conflict`
+
 ### v4.0-alpha14 (2026-04-08 23:40)
 
 - ✅ `Lion / Hyena` 现已新增轻量核心区中心：

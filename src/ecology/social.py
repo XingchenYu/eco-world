@@ -15,6 +15,7 @@ class RegionSocialTrendSummary:
     region_id: str
     trend_scores: Dict[str, float] = field(default_factory=dict)
     phase_scores: Dict[str, float] = field(default_factory=dict)
+    hotspot_scores: Dict[str, float] = field(default_factory=dict)
     cycle_signals: List[str] = field(default_factory=list)
     narrative_trends: List[str] = field(default_factory=list)
 
@@ -39,6 +40,12 @@ def build_region_social_trend_summary(
     clan_front_pressure = float(runtime_signals.get("hyena_clan_front_pressure", 0.0))
     clan_count = int(runtime_signals.get("hyena_clan_count", 0))
     hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
+    lion_hotspot_persistence = int(runtime_signals.get("lion_hotspot_persistence", 0))
+    hyena_hotspot_persistence = int(runtime_signals.get("hyena_hotspot_persistence", 0))
+    shared_hotspot_persistence = int(runtime_signals.get("shared_hotspot_persistence", 0))
+    lion_hotspot_shift = int(runtime_signals.get("lion_hotspot_shift", 0))
+    hyena_hotspot_shift = int(runtime_signals.get("hyena_hotspot_shift", 0))
+    shared_hotspot_shift = int(runtime_signals.get("shared_hotspot_shift", 0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
 
@@ -105,6 +112,21 @@ def build_region_social_trend_summary(
         ),
     }
 
+    hotspot_scores = {
+        "lion_hotspot_memory": round(
+            max(0.0, min(1.0, lion_hotspot_persistence * 0.18 + lion_hotspots * 0.06 - lion_hotspot_shift * 0.05)),
+            3,
+        ),
+        "hyena_hotspot_memory": round(
+            max(0.0, min(1.0, hyena_hotspot_persistence * 0.16 + hyena_hotspots * 0.06 - hyena_hotspot_shift * 0.05)),
+            3,
+        ),
+        "shared_hotspot_memory": round(
+            max(0.0, min(1.0, shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06)),
+            3,
+        ),
+    }
+
     cycle_signals: List[str] = []
     narrative_trends: List[str] = []
 
@@ -127,11 +149,21 @@ def build_region_social_trend_summary(
     if clan_count <= 1 and trend_scores["hyena_recovery_bias"] >= 0.60:
         cycle_signals.append("hyena_recolonization_memory")
         narrative_trends.append("鬣狗 clan 即便处于低谷，仍保留了重占尸体通道的趋势记忆。")
+    if hotspot_scores["lion_hotspot_memory"] >= 0.38:
+        cycle_signals.append("lion_hotspot_memory")
+        narrative_trends.append("狮群热点保持了跨周期延续性。")
+    if hotspot_scores["hyena_hotspot_memory"] >= 0.36:
+        cycle_signals.append("hyena_hotspot_memory")
+        narrative_trends.append("鬣狗 clan 热点正在稳定延续。")
+    if hotspot_scores["shared_hotspot_memory"] >= 0.34:
+        cycle_signals.append("shared_hotspot_memory")
+        narrative_trends.append("狮群与鬣狗热点重叠正在形成长期通道记忆。")
 
     return RegionSocialTrendSummary(
         region_id=region.region_id,
         trend_scores=trend_scores,
         phase_scores=phase_scores,
+        hotspot_scores=hotspot_scores,
         cycle_signals=cycle_signals,
         narrative_trends=narrative_trends,
     )
@@ -153,6 +185,9 @@ def apply_region_social_trend_feedback(
     _adjust(region.health_state, "fragmentation", scores.get("lion_decline_bias", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "fragmentation", phases.get("lion_contraction_phase", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "fragmentation", phases.get("hyena_contraction_phase", 0.0) * 0.08, feedback_scale)
+    _adjust(region.health_state, "resilience", social_trends.hotspot_scores.get("lion_hotspot_memory", 0.0) * 0.10, feedback_scale)
+    _adjust(region.health_state, "resilience", social_trends.hotspot_scores.get("hyena_hotspot_memory", 0.0) * 0.09, feedback_scale)
+    _adjust(region.hazard_state, "territorial_conflict", social_trends.hotspot_scores.get("shared_hotspot_memory", 0.0) * 0.10, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("lion_recovery_bias", 0.0) * 0.12, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("hyena_recovery_bias", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("hyena_recovery_bias", 0.0) * 0.08, feedback_scale)

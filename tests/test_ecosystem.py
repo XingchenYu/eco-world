@@ -810,11 +810,56 @@ def test_v4_territory_summary_uses_runtime_state():
     print("✅ V4 territory runtime state test passed")
 
 
+def test_v4_territory_summary_uses_hotspot_memory():
+    """v4 领地摘要应能吸收热点持续与迁移记忆。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    grassland = world_map.get_region("temperate_grassland")
+    grassland.record_relationship_state(
+        "territory",
+        {
+            "runtime_signals": {
+                "lion_hotspot_count": 2,
+                "hyena_hotspot_count": 2,
+                "shared_hotspot_overlap": 1,
+            }
+        },
+    )
+
+    summary = build_region_territory_summary(
+        grassland,
+        registry,
+        runtime_state={
+            "lion_hotspot_count": 3.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 2.0,
+        },
+    )
+
+    assert summary.runtime_signals["lion_hotspot_persistence"] == 2
+    assert summary.runtime_signals["hyena_hotspot_persistence"] == 2
+    assert summary.runtime_signals["shared_hotspot_persistence"] == 1
+    assert summary.runtime_signals["lion_hotspot_shift"] == 1
+    assert summary.runtime_signals["shared_hotspot_shift"] == 1
+
+    print("✅ V4 territory hotspot memory test passed")
+
+
 def test_v4_social_trend_summary_uses_memory():
     """v4 社群趋势摘要应结合历史记忆与当前领地信号。"""
     world_map = build_default_world_map()
     registry = build_default_world_registry()
     region = world_map.get_region("temperate_grassland")
+    region.record_relationship_state(
+        "territory",
+        {
+            "runtime_signals": {
+                "lion_hotspot_count": 2,
+                "hyena_hotspot_count": 2,
+                "shared_hotspot_overlap": 0,
+            }
+        },
+    )
     region.record_relationship_state(
         "social_trends",
         {
@@ -850,6 +895,8 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.trend_scores["hyena_recovery_bias"] > 0.56
     assert summary.phase_scores["lion_expansion_phase"] > 0.55
     assert summary.phase_scores["hyena_expansion_phase"] > 0.53
+    assert summary.hotspot_scores["lion_hotspot_memory"] >= 0.12
+    assert summary.hotspot_scores["hyena_hotspot_memory"] >= 0.12
     assert "lion_expansion_cycle" in summary.cycle_signals
     assert "hyena_expansion_cycle" in summary.cycle_signals
 
@@ -1990,6 +2037,7 @@ def run_all_tests():
     test_v4_territory_summary()
     test_v4_territory_summary_uses_runtime_events()
     test_v4_territory_summary_uses_runtime_state()
+    test_v4_territory_summary_uses_hotspot_memory()
     test_v4_social_trend_summary_uses_memory()
     test_region_simulation_applies_social_phase_state()
     test_v4_carrion_chain_summary()
