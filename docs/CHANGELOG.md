@@ -24,6 +24,19 @@
   - `hotspot_cycle_tracking`
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增热点生命周期摘要/反馈断言并通过
 
+### v4.0-alpha31 (2026-04-09 06:05)
+
+- ✅ `social_trends.cycle_signals` 现已新增：
+  - `apex_hotspot_wave`
+  - `shared_hotspot_churn`
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 现已让热点周期波动直接拉动草食群振幅：
+  - `hotspot_cycle_predator_wave`
+  - `hotspot_cycle_overlap_drag`
+- ✅ [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已让热点周期波动直接拉动清道夫振幅：
+  - `hotspot_cycle_scavenger_wave`
+  - `hotspot_cycle_churn`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增热点周期振幅断言并通过
+
 ### v4.0-alpha24 (2026-04-09 03:55)
 
 - ✅ `social_trends.phase_scores` 现已开始回灌到 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行体

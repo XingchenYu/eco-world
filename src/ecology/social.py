@@ -158,6 +158,12 @@ def build_region_social_trend_summary(
     if hotspot_scores["shared_hotspot_memory"] >= 0.34:
         cycle_signals.append("shared_hotspot_memory")
         narrative_trends.append("狮群与鬣狗热点重叠正在形成长期通道记忆。")
+    if hotspot_scores["lion_hotspot_memory"] + hotspot_scores["hyena_hotspot_memory"] >= 0.78:
+        cycle_signals.append("apex_hotspot_wave")
+        narrative_trends.append("顶层捕食者热点记忆正在放大草原多周期兴衰波动。")
+    if hotspot_scores["shared_hotspot_memory"] >= 0.42:
+        cycle_signals.append("shared_hotspot_churn")
+        narrative_trends.append("共享热点记忆正在把草原热点冲突转化为更明显的周期性震荡。")
 
     return RegionSocialTrendSummary(
         region_id=region.region_id,

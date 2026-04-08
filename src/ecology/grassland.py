@@ -657,6 +657,28 @@ def apply_region_grassland_chain_rebalancing(
                     "new_target_count": species_pool["lion"],
                 }
             )
+    if lion_hotspot_memory + hyena_hotspot_memory >= 0.78 and antelope_count > 16:
+        species_pool["antelope"] = species_pool["antelope"] - 1
+        adjustments.append(
+            {
+                "source_species": "social_hotspot",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "hotspot_cycle_predator_wave",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
+    if shared_hotspot_memory >= 0.42 and zebra_count > 10:
+        species_pool["zebra"] = species_pool["zebra"] - 1
+        adjustments.append(
+            {
+                "source_species": "social_hotspot",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "hotspot_cycle_overlap_drag",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
 
     return adjustments
 
