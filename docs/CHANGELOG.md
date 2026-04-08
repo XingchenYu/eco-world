@@ -64,9 +64,22 @@
   - `browse_layer`
   - `predator_layer`
   - `scavenger_layer`
+- ✅ 新增草原食草群原生运行体：
+  - `antelope`
+  - `zebra`
+- ✅ `grassland_chain` 已扩展 `herd_layer`
+- ✅ 草原链现在会显式表达：
+  - `herd_grazing`
+  - `migration_pressure`
+  - `prey_corridor_density`
+  - `herd_predator_loop`
+- ✅ `predation.py` 已补上：
+  - `lion -> antelope`
+  - `hyena -> antelope`
+  - `lion -> zebra`
 
 **验证**：
-- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion / hyena` 注册、效果与草原链分层断言
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `antelope / zebra / lion / hyena` 注册，以及草原链分层与重平衡断言
 - ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/data/defaults.py src/entities/omnivores.py src/entities/animals.py src/core/ecosystem.py src/world/world_map.py src/ecology/grassland.py src/ecology/predation.py tests/test_ecosystem.py`
 
 **v4 架构推进**：

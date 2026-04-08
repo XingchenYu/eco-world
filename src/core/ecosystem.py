@@ -25,7 +25,7 @@ from ..entities.omnivores import (
 )
 from ..entities.animals import (
     Animal, Insect, Rabbit, Fox, Deer, Mouse, Bird, Snake, Bee, Gender,
-    Eagle, Owl, Duck, Swan, Sparrow, Parrot, Kingfisher, Wolf, Spider,
+    Eagle, Owl, Duck, Swan, Sparrow, Parrot, Kingfisher, Wolf, Spider, Antelope, Zebra,
     # 新增鸟类
     Magpie, Crow, Woodpecker, Hummingbird, NightMoth, Crocodile,
     # 新增哺乳动物
@@ -69,7 +69,7 @@ class Ecosystem:
         "eagle": 20, "owl": 30, "duck": 50, "swan": 30, "sparrow": 140, "parrot": 40, "kingfisher": 30, "crocodile": 12,
         "wolf": 30, "spider": 100, "magpie": 80, "crow": 50, "woodpecker": 60, "hummingbird": 100,
         "squirrel": 120, "hedgehog": 80, "bat": 80, "raccoon": 60,
-        "bear": 40, "beaver": 30, "hippopotamus": 16, "elephant": 12, "white_rhino": 8, "giraffe": 10, "lion": 8, "hyena": 12, "wild_boar": 100, "badger": 80, "raccoon_dog": 60, "skunk": 80, "opossum": 100, "coati": 60, "armadillo": 60,
+        "bear": 40, "beaver": 30, "hippopotamus": 16, "elephant": 12, "white_rhino": 8, "giraffe": 10, "lion": 8, "hyena": 12, "antelope": 24, "zebra": 18, "wild_boar": 100, "badger": 80, "raccoon_dog": 60, "skunk": 80, "opossum": 100, "coati": 60, "armadillo": 60,
         "algae": 300, "seaweed": 150, "plankton": 400, "small_fish": 150, "minnow": 120, "carp": 80, "catfish": 50,
         "large_fish": 30, "pufferfish": 40, "blackfish": 40, "pike": 30, "shrimp": 200, "crab": 60, "frog": 80,
         "tadpole": 80, "water_strider": 100,
@@ -104,7 +104,7 @@ class Ecosystem:
         "wolf", "spider",
         "magpie", "crow", "woodpecker", "hummingbird",
         "squirrel", "hedgehog", "bat", "raccoon",
-        "bear", "beaver", "hippopotamus", "elephant", "white_rhino", "giraffe", "lion", "hyena", "wild_boar", "badger", "raccoon_dog",
+        "bear", "beaver", "hippopotamus", "elephant", "white_rhino", "giraffe", "lion", "hyena", "antelope", "zebra", "wild_boar", "badger", "raccoon_dog",
         "skunk", "opossum", "coati", "armadillo",
     ]
     AMPHIBIOUS_ANIMAL_SPECIES = ["frog", "beaver", "crocodile", "hippopotamus"]
@@ -119,7 +119,7 @@ class Ecosystem:
     AQUATIC_PREDATORS = {"catfish", "large_fish", "blackfish", "pike", "crab"}
     LAND_PREY = {
         "insect", "night_moth", "rabbit", "mouse", "deer", "bird", "sparrow", "duck", "frog",
-        "bee", "squirrel", "hedgehog", "bat", "raccoon", "raccoon_dog", "beaver", "crocodile", "hippopotamus", "elephant", "white_rhino", "giraffe",
+        "bee", "squirrel", "hedgehog", "bat", "raccoon", "raccoon_dog", "beaver", "crocodile", "hippopotamus", "elephant", "white_rhino", "giraffe", "antelope", "zebra",
         "opossum", "armadillo", "magpie", "crow", "woodpecker", "parrot",
         "hummingbird",
     }
@@ -1917,7 +1917,7 @@ class Ecosystem:
         """生成动物 - 支持所有物种"""
         animal_classes = {
             "insect": Insect, "night_moth": NightMoth, "rabbit": Rabbit, "fox": Fox, "deer": Deer,
-            "mouse": Mouse, "bird": Bird, "snake": Snake, "bee": Bee, "frog": Frog,
+            "mouse": Mouse, "bird": Bird, "snake": Snake, "bee": Bee, "frog": Frog, "antelope": Antelope, "zebra": Zebra,
             "eagle": Eagle, "owl": Owl, "duck": Duck, "swan": Swan,
             "sparrow": Sparrow, "parrot": Parrot, "kingfisher": Kingfisher, "crocodile": Crocodile,
             "wolf": Wolf, "spider": Spider,

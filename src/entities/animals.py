@@ -1119,6 +1119,93 @@ class Deer(Animal):
         self.mate_cooldown = 35
 
 
+class Antelope(Animal):
+    """羚羊 - 草原群居中型食草动物。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="antelope",
+            position=position,
+            max_age=95,
+            hunger_rate=0.23,
+            reproduction_rate=0.055,
+            speed=3.2,
+            vision_range=9,
+            diet="herbivore",
+            gender=gender
+        )
+        self.emoji = "🦌"
+        self.color = (182, 136, 74)
+        self.pregnancy_duration = 14
+        self.forms_groups = True
+
+    def get_predators(self) -> List[str]:
+        return ["lion", "hyena", "wolf", "crocodile"]
+
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "flower", "bush", "berry", "fern"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["bush", "berry", "moss", "fern"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def prefers_water_edge_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["shrub_shelter", "riparian_perch"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.10
+
+
+class Zebra(Animal):
+    """斑马 - 草原大型群居食草动物。"""
+
+    def __init__(self, position: Tuple[int, int], gender: Gender = None):
+        super().__init__(
+            species="zebra",
+            position=position,
+            max_age=105,
+            hunger_rate=0.24,
+            reproduction_rate=0.045,
+            speed=3.0,
+            vision_range=9,
+            diet="herbivore",
+            gender=gender
+        )
+        self.emoji = "🦓"
+        self.color = (210, 210, 210)
+        self.pregnancy_duration = 16
+        self.forms_groups = True
+
+    def get_predators(self) -> List[str]:
+        return ["lion", "hyena", "crocodile"]
+
+    def get_food_sources(self) -> List[str]:
+        return ["grass", "flower", "bush", "berry", "fern"]
+
+    def get_cover_plant_species(self) -> List[str]:
+        return ["bush", "berry", "moss", "fern"]
+
+    def get_habitat_plant_species(self) -> List[str]:
+        return self.get_cover_plant_species()
+
+    def prefers_shrub_cover(self) -> bool:
+        return True
+
+    def breeding_microhabitat_kinds(self) -> List[str]:
+        return ["shrub_shelter"]
+
+    def breeding_patch_threshold(self) -> float:
+        return 0.08
+
+
 class Wolf(Animal):
     """狼 - 顶级捕食者，控制鹿的数量"""
     

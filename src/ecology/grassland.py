@@ -1,4 +1,4 @@
-"""v4 草原大型植食者链摘要与反馈。"""
+"""v4 草原链摘要、反馈与重平衡。"""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def build_region_grassland_chain_summary(region: Region, registry: WorldRegistry
     region_species = set(region.species_pool)
     key_species = [
         species
-        for species in ["african_elephant", "white_rhino", "giraffe", "lion", "hyena"]
+        for species in ["african_elephant", "white_rhino", "giraffe", "antelope", "zebra", "lion", "hyena"]
         if species in region_species
     ]
 
@@ -40,6 +40,7 @@ def build_region_grassland_chain_summary(region: Region, registry: WorldRegistry
         "grazing_layer": [],
         "browse_layer": [],
         "engineering_layer": [],
+        "herd_layer": [],
         "predator_layer": [],
         "scavenger_layer": [],
     }
@@ -68,6 +69,12 @@ def build_region_grassland_chain_summary(region: Region, registry: WorldRegistry
     if "giraffe" in region_species:
         add_score("canopy_browsing", 0.72, "长颈鹿利用高树冠叶源形成垂直取食分层。")
         add_layer("browse_layer", "giraffe", 0.72)
+    if "antelope" in region_species:
+        add_score("herd_grazing", 0.69, "羚羊群在开阔草场形成高频取食与逃逸通道。")
+        add_layer("herd_layer", "antelope", 0.69)
+    if "zebra" in region_species:
+        add_score("migration_pressure", 0.65, "斑马群会沿水源和草场形成稳定迁移走廊。")
+        add_layer("herd_layer", "zebra", 0.65)
 
     if {"african_elephant", "white_rhino"} <= region_species:
         add_score("waterhole_competition_bridge", 0.48, "大型植食者会围绕水源和泥浴位点形成持续竞争。")
@@ -83,8 +90,12 @@ def build_region_grassland_chain_summary(region: Region, registry: WorldRegistry
         add_layer("scavenger_layer", "hyena", 0.66)
     if {"lion", "hyena"} <= region_species:
         add_score("carcass_competition", 0.57, "狮与鬣狗围绕猎物残体和水源形成持续竞争。")
+    if {"antelope", "zebra"} & region_species:
+        add_score("prey_corridor_density", 0.58, "草原猎物群提高了捕食者与清道夫的空间联动密度。")
     if {"lion", "hyena", "african_elephant", "white_rhino", "giraffe"} <= region_species:
         add_score("grassland_predator_closure", 0.63, "顶层捕食者与大型植食者共同闭合草原主食物链。")
+    if {"lion", "hyena"} <= region_species and {"antelope", "zebra"} & region_species:
+        add_score("herd_predator_loop", 0.67, "草原食草群与狮鬣狗共同形成更完整的顶层捕食闭环。")
 
     return RegionGrasslandChainSummary(
         region_id=region.region_id,
@@ -106,10 +117,12 @@ def apply_region_grassland_chain_feedback(
     scores = grassland_chain.trophic_scores
 
     _adjust(region.resource_state, "grazing_biomass", scores.get("grazing_pressure", 0.0) * 0.35, feedback_scale)
+    _adjust(region.resource_state, "grazing_biomass", scores.get("herd_grazing", 0.0) * 0.24, feedback_scale)
     _adjust(region.resource_state, "browse_cover", -scores.get("canopy_browsing", 0.0) * 0.34, feedback_scale)
     _adjust(region.resource_state, "browse_cover", -scores.get("canopy_opening", 0.0) * 0.25, feedback_scale)
     _adjust(region.resource_state, "canopy_cover", -scores.get("canopy_opening", 0.0) * 0.38, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("waterhole_competition_bridge", 0.0) * 0.12, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("migration_pressure", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16, feedback_scale)
 
     _adjust(region.hazard_state, "predation_pressure", scores.get("canopy_opening", 0.0) * 0.16, feedback_scale)
@@ -119,6 +132,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("vertical_partitioning", 0.0) * 0.18, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("grassland_predator_closure", 0.0) * 0.16, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("herd_predator_loop", 0.0) * 0.16, feedback_scale)
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
 
 
@@ -203,6 +217,45 @@ def apply_region_grassland_chain_rebalancing(region: Region, grassland_chain: Re
                 "layer_group": "browse_layer",
                 "effect": "apex_browse_pressure",
                 "new_target_count": species_pool["giraffe"],
+            }
+        )
+
+    antelope_count = species_pool.get("antelope", 0)
+    zebra_count = species_pool.get("zebra", 0)
+    herd_loop = scores.get("herd_predator_loop", 0.0)
+    prey_density = scores.get("prey_corridor_density", 0.0)
+
+    if prey_density >= 0.55 and antelope_count < 24:
+        species_pool["antelope"] = antelope_count + 1
+        adjustments.append(
+            {
+                "source_species": "grassland_chain",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "herd_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
+    if prey_density >= 0.55 and zebra_count < 16:
+        species_pool["zebra"] = zebra_count + 1
+        adjustments.append(
+            {
+                "source_species": "grassland_chain",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "herd_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+    if herd_loop >= 0.6 and lion_count > 0 and antelope_count > 8:
+        species_pool["antelope"] = max(6, species_pool["antelope"] - 1)
+        adjustments.append(
+            {
+                "source_species": "lion",
+                "target_species": "antelope",
+                "layer_group": "predator_layer",
+                "effect": "herd_trim",
+                "new_target_count": species_pool["antelope"],
             }
         )
 

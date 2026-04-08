@@ -480,7 +480,7 @@ class Lion(Animal):
         return []
 
     def get_prey_species(self) -> List[str]:
-        return ["rabbit", "deer", "giraffe", "wild_boar", "hippopotamus"]
+        return ["rabbit", "deer", "antelope", "zebra", "giraffe", "wild_boar", "hippopotamus"]
 
     def get_cover_plant_species(self) -> List[str]:
         return ["bush", "berry", "tree", "moss"]
@@ -550,7 +550,7 @@ class Hyena(Animal):
         return ["berry", "bush", "mushroom", "grass"]
 
     def get_prey_species(self) -> List[str]:
-        return ["rabbit", "mouse", "bird", "sparrow", "frog", "night_moth"]
+        return ["rabbit", "mouse", "bird", "sparrow", "frog", "night_moth", "antelope"]
 
     def get_cover_plant_species(self) -> List[str]:
         return ["bush", "berry", "moss", "fern"]

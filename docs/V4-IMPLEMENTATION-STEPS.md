@@ -220,13 +220,22 @@
 - 当前已原生接入：
   - `lion`
   - `hyena`
+  - `antelope`
+  - `zebra`
 - 草原链已开始表达顶层闭环：
   - `apex_predation`
   - `carrion_scavenging`
   - `carcass_competition`
   - `grassland_predator_closure`
+- 草原链已扩展 `herd_layer`
+- 草原链现已开始表达：
+  - `herd_grazing`
+  - `migration_pressure`
+  - `prey_corridor_density`
+  - `herd_predator_loop`
 - 草原链现已支持低频 `species_pool` 重平衡
 - `grassland_rebalancing` 已开始按层级持久写入区域关系状态：
+  - `herd_layer`
   - `grazing_layer`
   - `browse_layer`
   - `predator_layer`

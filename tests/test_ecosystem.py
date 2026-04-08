@@ -391,6 +391,10 @@ def test_v4_registry_queries():
     assert registry.get_runtime_bridge("lion").support_level == "native"
     assert registry.get_runtime_bridge("hyena").runtime_species_id == "hyena"
     assert registry.get_runtime_bridge("hyena").support_level == "native"
+    assert registry.get_runtime_bridge("antelope").runtime_species_id == "antelope"
+    assert registry.get_runtime_bridge("antelope").support_level == "native"
+    assert registry.get_runtime_bridge("zebra").runtime_species_id == "zebra"
+    assert registry.get_runtime_bridge("zebra").support_level == "native"
     assert registry.get_runtime_bridge("hippopotamus").runtime_species_id == "hippopotamus"
     assert registry.get_runtime_bridge("hippopotamus").support_level == "native"
     assert crocodile_bridge.runtime_species_id == "crocodile"
@@ -464,6 +468,8 @@ def test_v4_region_cascade_summary():
     assert "giraffe" in grassland_cascade.driver_species
     assert "lion" in grassland_cascade.driver_species
     assert "hyena" in grassland_cascade.driver_species
+    assert "antelope" in grassland_cascade.driver_species
+    assert "zebra" in grassland_cascade.driver_species
     assert grassland_cascade.impact_scores["canopy_opening"] > 0.0
     assert grassland_cascade.impact_scores["grazing_pressure"] > 0.0
     assert grassland_cascade.impact_scores["canopy_browsing"] > 0.0
@@ -622,6 +628,8 @@ def test_v4_grassland_chain_summary():
     assert "african_elephant" in grassland_chain.key_species
     assert "white_rhino" in grassland_chain.key_species
     assert "giraffe" in grassland_chain.key_species
+    assert "antelope" in grassland_chain.key_species
+    assert "zebra" in grassland_chain.key_species
     assert "lion" in grassland_chain.key_species
     assert "hyena" in grassland_chain.key_species
     assert grassland_chain.trophic_scores["canopy_opening"] > 0.0
@@ -629,14 +637,19 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["megaherbivore_stack"] > 0.0
     assert grassland_chain.trophic_scores["apex_predation"] > 0.0
     assert grassland_chain.trophic_scores["carrion_scavenging"] > 0.0
+    assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
+    assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
     assert grassland_chain.layer_scores["engineering_layer"] > 0.0
     assert grassland_chain.layer_scores["grazing_layer"] > 0.0
     assert grassland_chain.layer_scores["browse_layer"] > 0.0
+    assert grassland_chain.layer_scores["herd_layer"] > 0.0
     assert grassland_chain.layer_scores["predator_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenger_layer"] > 0.0
     assert "african_elephant" in grassland_chain.layer_species["engineering_layer"]
     assert "white_rhino" in grassland_chain.layer_species["grazing_layer"]
     assert "giraffe" in grassland_chain.layer_species["browse_layer"]
+    assert "antelope" in grassland_chain.layer_species["herd_layer"]
+    assert "zebra" in grassland_chain.layer_species["herd_layer"]
     assert "lion" in grassland_chain.layer_species["predator_layer"]
     assert "hyena" in grassland_chain.layer_species["scavenger_layer"]
 
@@ -712,14 +725,19 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     region = world_map.get_region("temperate_grassland")
 
     initial_rabbit = region.species_pool["rabbit"]
+    initial_antelope = region.species_pool["antelope"]
     initial_hyena = region.species_pool["hyena"]
 
     summary = build_region_grassland_chain_summary(region, registry)
     adjustments = apply_region_grassland_chain_rebalancing(region, summary)
 
     assert adjustments
-    assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer"} for item in adjustments)
-    assert region.species_pool["rabbit"] != initial_rabbit or region.species_pool["hyena"] != initial_hyena
+    assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer"} for item in adjustments)
+    assert (
+        region.species_pool["rabbit"] != initial_rabbit
+        or region.species_pool["hyena"] != initial_hyena
+        or region.species_pool["antelope"] != initial_antelope
+    )
 
     print("✅ V4 grassland chain rebalancing test passed")
 
@@ -979,6 +997,36 @@ def test_giraffe_canopy_effect():
     print("✅ Giraffe canopy test passed")
 
 
+def test_antelope_registration_and_spawn():
+    """羚羊应完成注册，并能在陆地生成。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("antelope")
+    eco.spawn_animal("antelope", position, source="manual")
+
+    assert eco.get_species_count("antelope") == initial + 1
+    assert eco.animals[-1].species == "antelope"
+
+    print("✅ Antelope registration test passed")
+
+
+def test_zebra_registration_and_spawn():
+    """斑马应完成注册，并能在陆地生成。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    initial = eco.get_species_count("zebra")
+    eco.spawn_animal("zebra", position, source="manual")
+
+    assert eco.get_species_count("zebra") == initial + 1
+    assert eco.animals[-1].species == "zebra"
+
+    print("✅ Zebra registration test passed")
+
+
 def test_lion_registration_and_spawn():
     """狮应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -1091,6 +1139,8 @@ def run_all_tests():
     test_white_rhino_grazing_effect()
     test_giraffe_registration_and_spawn()
     test_giraffe_canopy_effect()
+    test_antelope_registration_and_spawn()
+    test_zebra_registration_and_spawn()
     test_lion_registration_and_spawn()
     test_lion_hunt_corridor_effect()
     test_hyena_registration_and_spawn()
