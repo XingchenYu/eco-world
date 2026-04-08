@@ -71,6 +71,23 @@
   两类社群产仔结果记录
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion / hyena` 社群产仔缩放测试并通过
 
+### v4.0-alpha19 (2026-04-09 00:55)
+
+- ✅ `pride_stability / clan_stability` 现在开始进入：
+  - `grassland_rebalancing`
+  - `carrion_rebalancing`
+- ✅ `territory.runtime_signals` 中的：
+  - `lion_pride_strength`
+  - `lion_pride_count`
+  - `hyena_clan_cohesion`
+  - `hyena_clan_count`
+  现在会驱动：
+  - `stable_pride_recovery`
+  - `stable_clan_recovery`
+  - `stable_pride_carcass_recovery`
+  - `stable_clan_carrion_recovery`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `social_state` 低频重平衡断言并通过
+
 ---
 
 ## 更新规范

@@ -90,6 +90,10 @@
 - 这层稳定度现在也开始影响：
   - `litter outcomes`
   - `postpartum cooldown`
+- 这层稳定度现在也开始进入：
+  - `grassland_rebalancing`
+  - `carrion_rebalancing`
+  用于 `stable pride / clan` 的低频恢复
 
 ### Step 2
 新建 `src/ecology/symbiosis.py`
