@@ -165,6 +165,8 @@ def apply_region_carrion_chain_rebalancing(
     hyena_recovery_bias = 0.0
     lion_expansion_phase = 0.0
     hyena_expansion_phase = 0.0
+    grassland_boom_phase = 0.0
+    grassland_bust_phase = 0.0
     lion_hotspot_memory = 0.0
     hyena_hotspot_memory = 0.0
     shared_hotspot_memory = 0.0
@@ -185,6 +187,9 @@ def apply_region_carrion_chain_rebalancing(
         hyena_recovery_bias = float(trend_scores.get("hyena_recovery_bias", 0.0))
         lion_expansion_phase = float(phase_scores.get("lion_expansion_phase", 0.0))
         hyena_expansion_phase = float(phase_scores.get("hyena_expansion_phase", 0.0))
+        boom_bust_scores = getattr(social_trend_summary, "boom_bust_scores", {}) or {}
+        grassland_boom_phase = float(boom_bust_scores.get("grassland_boom_phase", 0.0))
+        grassland_bust_phase = float(boom_bust_scores.get("grassland_bust_phase", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
@@ -463,6 +468,17 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["vulture"],
             }
         )
+    if grassland_boom_phase >= 0.45 and vulture_count < 11 and antelope_count + zebra_count >= 16:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "boom_phase_scavenger_release",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
     if shared_hotspot_memory >= 0.42 and lion_count >= 3 and hyena_count >= 3:
         if species_pool.get("hyena", 0) >= species_pool.get("lion", 0):
             species_pool["hyena"] = species_pool["hyena"] - 1
@@ -486,6 +502,17 @@ def apply_region_carrion_chain_rebalancing(
                     "new_target_count": species_pool["lion"],
                 }
             )
+    if grassland_bust_phase >= 0.56 and vulture_count >= 4:
+        species_pool["vulture"] = species_pool.get("vulture", 0) - 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "bust_phase_scavenger_drag",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
 
     return adjustments
 

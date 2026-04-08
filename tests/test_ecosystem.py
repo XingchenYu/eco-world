@@ -900,11 +900,13 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.trend_scores["hyena_recovery_bias"] > 0.56
     assert summary.phase_scores["lion_expansion_phase"] > 0.55
     assert summary.phase_scores["hyena_expansion_phase"] > 0.53
+    assert summary.boom_bust_scores["grassland_boom_phase"] > 0.45
     assert summary.hotspot_scores["lion_hotspot_memory"] >= 0.12
     assert summary.hotspot_scores["hyena_hotspot_memory"] >= 0.12
     assert "lion_expansion_cycle" in summary.cycle_signals
     assert "hyena_expansion_cycle" in summary.cycle_signals
     assert "apex_hotspot_wave" in summary.cycle_signals
+    assert "grassland_boom_phase" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]
     apply_region_social_trend_feedback(region, summary, feedback_scale=0.05)
@@ -1076,6 +1078,14 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
                 "lion_recovery_bias": 0.45,
                 "hyena_recovery_bias": 0.42,
             },
+            "phase_scores": {
+                "lion_expansion_phase": 0.48,
+                "hyena_expansion_phase": 0.46,
+            },
+            "boom_bust_scores": {
+                "grassland_boom_phase": 0.44,
+                "grassland_bust_phase": 0.18,
+            },
             "hotspot_scores": {
                 "lion_hotspot_memory": 0.46,
                 "hyena_hotspot_memory": 0.44,
@@ -1111,6 +1121,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag"} for item in adjustments)
+    assert any(item["effect"] in {"boom_phase_herd_release", "bust_phase_herd_drag", "boom_phase_apex_release", "bust_phase_apex_drag"} for item in adjustments)
     assert any(item["effect"] in {"pride_expansion_window", "clan_expansion_window"} for item in adjustments)
     assert (
         region.species_pool["rabbit"] != initial_rabbit
@@ -1211,6 +1222,14 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
                 "lion_recovery_bias": 0.45,
                 "hyena_recovery_bias": 0.42,
             },
+            "phase_scores": {
+                "lion_expansion_phase": 0.48,
+                "hyena_expansion_phase": 0.46,
+            },
+            "boom_bust_scores": {
+                "grassland_boom_phase": 0.44,
+                "grassland_bust_phase": 0.18,
+            },
             "hotspot_scores": {
                 "lion_hotspot_memory": 0.46,
                 "hyena_hotspot_memory": 0.44,
@@ -1246,6 +1265,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn"} for item in adjustments)
+    assert any(item["effect"] in {"boom_phase_scavenger_release", "bust_phase_scavenger_drag"} for item in adjustments)
     assert any(item["effect"] in {"pride_carrion_expansion_window", "clan_carrion_expansion_window"} for item in adjustments)
     assert (
         region.species_pool["antelope"] != initial_antelope

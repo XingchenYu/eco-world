@@ -738,6 +738,27 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ 对比基线确认：本轮修复把 `squirrel` 从 `3 / 5` seed 灭绝、其余 seed 仅剩 `1` 只，恢复到 `5 / 5` seed 稳定存活；同时其余 7 个被检查的陆地哺乳动物在修复前后都保持 `tick 200` 非零
 - ✅ 额外执行 `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py`，现有基础生态测试全部通过
 
+# v4.0-alpha32 (2026-04-09 07:25)
+
+- `social.py` 新增显式长期相位：
+  - `grassland_boom_phase`
+  - `grassland_bust_phase`
+- 这层长期相位现已进入：
+  - `relationship_state["social_trends"]`
+  - `WorldSimulation` 综合生态压力
+- `grassland.py` 现已把长期 boom/bust 相位直接接入草原链重平衡：
+  - `boom_phase_herd_release`
+  - `bust_phase_herd_drag`
+  - `boom_phase_apex_release`
+  - `bust_phase_apex_drag`
+- `carrion.py` 现已把长期 boom/bust 相位直接接入尸体资源链重平衡：
+  - `boom_phase_scavenger_release`
+  - `bust_phase_scavenger_drag`
+- 对应测试已补齐，确认长期相位已经进入：
+  - `social_trends`
+  - `grassland_rebalancing`
+  - `carrion_rebalancing`
+
 # v3.4.7 - Recover mouse through tick 200
 
 - ✅ 先用默认 `config.yaml` 复核当前 HEAD 的 `5 seeds x 200 ticks`：`night_moth` 与 `rabbit` 已恢复到目标线之上，真正仍然 `0 / 5` 的仅剩 `mouse`

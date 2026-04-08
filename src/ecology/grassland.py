@@ -227,6 +227,8 @@ def apply_region_grassland_chain_rebalancing(
     lion_contraction_phase = 0.0
     hyena_expansion_phase = 0.0
     hyena_contraction_phase = 0.0
+    grassland_boom_phase = 0.0
+    grassland_bust_phase = 0.0
     lion_hotspot_memory = 0.0
     hyena_hotspot_memory = 0.0
     shared_hotspot_memory = 0.0
@@ -251,6 +253,9 @@ def apply_region_grassland_chain_rebalancing(
         lion_contraction_phase = float(phase_scores.get("lion_contraction_phase", 0.0))
         hyena_expansion_phase = float(phase_scores.get("hyena_expansion_phase", 0.0))
         hyena_contraction_phase = float(phase_scores.get("hyena_contraction_phase", 0.0))
+        boom_bust_scores = getattr(social_trend_summary, "boom_bust_scores", {}) or {}
+        grassland_boom_phase = float(boom_bust_scores.get("grassland_boom_phase", 0.0))
+        grassland_bust_phase = float(boom_bust_scores.get("grassland_bust_phase", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
@@ -668,6 +673,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["antelope"],
             }
         )
+    if grassland_boom_phase >= 0.45 and antelope_count < 22:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "boom_phase_herd_release",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if shared_hotspot_memory >= 0.42 and zebra_count > 10:
         species_pool["zebra"] = species_pool["zebra"] - 1
         adjustments.append(
@@ -677,6 +693,39 @@ def apply_region_grassland_chain_rebalancing(
                 "layer_group": "herd_layer",
                 "effect": "hotspot_cycle_overlap_drag",
                 "new_target_count": species_pool["zebra"],
+            }
+        )
+    if grassland_bust_phase >= 0.56 and zebra_count > 9:
+        species_pool["zebra"] = species_pool.get("zebra", 0) - 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "bust_phase_herd_drag",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+    if grassland_boom_phase >= 0.48 and 2 <= lion_count < 7 and antelope_count + zebra_count >= 18:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "lion",
+                "layer_group": "predator_layer",
+                "effect": "boom_phase_apex_release",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if grassland_bust_phase >= 0.58 and lion_count >= 3:
+        species_pool["lion"] = species_pool.get("lion", 0) - 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "lion",
+                "layer_group": "predator_layer",
+                "effect": "bust_phase_apex_drag",
+                "new_target_count": species_pool["lion"],
             }
         )
 

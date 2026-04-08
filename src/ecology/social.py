@@ -15,6 +15,7 @@ class RegionSocialTrendSummary:
     region_id: str
     trend_scores: Dict[str, float] = field(default_factory=dict)
     phase_scores: Dict[str, float] = field(default_factory=dict)
+    boom_bust_scores: Dict[str, float] = field(default_factory=dict)
     hotspot_scores: Dict[str, float] = field(default_factory=dict)
     cycle_signals: List[str] = field(default_factory=list)
     narrative_trends: List[str] = field(default_factory=list)
@@ -29,6 +30,7 @@ def build_region_social_trend_summary(
     previous = region.relationship_state.get("social_trends", {})
     previous_scores = previous.get("trend_scores", {}) if isinstance(previous, dict) else {}
     previous_phase_scores = previous.get("phase_scores", {}) if isinstance(previous, dict) else {}
+    previous_boom_bust_scores = previous.get("boom_bust_scores", {}) if isinstance(previous, dict) else {}
     runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
 
     pride_strength = float(runtime_signals.get("lion_pride_strength", 0.0))
@@ -54,6 +56,9 @@ def build_region_social_trend_summary(
 
     def carry_phase(key: str) -> float:
         return float(previous_phase_scores.get(key, 0.0))
+
+    def carry_boom_bust(key: str) -> float:
+        return float(previous_boom_bust_scores.get(key, 0.0))
 
     lion_recovery = min(
         1.0,
@@ -112,6 +117,44 @@ def build_region_social_trend_summary(
         ),
     }
 
+    boom_bust_scores = {
+        "grassland_boom_phase": round(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_boom_bust("grassland_boom_phase") * 0.66
+                    + phase_scores["lion_expansion_phase"] * 0.24
+                    + phase_scores["hyena_expansion_phase"] * 0.20
+                    + max(0.0, pride_strength - takeover_pressure) * 0.10
+                    + max(0.0, clan_cohesion - clan_front_pressure) * 0.08
+                    + max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.03
+                    + max(0.0, hyena_hotspot_persistence - hyena_hotspot_shift) * 0.03
+                    - max(0.0, shared_hotspot_shift - shared_hotspot_persistence) * 0.04,
+                ),
+            ),
+            3,
+        ),
+        "grassland_bust_phase": round(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_boom_bust("grassland_bust_phase") * 0.66
+                    + phase_scores["lion_contraction_phase"] * 0.22
+                    + phase_scores["hyena_contraction_phase"] * 0.18
+                    + max(0.0, takeover_pressure - pride_strength) * 0.10
+                    + max(0.0, clan_front_pressure - clan_cohesion) * 0.08
+                    + shared_hotspot_shift * 0.05
+                    + shared_hotspot_persistence * 0.04
+                    - max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.02
+                    - max(0.0, hyena_hotspot_persistence - hyena_hotspot_shift) * 0.02,
+                ),
+            ),
+            3,
+        ),
+    }
+
     hotspot_scores = {
         "lion_hotspot_memory": round(
             max(0.0, min(1.0, lion_hotspot_persistence * 0.18 + lion_hotspots * 0.06 - lion_hotspot_shift * 0.05)),
@@ -164,11 +207,18 @@ def build_region_social_trend_summary(
     if hotspot_scores["shared_hotspot_memory"] >= 0.42:
         cycle_signals.append("shared_hotspot_churn")
         narrative_trends.append("共享热点记忆正在把草原热点冲突转化为更明显的周期性震荡。")
+    if boom_bust_scores["grassland_boom_phase"] >= 0.45:
+        cycle_signals.append("grassland_boom_phase")
+        narrative_trends.append("草原社群热点与扩张周期正在共同推高长期繁荣相位。")
+    if boom_bust_scores["grassland_bust_phase"] >= 0.54:
+        cycle_signals.append("grassland_bust_phase")
+        narrative_trends.append("热点重叠与收缩压力正在把草原拖入更明显的衰退相位。")
 
     return RegionSocialTrendSummary(
         region_id=region.region_id,
         trend_scores=trend_scores,
         phase_scores=phase_scores,
+        boom_bust_scores=boom_bust_scores,
         hotspot_scores=hotspot_scores,
         cycle_signals=cycle_signals,
         narrative_trends=narrative_trends,
@@ -191,6 +241,8 @@ def apply_region_social_trend_feedback(
     _adjust(region.health_state, "fragmentation", scores.get("lion_decline_bias", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "fragmentation", phases.get("lion_contraction_phase", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "fragmentation", phases.get("hyena_contraction_phase", 0.0) * 0.08, feedback_scale)
+    _adjust(region.health_state, "biodiversity", social_trends.boom_bust_scores.get("grassland_boom_phase", 0.0) * 0.08, feedback_scale)
+    _adjust(region.health_state, "fragmentation", social_trends.boom_bust_scores.get("grassland_bust_phase", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "resilience", social_trends.hotspot_scores.get("lion_hotspot_memory", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "resilience", social_trends.hotspot_scores.get("hyena_hotspot_memory", 0.0) * 0.09, feedback_scale)
     _adjust(region.hazard_state, "territorial_conflict", social_trends.hotspot_scores.get("shared_hotspot_memory", 0.0) * 0.10, feedback_scale)

@@ -25,6 +25,10 @@
   - 草食群振幅
   - 清道夫振幅
   - 顶层热点冲突导致的周期性收缩
+- 这层长期波动现在进一步区分：
+  - `grassland_boom_phase`
+  - `grassland_bust_phase`
+  并开始分别驱动 herd、apex、scavenger 的长期繁荣/衰退振幅
 - 这使得草原领地层开始区分：
   - 群体数量
   - 社群强度
