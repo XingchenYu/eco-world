@@ -20,8 +20,11 @@ from src.data.defaults import (
 from src.data.registry import build_default_world_registry
 from src.ecology.cascade import (
     apply_region_cascade_feedback,
-    apply_region_competition_feedback,
     build_region_cascade_summary,
+)
+from src.ecology.competition import (
+    apply_region_competition_feedback,
+    build_region_competition_summary,
 )
 from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
@@ -412,6 +415,28 @@ def test_v4_competition_feedback_rebalances_species_pool():
     print("✅ V4 competition feedback test passed")
 
 
+def test_v4_region_competition_summary():
+    """v4 竞争摘要应独立汇总区域关键种竞争压力。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    grassland = world_map.get_region("temperate_grassland")
+    wetland = world_map.get_region("wetland_lake")
+
+    grassland_summary = build_region_competition_summary(grassland, registry)
+    wetland_summary = build_region_competition_summary(wetland, registry)
+
+    assert grassland_summary.active_relations
+    assert grassland_summary.pressure_scores["waterhole_competition"] > 0.0
+    assert grassland_summary.pressure_scores["browse_layer_competition"] > 0.0
+    assert "waterhole" in grassland_summary.contested_resources
+
+    assert wetland_summary.active_relations
+    assert wetland_summary.pressure_scores["shoreline_space_competition"] > 0.0
+    assert "shoreline_space" in wetland_summary.contested_resources
+
+    print("✅ V4 competition summary test passed")
+
+
 def test_region_simulation_uses_region_defaults():
     """未显式覆盖尺寸时，RegionSimulation 应使用区域默认模拟尺寸。"""
     region = build_default_world_map().get_region("wetland_lake")
@@ -651,6 +676,7 @@ def run_all_tests():
     test_v4_region_food_web_summary()
     test_v4_region_cascade_summary()
     test_v4_cascade_feedback_updates_region_state()
+    test_v4_region_competition_summary()
     test_v4_competition_feedback_rebalances_species_pool()
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()

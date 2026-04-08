@@ -51,6 +51,11 @@
 - `cascade.py` 只保留汇总职责
 - 竞争逻辑不再写死在 `cascade.py`
 
+当前状态：
+- 已完成第一版落地
+- 已新增 [competition.py](/Users/yumini/Projects/eco-world/src/ecology/competition.py)
+- `WorldSimulation` 已开始输出独立 `competition` 统计
+
 ### Step 2
 新建 `src/ecology/symbiosis.py`
 

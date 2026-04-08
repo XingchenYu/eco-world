@@ -25,6 +25,9 @@
 - 生境竞争
 - 植物光照和根系竞争
 
+当前仓库已开始独立实现竞争模块，见：
+- [competition.py](/Users/yumini/Projects/eco-world/src/ecology/competition.py)
+
 ### 共生
 
 - 授粉

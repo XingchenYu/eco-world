@@ -10,6 +10,7 @@ from src.ecology import (
     apply_region_cascade_feedback,
     apply_region_competition_feedback,
     build_region_cascade_summary,
+    build_region_competition_summary,
     build_region_food_web,
 )
 from src.sim.region_simulation import RegionSimulation
@@ -96,6 +97,7 @@ class WorldSimulation:
         regional_bridges = self.registry.bridged_species_for_region(active_region.region_id)
         food_web = build_region_food_web(active_region, self.registry)
         cascade = build_region_cascade_summary(active_region, self.registry)
+        competition = build_region_competition_summary(active_region, self.registry)
 
         return {
             "world_tick": self.tick_count,
@@ -144,6 +146,12 @@ class WorldSimulation:
                 "impact_scores": dict(cascade.impact_scores),
                 "active_pressures": list(cascade.active_pressures),
                 "narrative_impacts": list(cascade.narrative_impacts),
+            },
+            "competition": {
+                "active_relations": len(competition.active_relations),
+                "pressure_scores": dict(competition.pressure_scores),
+                "contested_resources": list(competition.contested_resources),
+                "narrative_competition": list(competition.narrative_competition),
                 "competition_adjustments": list(self.last_competition_adjustments.get(active_region.region_id, [])),
             },
             "simulation": simulation_stats,

@@ -26,6 +26,22 @@
 
 ## 版本历史
 
+### v3.8 (2026-04-08 18:10)
+
+**v4 架构推进**：
+- ✅ 新增 [src/ecology/competition.py](/Users/yumini/Projects/eco-world/src/ecology/competition.py)
+- ✅ 将关键种竞争摘要与竞争反馈从 `cascade.py` 中拆分为独立模块
+- ✅ `WorldSimulation` 统计新增独立的 `competition` 区块
+
+**覆盖关系**：
+- ✅ `hippopotamus <-> nile_crocodile`
+- ✅ `african_elephant <-> white_rhino`
+- ✅ `african_elephant -> giraffe`
+
+**验证**：
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 新增 `v4` 竞争摘要测试并通过
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/ecology/competition.py src/ecology/cascade.py src/ecology/__init__.py src/sim/world_simulation.py tests/test_ecosystem.py`
+
 ### v3.7 (2026-04-08 17:30)
 
 **文档**：
