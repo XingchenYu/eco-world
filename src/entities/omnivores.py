@@ -473,8 +473,10 @@ class Lion(Animal):
         self.pregnancy_duration = 16
         self.pride_interval = random.randint(8, 13)
         self.pride_core_interval = random.randint(11, 17)
+        self.takeover_interval = random.randint(15, 22)
         self._pride_timer = 0
         self._pride_core_timer = 0
+        self._takeover_timer = 0
         self.forms_groups = True
         self.dominance = 1.9
 
@@ -509,6 +511,7 @@ class Lion(Animal):
     def execute_behavior(self, ecosystem):
         self._pride_timer += 1
         self._pride_core_timer += 1
+        self._takeover_timer += 1
         super().execute_behavior(ecosystem)
         if self.alive and self._pride_timer >= self.pride_interval:
             self._pride_timer = 0
@@ -516,6 +519,9 @@ class Lion(Animal):
         if self.alive and self._pride_core_timer >= self.pride_core_interval:
             self._pride_core_timer = 0
             self._establish_pride_core(ecosystem)
+        if self.alive and self._takeover_timer >= self.takeover_interval:
+            self._takeover_timer = 0
+            self._contest_male_front(ecosystem)
 
     def _mark_hunt_corridor(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
@@ -535,6 +541,17 @@ class Lion(Animal):
                 self.hunger = max(0.0, self.hunger - 1.8)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} established a pride core range")
+
+    def _contest_male_front(self, ecosystem):
+        if hasattr(ecosystem, "occupy_microhabitat"):
+            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.16, radius=4)
+        if hasattr(ecosystem, "get_microhabitat_patches"):
+            patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=5)
+            for patch in patches[:2]:
+                patch.occupancy = min(patch.capacity, patch.occupancy + 0.06)
+        self.health = max(0.0, self.health - 0.4)
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} pressed a male takeover front")
 
 
 class Hyena(Animal):
@@ -557,8 +574,10 @@ class Hyena(Animal):
         self.pregnancy_duration = 13
         self.scavenge_interval = random.randint(7, 12)
         self.clan_interval = random.randint(10, 16)
+        self.clan_front_interval = random.randint(14, 20)
         self._scavenge_timer = 0
         self._clan_timer = 0
+        self._clan_front_timer = 0
         self.forms_groups = True
         self.dominance = 1.5
 
@@ -596,6 +615,7 @@ class Hyena(Animal):
     def execute_behavior(self, ecosystem):
         self._scavenge_timer += 1
         self._clan_timer += 1
+        self._clan_front_timer += 1
         super().execute_behavior(ecosystem)
         if self.alive and self._scavenge_timer >= self.scavenge_interval:
             self._scavenge_timer = 0
@@ -603,6 +623,9 @@ class Hyena(Animal):
         if self.alive and self._clan_timer >= self.clan_interval:
             self._clan_timer = 0
             self._mark_den_cluster(ecosystem)
+        if self.alive and self._clan_front_timer >= self.clan_front_interval:
+            self._clan_front_timer = 0
+            self._expand_clan_front(ecosystem)
 
     def _scavenge_pressure(self, ecosystem):
         if hasattr(ecosystem, "get_microhabitat_patches"):
@@ -622,6 +645,17 @@ class Hyena(Animal):
                 self.hunger = max(0.0, self.hunger - 1.2)
         if hasattr(ecosystem, "log_event"):
             ecosystem.log_event(f"{self.id} reinforced a clan den corridor")
+
+    def _expand_clan_front(self, ecosystem):
+        if hasattr(ecosystem, "occupy_microhabitat"):
+            ecosystem.occupy_microhabitat(self.species, {"shrub_shelter", "riparian_perch"}, self.position, amount=0.14, radius=4)
+        if hasattr(ecosystem, "get_microhabitat_patches"):
+            patches = ecosystem.get_microhabitat_patches({"shrub_shelter", "riparian_perch"}, self.position, radius=5)
+            for patch in patches[:2]:
+                patch.available = min(patch.capacity * max(1.0, patch.seasonal_multiplier), patch.available + 0.06)
+        self.hunger = max(0.0, self.hunger - 0.6)
+        if hasattr(ecosystem, "log_event"):
+            ecosystem.log_event(f"{self.id} expanded a clan frontier")
 
 
 class WildBoar(Animal):

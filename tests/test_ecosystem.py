@@ -1237,6 +1237,25 @@ def test_lion_pride_core_effect():
     print("✅ Lion pride core test passed")
 
 
+def test_lion_male_takeover_effect():
+    """狮应能触发基础雄性接管前线效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("lion", position, source="manual")
+    lion = eco.animals[-1]
+    before_events = len(eco.events)
+    before_health = lion.health
+
+    lion._contest_male_front(eco)
+
+    assert len(eco.events) == before_events + 1
+    assert lion.health <= before_health
+
+    print("✅ Lion male takeover test passed")
+
+
 def test_hyena_registration_and_spawn():
     """鬣狗应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -1284,6 +1303,25 @@ def test_hyena_den_cluster_effect():
     assert len(eco.events) == before_events + 1
 
     print("✅ Hyena den cluster test passed")
+
+
+def test_hyena_clan_front_effect():
+    """鬣狗应能触发基础 clan 扩张前线效果。"""
+    eco = Ecosystem()
+    position = eco._random_land_position()
+    assert position is not None
+
+    eco.spawn_animal("hyena", position, source="manual")
+    hyena = eco.animals[-1]
+    before_events = len(eco.events)
+    before_hunger = hyena.hunger
+
+    hyena._expand_clan_front(eco)
+
+    assert len(eco.events) == before_events + 1
+    assert hyena.hunger <= before_hunger
+
+    print("✅ Hyena clan front test passed")
 
 
 def test_vulture_registration_and_spawn():
@@ -1359,9 +1397,11 @@ def run_all_tests():
     test_lion_registration_and_spawn()
     test_lion_hunt_corridor_effect()
     test_lion_pride_core_effect()
+    test_lion_male_takeover_effect()
     test_hyena_registration_and_spawn()
     test_hyena_scavenging_effect()
     test_hyena_den_cluster_effect()
+    test_hyena_clan_front_effect()
     test_vulture_registration_and_spawn()
     
     print("\n✅ All tests passed!")

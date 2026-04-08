@@ -241,6 +241,9 @@
 - 当前原生运行体也已补上最小个体级接口：
   - `Lion._establish_pride_core()`
   - `Hyena._mark_den_cluster()`
+- 草原捕食者社群运行体现已进一步补上：
+  - `Lion._contest_male_front()`
+  - `Hyena._expand_clan_front()`
 - 当前已原生接入：
   - `lion`
   - `hyena`

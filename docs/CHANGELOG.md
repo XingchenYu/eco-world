@@ -94,6 +94,14 @@
 - ✅ 狮群和鬣狗现在不仅有区域级 `territory` 摘要，还能在当前运行层真实占用草原边缘微栖位并记录事件
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `lion` 核心领地和 `hyena` clan 通道测试并通过
 
+### v4.0-alpha10 (2026-04-08 22:35)
+
+- ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 为草原捕食者社群再补两条个体级接口：
+  - `Lion._contest_male_front()`
+  - `Hyena._expand_clan_front()`
+- ✅ 这两条接口已接入当前运行体的周期行为节奏，用于表达雄狮接管前线和鬣狗 clan 扩张前线
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增对应运行测试并通过
+
 ## v4.0.9 - Add wetland chain summaries
 
 - ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要
