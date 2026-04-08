@@ -328,8 +328,18 @@ class WorldSimulation:
         )
         social_trends = build_region_social_trend_summary(active_region, territory_summary=territory)
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
-        grassland_chain = build_region_grassland_chain_summary(active_region, self.registry, territory_summary=territory)
-        carrion_chain = build_region_carrion_chain_summary(active_region, self.registry, territory_summary=territory)
+        grassland_chain = build_region_grassland_chain_summary(
+            active_region,
+            self.registry,
+            territory_summary=territory,
+            social_trend_summary=social_trends,
+        )
+        carrion_chain = build_region_carrion_chain_summary(
+            active_region,
+            self.registry,
+            territory_summary=territory,
+            social_trend_summary=social_trends,
+        )
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -421,8 +431,18 @@ class WorldSimulation:
             territory=territory,
         )
         wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
-        grassland_chain = build_region_grassland_chain_summary(active_region, self.registry, territory_summary=territory)
-        carrion_chain = build_region_carrion_chain_summary(active_region, self.registry, territory_summary=territory)
+        grassland_chain = build_region_grassland_chain_summary(
+            active_region,
+            self.registry,
+            territory_summary=territory,
+            social_trend_summary=social_trends,
+        )
+        carrion_chain = build_region_carrion_chain_summary(
+            active_region,
+            self.registry,
+            territory_summary=territory,
+            social_trend_summary=social_trends,
+        )
 
         return {
             "world_tick": self.tick_count,

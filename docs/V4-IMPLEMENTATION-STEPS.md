@@ -17,6 +17,10 @@
   - `Lion / Hyena` 的 `pride_center / clan_center` 漂移节律
   - `grassland_rebalancing`
   - `carrion_rebalancing`
+- 这层热点记忆现在也开始进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  的摘要和状态反馈，形成更明确的多周期热点生命周期波动
 - 这使得草原领地层开始区分：
   - 群体数量
   - 社群强度

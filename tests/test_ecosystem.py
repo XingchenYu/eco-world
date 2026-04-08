@@ -1027,11 +1027,23 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     initial_browse = region.resource_state["browse_cover"]
     initial_biodiversity = region.health_state["biodiversity"]
 
-    summary = build_region_grassland_chain_summary(region, registry)
+    territory = build_region_territory_summary(
+        region,
+        registry,
+        runtime_state={
+            "lion_hotspot_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
+        },
+    )
+    social_trends = build_region_social_trend_summary(region, territory_summary=territory)
+    summary = build_region_grassland_chain_summary(region, registry, territory_summary=territory, social_trend_summary=social_trends)
     apply_region_grassland_chain_feedback(region, summary, feedback_scale=0.05)
 
     assert region.resource_state["browse_cover"] <= initial_browse
     assert region.health_state["biodiversity"] >= initial_biodiversity
+    assert "hotspot_cycle_pressure" in summary.trophic_scores
+    assert "hotspot_cycle_overlap" in summary.trophic_scores
 
     print("✅ V4 grassland chain feedback test passed")
 
@@ -1134,11 +1146,23 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     initial_carrion = region.resource_state["carcass_availability"]
     initial_resilience = region.health_state["resilience"]
 
-    summary = build_region_carrion_chain_summary(region, registry)
+    territory = build_region_territory_summary(
+        region,
+        registry,
+        runtime_state={
+            "lion_hotspot_count": 2.0,
+            "hyena_hotspot_count": 2.0,
+            "shared_hotspot_overlap": 1.0,
+        },
+    )
+    social_trends = build_region_social_trend_summary(region, territory_summary=territory)
+    summary = build_region_carrion_chain_summary(region, registry, territory_summary=territory, social_trend_summary=social_trends)
     apply_region_carrion_chain_feedback(region, summary, feedback_scale=0.05)
 
     assert region.resource_state["carcass_availability"] >= initial_carrion
     assert region.health_state["resilience"] >= initial_resilience
+    assert "hotspot_cycle_carrion" in summary.resource_scores
+    assert "hotspot_cycle_tracking" in summary.resource_scores
 
     print("✅ V4 carrion chain feedback test passed")
 

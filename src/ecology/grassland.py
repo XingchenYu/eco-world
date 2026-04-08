@@ -25,6 +25,7 @@ def build_region_grassland_chain_summary(
     region: Region,
     registry: WorldRegistry,
     territory_summary: Optional[object] = None,
+    social_trend_summary: Optional[object] = None,
 ) -> RegionGrasslandChainSummary:
     """构建草原大型植食者链摘要。非草原区返回空摘要。"""
 
@@ -119,6 +120,17 @@ def build_region_grassland_chain_summary(
             add_score("carcass_channeling", min(0.36, shared_hotspots * 0.14), "领地热点重叠会把尸体与伏击资源进一步集中到少数核心通道。")
         if lion_hotspots > 0 and hyena_hotspots > 0:
             add_score("territory_channel_pressure", min(0.34, (lion_hotspots + hyena_hotspots) * 0.06), "多个 pride 与 clan 热点会强化草原顶层巡猎和清道夫路线的空间压缩。")
+    if social_trend_summary is not None:
+        hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
+        lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
+        hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
+        shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        if lion_hotspot_memory > 0.0:
+            add_score("hotspot_cycle_pressure", lion_hotspot_memory * 0.22, "持续的狮群热点记忆会放大草原巡猎核心区的多周期占用。")
+        if hyena_hotspot_memory > 0.0:
+            add_score("hotspot_cycle_pressure", hyena_hotspot_memory * 0.20, "持续的鬣狗热点记忆会强化清道夫通道的多周期跟随。")
+        if shared_hotspot_memory > 0.0:
+            add_score("hotspot_cycle_overlap", shared_hotspot_memory * 0.24, "共享热点记忆会让草原热点冲突在多周期内持续回响。")
 
     return RegionGrasslandChainSummary(
         region_id=region.region_id,
@@ -154,6 +166,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("apex_predation", 0.0) * 0.28, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("apex_rivalry", 0.0) * 0.14, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("territory_channel_pressure", 0.0) * 0.18, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_pressure", 0.0) * 0.18, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)
 
     _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22, feedback_scale)
@@ -161,9 +174,11 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("grassland_predator_closure", 0.0) * 0.16, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("herd_predator_loop", 0.0) * 0.16, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("pride_patrol", 0.0) * 0.10, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_pressure", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("group_hunt_instability", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("hotspot_overlap_pressure", 0.0) * 0.10, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("hotspot_cycle_overlap", 0.0) * 0.10, feedback_scale)
 
 
 def apply_region_grassland_chain_rebalancing(

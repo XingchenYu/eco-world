@@ -12,6 +12,18 @@
 - ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已开始吸收 `social_hotspot` 信号
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增热点记忆注入与中心漂移测试并通过
 
+### v4.0-alpha28 (2026-04-09 05:20)
+
+- ✅ `social_trends.hotspot_scores` 现已开始进入 [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 的草原链摘要与反馈
+- ✅ `social_trends.hotspot_scores` 现已开始进入 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 的尸体资源链摘要与反馈
+- ✅ 草原链新增：
+  - `hotspot_cycle_pressure`
+  - `hotspot_cycle_overlap`
+- ✅ 尸体资源链新增：
+  - `hotspot_cycle_carrion`
+  - `hotspot_cycle_tracking`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增热点生命周期摘要/反馈断言并通过
+
 ### v4.0-alpha24 (2026-04-09 03:55)
 
 - ✅ `social_trends.phase_scores` 现已开始回灌到 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行体

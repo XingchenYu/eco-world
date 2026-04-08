@@ -25,6 +25,7 @@ def build_region_carrion_chain_summary(
     region: Region,
     registry: WorldRegistry,
     territory_summary: Optional[object] = None,
+    social_trend_summary: Optional[object] = None,
 ) -> RegionCarrionChainSummary:
     """构建草原区尸体资源链摘要。"""
 
@@ -88,6 +89,17 @@ def build_region_carrion_chain_summary(
             add_score("kill_corridor_overlap", min(0.38, shared_hotspots * 0.15), "领地热点重叠会把击杀点和尸体点压缩进更少的高频通道。")
         if lion_hotspots > 0 and hyena_hotspots > 0:
             add_score("scavenger_lane_pressure", min(0.34, (lion_hotspots + hyena_hotspots) * 0.06), "多个顶层热点会强化地面与空中清道夫对尸体通道的跟随压力。")
+    if social_trend_summary is not None:
+        hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
+        lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
+        hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
+        shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        if lion_hotspot_memory > 0.0:
+            add_score("hotspot_cycle_carrion", lion_hotspot_memory * 0.22, "持续的狮群热点记忆会把击杀点维持成更稳定的尸体资源通道。")
+        if hyena_hotspot_memory > 0.0:
+            add_score("hotspot_cycle_carrion", hyena_hotspot_memory * 0.20, "持续的鬣狗热点记忆会延长尸体资源的地面清道夫使用窗口。")
+        if shared_hotspot_memory > 0.0:
+            add_score("hotspot_cycle_tracking", shared_hotspot_memory * 0.24, "共享热点记忆会强化秃鹫与地面清道夫对尸体通道的协同追踪。")
 
     return RegionCarrionChainSummary(
         region_id=region.region_id,
@@ -111,12 +123,15 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("large_carcass_supply", 0.0) * 0.24, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", -scores.get("aerial_scavenging", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("kill_corridor_overlap", 0.0) * 0.18, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("scavenger_lane_pressure", 0.0) * 0.14, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_tracking", 0.0) * 0.14, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_carrion", 0.0) * 0.08, feedback_scale)
 
 
 def apply_region_carrion_chain_rebalancing(
