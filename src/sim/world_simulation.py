@@ -50,6 +50,53 @@ class WorldSimulation:
         self.active_region_id = initial_region_id or next(iter(self.world_map.regions))
         self.ensure_region_simulation(self.active_region_id)
 
+    def _persist_region_relationships(
+        self,
+        region: Region,
+        cascade: object,
+        competition: object,
+        symbiosis: object,
+        competition_adjustments: list[dict],
+    ) -> None:
+        region.record_relationship_state(
+            "cascade",
+            {
+                "driver_species": list(cascade.driver_species),
+                "impact_scores": dict(cascade.impact_scores),
+                "active_pressures": list(cascade.active_pressures),
+            },
+        )
+        region.record_relationship_state(
+            "competition",
+            {
+                "active_relations": len(competition.active_relations),
+                "pressure_scores": dict(competition.pressure_scores),
+                "contested_resources": list(competition.contested_resources),
+            },
+        )
+        region.record_relationship_state(
+            "symbiosis",
+            {
+                "active_relations": len(symbiosis.active_relations),
+                "support_scores": dict(symbiosis.support_scores),
+                "supported_resources": list(symbiosis.supported_resources),
+            },
+        )
+        region.append_adjustments(competition_adjustments)
+
+        combined_pressures: Dict[str, float] = {}
+        for source in (cascade.active_pressures, competition.contested_resources, symbiosis.supported_resources):
+            for key in source:
+                combined_pressures[key] = combined_pressures.get(key, 0.0) + 1.0
+        for key, value in cascade.impact_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in competition.pressure_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in symbiosis.support_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+
+        region.update_ecological_pressures(combined_pressures)
+
     def _build_region_config(self, region_id: str) -> dict:
         return self.region_configs.get(region_id, self.default_region_config)
 
@@ -80,11 +127,19 @@ class WorldSimulation:
         active_region = self.get_active_region()
         cascade = build_region_cascade_summary(active_region, self.registry)
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
+        competition = build_region_competition_summary(active_region, self.registry)
         apply_region_cascade_feedback(active_region, cascade)
         apply_region_symbiosis_feedback(active_region, symbiosis)
         competition_adjustments: list[dict] = []
         if self.tick_count % 8 == 0:
             competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
+        self._persist_region_relationships(
+            active_region,
+            cascade=cascade,
+            competition=competition,
+            symbiosis=symbiosis,
+            competition_adjustments=competition_adjustments,
+        )
         self.last_competition_adjustments[active_region.region_id] = competition_adjustments
         self.tick_count += 1
         return WorldTickSummary(
@@ -117,6 +172,9 @@ class WorldSimulation:
                 "resource_state": dict(active_region.resource_state),
                 "hazard_state": dict(active_region.hazard_state),
                 "health_state": dict(active_region.health_state),
+                "relationship_state": dict(active_region.relationship_state),
+                "recent_adjustments": list(active_region.recent_adjustments),
+                "ecological_pressures": dict(active_region.ecological_pressures),
             },
             "loaded_regions": len(self.region_simulations),
             "regions_total": len(self.world_map.regions),

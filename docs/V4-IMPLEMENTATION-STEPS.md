@@ -121,6 +121,14 @@
 - 保存最近几轮竞争、共生、工程师反馈结果
 - 供 GUI、事件系统和后续任务系统直接读取
 
+当前状态：
+- 已完成第一版落地
+- `Region` 已新增：
+  - `relationship_state`
+  - `recent_adjustments`
+  - `ecological_pressures`
+- `WorldSimulation` 更新后已开始将 `cascade / competition / symbiosis` 结果持久写回区域对象
+
 ### Step 6
 收缩 `src/ecology/cascade.py`
 

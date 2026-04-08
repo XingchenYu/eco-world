@@ -26,6 +26,19 @@
 
 ## 版本历史
 
+### v4.0-alpha2 (2026-04-08 19:25)
+
+**v4 架构推进**：
+- ✅ `Region` 已新增关系状态持久化字段：
+  - `relationship_state`
+  - `recent_adjustments`
+  - `ecological_pressures`
+- ✅ `WorldSimulation.update()` 已开始把 `cascade / competition / symbiosis` 结果持久写回区域对象
+
+**验证**：
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 新增区域关系状态持久化测试并通过
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/world/region.py src/sim/world_simulation.py tests/test_ecosystem.py`
+
 ### v4.0-alpha (2026-04-08 19:00)
 
 **v4 架构推进**：

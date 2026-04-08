@@ -58,6 +58,9 @@ class Region:
     hazard_state: Dict[str, float] = field(default_factory=dict)
     health_state: Dict[str, float] = field(default_factory=dict)
     species_pool: Dict[str, int] = field(default_factory=dict)
+    relationship_state: Dict[str, Dict[str, object]] = field(default_factory=dict)
+    recent_adjustments: List[Dict[str, object]] = field(default_factory=list)
+    ecological_pressures: Dict[str, float] = field(default_factory=dict)
 
     def add_connector(self, connector: RegionConnector) -> None:
         self.connectors.append(connector)
@@ -76,3 +79,17 @@ class Region:
     @property
     def species_count(self) -> int:
         return len(self.species_pool)
+
+    def record_relationship_state(self, key: str, payload: Dict[str, object]) -> None:
+        self.relationship_state[key] = payload
+
+    def append_adjustments(self, adjustments: List[Dict[str, object]], limit: int = 20) -> None:
+        if not adjustments:
+            return
+        self.recent_adjustments.extend(adjustments)
+        if len(self.recent_adjustments) > limit:
+            self.recent_adjustments = self.recent_adjustments[-limit:]
+
+    def update_ecological_pressures(self, pressures: Dict[str, float]) -> None:
+        for key, value in pressures.items():
+            self.ecological_pressures[key] = round(float(value), 4)

@@ -298,6 +298,10 @@ def test_v4_world_simulation_skeleton():
     assert "beaver" in stats["cascade"]["driver_species"]
     assert stats["cascade"]["impact_scores"]["wetland_expansion"] > 0.0
     assert stats["symbiosis"]["active_relations"] >= 1
+    assert "cascade" in stats["active_region"]["relationship_state"]
+    assert "competition" in stats["active_region"]["relationship_state"]
+    assert "symbiosis" in stats["active_region"]["relationship_state"]
+    assert stats["active_region"]["ecological_pressures"]
 
     world_sim.set_active_region("wetland_lake")
     assert world_sim.active_region_id == "wetland_lake"
@@ -308,6 +312,24 @@ def test_v4_world_simulation_skeleton():
     assert wetland_stats["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
 
     print("✅ V4 world simulation test passed")
+
+
+def test_v4_region_relationship_state_persists():
+    """v4 世界更新后应把关系摘要持久写回 Region。"""
+    world_sim = build_default_world_simulation()
+    world_sim.set_active_region("wetland_lake")
+    world_sim.update()
+
+    region = world_sim.get_active_region()
+
+    assert "cascade" in region.relationship_state
+    assert "competition" in region.relationship_state
+    assert "symbiosis" in region.relationship_state
+    assert region.ecological_pressures
+    assert region.relationship_state["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
+    assert region.relationship_state["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
+
+    print("✅ V4 region relationship state test passed")
 
 
 def test_v4_registry_queries():
@@ -714,6 +736,7 @@ def run_all_tests():
     test_night_moth_registration_and_spawn()
     test_v4_world_and_data_skeleton()
     test_v4_world_simulation_skeleton()
+    test_v4_region_relationship_state_persists()
     test_v4_registry_queries()
     test_v4_region_food_web_summary()
     test_v4_region_cascade_summary()
