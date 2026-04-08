@@ -27,6 +27,7 @@ from src.ecology.competition import (
     build_region_competition_summary,
 )
 from src.ecology.symbiosis import apply_region_symbiosis_feedback, build_region_symbiosis_summary
+from src.ecology.wetland import build_region_wetland_chain_summary
 from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
@@ -80,7 +81,7 @@ def test_animals():
     
     # 添加兔子
     initial_animals = len(eco.animals)
-    eco.spawn_animal("rabbit", position)
+    eco.spawn_animal("rabbit", position, source="manual")
     assert len(eco.animals) == initial_animals + 1
     
     # 测试状态
@@ -299,6 +300,7 @@ def test_v4_world_simulation_skeleton():
     assert stats["cascade"]["impact_scores"]["wetland_expansion"] > 0.0
     assert "symbiosis" in stats["cascade"]["source_modules"]
     assert stats["symbiosis"]["active_relations"] >= 1
+    assert stats["wetland_chain"]["key_species"] == []
     assert "cascade" in stats["active_region"]["relationship_state"]
     assert "competition" in stats["active_region"]["relationship_state"]
     assert "symbiosis" in stats["active_region"]["relationship_state"]
@@ -309,6 +311,8 @@ def test_v4_world_simulation_skeleton():
     assert world_sim.get_active_region().name == "湿地与湖泊区"
     wetland_stats = world_sim.get_statistics()
     assert wetland_stats["food_web"]["active_relations"] >= 1
+    assert wetland_stats["wetland_chain"]["key_species"]
+    assert wetland_stats["wetland_chain"]["trophic_scores"]["wetland_engineering"] > 0.0
     assert wetland_stats["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
     assert wetland_stats["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
 
@@ -504,6 +508,29 @@ def test_v4_region_symbiosis_summary():
     assert rainforest_summary.support_scores["nocturnal_insect_support"] > 0.0
 
     print("✅ V4 symbiosis summary test passed")
+
+
+def test_v4_wetland_chain_summary():
+    """v4 湿地链摘要应识别湿地区关键链条。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+
+    wetland = world_map.get_region("wetland_lake")
+    grassland = world_map.get_region("temperate_grassland")
+
+    wetland_chain = build_region_wetland_chain_summary(wetland, registry)
+    grassland_chain = build_region_wetland_chain_summary(grassland, registry)
+
+    assert "beaver" in wetland_chain.key_species
+    assert "nile_crocodile" in wetland_chain.key_species
+    assert wetland_chain.trophic_scores["wetland_engineering"] > 0.0
+    assert wetland_chain.trophic_scores["wetland_keystone_stack"] > 0.0
+    assert wetland_chain.trophic_scores["shoreline_trophic_coupling"] > 0.0
+
+    assert grassland_chain.key_species == []
+    assert grassland_chain.trophic_scores == {}
+
+    print("✅ V4 wetland chain summary test passed")
 
 
 def test_v4_symbiosis_feedback_updates_region_state():
@@ -767,6 +794,7 @@ def run_all_tests():
     test_v4_region_competition_summary()
     test_v4_competition_feedback_rebalances_species_pool()
     test_v4_region_symbiosis_summary()
+    test_v4_wetland_chain_summary()
     test_v4_symbiosis_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()

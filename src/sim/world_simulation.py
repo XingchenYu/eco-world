@@ -14,6 +14,7 @@ from src.ecology import (
     build_region_competition_summary,
     build_region_food_web,
     build_region_symbiosis_summary,
+    build_region_wetland_chain_summary,
 )
 from src.sim.region_simulation import RegionSimulation
 from src.world import Region, WorldMap, build_default_world_map
@@ -163,6 +164,7 @@ class WorldSimulation:
         food_web = build_region_food_web(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
         symbiosis = build_region_symbiosis_summary(active_region, self.registry)
+        wetland_chain = build_region_wetland_chain_summary(active_region, self.registry)
         cascade = build_region_cascade_summary(
             active_region,
             self.registry,
@@ -234,6 +236,11 @@ class WorldSimulation:
                 "support_scores": dict(symbiosis.support_scores),
                 "supported_resources": list(symbiosis.supported_resources),
                 "narrative_symbiosis": list(symbiosis.narrative_symbiosis),
+            },
+            "wetland_chain": {
+                "key_species": list(wetland_chain.key_species),
+                "trophic_scores": dict(wetland_chain.trophic_scores),
+                "narrative_chain": list(wetland_chain.narrative_chain),
             },
             "simulation": simulation_stats,
         }

@@ -175,6 +175,11 @@
 验收标准：
 - `wetland_lake` 区域统计能体现完整湿地链
 
+当前状态：
+- 已完成第一版湿地链摘要
+- 已新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)
+- `WorldSimulation` 统计已新增 `wetland_chain`
+
 ### Step 8
 完成草原大型植食者链
 

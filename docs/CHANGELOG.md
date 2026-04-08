@@ -18,6 +18,13 @@
 | SPECIES.md | entities/*.py | 新增/修改物种 |
 | MECHANICS.md | core/*.py | 新增/修改机制 |
 | competition-defense.md | entities/competition.py | 竞争/防御机制变更 |
+
+## v4.0.9 - Add wetland chain summaries
+
+- ✅ 新增 [src/ecology/wetland.py](/Users/yumini/Projects/eco-world/src/ecology/wetland.py)，为湿地与湖泊区域输出独立的湿地核心链摘要
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 统计新增 `wetland_chain`，可直接查看关键物种、营养级得分和叙事链
+- ✅ 补充 `frog -> shore_hatch`、`catfish -> minnow`、`blackfish -> minnow/frog` 关系表，用于湿地链条表达
+- ✅ 新增湿地链测试并修正世界统计测试中的区域语义断言
 | fruits-omnivores.md | entities/omnivores.py | 杂食动物变更 |
 | ECOSYSTEM.md | 所有 | 总览更新 |
 | USAGE.md | main.py | 启动参数变更 |
