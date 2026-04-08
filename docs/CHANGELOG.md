@@ -26,6 +26,38 @@
 
 ## 版本历史
 
+### v4.0-alpha (2026-04-08 19:00)
+
+**v4 架构推进**：
+- ✅ 新增 [src/ecology/symbiosis.py](/Users/yumini/Projects/eco-world/src/ecology/symbiosis.py)
+- ✅ `WorldSimulation` 统计新增独立 `symbiosis` 区块
+- ✅ 第一版共生/偏利反馈已开始轻量回灌区域状态
+
+**覆盖关系**：
+- ✅ `kingfisher_v4 -> shore_hatch`
+- ✅ `bat_v4 -> night_swarm`
+- ✅ `beaver -> reed_belt`
+
+**验证**：
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 新增 `v4` 共生摘要与共生反馈测试并通过
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/ecology/symbiosis.py src/ecology/competition.py src/ecology/cascade.py src/ecology/__init__.py src/sim/world_simulation.py tests/test_ecosystem.py`
+
+### v3.9 (2026-04-08 18:40)
+
+**v4 架构推进**：
+- ✅ 新增 [src/ecology/symbiosis.py](/Users/yumini/Projects/eco-world/src/ecology/symbiosis.py)
+- ✅ `WorldSimulation` 统计新增独立 `symbiosis` 区块
+- ✅ 第一版共生/偏利反馈已开始轻量回灌区域状态
+
+**覆盖关系**：
+- ✅ `kingfisher_v4 -> shore_hatch`
+- ✅ `bat_v4 -> night_swarm`
+- ✅ `beaver -> reed_belt`
+
+**验证**：
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 新增 `v4` 共生摘要与共生反馈测试并通过
+- ✅ `PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/ecology/symbiosis.py src/ecology/__init__.py src/sim/world_simulation.py tests/test_ecosystem.py`
+
 ### v3.8 (2026-04-08 18:10)
 
 **v4 架构推进**：

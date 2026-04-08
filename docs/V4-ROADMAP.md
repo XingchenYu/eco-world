@@ -18,6 +18,9 @@
 - 把现有 `Ecosystem` 抽象成 `RegionSimulation`
 - 接入模板和关系表
 - 保持当前可运行能力
+- 关系系统初版优先拆出：
+  - `competition.py`
+  - `symbiosis.py`
 
 ### Phase C：六区世界
 

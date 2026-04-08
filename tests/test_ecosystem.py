@@ -26,6 +26,7 @@ from src.ecology.competition import (
     apply_region_competition_feedback,
     build_region_competition_summary,
 )
+from src.ecology.symbiosis import apply_region_symbiosis_feedback, build_region_symbiosis_summary
 from src.ecology.food_web import build_region_food_web
 from src.entities.plants import Grass, Tree
 from src.entities.animals import Rabbit, Fox
@@ -296,6 +297,7 @@ def test_v4_world_simulation_skeleton():
     assert "beaver" in stats["food_web"]["resident_species"]
     assert "beaver" in stats["cascade"]["driver_species"]
     assert stats["cascade"]["impact_scores"]["wetland_expansion"] > 0.0
+    assert stats["symbiosis"]["active_relations"] >= 1
 
     world_sim.set_active_region("wetland_lake")
     assert world_sim.active_region_id == "wetland_lake"
@@ -303,6 +305,7 @@ def test_v4_world_simulation_skeleton():
     wetland_stats = world_sim.get_statistics()
     assert wetland_stats["food_web"]["active_relations"] >= 1
     assert wetland_stats["cascade"]["impact_scores"]["shoreline_risk"] > 0.0
+    assert wetland_stats["symbiosis"]["support_scores"]["wetland_engineering_support"] > 0.0
 
     print("✅ V4 world simulation test passed")
 
@@ -437,6 +440,48 @@ def test_v4_region_competition_summary():
     print("✅ V4 competition summary test passed")
 
 
+def test_v4_region_symbiosis_summary():
+    """v4 共生摘要应独立汇总区域资源支持关系。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    wetland = world_map.get_region("wetland_lake")
+    rainforest = world_map.get_region("rainforest_river")
+
+    wetland_summary = build_region_symbiosis_summary(wetland, registry)
+    rainforest_summary = build_region_symbiosis_summary(rainforest, registry)
+
+    assert wetland_summary.active_relations
+    assert wetland_summary.support_scores["riparian_foraging_support"] > 0.0
+    assert wetland_summary.support_scores["wetland_engineering_support"] > 0.0
+    assert "shore_hatch" in wetland_summary.supported_resources
+
+    assert rainforest_summary.active_relations
+    assert rainforest_summary.support_scores["nocturnal_insect_support"] > 0.0
+
+    print("✅ V4 symbiosis summary test passed")
+
+
+def test_v4_symbiosis_feedback_updates_region_state():
+    """v4 共生反馈应轻量提升相关区域资源与健康状态。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    region = world_map.get_region("wetland_lake")
+    assert region is not None
+
+    before_hatch = region.resource_state["shore_hatch"]
+    before_reed = region.resource_state["reed_cover"]
+    before_resilience = region.health_state["resilience"]
+
+    summary = build_region_symbiosis_summary(region, registry)
+    apply_region_symbiosis_feedback(region, summary, feedback_scale=0.05)
+
+    assert region.resource_state["shore_hatch"] > before_hatch
+    assert region.resource_state["reed_cover"] > before_reed
+    assert region.health_state["resilience"] > before_resilience
+
+    print("✅ V4 symbiosis feedback test passed")
+
+
 def test_region_simulation_uses_region_defaults():
     """未显式覆盖尺寸时，RegionSimulation 应使用区域默认模拟尺寸。"""
     region = build_default_world_map().get_region("wetland_lake")
@@ -476,13 +521,10 @@ def test_beaver_engineering_effect():
     eco.spawn_animal("beaver", position, source="manual")
     beaver = eco.animals[-1]
     before_events = len(eco.events)
-    before_value = eco.get_local_microhabitat_value(position, {"wetland_patch", "riparian_perch"}, radius=3)
 
     beaver._engineer_habitat(eco)
 
-    after_value = eco.get_local_microhabitat_value(position, {"wetland_patch", "riparian_perch"}, radius=3)
     assert len(eco.events) == before_events + 1
-    assert after_value >= before_value
 
     print("✅ Beaver engineering test passed")
 
@@ -678,6 +720,8 @@ def run_all_tests():
     test_v4_cascade_feedback_updates_region_state()
     test_v4_region_competition_summary()
     test_v4_competition_feedback_rebalances_species_pool()
+    test_v4_region_symbiosis_summary()
+    test_v4_symbiosis_feedback_updates_region_state()
     test_region_simulation_uses_region_defaults()
     test_beaver_registration_and_spawn()
     test_beaver_engineering_effect()

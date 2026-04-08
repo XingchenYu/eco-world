@@ -37,6 +37,9 @@
 - 护卫共生
 - 育幼场共生
 
+当前仓库已开始独立实现第一版共生/偏利模块，见：
+- [symbiosis.py](/Users/yumini/Projects/eco-world/src/ecology/symbiosis.py)
+
 ### 寄生
 
 - 蜱虫

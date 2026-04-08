@@ -11,14 +11,18 @@ from .competition import (
     build_region_competition_summary,
 )
 from .food_web import RegionFoodWeb, build_region_food_web
+from .symbiosis import RegionSymbiosisSummary, apply_region_symbiosis_feedback, build_region_symbiosis_summary
 
 __all__ = [
     "RegionFoodWeb",
     "RegionCascadeSummary",
     "RegionCompetitionSummary",
+    "RegionSymbiosisSummary",
     "apply_region_cascade_feedback",
     "apply_region_competition_feedback",
+    "apply_region_symbiosis_feedback",
     "build_region_food_web",
     "build_region_competition_summary",
     "build_region_cascade_summary",
+    "build_region_symbiosis_summary",
 ]

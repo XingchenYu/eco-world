@@ -76,6 +76,11 @@
 验收标准：
 - 共生关系具备摘要与反馈接口
 
+当前状态：
+- 已完成第一版落地
+- 已新增 [symbiosis.py](/Users/yumini/Projects/eco-world/src/ecology/symbiosis.py)
+- `WorldSimulation` 已开始输出独立 `symbiosis` 统计
+
 ### Step 3
 更新 `src/ecology/__init__.py`
 

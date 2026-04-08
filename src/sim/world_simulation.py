@@ -9,9 +9,11 @@ from src.data import WorldRegistry, build_default_world_registry
 from src.ecology import (
     apply_region_cascade_feedback,
     apply_region_competition_feedback,
+    apply_region_symbiosis_feedback,
     build_region_cascade_summary,
     build_region_competition_summary,
     build_region_food_web,
+    build_region_symbiosis_summary,
 )
 from src.sim.region_simulation import RegionSimulation
 from src.world import Region, WorldMap, build_default_world_map
@@ -77,7 +79,9 @@ class WorldSimulation:
         active_simulation.update()
         active_region = self.get_active_region()
         cascade = build_region_cascade_summary(active_region, self.registry)
+        symbiosis = build_region_symbiosis_summary(active_region, self.registry)
         apply_region_cascade_feedback(active_region, cascade)
+        apply_region_symbiosis_feedback(active_region, symbiosis)
         competition_adjustments: list[dict] = []
         if self.tick_count % 8 == 0:
             competition_adjustments = apply_region_competition_feedback(active_region, self.registry)
@@ -98,6 +102,7 @@ class WorldSimulation:
         food_web = build_region_food_web(active_region, self.registry)
         cascade = build_region_cascade_summary(active_region, self.registry)
         competition = build_region_competition_summary(active_region, self.registry)
+        symbiosis = build_region_symbiosis_summary(active_region, self.registry)
 
         return {
             "world_tick": self.tick_count,
@@ -153,6 +158,12 @@ class WorldSimulation:
                 "contested_resources": list(competition.contested_resources),
                 "narrative_competition": list(competition.narrative_competition),
                 "competition_adjustments": list(self.last_competition_adjustments.get(active_region.region_id, [])),
+            },
+            "symbiosis": {
+                "active_relations": len(symbiosis.active_relations),
+                "support_scores": dict(symbiosis.support_scores),
+                "supported_resources": list(symbiosis.supported_resources),
+                "narrative_symbiosis": list(symbiosis.narrative_symbiosis),
             },
             "simulation": simulation_stats,
         }
