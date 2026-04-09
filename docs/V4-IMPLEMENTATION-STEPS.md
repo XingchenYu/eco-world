@@ -66,6 +66,10 @@
   - `grassland_prosperity_phase`
   - `grassland_collapse_phase`
   使真实体况锚点开始直接参与长期繁荣/衰退相位，而不只是影响 cycle 与 pressure
+- 现在 `condition_phase_bias / regional_health_anchor` 也已继续进入：
+  - `Lion / Hyena` 的社群产仔规模
+  - `Lion / Hyena` 的产后冷却
+  这使真实体况与长期相位开始直接影响社群延续节律，而不只影响运行期恢复
 - 这些长期相位现在也已继续下沉到：
   - 运行体 `condition_runtime`
   使 herd / apex / aerial 的真实体况开始带长期 prosperity/collapse 偏置

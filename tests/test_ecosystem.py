@@ -2883,6 +2883,56 @@ def test_lion_condition_birth_scaling():
     print("✅ Lion condition birth scaling test passed")
 
 
+def test_lion_condition_phase_birth_scaling():
+    """狮群长期相位体况偏置应继续改善产后冷却和群体延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("lion", pos_high, source="manual")
+    lion_high = eco_high.animals[-1]
+    lion_high.gender = Gender.FEMALE
+    lion_high.pregnant = True
+    lion_high.pride_stability = 0.6
+    lion_high.condition_runtime = 0.4
+    lion_high.condition_phase_bias = 0.8
+    lion_high.regional_health_anchor = 0.6
+    lion_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("lion")
+
+    random.seed(62)
+    lion_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("lion")
+    high_cooldown = lion_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("lion", pos_low, source="manual")
+    lion_low = eco_low.animals[-1]
+    lion_low.gender = Gender.FEMALE
+    lion_low.pregnant = True
+    lion_low.pride_stability = 0.6
+    lion_low.condition_runtime = 0.4
+    lion_low.condition_phase_bias = 0.0
+    lion_low.regional_health_anchor = 0.0
+    lion_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("lion")
+
+    random.seed(62)
+    lion_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("lion")
+    low_cooldown = lion_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Lion condition phase birth scaling test passed")
+
+
 def test_hyena_registration_and_spawn():
     """鬣狗应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -3086,6 +3136,56 @@ def test_hyena_condition_birth_scaling():
     print("✅ Hyena condition birth scaling test passed")
 
 
+def test_hyena_condition_phase_birth_scaling():
+    """鬣狗长期相位体况偏置应继续改善产后冷却和 clan 延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("hyena", pos_high, source="manual")
+    hyena_high = eco_high.animals[-1]
+    hyena_high.gender = Gender.FEMALE
+    hyena_high.pregnant = True
+    hyena_high.clan_stability = 0.6
+    hyena_high.condition_runtime = 0.4
+    hyena_high.condition_phase_bias = 0.8
+    hyena_high.regional_health_anchor = 0.6
+    hyena_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("hyena")
+
+    random.seed(73)
+    hyena_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("hyena")
+    high_cooldown = hyena_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("hyena", pos_low, source="manual")
+    hyena_low = eco_low.animals[-1]
+    hyena_low.gender = Gender.FEMALE
+    hyena_low.pregnant = True
+    hyena_low.clan_stability = 0.6
+    hyena_low.condition_runtime = 0.4
+    hyena_low.condition_phase_bias = 0.0
+    hyena_low.regional_health_anchor = 0.0
+    hyena_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("hyena")
+
+    random.seed(73)
+    hyena_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("hyena")
+    low_cooldown = hyena_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Hyena condition phase birth scaling test passed")
+
+
 def test_hyena_cycle_phase_effect():
     """鬣狗周期相位应轻量影响当前个体状态。"""
     hyena = Hyena((10, 10), Gender.FEMALE)
@@ -3203,6 +3303,7 @@ def run_all_tests():
     test_lion_cycle_phase_effect()
     test_lion_social_birth_scaling()
     test_lion_condition_birth_scaling()
+    test_lion_condition_phase_birth_scaling()
     test_hyena_registration_and_spawn()
     test_hyena_scavenging_effect()
     test_hyena_den_cluster_effect()
@@ -3211,6 +3312,7 @@ def run_all_tests():
     test_hyena_clan_stability_effect()
     test_hyena_social_birth_scaling()
     test_hyena_condition_birth_scaling()
+    test_hyena_condition_phase_birth_scaling()
     test_hyena_cycle_phase_effect()
     test_vulture_registration_and_spawn()
     

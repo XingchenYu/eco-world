@@ -67,7 +67,15 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
             return
 
     condition_runtime = max(0.0, min(1.0, getattr(animal, "condition_runtime", 0.0)))
-    condition_factor = max(0.80, min(1.25, 0.90 + condition_runtime * 0.30))
+    condition_phase_bias = max(0.0, min(1.0, getattr(animal, "condition_phase_bias", 0.0)))
+    regional_health_anchor = max(0.0, min(1.0, getattr(animal, "regional_health_anchor", 0.0)))
+    condition_factor = max(
+        0.80,
+        min(
+            1.32,
+            0.88 + condition_runtime * 0.24 + condition_phase_bias * 0.16 + regional_health_anchor * 0.10,
+        ),
+    )
 
     base_litter = random.randint(1, 3)
     litter_size = max(
@@ -90,7 +98,18 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
     animal.pregnancy_timer = 0
     postpartum_cooldown = max(
         18,
-        min(36, int(round(30 - (social_factor - 1.0) * 12 - condition_runtime * 6))),
+        min(
+            36,
+            int(
+                round(
+                    30
+                    - (social_factor - 1.0) * 12
+                    - condition_runtime * 5
+                    - condition_phase_bias * 3
+                    - regional_health_anchor * 2
+                )
+            ),
+        ),
     )
     animal.mate_cooldown = postpartum_cooldown
 

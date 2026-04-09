@@ -2,6 +2,21 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha40 (2026-04-10 12:10)
+
+- ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 现已把：
+  - `condition_phase_bias`
+  - `regional_health_anchor`
+  继续接入 `Lion / Hyena` 的社群化产仔路径
+- ✅ 这层现在会直接影响：
+  - 产仔规模
+  - 产后冷却
+  - 社群延续节律
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增：
+  - `test_lion_condition_phase_birth_scaling()`
+  - `test_hyena_condition_phase_birth_scaling()`
+  并已通过全量回归
+
 ### v4.0-alpha39 (2026-04-10 11:35)
 
 - ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已新增：
