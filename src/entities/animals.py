@@ -1140,6 +1140,8 @@ class Antelope(Animal):
         self.forms_groups = True
         self.herd_channel_bias = 0.0
         self.herd_source_bias = 0.0
+        self.prosperity_phase_bias = 0.0
+        self.collapse_phase_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion", "hyena", "wolf", "crocodile"]
@@ -1172,12 +1174,17 @@ class Antelope(Animal):
         self._follow_herd_channel(ecosystem)
 
     def _follow_herd_channel(self, ecosystem):
-        bias = max(self.herd_channel_bias, self.herd_source_bias * 0.7)
+        bias = max(
+            self.herd_channel_bias,
+            self.herd_source_bias * 0.7,
+            self.prosperity_phase_bias * 0.85,
+        )
+        collapse_drag = self.collapse_phase_bias * 0.12
         if bias <= 0.0:
             return
-        if self.hunger < 45 and self.seek_habitat(ecosystem, radius=self.vision_range + 2):
+        if self.hunger < max(28, 45 - self.prosperity_phase_bias * 12 + self.collapse_phase_bias * 6) and self.seek_habitat(ecosystem, radius=self.vision_range + 2):
             return
-        if hasattr(ecosystem, "_random_water_adjacent_position") and random.random() < min(0.45, 0.18 + bias * 0.20):
+        if hasattr(ecosystem, "_random_water_adjacent_position") and random.random() < max(0.06, min(0.55, 0.18 + bias * 0.20 - collapse_drag)):
             target = ecosystem._random_water_adjacent_position()
             if target:
                 self.move_towards(target, ecosystem)
@@ -1204,6 +1211,8 @@ class Zebra(Animal):
         self.forms_groups = True
         self.herd_channel_bias = 0.0
         self.herd_source_bias = 0.0
+        self.prosperity_phase_bias = 0.0
+        self.collapse_phase_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion", "hyena", "crocodile"]
@@ -1233,12 +1242,17 @@ class Zebra(Animal):
         self._follow_herd_channel(ecosystem)
 
     def _follow_herd_channel(self, ecosystem):
-        bias = max(self.herd_channel_bias, self.herd_source_bias * 0.7)
+        bias = max(
+            self.herd_channel_bias,
+            self.herd_source_bias * 0.7,
+            self.prosperity_phase_bias * 0.85,
+        )
+        collapse_drag = self.collapse_phase_bias * 0.12
         if bias <= 0.0:
             return
-        if self.hunger < 48 and self.seek_habitat(ecosystem, radius=self.vision_range + 2):
+        if self.hunger < max(30, 48 - self.prosperity_phase_bias * 12 + self.collapse_phase_bias * 6) and self.seek_habitat(ecosystem, radius=self.vision_range + 2):
             return
-        if hasattr(ecosystem, "_random_water_adjacent_position") and random.random() < min(0.40, 0.16 + bias * 0.18):
+        if hasattr(ecosystem, "_random_water_adjacent_position") and random.random() < max(0.06, min(0.50, 0.16 + bias * 0.18 - collapse_drag)):
             target = ecosystem._random_water_adjacent_position()
             if target:
                 self.move_towards(target, ecosystem)
@@ -1633,6 +1647,8 @@ class Vulture(Animal):
         self.forms_groups = True
         self.aerial_lane_bias = 0.0
         self.kill_corridor_bias = 0.0
+        self.prosperity_phase_bias = 0.0
+        self.collapse_phase_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -1671,13 +1687,18 @@ class Vulture(Animal):
         self._track_aerial_lanes(ecosystem)
 
     def _track_aerial_lanes(self, ecosystem):
-        bias = max(self.aerial_lane_bias, self.kill_corridor_bias * 0.8)
+        bias = max(
+            self.aerial_lane_bias,
+            self.kill_corridor_bias * 0.8,
+            self.prosperity_phase_bias * 0.9,
+        )
+        collapse_drag = self.collapse_phase_bias * 0.10
         if bias <= 0.0:
             return
         if hasattr(ecosystem, "get_microhabitat_patches"):
             patches = ecosystem.get_microhabitat_patches({"thermal_column", "open_grazing_range"}, self.position, radius=self.vision_range)
             patches = [patch for patch in patches if patch.available > 0.05]
-            if patches and random.random() < min(0.55, 0.22 + bias * 0.24):
+            if patches and random.random() < max(0.08, min(0.62, 0.22 + bias * 0.24 - collapse_drag)):
                 target = max(
                     patches,
                     key=lambda patch: patch.available / max(

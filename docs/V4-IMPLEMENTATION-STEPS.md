@@ -727,3 +727,7 @@
   - `lion / hyena` 的中心漂移强度
   - `antelope / zebra` 的 herd 通道选择
   - `vulture` 的空中追踪通道选择
+- `social_trends.prosperity_scores` 现已开始直接回灌到运行体：
+  - `antelope / zebra` 会显式接收 `grassland_prosperity_phase / grassland_collapse_phase`
+  - `vulture` 也会显式接收 `grassland_prosperity_phase / grassland_collapse_phase`
+  - 长期繁荣/衰退相位已进入 herd 与 carrion 的运行期通道行为

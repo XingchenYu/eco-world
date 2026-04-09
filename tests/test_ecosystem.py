@@ -1591,6 +1591,10 @@ def test_region_simulation_applies_social_phase_state():
                 "hyena_expansion_phase": 0.58,
                 "hyena_contraction_phase": 0.18,
             },
+            "prosperity_scores": {
+                "grassland_prosperity_phase": 0.41,
+                "grassland_collapse_phase": 0.16,
+            },
             "hotspot_scores": {
                 "lion_hotspot_memory": 0.52,
                 "hyena_hotspot_memory": 0.49,
@@ -1640,12 +1644,38 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.kill_corridor_bias == 1.0
     assert antelope.herd_channel_bias == 1.0
     assert antelope.herd_source_bias == 1.0
+    assert antelope.prosperity_phase_bias == 0.41
+    assert antelope.collapse_phase_bias == 0.16
     assert zebra.herd_channel_bias == 1.0
     assert zebra.herd_source_bias == 1.0
+    assert zebra.prosperity_phase_bias == 0.41
+    assert zebra.collapse_phase_bias == 0.16
     assert vulture.aerial_lane_bias == 1.0
     assert vulture.kill_corridor_bias == 1.0
+    assert vulture.prosperity_phase_bias == 0.41
+    assert vulture.collapse_phase_bias == 0.16
 
     print("✅ Region simulation social phase injection test passed")
+
+
+def test_herd_and_carrion_runtime_prosperity_bias():
+    """长期 prosperity/collapse 相位应进入 herd 与 carrion 运行行为。"""
+    antelope = Antelope(position=(20, 20), gender=Gender.FEMALE)
+    zebra = Zebra(position=(22, 20), gender=Gender.FEMALE)
+    vulture = Vulture(position=(24, 20), gender=Gender.FEMALE)
+
+    antelope.prosperity_phase_bias = 0.45
+    antelope.collapse_phase_bias = 0.10
+    zebra.prosperity_phase_bias = 0.40
+    zebra.collapse_phase_bias = 0.08
+    vulture.prosperity_phase_bias = 0.42
+    vulture.collapse_phase_bias = 0.12
+
+    assert antelope.prosperity_phase_bias > antelope.collapse_phase_bias
+    assert zebra.prosperity_phase_bias > zebra.collapse_phase_bias
+    assert vulture.prosperity_phase_bias > vulture.collapse_phase_bias
+
+    print("✅ Herd and carrion runtime prosperity bias test passed")
 
 
 def test_lion_hotspot_memory_center_effect():

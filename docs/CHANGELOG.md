@@ -904,6 +904,11 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ 按本轮目标判断：`night_moth` 达到 `4 / 5`、`rabbit` 达到 `5 / 5`、`mouse` 达到 `5 / 5`，且 `fox / wolf / wild_boar` 均自然保持非零
 
 # v3.4.6 - Verify land mammals through tick 200
+# v4.0-alpha38 - Feed prosperity phases into herd and carrion runtime
+
+- ✅ `RegionSimulation.apply_relationship_runtime_state()` 现在会把 `grassland_prosperity_phase / grassland_collapse_phase` 回灌到 `antelope / zebra / vulture`
+- ✅ `Antelope / Zebra / Vulture` 新增 prosperity/collapse 运行态偏置，长期区域繁荣/衰退现在会直接影响 herd 通道与空中尸体通道行为
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：

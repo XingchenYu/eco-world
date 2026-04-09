@@ -38,11 +38,14 @@ class RegionSimulation(Ecosystem):
         territory_state = self.region.relationship_state.get("territory", {})
         phase_scores = social_state.get("phase_scores", {})
         hotspot_scores = social_state.get("hotspot_scores", {})
+        prosperity_scores = social_state.get("prosperity_scores", {})
         territory_signals = territory_state.get("runtime_signals", {}) if isinstance(territory_state, dict) else {}
         lion_expansion = float(phase_scores.get("lion_expansion_phase", 0.0))
         lion_contraction = float(phase_scores.get("lion_contraction_phase", 0.0))
         hyena_expansion = float(phase_scores.get("hyena_expansion_phase", 0.0))
         hyena_contraction = float(phase_scores.get("hyena_contraction_phase", 0.0))
+        grassland_prosperity = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
+        grassland_collapse = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
@@ -73,12 +76,18 @@ class RegionSimulation(Ecosystem):
             elif animal.species == "antelope":
                 animal.herd_channel_bias = herd_channel_bias
                 animal.herd_source_bias = herd_source_bias
+                animal.prosperity_phase_bias = grassland_prosperity
+                animal.collapse_phase_bias = grassland_collapse
             elif animal.species == "zebra":
                 animal.herd_channel_bias = herd_channel_bias
                 animal.herd_source_bias = herd_source_bias
+                animal.prosperity_phase_bias = grassland_prosperity
+                animal.collapse_phase_bias = grassland_collapse
             elif animal.species == "vulture":
                 animal.aerial_lane_bias = aerial_lane_bias
                 animal.kill_corridor_bias = kill_corridor_bias
+                animal.prosperity_phase_bias = grassland_prosperity
+                animal.collapse_phase_bias = grassland_collapse
 
     def get_statistics(self) -> dict:
         stats = super().get_statistics()
