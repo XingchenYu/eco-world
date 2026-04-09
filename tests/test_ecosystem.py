@@ -662,6 +662,7 @@ def test_v4_grassland_chain_summary():
         runtime_state={
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
+            "herd_surface_water_runtime": 0.6,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -686,6 +687,7 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["hotspot_overlap_pressure"] > 0.0
     assert grassland_chain.trophic_scores["territory_channel_pressure"] > 0.0
     assert grassland_chain.trophic_scores["carcass_channeling"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_surface_water_pull"] > 0.0
     assert grassland_chain.trophic_scores["surface_water_anchor"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
     assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
@@ -1012,6 +1014,7 @@ def test_v4_carrion_chain_summary():
         runtime_state={
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
+            "aerial_carcass_runtime": 0.5,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1030,6 +1033,7 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.resource_scores["carrion_energy_loop"] > 0.0
     assert grassland_chain.resource_scores["kill_corridor_overlap"] > 0.0
     assert grassland_chain.resource_scores["scavenger_lane_pressure"] > 0.0
+    assert grassland_chain.resource_scores["runtime_carcass_pull"] > 0.0
     assert grassland_chain.resource_scores["carcass_anchor_pressure"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenge_layer"] > 0.0

@@ -137,6 +137,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_corridors", min(0.28, herd_hotspots * 0.05), "运行中的食草群热点正在重新加深草原 herd 通道。")
         if herd_apex_overlap > 0:
             add_score("runtime_herd_apex_overlap", min(0.24, herd_apex_overlap * 0.06), "食草群与顶层热点重叠正在抬高草原通道冲突密度。")
+        herd_surface_water_runtime = float(runtime_signals.get("herd_surface_water_runtime", 0.0))
+        if herd_surface_water_runtime > 0.0:
+            add_score("runtime_surface_water_pull", min(0.22, herd_surface_water_runtime * 0.16), "运行中的食草群水源依赖正在把草原通道重新拉向稳定水源轴。")
+            add_layer_bias("herd_layer", herd_surface_water_runtime * 0.08)
         surface_water_anchor = float(runtime_signals.get("surface_water_anchor", 0.0))
         if surface_water_anchor > 0.0:
             add_score("surface_water_anchor", min(0.24, surface_water_anchor * 0.16), "区域水源锚点正在把 herd 通道重新拉回稳定饮水走廊。")
