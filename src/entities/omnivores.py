@@ -580,6 +580,7 @@ class Lion(Animal):
         self.apex_hotspot_bias = 0.0
         self.kill_corridor_bias = 0.0
         self.surface_water_anchor = 0.0
+        self.runtime_anchor_prosperity = 0.0
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
@@ -677,6 +678,7 @@ class Lion(Animal):
             - self.shared_hotspot_memory * 0.20
             + self.apex_hotspot_bias * 0.05
             + self.surface_water_anchor * 0.06
+            + self.runtime_anchor_prosperity * 0.05
             + self.regional_prosperity * 0.05
             + self.regional_stability * 0.04
             - self.kill_corridor_bias * 0.03
@@ -794,6 +796,7 @@ class Hyena(Animal):
         self.scavenger_hotspot_bias = 0.0
         self.kill_corridor_bias = 0.0
         self.carcass_anchor = 0.0
+        self.runtime_anchor_prosperity = 0.0
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
@@ -894,6 +897,7 @@ class Hyena(Animal):
             - self.shared_hotspot_memory * 0.16
             + self.scavenger_hotspot_bias * 0.05
             + self.carcass_anchor * 0.06
+            + self.runtime_anchor_prosperity * 0.05
             + self.regional_prosperity * 0.05
             + self.regional_stability * 0.04
             - self.kill_corridor_bias * 0.02

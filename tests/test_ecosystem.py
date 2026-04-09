@@ -1761,6 +1761,7 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.hotspot_memory == 0.52
     assert lion.shared_hotspot_memory == 0.31
     assert lion.surface_water_anchor == 0.68
+    assert lion.runtime_anchor_prosperity > 0.30
     assert lion.regional_prosperity > 0.0
     assert lion.regional_stability > 0.0
     assert hyena.cycle_expansion_phase == 0.58
@@ -1768,6 +1769,7 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.hotspot_memory == 0.49
     assert hyena.shared_hotspot_memory == 0.31
     assert hyena.carcass_anchor == 0.57
+    assert hyena.runtime_anchor_prosperity > 0.30
     assert hyena.regional_prosperity > 0.0
     assert hyena.regional_stability > 0.0
     assert lion.apex_hotspot_bias == 1.0
@@ -1780,6 +1782,7 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.prosperity_phase_bias == 0.41
     assert antelope.collapse_phase_bias == 0.16
     assert antelope.surface_water_anchor == 0.68
+    assert antelope.runtime_anchor_prosperity > 0.30
     assert antelope.regional_prosperity > 0.0
     assert antelope.regional_stability > 0.0
     assert zebra.herd_channel_bias == 1.0
@@ -1788,6 +1791,7 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.prosperity_phase_bias == 0.41
     assert zebra.collapse_phase_bias == 0.16
     assert zebra.surface_water_anchor == 0.68
+    assert zebra.runtime_anchor_prosperity > 0.30
     assert zebra.regional_prosperity > 0.0
     assert zebra.regional_stability > 0.0
     assert vulture.aerial_lane_bias == 1.0
@@ -1796,6 +1800,7 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.prosperity_phase_bias == 0.41
     assert vulture.collapse_phase_bias == 0.16
     assert vulture.carcass_anchor == 0.57
+    assert vulture.runtime_anchor_prosperity > 0.30
     assert vulture.regional_prosperity > 0.0
     assert vulture.regional_stability > 0.0
 

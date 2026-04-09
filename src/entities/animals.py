@@ -1144,6 +1144,7 @@ class Antelope(Animal):
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
         self.surface_water_anchor = 0.0
+        self.runtime_anchor_prosperity = 0.0
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
@@ -1185,6 +1186,7 @@ class Antelope(Animal):
             self.route_cycle_bias * 0.9,
             self.prosperity_phase_bias * 0.85,
             self.surface_water_anchor * 0.95,
+            self.runtime_anchor_prosperity * 0.60,
             self.regional_prosperity * 0.55,
             self.regional_stability * 0.40,
         )
@@ -1224,6 +1226,7 @@ class Zebra(Animal):
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
         self.surface_water_anchor = 0.0
+        self.runtime_anchor_prosperity = 0.0
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
@@ -1262,6 +1265,7 @@ class Zebra(Animal):
             self.route_cycle_bias * 0.9,
             self.prosperity_phase_bias * 0.85,
             self.surface_water_anchor * 0.95,
+            self.runtime_anchor_prosperity * 0.60,
             self.regional_prosperity * 0.55,
             self.regional_stability * 0.40,
         )
@@ -1669,6 +1673,7 @@ class Vulture(Animal):
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
         self.carcass_anchor = 0.0
+        self.runtime_anchor_prosperity = 0.0
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
@@ -1716,6 +1721,7 @@ class Vulture(Animal):
             self.carrion_cycle_bias * 0.92,
             self.prosperity_phase_bias * 0.9,
             self.carcass_anchor * 0.95,
+            self.runtime_anchor_prosperity * 0.58,
             self.regional_prosperity * 0.52,
             self.regional_stability * 0.36,
         )

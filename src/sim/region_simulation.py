@@ -67,6 +67,12 @@ class RegionSimulation(Ecosystem):
             float(territory_signals.get("carcass_anchor", 0.0)),
             float(resource_state.get("carcass_availability", 0.0)),
         )
+        runtime_anchor_prosperity = min(
+            1.0,
+            grassland_prosperity * 0.65
+            + max(surface_water_anchor, carcass_anchor) * 0.25
+            + max(herd_route_cycle, aerial_carrion_cycle) * 0.15,
+        )
         regional_prosperity = float(health_state.get("prosperity", 0.0))
         regional_collapse_risk = float(health_state.get("collapse_risk", 0.0))
         regional_stability = float(health_state.get("stability", 0.0))
@@ -88,6 +94,7 @@ class RegionSimulation(Ecosystem):
                 animal.apex_hotspot_bias = apex_hotspot_bias
                 animal.kill_corridor_bias = kill_corridor_bias
                 animal.surface_water_anchor = surface_water_anchor
+                animal.runtime_anchor_prosperity = runtime_anchor_prosperity
                 animal.regional_prosperity = regional_prosperity
                 animal.regional_collapse_risk = regional_collapse_risk
                 animal.regional_stability = regional_stability
@@ -99,6 +106,7 @@ class RegionSimulation(Ecosystem):
                 animal.scavenger_hotspot_bias = scavenger_hotspot_bias
                 animal.kill_corridor_bias = kill_corridor_bias
                 animal.carcass_anchor = carcass_anchor
+                animal.runtime_anchor_prosperity = runtime_anchor_prosperity
                 animal.regional_prosperity = regional_prosperity
                 animal.regional_collapse_risk = regional_collapse_risk
                 animal.regional_stability = regional_stability
@@ -109,6 +117,7 @@ class RegionSimulation(Ecosystem):
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
                 animal.surface_water_anchor = surface_water_anchor
+                animal.runtime_anchor_prosperity = runtime_anchor_prosperity
                 animal.regional_prosperity = regional_prosperity
                 animal.regional_collapse_risk = regional_collapse_risk
                 animal.regional_stability = regional_stability
@@ -119,6 +128,7 @@ class RegionSimulation(Ecosystem):
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
                 animal.surface_water_anchor = surface_water_anchor
+                animal.runtime_anchor_prosperity = runtime_anchor_prosperity
                 animal.regional_prosperity = regional_prosperity
                 animal.regional_collapse_risk = regional_collapse_risk
                 animal.regional_stability = regional_stability
@@ -129,6 +139,7 @@ class RegionSimulation(Ecosystem):
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
                 animal.carcass_anchor = carcass_anchor
+                animal.runtime_anchor_prosperity = runtime_anchor_prosperity
                 animal.regional_prosperity = regional_prosperity
                 animal.regional_collapse_risk = regional_collapse_risk
                 animal.regional_stability = regional_stability
