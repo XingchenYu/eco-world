@@ -232,6 +232,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("dominant_herd_channeling", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_surface_water_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_health_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_memory_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_route_cycle_pressure", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16 * scavenger_bias, feedback_scale)
@@ -247,6 +248,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("herd_memory_pressure", 0.0) * 0.14 * collapse_bias * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("dominant_apex_layout", 0.0) * 0.14 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_herd_apex_overlap", 0.0) * 0.12 * predator_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)
 
     _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22 * prosperity_bias, feedback_scale)
@@ -796,6 +798,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["antelope"],
             }
         )
+    if scores.get("runtime_herd_health_pull", 0.0) >= 0.06 and antelope_count < 19:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_health",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "runtime_herd_health_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if scores.get("runtime_surface_water_pull", 0.0) >= 0.08 and zebra_count < 16:
         species_pool["zebra"] = species_pool.get("zebra", 0) + 1
         adjustments.append(
@@ -805,6 +818,28 @@ def apply_region_grassland_chain_rebalancing(
                 "layer_group": "herd_layer",
                 "effect": "runtime_surface_water_support",
                 "new_target_count": species_pool["zebra"],
+            }
+        )
+    if scores.get("runtime_herd_health_pull", 0.0) >= 0.06 and zebra_count < 17:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_health",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "runtime_herd_health_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+    if scores.get("runtime_apex_health_pull", 0.0) >= 0.06 and lion_count < 7:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_health",
+                "target_species": "lion",
+                "layer_group": "predator_layer",
+                "effect": "runtime_apex_health_support",
+                "new_target_count": species_pool["lion"],
             }
         )
     if grassland_boom_phase >= 0.45 and antelope_count < 22:

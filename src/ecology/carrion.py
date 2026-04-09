@@ -202,6 +202,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16 * prosperity_bias * scavenger_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_carcass_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_health_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("aerial_memory_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("aerial_carrion_cycle_pressure", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18 * prosperity_bias * scavenger_bias, feedback_scale)
@@ -212,6 +213,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_tracking", 0.0) * 0.14 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("dominant_aerial_tracking", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_vulture_overlap", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("aerial_memory_overlap", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12 * prosperity_bias, feedback_scale)
@@ -582,6 +584,28 @@ def apply_region_carrion_chain_rebalancing(
                 "layer_group": "aerial_scavenge_layer",
                 "effect": "runtime_carcass_support",
                 "new_target_count": species_pool["vulture"],
+            }
+        )
+    if scores.get("runtime_aerial_health_pull", 0.0) >= 0.06 and vulture_count < 11:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_health",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "runtime_aerial_health_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
+    if scores.get("runtime_apex_health_pull", 0.0) >= 0.06 and lion_count < 8:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_health",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "runtime_apex_health_support",
+                "new_target_count": species_pool["lion"],
             }
         )
     if grassland_boom_phase >= 0.45 and vulture_count < 11 and antelope_count + zebra_count >= 16:

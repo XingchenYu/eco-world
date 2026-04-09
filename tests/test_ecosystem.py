@@ -1289,6 +1289,8 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
             "herd_surface_water_runtime": 0.6,
+            "herd_regional_health_runtime": 0.52,
+            "apex_regional_health_runtime": 0.48,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1306,8 +1308,10 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["source_species"] == "runtime_resource" for item in adjustments)
+    assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag", "herd_route_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_surface_water_support" for item in adjustments)
+    assert any(item["effect"] in {"runtime_herd_health_support", "runtime_apex_health_support"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_herd_release", "bust_phase_herd_drag", "boom_phase_apex_release", "bust_phase_apex_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_herd_gain", "collapse_phase_scavenger_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_expansion_window", "clan_expansion_window"} for item in adjustments)
@@ -1492,6 +1496,8 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
             "aerial_carcass_runtime": 0.5,
+            "aerial_regional_health_runtime": 0.44,
+            "apex_regional_health_runtime": 0.48,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1508,8 +1514,10 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "aerial_scavenge_layer", "herd_source_layer"} for item in adjustments)
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
+    assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn", "aerial_carrion_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_carcass_support" for item in adjustments)
+    assert any(item["effect"] in {"runtime_aerial_health_support", "runtime_apex_health_support"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_scavenger_release", "bust_phase_scavenger_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_scavenger_gain", "collapse_phase_apex_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_carrion_expansion_window", "clan_carrion_expansion_window"} for item in adjustments)
