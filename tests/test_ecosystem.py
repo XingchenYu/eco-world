@@ -408,6 +408,7 @@ def test_v4_grassland_runtime_pressure_updates_region_health():
     assert region.ecological_pressures["prosperity_pressure"] > 0.0
     assert region.ecological_pressures["collapse_pressure"] > 0.0
     assert region.ecological_pressures["runtime_resource_pressure"] > 0.0
+    assert "condition_phase_window_memory" in region.relationship_state["social_trends"]["cycle_signals"]
     assert region.ecological_pressures["runtime_herd_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_condition_anchor_pull"] > 0.0

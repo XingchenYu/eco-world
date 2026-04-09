@@ -165,6 +165,7 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_phase_anchor_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_regional_bias_pull", 0.0)) * 0.7
+            + (0.18 if "condition_phase_window_memory" in social_trends.cycle_signals else 0.0)
         )
         collapse_pressure = (
             float(social_trends.prosperity_scores.get("grassland_collapse_phase", 0.0))
@@ -187,6 +188,7 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.20
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_phase_anchor_pull", 0.0)) * 0.18
             + float(carrion_chain.resource_scores.get("runtime_apex_regional_bias_pull", 0.0)) * 0.25
+            + (0.10 if "condition_phase_window_memory" in social_trends.cycle_signals else 0.0)
         )
         runtime_resource_pressure = (
             float(territory.runtime_signals.get("herd_surface_water_runtime", 0.0))
@@ -210,6 +212,7 @@ class WorldSimulation:
             + float(territory.runtime_signals.get("apex_regional_health_anchor_runtime", 0.0)) * 0.8
             + float(territory.runtime_signals.get("apex_condition_anchor_runtime", 0.0)) * 0.8
             + float(territory.runtime_signals.get("apex_regional_bias_runtime", 0.0)) * 0.8
+            + (0.16 if "condition_phase_window_memory" in social_trends.cycle_signals else 0.0)
         )
         combined_pressures["prosperity_pressure"] = round(prosperity_pressure, 4)
         combined_pressures["collapse_pressure"] = round(collapse_pressure, 4)

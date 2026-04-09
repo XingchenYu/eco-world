@@ -31,6 +31,18 @@
   - 草原与尸体资源链的低频恢复机会
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐对应断言并通过全量回归
 
+### v4.0-alpha42 (2026-04-10 12:50)
+
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已把 `condition_phase_window_memory` 直接接入：
+  - `prosperity_pressure`
+  - `collapse_pressure`
+  - `runtime_resource_pressure`
+- ✅ 这使长期相位体况窗口现在已经不只影响：
+  - `social_trends`
+  - `grassland / carrion` 重平衡
+  还会继续直接影响区域长期 `prosperity / collapse_risk / stability`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐区域压力断言并通过
+
 ### v4.0-alpha39 (2026-04-10 11:35)
 
 - ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已新增：

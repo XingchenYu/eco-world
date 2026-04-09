@@ -76,6 +76,13 @@
   - `condition_phase_aerial_window`
   - `condition_phase_apex_carrion_window`
   使长期相位体况偏置开始直接作用于低频恢复窗口，而不只作用于个体体况和产仔冷却
+- 这些新的 `condition_phase_* window` 现在也已继续沉淀为：
+  - `condition_phase_window_memory`
+  并继续进入世界级：
+  - `prosperity_pressure`
+  - `collapse_pressure`
+  - `runtime_resource_pressure`
+  使长期相位体况窗口开始直接参与区域长期健康判定
 - 这些长期相位现在也已继续下沉到：
   - 运行体 `condition_runtime`
   使 herd / apex / aerial 的真实体况开始带长期 prosperity/collapse 偏置
