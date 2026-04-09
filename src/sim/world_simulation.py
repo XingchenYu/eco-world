@@ -128,10 +128,13 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("prosperity_phase_carrion", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_surface_water_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_resource_anchor_pull", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_herd_anchor_prosperity_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_carcass_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_resource_anchor_pull", 0.0))
+            + float(carrion_chain.resource_scores.get("runtime_aerial_anchor_prosperity_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_health_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_pull", 0.0)) * 0.8
+            + float(grassland_chain.trophic_scores.get("runtime_apex_anchor_prosperity_pull", 0.0)) * 0.8
             + float(carrion_chain.resource_scores.get("runtime_aerial_health_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_apex_health_pull", 0.0)) * 0.8
         )
@@ -148,6 +151,9 @@ class WorldSimulation:
             + float(territory.runtime_signals.get("aerial_carcass_runtime", 0.0))
             + float(territory.runtime_signals.get("herd_resource_anchor_runtime", 0.0))
             + float(territory.runtime_signals.get("aerial_resource_anchor_runtime", 0.0))
+            + float(territory.runtime_signals.get("herd_anchor_prosperity_runtime", 0.0))
+            + float(territory.runtime_signals.get("aerial_anchor_prosperity_runtime", 0.0))
+            + float(territory.runtime_signals.get("apex_anchor_prosperity_runtime", 0.0))
             + float(territory.runtime_signals.get("surface_water_anchor", 0.0))
             + float(territory.runtime_signals.get("carcass_anchor", 0.0))
             + float(territory.runtime_signals.get("herd_regional_health_runtime", 0.0))

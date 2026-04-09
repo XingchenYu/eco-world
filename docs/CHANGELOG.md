@@ -1021,3 +1021,14 @@ src/core/ecosystem.py        [修改] 导入新物种
   写成：
   - `runtime_aerial_anchor_prosperity_pull`
   并接入区域反馈与空中清道夫重平衡
+- ✅ 世界级长期压力聚合现已继续吸收：
+  - `runtime_herd_anchor_prosperity_pull`
+  - `runtime_aerial_anchor_prosperity_pull`
+  - `runtime_apex_anchor_prosperity_pull`
+  - `herd_anchor_prosperity_runtime`
+  - `aerial_anchor_prosperity_runtime`
+  - `apex_anchor_prosperity_runtime`
+- ✅ 这些运行期繁荣锚点现在已经开始直接进入区域：
+  - `prosperity_pressure`
+  - `runtime_resource_pressure`
+  - `health_state["prosperity" / "stability"]`

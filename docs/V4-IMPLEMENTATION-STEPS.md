@@ -810,3 +810,12 @@
   并把它写成：
   - `runtime_aerial_anchor_prosperity_pull`
   这意味着运行体繁荣锚点已经开始直接进入尸体资源链摘要、反馈和空中清道夫重平衡
+- `WorldSimulation._build_combined_pressures()` 现已继续吸收：
+  - `runtime_herd_anchor_prosperity_pull`
+  - `runtime_aerial_anchor_prosperity_pull`
+  - `runtime_apex_anchor_prosperity_pull`
+  以及 `territory.runtime_signals` 里的：
+  - `herd_anchor_prosperity_runtime`
+  - `aerial_anchor_prosperity_runtime`
+  - `apex_anchor_prosperity_runtime`
+  也就是说，运行体繁荣锚点现在已经直接进入区域级 `prosperity_pressure / runtime_resource_pressure`，开始影响长期健康判定
