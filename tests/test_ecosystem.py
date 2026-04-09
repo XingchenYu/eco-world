@@ -819,11 +819,14 @@ def test_v4_territory_summary_uses_runtime_state():
             "herd_apex_overlap": 1.0,
             "herd_route_cycle_runtime": 0.36,
             "herd_surface_water_runtime": 0.6,
+            "herd_regional_health_runtime": 0.52,
             "vulture_hotspot_count": 2.0,
             "aerial_carrion_cycle_runtime": 0.31,
             "aerial_carcass_runtime": 0.5,
+            "aerial_regional_health_runtime": 0.44,
             "vulture_carrion_overlap": 1.0,
             "shared_hotspot_overlap": 1.0,
+            "apex_regional_health_runtime": 0.48,
         },
     )
 
@@ -841,11 +844,14 @@ def test_v4_territory_summary_uses_runtime_state():
     assert summary.runtime_signals["herd_apex_overlap"] == 1
     assert summary.runtime_signals["herd_route_cycle_runtime"] == 0.36
     assert summary.runtime_signals["herd_surface_water_runtime"] == 0.6
+    assert summary.runtime_signals["herd_regional_health_runtime"] == 0.52
     assert summary.runtime_signals["surface_water_anchor"] == 0.6
     assert summary.runtime_signals["vulture_hotspot_count"] == 2
     assert summary.runtime_signals["aerial_carrion_cycle_runtime"] == 0.31
     assert summary.runtime_signals["aerial_carcass_runtime"] == 0.5
+    assert summary.runtime_signals["aerial_regional_health_runtime"] == 0.44
     assert summary.runtime_signals["carcass_anchor"] == 0.5
+    assert summary.runtime_signals["apex_regional_health_runtime"] == 0.48
     assert summary.runtime_signals["vulture_carrion_overlap"] == 1
     assert summary.runtime_signals["shared_hotspot_overlap"] == 1
     assert summary.pressure_scores["pride_core_range"] > 0.58
