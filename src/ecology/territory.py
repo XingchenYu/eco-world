@@ -89,8 +89,11 @@ def build_region_territory_summary(
     previous_grassland = region.relationship_state.get("grassland_chain", {})
     previous_carrion = region.relationship_state.get("carrion_chain", {})
     previous_runtime = previous_territory.get("runtime_signals", {}) if isinstance(previous_territory, dict) else {}
+    previous_social = region.relationship_state.get("social_trends", {})
     previous_grassland_layer = previous_grassland.get("dominant_layer", "") if isinstance(previous_grassland, dict) else ""
     previous_carrion_layer = previous_carrion.get("dominant_layer", "") if isinstance(previous_carrion, dict) else ""
+    previous_social_cycles = previous_social.get("cycle_signals", []) if isinstance(previous_social, dict) else []
+    previous_social_prosperity = previous_social.get("prosperity_scores", {}) if isinstance(previous_social, dict) else {}
 
     for description in recent_events or []:
         if "pride core range" in description:
@@ -387,6 +390,27 @@ def build_region_territory_summary(
         elif previous_carrion_layer == "aerial_scavenge_layer":
             runtime_signals["aerial_lane_bias"] = 1
             pressure_scores["carcass_route_overlap"] = round(pressure_scores.get("carcass_route_overlap", 0.0) + 0.06, 2)
+
+        if "regional_prosperity_anchor" in previous_social_cycles:
+            runtime_signals["regional_prosperity_bias"] = 1
+            pressure_scores["waterhole_spacing"] = round(pressure_scores.get("waterhole_spacing", 0.0) + 0.06, 2)
+            pressure_scores["carcass_route_overlap"] = round(pressure_scores.get("carcass_route_overlap", 0.0) + 0.05, 2)
+        if "regional_stability_anchor" in previous_social_cycles:
+            runtime_signals["regional_stability_bias"] = 1
+            pressure_scores["pride_core_range"] = round(pressure_scores.get("pride_core_range", 0.0) + 0.05, 2)
+            pressure_scores["clan_den_range"] = round(pressure_scores.get("clan_den_range", 0.0) + 0.05, 2)
+        if "regional_collapse_anchor" in previous_social_cycles or float(
+            previous_social_prosperity.get("grassland_collapse_phase", 0.0)
+        ) >= 0.18:
+            runtime_signals["regional_collapse_bias"] = 1
+            pressure_scores["apex_boundary_conflict"] = round(
+                pressure_scores.get("apex_boundary_conflict", 0.0) + 0.07,
+                2,
+            )
+            pressure_scores["carcass_route_overlap"] = round(
+                pressure_scores.get("carcass_route_overlap", 0.0) + 0.05,
+                2,
+            )
 
     return RegionTerritorySummary(
         region_id=region.region_id,

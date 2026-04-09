@@ -898,6 +898,37 @@ def test_v4_territory_summary_uses_dominant_layers():
     print("✅ V4 territory dominant layer test passed")
 
 
+def test_v4_territory_summary_uses_regional_social_anchors():
+    """v4 领地摘要应吸收区域长期社会锚点。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    grassland = world_map.get_region("temperate_grassland")
+    grassland.record_relationship_state(
+        "social_trends",
+        {
+            "cycle_signals": [
+                "regional_prosperity_anchor",
+                "regional_stability_anchor",
+                "regional_collapse_anchor",
+            ],
+            "prosperity_scores": {"grassland_collapse_phase": 0.2},
+        },
+    )
+
+    summary = build_region_territory_summary(grassland, registry)
+
+    assert summary.runtime_signals["regional_prosperity_bias"] == 1
+    assert summary.runtime_signals["regional_stability_bias"] == 1
+    assert summary.runtime_signals["regional_collapse_bias"] == 1
+    assert summary.pressure_scores["waterhole_spacing"] > 0.34
+    assert summary.pressure_scores["carcass_route_overlap"] > 0.49
+    assert summary.pressure_scores["pride_core_range"] > 0.58
+    assert summary.pressure_scores["clan_den_range"] > 0.55
+    assert summary.pressure_scores["apex_boundary_conflict"] > 0.63
+
+    print("✅ V4 territory regional social anchor test passed")
+
+
 def test_v4_territory_summary_uses_hotspot_memory():
     """v4 领地摘要应能吸收热点持续与迁移记忆。"""
     world_map = build_default_world_map()
@@ -2631,6 +2662,7 @@ def run_all_tests():
     test_v4_territory_summary()
     test_v4_territory_summary_uses_runtime_events()
     test_v4_territory_summary_uses_runtime_state()
+    test_v4_territory_summary_uses_regional_social_anchors()
     test_v4_territory_summary_uses_hotspot_memory()
     test_v4_social_trend_summary_uses_memory()
     test_region_simulation_applies_social_phase_state()

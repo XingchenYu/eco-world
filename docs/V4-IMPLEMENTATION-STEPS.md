@@ -847,3 +847,15 @@
   - `herd_route_cycle / aerial_carrion_cycle`
   - `cycle_signals`
   也就是说，区域长期健康度现在已经开始不经过运行体中转，直接塑造社群长期记忆和周期层
+- `territory` 现已开始继续读取上一周期 `social_trends` 里的：
+  - `regional_prosperity_anchor`
+  - `regional_stability_anchor`
+  - `regional_collapse_anchor`
+  以及 `grassland_collapse_phase`
+  并把它们回灌到：
+  - `waterhole_spacing`
+  - `pride_core_range`
+  - `clan_den_range`
+  - `apex_boundary_conflict`
+  - `carcass_route_overlap`
+  也就是说，区域长期社会锚点现在已经开始直接改变领地布局压力，而不只停留在 `social_trends`
