@@ -57,6 +57,8 @@ class RegionSimulation(Ecosystem):
         herd_source_bias = float(territory_signals.get("herd_source_bias", 0.0))
         kill_corridor_bias = float(territory_signals.get("kill_corridor_bias", 0.0))
         aerial_lane_bias = float(territory_signals.get("aerial_lane_bias", 0.0))
+        surface_water_anchor = float(territory_signals.get("surface_water_anchor", 0.0))
+        carcass_anchor = float(territory_signals.get("carcass_anchor", 0.0))
 
         for animal in self.animals:
             if not animal.alive:
@@ -68,6 +70,7 @@ class RegionSimulation(Ecosystem):
                 animal.shared_hotspot_memory = shared_hotspot_memory
                 animal.apex_hotspot_bias = apex_hotspot_bias
                 animal.kill_corridor_bias = kill_corridor_bias
+                animal.surface_water_anchor = surface_water_anchor
             elif animal.species == "hyena":
                 animal.cycle_expansion_phase = hyena_expansion
                 animal.cycle_contraction_phase = hyena_contraction
@@ -75,24 +78,28 @@ class RegionSimulation(Ecosystem):
                 animal.shared_hotspot_memory = shared_hotspot_memory
                 animal.scavenger_hotspot_bias = scavenger_hotspot_bias
                 animal.kill_corridor_bias = kill_corridor_bias
+                animal.carcass_anchor = carcass_anchor
             elif animal.species == "antelope":
                 animal.herd_channel_bias = herd_channel_bias
                 animal.herd_source_bias = herd_source_bias
                 animal.route_cycle_bias = herd_route_cycle
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
+                animal.surface_water_anchor = surface_water_anchor
             elif animal.species == "zebra":
                 animal.herd_channel_bias = herd_channel_bias
                 animal.herd_source_bias = herd_source_bias
                 animal.route_cycle_bias = herd_route_cycle
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
+                animal.surface_water_anchor = surface_water_anchor
             elif animal.species == "vulture":
                 animal.aerial_lane_bias = aerial_lane_bias
                 animal.kill_corridor_bias = kill_corridor_bias
                 animal.carrion_cycle_bias = aerial_carrion_cycle
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
+                animal.carcass_anchor = carcass_anchor
 
     def get_statistics(self) -> dict:
         stats = super().get_statistics()

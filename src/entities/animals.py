@@ -1143,6 +1143,7 @@ class Antelope(Animal):
         self.route_cycle_bias = 0.0
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
+        self.surface_water_anchor = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion", "hyena", "wolf", "crocodile"]
@@ -1180,6 +1181,7 @@ class Antelope(Animal):
             self.herd_source_bias * 0.7,
             self.route_cycle_bias * 0.9,
             self.prosperity_phase_bias * 0.85,
+            self.surface_water_anchor * 0.95,
         )
         collapse_drag = self.collapse_phase_bias * 0.12
         if bias <= 0.0:
@@ -1216,6 +1218,7 @@ class Zebra(Animal):
         self.route_cycle_bias = 0.0
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
+        self.surface_water_anchor = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion", "hyena", "crocodile"]
@@ -1250,6 +1253,7 @@ class Zebra(Animal):
             self.herd_source_bias * 0.7,
             self.route_cycle_bias * 0.9,
             self.prosperity_phase_bias * 0.85,
+            self.surface_water_anchor * 0.95,
         )
         collapse_drag = self.collapse_phase_bias * 0.12
         if bias <= 0.0:
@@ -1654,6 +1658,7 @@ class Vulture(Animal):
         self.carrion_cycle_bias = 0.0
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
+        self.carcass_anchor = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -1697,6 +1702,7 @@ class Vulture(Animal):
             self.kill_corridor_bias * 0.8,
             self.carrion_cycle_bias * 0.92,
             self.prosperity_phase_bias * 0.9,
+            self.carcass_anchor * 0.95,
         )
         collapse_drag = self.collapse_phase_bias * 0.10
         if bias <= 0.0:

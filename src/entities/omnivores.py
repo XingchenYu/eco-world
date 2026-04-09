@@ -579,6 +579,7 @@ class Lion(Animal):
         self.shared_hotspot_memory = 0.0
         self.apex_hotspot_bias = 0.0
         self.kill_corridor_bias = 0.0
+        self.surface_water_anchor = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -672,6 +673,7 @@ class Lion(Animal):
             + self.hotspot_memory * 0.18
             - self.shared_hotspot_memory * 0.20
             + self.apex_hotspot_bias * 0.05
+            + self.surface_water_anchor * 0.06
             - self.kill_corridor_bias * 0.03
         )
         stickiness = max(0.15, min(0.88, stickiness))
@@ -785,6 +787,7 @@ class Hyena(Animal):
         self.shared_hotspot_memory = 0.0
         self.scavenger_hotspot_bias = 0.0
         self.kill_corridor_bias = 0.0
+        self.carcass_anchor = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -881,6 +884,7 @@ class Hyena(Animal):
             + self.hotspot_memory * 0.20
             - self.shared_hotspot_memory * 0.16
             + self.scavenger_hotspot_bias * 0.05
+            + self.carcass_anchor * 0.06
             - self.kill_corridor_bias * 0.02
         )
         stickiness = max(0.12, min(0.86, stickiness))
