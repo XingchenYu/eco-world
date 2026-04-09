@@ -316,6 +316,57 @@ def build_region_social_trend_summary(
         ),
     }
 
+    prosperity_push = prosperity_scores["grassland_prosperity_phase"]
+    collapse_drag = prosperity_scores["grassland_collapse_phase"]
+    hotspot_scores["herd_hotspot_memory"] = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                hotspot_scores["herd_hotspot_memory"]
+                + prosperity_push * 0.08
+                - collapse_drag * 0.04,
+            ),
+        ),
+        3,
+    )
+    hotspot_scores["herd_apex_memory"] = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                hotspot_scores["herd_apex_memory"]
+                + prosperity_push * 0.05
+                - collapse_drag * 0.03,
+            ),
+        ),
+        3,
+    )
+    hotspot_scores["vulture_hotspot_memory"] = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                hotspot_scores["vulture_hotspot_memory"]
+                + prosperity_push * 0.07
+                - collapse_drag * 0.04,
+            ),
+        ),
+        3,
+    )
+    hotspot_scores["vulture_carrion_memory"] = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                hotspot_scores["vulture_carrion_memory"]
+                + prosperity_push * 0.06
+                - collapse_drag * 0.03,
+            ),
+        ),
+        3,
+    )
+
     phase_scores["herd_route_cycle"] = round(herd_route_cycle_signal, 3)
     phase_scores["aerial_carrion_cycle"] = round(aerial_carrion_cycle_signal, 3)
 

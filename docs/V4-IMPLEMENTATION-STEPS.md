@@ -731,3 +731,9 @@
   - `antelope / zebra` 会显式接收 `grassland_prosperity_phase / grassland_collapse_phase`
   - `vulture` 也会显式接收 `grassland_prosperity_phase / grassland_collapse_phase`
   - 长期繁荣/衰退相位已进入 herd 与 carrion 的运行期通道行为
+- `grassland_prosperity_phase / grassland_collapse_phase` 现已开始反向影响：
+  - `herd_hotspot_memory`
+  - `herd_apex_memory`
+  - `vulture_hotspot_memory`
+  - `vulture_carrion_memory`
+  也就是说，长期区域相位已开始改变 herd 与空中尸体通道记忆的累积方向

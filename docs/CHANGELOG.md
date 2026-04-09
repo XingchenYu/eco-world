@@ -909,6 +909,11 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ `RegionSimulation.apply_relationship_runtime_state()` 现在会把 `grassland_prosperity_phase / grassland_collapse_phase` 回灌到 `antelope / zebra / vulture`
 - ✅ `Antelope / Zebra / Vulture` 新增 prosperity/collapse 运行态偏置，长期区域繁荣/衰退现在会直接影响 herd 通道与空中尸体通道行为
 
+# v4.0-alpha39 - Feed prosperity phases into hotspot memory
+
+- ✅ `grassland_prosperity_phase / grassland_collapse_phase` 现在会反向影响 `herd_hotspot_memory / herd_apex_memory / vulture_hotspot_memory / vulture_carrion_memory`
+- ✅ 长期区域繁荣/衰退不再只作用于摘要和运行态行为，也开始改变 herd 与空中尸体通道记忆的累积方向
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：

@@ -943,6 +943,8 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.hotspot_scores["hyena_hotspot_memory"] >= 0.12
     assert summary.hotspot_scores["herd_hotspot_memory"] > 0.25
     assert summary.hotspot_scores["vulture_hotspot_memory"] > 0.20
+    assert summary.hotspot_scores["herd_apex_memory"] > 0.08
+    assert summary.hotspot_scores["vulture_carrion_memory"] > 0.08
     assert "lion_expansion_cycle" in summary.cycle_signals
     assert "hyena_expansion_cycle" in summary.cycle_signals
     assert "apex_hotspot_wave" in summary.cycle_signals
