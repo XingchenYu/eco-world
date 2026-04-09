@@ -1274,8 +1274,10 @@ def test_v4_grassland_chain_feedback_updates_region_state():
             "herd_apex_overlap": 1.0,
             "herd_surface_water_runtime": 0.6,
             "herd_regional_health_runtime": 0.52,
+            "herd_regional_bias_runtime": 0.46,
             "herd_anchor_prosperity_runtime": 0.58,
             "apex_regional_health_runtime": 0.48,
+            "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
             "shared_hotspot_overlap": 1.0,
         },
@@ -1296,9 +1298,11 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_herd_corridors" in summary.trophic_scores
     assert "runtime_surface_water_pull" in summary.trophic_scores
     assert "runtime_herd_health_pull" in summary.trophic_scores
+    assert "runtime_herd_regional_bias_pull" in summary.trophic_scores
     assert "runtime_herd_resource_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_anchor_prosperity_pull" in summary.trophic_scores
     assert "runtime_apex_health_pull" in summary.trophic_scores
+    assert "runtime_apex_regional_bias_pull" in summary.trophic_scores
     assert "runtime_apex_anchor_prosperity_pull" in summary.trophic_scores
     assert "regional_prosperity_anchor" in summary.trophic_scores
     assert "regional_stability_anchor" in summary.trophic_scores
@@ -1380,8 +1384,10 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "hyena_hotspot_count": 2.0,
             "herd_surface_water_runtime": 0.6,
             "herd_regional_health_runtime": 0.52,
+            "herd_regional_bias_runtime": 0.46,
             "herd_anchor_prosperity_runtime": 0.58,
             "apex_regional_health_runtime": 0.48,
+            "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
             "shared_hotspot_overlap": 1.0,
         },
@@ -1401,12 +1407,14 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["source_species"] == "runtime_resource" for item in adjustments)
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
+    assert any(item["source_species"] == "runtime_regional_bias" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor_prosperity" for item in adjustments)
     assert any(item["source_species"] == "regional_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag", "herd_route_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_surface_water_support" for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_health_support", "runtime_apex_health_support"} for item in adjustments)
+    assert any(item["effect"] in {"runtime_herd_regional_bias_support", "runtime_apex_regional_bias_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_herd_anchor_support" for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_anchor_prosperity_support", "runtime_apex_anchor_prosperity_support"} for item in adjustments)
     assert any(item["effect"] in {"regional_prosperity_support", "regional_stability_support", "regional_collapse_drag"} for item in adjustments)
@@ -1506,8 +1514,10 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             "vulture_carrion_overlap": 1.0,
             "aerial_carcass_runtime": 0.5,
             "aerial_regional_health_runtime": 0.44,
+            "aerial_regional_bias_runtime": 0.42,
             "aerial_anchor_prosperity_runtime": 0.49,
             "apex_regional_health_runtime": 0.48,
+            "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
             "shared_hotspot_overlap": 1.0,
         },
@@ -1528,11 +1538,13 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_aerial_lanes" in summary.resource_scores
     assert "runtime_carcass_pull" in summary.resource_scores
     assert "runtime_aerial_health_pull" in summary.resource_scores
+    assert "runtime_aerial_regional_bias_pull" in summary.resource_scores
     assert "runtime_aerial_resource_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_anchor_prosperity_pull" in summary.resource_scores
     assert "regional_prosperity_anchor" in summary.resource_scores
     assert "regional_stability_anchor" in summary.resource_scores
     assert "runtime_apex_health_pull" in summary.resource_scores
+    assert "runtime_apex_regional_bias_pull" in summary.resource_scores
     assert "runtime_vulture_overlap" in summary.resource_scores
     assert "aerial_memory_lanes" in summary.resource_scores
     assert "aerial_memory_overlap" in summary.resource_scores
@@ -1607,8 +1619,10 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "hyena_hotspot_count": 2.0,
             "aerial_carcass_runtime": 0.5,
             "aerial_regional_health_runtime": 0.44,
+            "aerial_regional_bias_runtime": 0.42,
             "aerial_anchor_prosperity_runtime": 0.49,
             "apex_regional_health_runtime": 0.48,
+            "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
             "shared_hotspot_overlap": 1.0,
         },
@@ -1627,12 +1641,14 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
+    assert any(item["source_species"] == "runtime_regional_bias" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor_prosperity" for item in adjustments)
     assert any(item["source_species"] == "regional_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn", "aerial_carrion_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_carcass_support" for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_health_support", "runtime_apex_health_support"} for item in adjustments)
+    assert any(item["effect"] in {"runtime_aerial_regional_bias_support", "runtime_apex_regional_bias_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_aerial_anchor_support" for item in adjustments)
     assert any(item["effect"] == "runtime_aerial_anchor_prosperity_support" for item in adjustments)
     assert any(item["effect"] in {"regional_prosperity_support", "regional_stability_support", "regional_collapse_drag"} for item in adjustments)

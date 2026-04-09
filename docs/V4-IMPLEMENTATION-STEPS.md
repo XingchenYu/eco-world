@@ -885,3 +885,17 @@
   - `boom-bust`
   - `prosperity / collapse`
   也就是说，运行中的区域长期社会锚点现在已经开始直接塑造下一轮社群长期相位
+- `grassland_chain` 现已开始继续读取：
+  - `herd_regional_bias_runtime`
+  - `apex_regional_bias_runtime`
+  并把它们写成：
+  - `runtime_herd_regional_bias_pull`
+  - `runtime_apex_regional_bias_pull`
+  这意味着运行中的区域长期社会锚点现在已经开始直接进入草原链摘要、区域反馈和低频 herd/apex 重平衡
+- `carrion_chain` 现已开始继续读取：
+  - `aerial_regional_bias_runtime`
+  - `apex_regional_bias_runtime`
+  并把它们写成：
+  - `runtime_aerial_regional_bias_pull`
+  - `runtime_apex_regional_bias_pull`
+  这意味着运行中的区域长期社会锚点现在已经开始直接进入尸体资源链摘要、区域反馈和空中清道夫/apex 重平衡

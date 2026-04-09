@@ -1097,3 +1097,23 @@ src/core/ecosystem.py        [修改] 导入新物种
   - herd/aerial 周期
   - `grassland_boom_phase / grassland_bust_phase`
   - `grassland_prosperity_phase / grassland_collapse_phase`
+- ✅ `grassland_chain` 现也开始继续吸收：
+  - `herd_regional_bias_runtime`
+  - `apex_regional_bias_runtime`
+  并把它们写成：
+  - `runtime_herd_regional_bias_pull`
+  - `runtime_apex_regional_bias_pull`
+- ✅ 这些运行中的区域长期社会锚点现在已经开始直接进入：
+  - 草原链摘要
+  - 草原链区域反馈
+  - herd/apex 的低频重平衡
+- ✅ `carrion_chain` 现也开始继续吸收：
+  - `aerial_regional_bias_runtime`
+  - `apex_regional_bias_runtime`
+  并把它们写成：
+  - `runtime_aerial_regional_bias_pull`
+  - `runtime_apex_regional_bias_pull`
+- ✅ 这些运行中的区域长期社会锚点现在已经开始直接进入：
+  - 尸体资源链摘要
+  - 尸体资源链区域反馈
+  - 空中清道夫/apex 的低频重平衡
