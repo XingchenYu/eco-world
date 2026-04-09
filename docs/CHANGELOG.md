@@ -738,6 +738,19 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ 对比基线确认：本轮修复把 `squirrel` 从 `3 / 5` seed 灭绝、其余 seed 仅剩 `1` 只，恢复到 `5 / 5` seed 稳定存活；同时其余 7 个被检查的陆地哺乳动物在修复前后都保持 `tick 200` 非零
 - ✅ 额外执行 `PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py`，现有基础生态测试全部通过
 
+# v4.0-alpha34 (2026-04-09 08:10)
+
+- `grassland.py` 现已把区域级 `prosperity / collapse` 相位接入草原链摘要与反馈：
+  - `prosperity_phase_weight`
+  - `collapse_phase_weight`
+- `carrion.py` 现已把区域级 `prosperity / collapse` 相位接入尸体资源链摘要与反馈：
+  - `prosperity_phase_carrion`
+  - `collapse_phase_carrion`
+- 这使得 `prosperity / collapse` 不再只影响重平衡，也开始改变：
+  - 草原链 summary 权重
+  - 尸体资源链 summary 权重
+  - 区域反馈强度
+
 # v4.0-alpha33 (2026-04-09 07:45)
 
 - `social.py` 新增区域级长期相位：

@@ -90,10 +90,17 @@ def build_region_carrion_chain_summary(
         if lion_hotspots > 0 and hyena_hotspots > 0:
             add_score("scavenger_lane_pressure", min(0.34, (lion_hotspots + hyena_hotspots) * 0.06), "多个顶层热点会强化地面与空中清道夫对尸体通道的跟随压力。")
     if social_trend_summary is not None:
+        prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
+        grassland_prosperity_phase = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
+        grassland_collapse_phase = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        if grassland_prosperity_phase > 0.0:
+            add_score("prosperity_phase_carrion", grassland_prosperity_phase * 0.22, "区域繁荣相位正在抬升尸体资源链的整体通量。")
+        if grassland_collapse_phase > 0.0:
+            add_score("collapse_phase_carrion", grassland_collapse_phase * 0.22, "区域衰退相位正在压缩尸体资源链的整体闭合度。")
         if lion_hotspot_memory > 0.0:
             add_score("hotspot_cycle_carrion", lion_hotspot_memory * 0.22, "持续的狮群热点记忆会把击杀点维持成更稳定的尸体资源通道。")
         if hyena_hotspot_memory > 0.0:
@@ -132,6 +139,8 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_carrion", 0.0) * 0.08, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("prosperity_phase_carrion", 0.0) * 0.10, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("collapse_phase_carrion", 0.0) * 0.10, feedback_scale)
 
 
 def apply_region_carrion_chain_rebalancing(

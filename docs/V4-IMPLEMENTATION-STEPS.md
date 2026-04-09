@@ -33,6 +33,9 @@
   - `grassland_prosperity_phase`
   - `grassland_collapse_phase`
   并开始作用到草原链和尸体资源链的长期 gain/loss 节律
+- 这层区域长期相位现在也开始直接改变：
+  - `grassland_chain` 的摘要权重与反馈强度
+  - `carrion_chain` 的摘要权重与反馈强度
 - 这使得草原领地层开始区分：
   - 群体数量
   - 社群强度

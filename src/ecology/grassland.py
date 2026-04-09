@@ -121,10 +121,17 @@ def build_region_grassland_chain_summary(
         if lion_hotspots > 0 and hyena_hotspots > 0:
             add_score("territory_channel_pressure", min(0.34, (lion_hotspots + hyena_hotspots) * 0.06), "多个 pride 与 clan 热点会强化草原顶层巡猎和清道夫路线的空间压缩。")
     if social_trend_summary is not None:
+        prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
+        grassland_prosperity_phase = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
+        grassland_collapse_phase = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        if grassland_prosperity_phase > 0.0:
+            add_score("prosperity_phase_weight", grassland_prosperity_phase * 0.24, "区域繁荣相位正在整体抬升草原链的联动权重。")
+        if grassland_collapse_phase > 0.0:
+            add_score("collapse_phase_weight", grassland_collapse_phase * 0.22, "区域衰退相位正在整体压缩草原链的稳定权重。")
         if lion_hotspot_memory > 0.0:
             add_score("hotspot_cycle_pressure", lion_hotspot_memory * 0.22, "持续的狮群热点记忆会放大草原巡猎核心区的多周期占用。")
         if hyena_hotspot_memory > 0.0:
@@ -175,10 +182,12 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("herd_predator_loop", 0.0) * 0.16, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("pride_patrol", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_pressure", 0.0) * 0.08, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("prosperity_phase_weight", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("group_hunt_instability", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("hotspot_overlap_pressure", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("hotspot_cycle_overlap", 0.0) * 0.10, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("collapse_phase_weight", 0.0) * 0.12, feedback_scale)
 
 
 def apply_region_grassland_chain_rebalancing(

@@ -1030,6 +1030,32 @@ def test_v4_grassland_chain_feedback_updates_region_state():
 
     initial_browse = region.resource_state["browse_cover"]
     initial_biodiversity = region.health_state["biodiversity"]
+    region.record_relationship_state(
+        "social_trends",
+        {
+            "trend_scores": {
+                "lion_recovery_bias": 0.45,
+                "hyena_recovery_bias": 0.42,
+            },
+            "phase_scores": {
+                "lion_expansion_phase": 0.48,
+                "hyena_expansion_phase": 0.46,
+            },
+            "boom_bust_scores": {
+                "grassland_boom_phase": 0.44,
+                "grassland_bust_phase": 0.18,
+            },
+            "prosperity_scores": {
+                "grassland_prosperity_phase": 0.24,
+                "grassland_collapse_phase": 0.12,
+            },
+            "hotspot_scores": {
+                "lion_hotspot_memory": 0.46,
+                "hyena_hotspot_memory": 0.44,
+                "shared_hotspot_memory": 0.43,
+            },
+        },
+    )
 
     territory = build_region_territory_summary(
         region,
@@ -1048,6 +1074,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert region.health_state["biodiversity"] >= initial_biodiversity
     assert "hotspot_cycle_pressure" in summary.trophic_scores
     assert "hotspot_cycle_overlap" in summary.trophic_scores
+    assert "prosperity_phase_weight" in summary.trophic_scores
+    assert "collapse_phase_weight" in summary.trophic_scores
 
     print("✅ V4 grassland chain feedback test passed")
 
@@ -1179,6 +1207,32 @@ def test_v4_carrion_chain_feedback_updates_region_state():
 
     initial_carrion = region.resource_state["carcass_availability"]
     initial_resilience = region.health_state["resilience"]
+    region.record_relationship_state(
+        "social_trends",
+        {
+            "trend_scores": {
+                "lion_recovery_bias": 0.45,
+                "hyena_recovery_bias": 0.42,
+            },
+            "phase_scores": {
+                "lion_expansion_phase": 0.48,
+                "hyena_expansion_phase": 0.46,
+            },
+            "boom_bust_scores": {
+                "grassland_boom_phase": 0.44,
+                "grassland_bust_phase": 0.18,
+            },
+            "prosperity_scores": {
+                "grassland_prosperity_phase": 0.24,
+                "grassland_collapse_phase": 0.12,
+            },
+            "hotspot_scores": {
+                "lion_hotspot_memory": 0.46,
+                "hyena_hotspot_memory": 0.44,
+                "shared_hotspot_memory": 0.43,
+            },
+        },
+    )
 
     territory = build_region_territory_summary(
         region,
@@ -1197,6 +1251,8 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert region.health_state["resilience"] >= initial_resilience
     assert "hotspot_cycle_carrion" in summary.resource_scores
     assert "hotspot_cycle_tracking" in summary.resource_scores
+    assert "prosperity_phase_carrion" in summary.resource_scores
+    assert "collapse_phase_carrion" in summary.resource_scores
 
     print("✅ V4 carrion chain feedback test passed")
 
