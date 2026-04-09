@@ -875,3 +875,13 @@
   - `aerial_regional_bias_runtime`
   并重新写回 `territory.runtime_signals`
   这意味着区域长期社会锚点现在已经形成“领地摘要 -> 运行体 -> runtime territory -> 领地摘要”的完整回流
+- `social_trends` 现也开始继续读取：
+  - `herd_regional_bias_runtime`
+  - `aerial_regional_bias_runtime`
+  - `apex_regional_bias_runtime`
+  并让它们继续进入：
+  - herd/vulture 热点记忆
+  - herd/aerial 周期
+  - `boom-bust`
+  - `prosperity / collapse`
+  也就是说，运行中的区域长期社会锚点现在已经开始直接塑造下一轮社群长期相位

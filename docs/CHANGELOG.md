@@ -1088,3 +1088,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `herd_regional_bias_runtime`
   - `aerial_regional_bias_runtime`
   并回灌到 `territory.runtime_signals`
+- ✅ `social_trends` 现也开始继续吸收：
+  - `herd_regional_bias_runtime`
+  - `aerial_regional_bias_runtime`
+  - `apex_regional_bias_runtime`
+- ✅ 这些运行期长期社会锚点现在已经开始直接进入：
+  - herd/vulture 热点记忆
+  - herd/aerial 周期
+  - `grassland_boom_phase / grassland_bust_phase`
+  - `grassland_prosperity_phase / grassland_collapse_phase`
