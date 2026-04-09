@@ -293,6 +293,8 @@ class WorldSimulation:
             "shared_hotspot_overlap": 0.0,
             "herd_route_cycle_runtime": 0.0,
             "aerial_carrion_cycle_runtime": 0.0,
+            "herd_surface_water_runtime": 0.0,
+            "aerial_carcass_runtime": 0.0,
         }
         lions = [animal for animal in simulation.animals if animal.alive and animal.species == "lion"]
         hyenas = [animal for animal in simulation.animals if animal.alive and animal.species == "hyena"]
@@ -325,11 +327,17 @@ class WorldSimulation:
             state["herd_route_cycle_runtime"] = max(
                 [getattr(animal, "route_cycle_bias", 0.0) for animal in antelopes + zebras] or [0.0]
             )
+            state["herd_surface_water_runtime"] = max(
+                [getattr(animal, "surface_water_anchor", 0.0) for animal in antelopes + zebras] or [0.0]
+            )
         if vultures:
             vulture_hotspots = {self._territory_hotspot(animal.position) for animal in vultures}
             state["vulture_hotspot_count"] = float(len(vulture_hotspots))
             state["aerial_carrion_cycle_runtime"] = max(
                 [getattr(animal, "carrion_cycle_bias", 0.0) for animal in vultures] or [0.0]
+            )
+            state["aerial_carcass_runtime"] = max(
+                [getattr(animal, "carcass_anchor", 0.0) for animal in vultures] or [0.0]
             )
         if lion_hotspots and hyena_hotspots:
             state["shared_hotspot_overlap"] = float(len(lion_hotspots & hyena_hotspots))

@@ -141,6 +141,8 @@ def build_region_territory_summary(
     shared_hotspot_overlap = int(runtime_state.get("shared_hotspot_overlap", 0.0))
     herd_route_cycle_runtime = float(runtime_state.get("herd_route_cycle_runtime", 0.0))
     aerial_carrion_cycle_runtime = float(runtime_state.get("aerial_carrion_cycle_runtime", 0.0))
+    herd_surface_water_runtime = float(runtime_state.get("herd_surface_water_runtime", 0.0))
+    aerial_carcass_runtime = float(runtime_state.get("aerial_carcass_runtime", 0.0))
 
     if pride_strength > 0.0:
         runtime_signals["lion_pride_strength"] = round(pride_strength, 3)
@@ -226,6 +228,12 @@ def build_region_territory_summary(
             pressure_scores.get("waterhole_spacing", 0.0) + min(0.10, herd_route_cycle_runtime * 0.08),
             2,
         )
+    if herd_surface_water_runtime > 0.0:
+        runtime_signals["herd_surface_water_runtime"] = round(herd_surface_water_runtime, 3)
+        pressure_scores["waterhole_spacing"] = round(
+            pressure_scores.get("waterhole_spacing", 0.0) + min(0.10, herd_surface_water_runtime * 0.07),
+            2,
+        )
     if herd_apex_overlap > 0:
         runtime_signals["herd_apex_overlap"] = herd_apex_overlap
         pressure_scores["apex_boundary_conflict"] = round(
@@ -242,6 +250,12 @@ def build_region_territory_summary(
         runtime_signals["aerial_carrion_cycle_runtime"] = round(aerial_carrion_cycle_runtime, 3)
         pressure_scores["carcass_route_overlap"] = round(
             pressure_scores.get("carcass_route_overlap", 0.0) + min(0.10, aerial_carrion_cycle_runtime * 0.08),
+            2,
+        )
+    if aerial_carcass_runtime > 0.0:
+        runtime_signals["aerial_carcass_runtime"] = round(aerial_carcass_runtime, 3)
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.10, aerial_carcass_runtime * 0.07),
             2,
         )
     if vulture_carrion_overlap > 0:
