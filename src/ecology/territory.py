@@ -94,6 +94,8 @@ def build_region_territory_summary(
     previous_carrion_layer = previous_carrion.get("dominant_layer", "") if isinstance(previous_carrion, dict) else ""
     previous_social_cycles = previous_social.get("cycle_signals", []) if isinstance(previous_social, dict) else []
     previous_social_prosperity = previous_social.get("prosperity_scores", {}) if isinstance(previous_social, dict) else {}
+    surface_water_anchor = float(region.resource_state.get("surface_water", 0.0))
+    carcass_anchor = float(region.resource_state.get("carcass_availability", 0.0))
 
     for description in recent_events or []:
         if "pride core range" in description:
@@ -178,6 +180,27 @@ def build_region_territory_summary(
         float(runtime_state.get("aerial_regional_health_anchor_runtime", 0.0)),
         aerial_regional_health_runtime,
         regional_health_anchor,
+    )
+    herd_condition_anchor_runtime = max(
+        float(runtime_state.get("herd_condition_anchor_runtime", 0.0)),
+        herd_condition_runtime * 0.60
+        + herd_regional_health_runtime * 0.20
+        + herd_surface_water_runtime * 0.12
+        + herd_anchor_prosperity_runtime * 0.08,
+    )
+    aerial_condition_anchor_runtime = max(
+        float(runtime_state.get("aerial_condition_anchor_runtime", 0.0)),
+        aerial_condition_runtime * 0.60
+        + aerial_regional_health_runtime * 0.20
+        + aerial_carcass_runtime * 0.12
+        + aerial_anchor_prosperity_runtime * 0.08,
+    )
+    apex_condition_anchor_runtime = max(
+        float(runtime_state.get("apex_condition_anchor_runtime", 0.0)),
+        apex_condition_runtime * 0.62
+        + apex_regional_health_runtime * 0.22
+        + apex_anchor_prosperity_runtime * 0.10
+        + max(surface_water_anchor, carcass_anchor) * 0.06,
     )
     herd_resource_anchor_runtime = max(0.0, herd_surface_water_runtime * 0.6 + herd_regional_health_runtime * 0.4)
     aerial_resource_anchor_runtime = max(0.0, aerial_carcass_runtime * 0.6 + aerial_regional_health_runtime * 0.4)
@@ -290,6 +313,12 @@ def build_region_territory_summary(
             pressure_scores.get("waterhole_spacing", 0.0) + min(0.10, herd_regional_health_anchor_runtime * 0.06),
             2,
         )
+    if herd_condition_anchor_runtime > 0.0:
+        runtime_signals["herd_condition_anchor_runtime"] = round(herd_condition_anchor_runtime, 3)
+        pressure_scores["waterhole_spacing"] = round(
+            pressure_scores.get("waterhole_spacing", 0.0) + min(0.08, herd_condition_anchor_runtime * 0.06),
+            2,
+        )
     if herd_resource_anchor_runtime > 0.0:
         runtime_signals["herd_resource_anchor_runtime"] = round(herd_resource_anchor_runtime, 3)
         pressure_scores["waterhole_spacing"] = round(
@@ -344,6 +373,12 @@ def build_region_territory_summary(
             pressure_scores.get("carcass_route_overlap", 0.0) + min(0.10, aerial_regional_health_anchor_runtime * 0.06),
             2,
         )
+    if aerial_condition_anchor_runtime > 0.0:
+        runtime_signals["aerial_condition_anchor_runtime"] = round(aerial_condition_anchor_runtime, 3)
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.08, aerial_condition_anchor_runtime * 0.06),
+            2,
+        )
     if aerial_resource_anchor_runtime > 0.0:
         runtime_signals["aerial_resource_anchor_runtime"] = round(aerial_resource_anchor_runtime, 3)
         pressure_scores["carcass_route_overlap"] = round(
@@ -378,6 +413,12 @@ def build_region_territory_summary(
         runtime_signals["apex_regional_health_anchor_runtime"] = round(apex_regional_health_anchor_runtime, 3)
         pressure_scores["apex_boundary_conflict"] = round(
             pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.10, apex_regional_health_anchor_runtime * 0.06),
+            2,
+        )
+    if apex_condition_anchor_runtime > 0.0:
+        runtime_signals["apex_condition_anchor_runtime"] = round(apex_condition_anchor_runtime, 3)
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.08, apex_condition_anchor_runtime * 0.06),
             2,
         )
     if apex_anchor_prosperity_runtime > 0.0:

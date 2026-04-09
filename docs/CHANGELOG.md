@@ -2,6 +2,22 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha39 (2026-04-10 11:35)
+
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已新增：
+  - `herd_condition_anchor_runtime`
+  - `aerial_condition_anchor_runtime`
+  - `apex_condition_anchor_runtime`
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 现已开始把这三类 runtime 条件锚点写入 `runtime_signals`，并继续影响：
+  - `waterhole_spacing`
+  - `carcass_route_overlap`
+  - `apex_boundary_conflict`
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 现已开始读取这些新的 runtime 条件锚点，并继续进入：
+  - herd / aerial 周期
+  - `grassland_boom_phase / grassland_prosperity_phase`
+  - `cycle_signals`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐 `condition_anchor_runtime` 断言并通过
+
 ### v4.0-alpha35 (2026-04-09 08:40)
 
 - ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 现已把区域级 `prosperity / collapse` 相位推进到“稳定态切换”：

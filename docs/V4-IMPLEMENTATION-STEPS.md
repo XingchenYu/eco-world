@@ -29,6 +29,14 @@
   - `grassland_boom_phase`
   - `grassland_bust_phase`
   并开始分别驱动 herd、apex、scavenger 的长期繁荣/衰退振幅
+- 运行中的真实体况现在也开始合成为更稳定的 runtime 条件锚点：
+  - `herd_condition_anchor_runtime`
+  - `aerial_condition_anchor_runtime`
+  - `apex_condition_anchor_runtime`
+  并继续进入：
+  - `territory.runtime_signals`
+  - `social_trends`
+  - herd / aerial 长期周期
 - 在这之上，区域级长期相位现在进一步汇总成：
   - `grassland_prosperity_phase`
   - `grassland_collapse_phase`

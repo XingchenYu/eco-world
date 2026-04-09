@@ -425,6 +425,9 @@ class WorldSimulation:
             "apex_condition_runtime": 0.0,
             "herd_condition_runtime": 0.0,
             "aerial_condition_runtime": 0.0,
+            "apex_condition_anchor_runtime": 0.0,
+            "herd_condition_anchor_runtime": 0.0,
+            "aerial_condition_anchor_runtime": 0.0,
         }
         regional_health_anchor = max(
             0.0,
@@ -496,6 +499,13 @@ class WorldSimulation:
                 + state["apex_anchor_prosperity_runtime"] * 0.14
                 + float(region_resource_state.get("surface_water", 0.0)) * 0.08,
             )
+            state["apex_condition_anchor_runtime"] = min(
+                1.0,
+                state["apex_condition_runtime"] * 0.62
+                + state["apex_regional_health_runtime"] * 0.22
+                + state["apex_anchor_prosperity_runtime"] * 0.10
+                + float(region_resource_state.get("surface_water", 0.0)) * 0.06,
+            )
         if hyenas:
             state["hyena_clan_cohesion"] = max(getattr(animal, "clan_cohesion", 0.0) for animal in hyenas)
             state["hyena_clan_front_pressure"] = max(getattr(animal, "clan_front_pressure", 0.0) for animal in hyenas)
@@ -566,6 +576,16 @@ class WorldSimulation:
                 + state["apex_anchor_prosperity_runtime"] * 0.14
                 + float(region_resource_state.get("carcass_availability", 0.0)) * 0.06,
             )
+            state["apex_condition_anchor_runtime"] = min(
+                1.0,
+                max(
+                    state["apex_condition_anchor_runtime"],
+                    state["apex_condition_runtime"] * 0.62
+                    + state["apex_regional_health_runtime"] * 0.22
+                    + state["apex_anchor_prosperity_runtime"] * 0.10
+                    + float(region_resource_state.get("carcass_availability", 0.0)) * 0.06,
+                ),
+            )
         if antelopes or zebras:
             herd_hotspots = {self._territory_hotspot(animal.position) for animal in antelopes + zebras}
             state["herd_hotspot_count"] = float(len(herd_hotspots))
@@ -626,6 +646,13 @@ class WorldSimulation:
                 + state["herd_surface_water_runtime"] * 0.16
                 + state["herd_anchor_prosperity_runtime"] * 0.08,
             )
+            state["herd_condition_anchor_runtime"] = min(
+                1.0,
+                state["herd_condition_runtime"] * 0.60
+                + state["herd_regional_health_runtime"] * 0.20
+                + state["herd_surface_water_runtime"] * 0.12
+                + state["herd_anchor_prosperity_runtime"] * 0.08,
+            )
         if vultures:
             vulture_hotspots = {self._territory_hotspot(animal.position) for animal in vultures}
             state["vulture_hotspot_count"] = float(len(vulture_hotspots))
@@ -684,6 +711,13 @@ class WorldSimulation:
                 max(state["aerial_regional_health_runtime"], regional_health_anchor) * 0.74
                 + aerial_health_anchor_runtime * 0.10
                 + state["aerial_carcass_runtime"] * 0.16
+                + state["aerial_anchor_prosperity_runtime"] * 0.08,
+            )
+            state["aerial_condition_anchor_runtime"] = min(
+                1.0,
+                state["aerial_condition_runtime"] * 0.60
+                + state["aerial_regional_health_runtime"] * 0.20
+                + state["aerial_carcass_runtime"] * 0.12
                 + state["aerial_anchor_prosperity_runtime"] * 0.08,
             )
         if lion_hotspots and hyena_hotspots:
