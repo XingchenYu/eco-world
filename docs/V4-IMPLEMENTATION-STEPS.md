@@ -49,6 +49,9 @@
   - `grassland_prosperity_phase`
   - `grassland_collapse_phase`
   使真实体况锚点开始直接参与长期繁荣/衰退相位，而不只是影响 cycle 与 pressure
+- 这些长期相位现在也已继续下沉到：
+  - 运行体 `condition_runtime`
+  使 herd / apex / aerial 的真实体况开始带长期 prosperity/collapse 偏置
 - 在这之上，区域级长期相位现在进一步汇总成：
   - `grassland_prosperity_phase`
   - `grassland_collapse_phase`

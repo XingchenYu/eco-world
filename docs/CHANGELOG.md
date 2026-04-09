@@ -37,6 +37,10 @@
   - `grassland_prosperity_phase`
   - `grassland_collapse_phase`
   使真实体况锚点开始直接参与长期繁荣/衰退相位
+- ✅ [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 现已把：
+  - `grassland_prosperity_phase`
+  - `grassland_collapse_phase`
+  直接融入运行体 `condition_runtime` 注入值，使 herd / apex / aerial 的真实体况开始带长期相位偏置
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐 `condition_anchor_runtime` 断言并通过
 
 ### v4.0-alpha35 (2026-04-09 08:40)

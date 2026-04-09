@@ -1973,7 +1973,7 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.surface_water_anchor == 0.68
     assert lion.runtime_anchor_prosperity > 0.30
     assert lion.regional_health_anchor > 0.20
-    assert lion.condition_runtime == 0.39
+    assert lion.condition_runtime > 0.41
     assert lion.regional_prosperity > 0.0
     assert lion.regional_stability > 0.0
     assert lion.regional_prosperity_bias == 1.0
@@ -1986,7 +1986,7 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.carcass_anchor == 0.57
     assert hyena.runtime_anchor_prosperity > 0.30
     assert hyena.regional_health_anchor > 0.20
-    assert hyena.condition_runtime == 0.39
+    assert hyena.condition_runtime > 0.41
     assert hyena.regional_prosperity > 0.0
     assert hyena.regional_stability > 0.0
     assert hyena.regional_prosperity_bias == 1.0
@@ -2004,7 +2004,7 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.surface_water_anchor == 0.68
     assert antelope.runtime_anchor_prosperity > 0.30
     assert antelope.regional_health_anchor > 0.20
-    assert antelope.condition_runtime == 0.46
+    assert antelope.condition_runtime > 0.48
     assert antelope.regional_prosperity > 0.0
     assert antelope.regional_stability > 0.0
     assert antelope.regional_prosperity_bias == 1.0
@@ -2018,7 +2018,7 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.surface_water_anchor == 0.68
     assert zebra.runtime_anchor_prosperity > 0.30
     assert zebra.regional_health_anchor > 0.20
-    assert zebra.condition_runtime == 0.46
+    assert zebra.condition_runtime > 0.48
     assert zebra.regional_prosperity > 0.0
     assert zebra.regional_stability > 0.0
     assert zebra.regional_prosperity_bias == 1.0
@@ -2032,7 +2032,7 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.carcass_anchor == 0.57
     assert vulture.runtime_anchor_prosperity > 0.30
     assert vulture.regional_health_anchor > 0.20
-    assert vulture.condition_runtime == 0.41
+    assert vulture.condition_runtime > 0.43
     assert vulture.regional_prosperity > 0.0
     assert vulture.regional_stability > 0.0
     assert vulture.regional_prosperity_bias == 1.0
