@@ -837,3 +837,13 @@
   - `regional_stability_support`
   - `regional_collapse_drag`
   也就是说，区域长期健康度现在已经开始不经过运行体中转，直接改变 herd/apex/scavenger 的物种池节律
+- `social_trends` 现也开始继续直接读取区域：
+  - `health_state["prosperity"]`
+  - `health_state["stability"]`
+  - `health_state["collapse_risk"]`
+  并让它们继续进入：
+  - `herd_hotspot_memory / herd_apex_memory`
+  - `vulture_hotspot_memory / vulture_carrion_memory`
+  - `herd_route_cycle / aerial_carrion_cycle`
+  - `cycle_signals`
+  也就是说，区域长期健康度现在已经开始不经过运行体中转，直接塑造社群长期记忆和周期层

@@ -71,6 +71,9 @@ def build_region_social_trend_summary(
     apex_anchor_prosperity_runtime = float(runtime_signals.get("apex_anchor_prosperity_runtime", 0.0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
+    regional_prosperity = float(region.health_state.get("prosperity", 0.0))
+    regional_collapse = float(region.health_state.get("collapse_risk", 0.0))
+    regional_stability = float(region.health_state.get("stability", 0.0))
 
     def carry(key: str) -> float:
         return float(previous_scores.get(key, 0.0))
@@ -337,6 +340,8 @@ def build_region_social_trend_summary(
                     + herd_surface_water_runtime * 0.05
                     + herd_regional_health_runtime * 0.05
                     + surface_water_anchor * 0.06
+                    + regional_prosperity * 0.05
+                    + regional_stability * 0.04
                 ),
             ),
             3,
@@ -352,6 +357,8 @@ def build_region_social_trend_summary(
                     + herd_surface_water_runtime * 0.03
                     + apex_regional_health_runtime * 0.04
                     + surface_water_anchor * 0.04
+                    + regional_prosperity * 0.03
+                    + regional_stability * 0.03
                 ),
             ),
             3,
@@ -368,6 +375,8 @@ def build_region_social_trend_summary(
                     + aerial_carcass_runtime * 0.05
                     + aerial_regional_health_runtime * 0.05
                     + carcass_anchor * 0.06
+                    + regional_prosperity * 0.04
+                    + regional_stability * 0.03
                 ),
             ),
             3,
@@ -383,6 +392,8 @@ def build_region_social_trend_summary(
                     + aerial_carcass_runtime * 0.03
                     + apex_regional_health_runtime * 0.03
                     + carcass_anchor * 0.05
+                    + regional_prosperity * 0.03
+                    + regional_stability * 0.02
                 ),
             ),
             3,
@@ -398,6 +409,8 @@ def build_region_social_trend_summary(
                 1.0,
                 hotspot_scores["herd_hotspot_memory"]
                 + prosperity_push * 0.08
+                + regional_prosperity * 0.05
+                + regional_stability * 0.04
                 - collapse_drag * 0.04,
             ),
         ),
@@ -410,6 +423,7 @@ def build_region_social_trend_summary(
                 1.0,
                 hotspot_scores["herd_apex_memory"]
                 + prosperity_push * 0.05
+                + regional_prosperity * 0.03
                 - collapse_drag * 0.03,
             ),
         ),
@@ -422,6 +436,8 @@ def build_region_social_trend_summary(
                 1.0,
                 hotspot_scores["vulture_hotspot_memory"]
                 + prosperity_push * 0.07
+                + regional_prosperity * 0.04
+                + regional_stability * 0.03
                 - collapse_drag * 0.04,
             ),
         ),
@@ -434,6 +450,7 @@ def build_region_social_trend_summary(
                 1.0,
                 hotspot_scores["vulture_carrion_memory"]
                 + prosperity_push * 0.06
+                + regional_prosperity * 0.03
                 - collapse_drag * 0.03,
             ),
         ),
@@ -447,6 +464,8 @@ def build_region_social_trend_summary(
                 1.0,
                 herd_route_cycle_signal
                 + prosperity_phase_signal * 0.06
+                + regional_prosperity * 0.04
+                + regional_stability * 0.03
                 - collapse_phase_signal * 0.04,
             ),
         ),
@@ -459,6 +478,8 @@ def build_region_social_trend_summary(
                 1.0,
                 aerial_carrion_cycle_signal
                 + prosperity_phase_signal * 0.05
+                + regional_prosperity * 0.03
+                + regional_stability * 0.02
                 - collapse_phase_signal * 0.03,
             ),
         ),
@@ -539,6 +560,12 @@ def build_region_social_trend_summary(
     if apex_regional_health_runtime >= 0.30:
         cycle_signals.append("apex_regional_health_runtime")
         narrative_trends.append("顶层捕食者的区域健康度正在抬升长期社群繁荣相位。")
+    if regional_prosperity >= 0.28:
+        cycle_signals.append("regional_prosperity_anchor")
+    if regional_stability >= 0.24:
+        cycle_signals.append("regional_stability_anchor")
+    if regional_collapse >= 0.16:
+        cycle_signals.append("regional_collapse_anchor")
     if hotspot_scores["lion_hotspot_memory"] + hotspot_scores["hyena_hotspot_memory"] >= 0.78:
         cycle_signals.append("apex_hotspot_wave")
         narrative_trends.append("顶层捕食者热点记忆正在放大草原多周期兴衰波动。")

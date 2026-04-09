@@ -972,6 +972,9 @@ def test_v4_social_trend_summary_uses_memory():
             },
         },
     )
+    region.health_state["prosperity"] = 0.42
+    region.health_state["stability"] = 0.36
+    region.health_state["collapse_risk"] = 0.18
     region.resource_state["surface_water"] = 0.6
     region.resource_state["carcass_availability"] = 0.5
     territory = build_region_territory_summary(
@@ -1045,6 +1048,9 @@ def test_v4_social_trend_summary_uses_memory():
     assert "aerial_resource_anchor_runtime" in summary.cycle_signals
     assert "aerial_anchor_prosperity_runtime" in summary.cycle_signals
     assert "apex_anchor_prosperity_runtime" in summary.cycle_signals
+    assert "regional_prosperity_anchor" in summary.cycle_signals
+    assert "regional_stability_anchor" in summary.cycle_signals
+    assert "regional_collapse_anchor" in summary.cycle_signals
     assert "runtime_anchor_prosperity" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]

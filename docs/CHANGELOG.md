@@ -1050,3 +1050,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `regional_stability_support`
   - `regional_collapse_drag`
   并进入草食群、清道夫和顶层捕食者的低频物种池调节
+- ✅ `social_trends` 现也开始继续直接吸收区域：
+  - `prosperity`
+  - `stability`
+  - `collapse_risk`
+- ✅ 这些区域长期健康信号现在已经开始直接进入：
+  - herd/vulture 热点记忆
+  - herd/aerial 周期
+  - `cycle_signals`
+  也就是说，区域长期健康度现在已经开始不经过运行体中转，直接塑造社群长期记忆层
