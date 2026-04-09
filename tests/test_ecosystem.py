@@ -926,8 +926,10 @@ def test_v4_social_trend_summary_uses_memory():
             "hyena_hotspot_count": 2.0,
             "herd_hotspot_count": 3.0,
             "herd_apex_overlap": 1.0,
+            "herd_route_cycle_runtime": 0.34,
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
+            "aerial_carrion_cycle_runtime": 0.28,
             "shared_hotspot_overlap": 0.0,
         },
     )

@@ -53,8 +53,10 @@ def build_region_social_trend_summary(
     shared_hotspot_shift = int(runtime_signals.get("shared_hotspot_shift", 0))
     herd_hotspots = int(runtime_signals.get("herd_hotspot_count", 0))
     herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
+    herd_route_cycle_runtime = float(runtime_signals.get("herd_route_cycle_runtime", 0.0))
     vulture_hotspots = int(runtime_signals.get("vulture_hotspot_count", 0))
     vulture_carrion_overlap = int(runtime_signals.get("vulture_carrion_overlap", 0))
+    aerial_carrion_cycle_runtime = float(runtime_signals.get("aerial_carrion_cycle_runtime", 0.0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
 
@@ -137,6 +139,7 @@ def build_region_social_trend_summary(
             carry_phase("herd_route_cycle") * 0.66
             + (carry_hotspot("herd_hotspot_memory") * 0.68 + herd_hotspots * 0.08 + herd_apex_overlap * 0.04) * 0.32
             + (carry_hotspot("herd_apex_memory") * 0.68 + herd_apex_overlap * 0.10) * 0.18
+            + herd_route_cycle_runtime * 0.08
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.08,
         ),
     )
@@ -147,6 +150,7 @@ def build_region_social_trend_summary(
             carry_phase("aerial_carrion_cycle") * 0.66
             + (carry_hotspot("vulture_hotspot_memory") * 0.68 + vulture_hotspots * 0.08 + vulture_carrion_overlap * 0.05) * 0.30
             + (carry_hotspot("vulture_carrion_memory") * 0.68 + vulture_carrion_overlap * 0.10) * 0.22
+            + aerial_carrion_cycle_runtime * 0.08
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.06,
         ),
     )
@@ -278,7 +282,8 @@ def build_region_social_trend_summary(
                     1.0,
                     carry_hotspot("herd_hotspot_memory") * 0.68
                     + herd_hotspots * 0.08
-                    + herd_apex_overlap * 0.04,
+                    + herd_apex_overlap * 0.04
+                    + herd_route_cycle_runtime * 0.06
                 ),
             ),
             3,
@@ -289,7 +294,8 @@ def build_region_social_trend_summary(
                 min(
                     1.0,
                     carry_hotspot("herd_apex_memory") * 0.68
-                    + herd_apex_overlap * 0.10,
+                    + herd_apex_overlap * 0.10
+                    + herd_route_cycle_runtime * 0.04
                 ),
             ),
             3,
@@ -301,7 +307,8 @@ def build_region_social_trend_summary(
                     1.0,
                     carry_hotspot("vulture_hotspot_memory") * 0.68
                     + vulture_hotspots * 0.08
-                    + vulture_carrion_overlap * 0.05,
+                    + vulture_carrion_overlap * 0.05
+                    + aerial_carrion_cycle_runtime * 0.06
                 ),
             ),
             3,
@@ -312,7 +319,8 @@ def build_region_social_trend_summary(
                 min(
                     1.0,
                     carry_hotspot("vulture_carrion_memory") * 0.68
-                    + vulture_carrion_overlap * 0.10,
+                    + vulture_carrion_overlap * 0.10
+                    + aerial_carrion_cycle_runtime * 0.04
                 ),
             ),
             3,
