@@ -1,5 +1,15 @@
 # EcoWorld 高级界面指南
 
+## 术语对照
+
+- `GUI`：图形用户界面，也就是你看到的可视化操作界面。
+- `overlay`：叠层显示，指把额外信息覆盖画在主地图上。
+- `panel`：面板，指右侧或底部显示统计和控制信息的界面区域。
+- `status bar`：状态栏，指底部显示时间、季节、速度等信息的条形区域。
+- `minimap`：小地图，指用来快速查看整体分布和当前位置的缩略地图。
+- `patch`：资源点或资源斑块。
+- `microhabitat overlay`：微栖位叠层，也就是把树冠位、湿地位、花蜜位等资源直接画出来。
+
 高级界面文件位于 [src/renderer/advanced_gui.py](/Users/yumini/Projects/eco-world/src/renderer/advanced_gui.py)。
 
 ## 启动
