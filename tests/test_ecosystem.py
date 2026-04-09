@@ -1367,6 +1367,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_herd_health_pull" in summary.trophic_scores
     assert "runtime_herd_health_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_condition_anchor_pull" in summary.trophic_scores
+    assert "runtime_herd_condition_phase_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_regional_bias_pull" in summary.trophic_scores
     assert "runtime_herd_resource_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_anchor_prosperity_pull" in summary.trophic_scores
@@ -1375,6 +1376,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_apex_health_pull" in summary.trophic_scores
     assert "runtime_apex_health_anchor_pull" in summary.trophic_scores
     assert "runtime_apex_condition_anchor_pull" in summary.trophic_scores
+    assert "runtime_apex_condition_phase_anchor_pull" in summary.trophic_scores
     assert "runtime_apex_regional_bias_pull" in summary.trophic_scores
     assert "runtime_apex_anchor_prosperity_pull" in summary.trophic_scores
     assert "regional_prosperity_anchor" in summary.trophic_scores
@@ -1487,6 +1489,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["source_species"] == "runtime_health_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_condition_anchor" for item in adjustments)
+    assert any(item["source_species"] == "runtime_condition_phase_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_condition_phase" for item in adjustments)
     assert any(item["source_species"] == "runtime_regional_bias" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor" for item in adjustments)
@@ -1498,6 +1501,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["effect"] in {"condition_herd_recovery", "condition_pride_recovery", "condition_clan_recovery"} for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_health_support", "runtime_apex_health_support", "runtime_herd_health_anchor_support", "runtime_apex_health_anchor_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_condition_anchor_support", "runtime_apex_condition_anchor_support"} for item in adjustments)
+    assert any(item["effect"] in {"runtime_herd_condition_phase_anchor_support", "runtime_apex_condition_phase_anchor_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_regional_bias_support", "runtime_apex_regional_bias_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_herd_anchor_support" for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_anchor_prosperity_support", "runtime_apex_anchor_prosperity_support"} for item in adjustments)
@@ -1630,6 +1634,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_aerial_health_pull" in summary.resource_scores
     assert "runtime_aerial_health_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_condition_anchor_pull" in summary.resource_scores
+    assert "runtime_aerial_condition_phase_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_regional_bias_pull" in summary.resource_scores
     assert "runtime_aerial_resource_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_anchor_prosperity_pull" in summary.resource_scores
@@ -1640,6 +1645,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_apex_health_pull" in summary.resource_scores
     assert "runtime_apex_health_anchor_pull" in summary.resource_scores
     assert "runtime_apex_condition_anchor_pull" in summary.resource_scores
+    assert "runtime_apex_condition_phase_anchor_pull" in summary.resource_scores
     assert "runtime_apex_regional_bias_pull" in summary.resource_scores
     assert "runtime_vulture_overlap" in summary.resource_scores
     assert "aerial_memory_lanes" in summary.resource_scores
@@ -1742,6 +1748,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["source_species"] == "runtime_condition" for item in adjustments)
     assert any(item["source_species"] == "runtime_condition_anchor" for item in adjustments)
+    assert any(item["source_species"] == "runtime_condition_phase_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_condition_phase" for item in adjustments)
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["source_species"] == "runtime_health_anchor" for item in adjustments)
@@ -1755,6 +1762,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["effect"] in {"condition_aerial_recovery", "condition_apex_carrion_recovery"} for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_health_support", "runtime_apex_health_support", "runtime_aerial_health_anchor_support", "runtime_apex_health_anchor_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_regional_bias_support", "runtime_apex_regional_bias_support"} for item in adjustments)
+    assert any(item["effect"] in {"runtime_aerial_condition_phase_anchor_support", "runtime_apex_condition_phase_anchor_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_aerial_anchor_support" for item in adjustments)
     assert any(item["effect"] == "runtime_aerial_anchor_prosperity_support" for item in adjustments)
     assert any(item["effect"] in {"regional_prosperity_support", "regional_stability_support", "regional_collapse_drag"} for item in adjustments)

@@ -170,10 +170,15 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_health_anchor_pull", min(0.20, herd_regional_health_anchor_runtime * 0.14), "运行中的区域长期健康锚点正在继续抬升 herd 通道的稳定走廊效应。")
             add_layer_bias("herd_layer", herd_regional_health_anchor_runtime * 0.07)
             add_layer_bias("social_layer", herd_regional_health_anchor_runtime * 0.04)
+        herd_condition_phase_anchor_runtime = float(runtime_signals.get("herd_condition_phase_anchor_runtime", 0.0))
         if herd_condition_anchor_runtime > 0.0:
             add_score("runtime_herd_condition_anchor_pull", min(0.18, herd_condition_anchor_runtime * 0.13), "运行中的真实体况锚点正在把 herd 通道继续拉向更稳定的草原走廊。")
             add_layer_bias("herd_layer", herd_condition_anchor_runtime * 0.06)
             add_layer_bias("social_layer", herd_condition_anchor_runtime * 0.03)
+        if herd_condition_phase_anchor_runtime > 0.0:
+            add_score("runtime_herd_condition_phase_anchor_pull", min(0.20, herd_condition_phase_anchor_runtime * 0.13), "长期相位修正后的真实体况锚点正在把 herd 通道继续拉向更稳定的草原走廊。")
+            add_layer_bias("herd_layer", herd_condition_phase_anchor_runtime * 0.07)
+            add_layer_bias("social_layer", herd_condition_phase_anchor_runtime * 0.04)
         if herd_regional_bias_runtime > 0.0:
             add_score("runtime_herd_regional_bias_pull", min(0.20, herd_regional_bias_runtime * 0.14), "运行中的区域长期社会锚点正在把 herd 通道继续拉向更稳定的草原走廊。")
             add_layer_bias("herd_layer", herd_regional_bias_runtime * 0.07)
@@ -192,10 +197,15 @@ def build_region_grassland_chain_summary(
             add_score("runtime_apex_health_anchor_pull", min(0.18, apex_regional_health_anchor_runtime * 0.12), "运行中的区域长期健康锚点正在继续把 apex 热点压向更稳定的前线核心。")
             add_layer_bias("predator_layer", apex_regional_health_anchor_runtime * 0.06)
             add_layer_bias("social_layer", apex_regional_health_anchor_runtime * 0.04)
+        apex_condition_phase_anchor_runtime = float(runtime_signals.get("apex_condition_phase_anchor_runtime", 0.0))
         if apex_condition_anchor_runtime > 0.0:
             add_score("runtime_apex_condition_anchor_pull", min(0.15, apex_condition_anchor_runtime * 0.12), "运行中的顶层体况锚点正在把 apex 热点继续拉回更稳定的长期核心。")
             add_layer_bias("predator_layer", apex_condition_anchor_runtime * 0.05)
             add_layer_bias("social_layer", apex_condition_anchor_runtime * 0.03)
+        if apex_condition_phase_anchor_runtime > 0.0:
+            add_score("runtime_apex_condition_phase_anchor_pull", min(0.17, apex_condition_phase_anchor_runtime * 0.12), "长期相位修正后的顶层体况锚点正在把 apex 热点继续拉回更稳定的长期核心。")
+            add_layer_bias("predator_layer", apex_condition_phase_anchor_runtime * 0.06)
+            add_layer_bias("social_layer", apex_condition_phase_anchor_runtime * 0.04)
         if apex_regional_bias_runtime > 0.0:
             add_score("runtime_apex_regional_bias_pull", min(0.18, apex_regional_bias_runtime * 0.12), "运行中的区域长期社会锚点正在把 apex 热点继续压向更稳定的核心前线。")
             add_layer_bias("predator_layer", apex_regional_bias_runtime * 0.06)
@@ -315,6 +325,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_health_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_health_anchor_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_condition_anchor_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_condition_phase_anchor_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_regional_bias_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_resource_anchor_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_anchor_prosperity_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
@@ -338,6 +349,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_anchor_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_anchor_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_phase_anchor_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_regional_bias_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_anchor_prosperity_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)
@@ -955,6 +967,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["antelope"],
             }
         )
+    if scores.get("runtime_herd_condition_phase_anchor_pull", 0.0) >= 0.05 and antelope_count < 20:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_phase_anchor",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "runtime_herd_condition_phase_anchor_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if scores.get("runtime_herd_regional_bias_pull", 0.0) >= 0.06 and antelope_count < 20:
         species_pool["antelope"] = species_pool.get("antelope", 0) + 1
         adjustments.append(
@@ -1065,6 +1088,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["zebra"],
             }
         )
+    if scores.get("runtime_herd_condition_phase_anchor_pull", 0.0) >= 0.05 and zebra_count < 18:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_phase_anchor",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "runtime_herd_condition_phase_anchor_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
     if scores.get("runtime_herd_regional_bias_pull", 0.0) >= 0.06 and zebra_count < 18:
         species_pool["zebra"] = species_pool.get("zebra", 0) + 1
         adjustments.append(
@@ -1172,6 +1206,17 @@ def apply_region_grassland_chain_rebalancing(
                 "target_species": "lion",
                 "layer_group": "predator_layer",
                 "effect": "runtime_apex_condition_anchor_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if scores.get("runtime_apex_condition_phase_anchor_pull", 0.0) >= 0.05 and lion_count < 8:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_phase_anchor",
+                "target_species": "lion",
+                "layer_group": "predator_layer",
+                "effect": "runtime_apex_condition_phase_anchor_support",
                 "new_target_count": species_pool["lion"],
             }
         )

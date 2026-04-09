@@ -1367,3 +1367,14 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `territory.runtime_signals`
   - `social_trends.cycle_signals`
   也就是说，长期相位修正后的真实体况现在不只作为一次性 pull 使用，而开始作为下一轮长期 territory/social 节律的稳定锚点
+- ✅ 这组 phase anchor runtime 现在也开始继续进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 区域反馈
+  - 低频重平衡
+  - 世界级长期压力
+- ✅ 新增并打通：
+  - `runtime_herd_condition_phase_anchor_pull`
+  - `runtime_aerial_condition_phase_anchor_pull`
+  - `runtime_apex_condition_phase_anchor_pull`
+  也就是说，长期相位修正后的真实体况锚点现在已经不只影响 `territory/social_trends`，还开始直接改变草原链、尸体资源链和区域长期 prosperity/collapse 判定
