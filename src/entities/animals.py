@@ -1149,6 +1149,7 @@ class Antelope(Animal):
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
         self.regional_health_anchor = 0.0
+        self.condition_runtime = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1182,6 +1183,7 @@ class Antelope(Animal):
         if not self.alive:
             return
         self._apply_regional_health_anchor()
+        self._apply_condition_runtime()
         self._follow_herd_channel(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -1191,6 +1193,16 @@ class Antelope(Animal):
         self.health = min(getattr(self, "max_health", 100), self.health + anchor * 0.22)
         self.hunger = max(0.0, self.hunger - anchor * 0.35)
         self.reproduction_rate *= 1.0 + anchor * 0.018
+
+    def _apply_condition_runtime(self):
+        condition = max(0.0, min(1.0, self.condition_runtime))
+        if condition <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + condition * 0.16)
+        self.hunger = max(0.0, self.hunger - condition * 0.22)
+        cooldown_relief = max(1, int(condition * 2)) if condition >= 0.35 else int(condition * 2)
+        self.mate_cooldown = max(0, self.mate_cooldown - cooldown_relief)
+        self.reproduction_rate *= 1.0 + condition * 0.012
 
     def _follow_herd_channel(self, ecosystem):
         bias = max(
@@ -1247,6 +1259,7 @@ class Zebra(Animal):
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
         self.regional_health_anchor = 0.0
+        self.condition_runtime = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1277,6 +1290,7 @@ class Zebra(Animal):
         if not self.alive:
             return
         self._apply_regional_health_anchor()
+        self._apply_condition_runtime()
         self._follow_herd_channel(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -1286,6 +1300,16 @@ class Zebra(Animal):
         self.health = min(getattr(self, "max_health", 100), self.health + anchor * 0.20)
         self.hunger = max(0.0, self.hunger - anchor * 0.30)
         self.reproduction_rate *= 1.0 + anchor * 0.016
+
+    def _apply_condition_runtime(self):
+        condition = max(0.0, min(1.0, self.condition_runtime))
+        if condition <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + condition * 0.14)
+        self.hunger = max(0.0, self.hunger - condition * 0.20)
+        cooldown_relief = max(1, int(condition * 2)) if condition >= 0.35 else int(condition * 2)
+        self.mate_cooldown = max(0, self.mate_cooldown - cooldown_relief)
+        self.reproduction_rate *= 1.0 + condition * 0.011
 
     def _follow_herd_channel(self, ecosystem):
         bias = max(
@@ -1710,6 +1734,7 @@ class Vulture(Animal):
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
         self.regional_health_anchor = 0.0
+        self.condition_runtime = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1749,6 +1774,7 @@ class Vulture(Animal):
         if not self.alive:
             return
         self._apply_regional_health_anchor()
+        self._apply_condition_runtime()
         self._track_aerial_lanes(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -1758,6 +1784,16 @@ class Vulture(Animal):
         self.health = min(getattr(self, "max_health", 100), self.health + anchor * 0.18)
         self.hunger = max(0.0, self.hunger - anchor * 0.32)
         self.reproduction_rate *= 1.0 + anchor * 0.015
+
+    def _apply_condition_runtime(self):
+        condition = max(0.0, min(1.0, self.condition_runtime))
+        if condition <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + condition * 0.15)
+        self.hunger = max(0.0, self.hunger - condition * 0.24)
+        cooldown_relief = max(1, int(condition * 2)) if condition >= 0.35 else int(condition * 2)
+        self.mate_cooldown = max(0, self.mate_cooldown - cooldown_relief)
+        self.reproduction_rate *= 1.0 + condition * 0.012
 
     def _track_aerial_lanes(self, ecosystem):
         bias = max(

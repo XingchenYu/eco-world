@@ -1925,6 +1925,9 @@ def test_region_simulation_applies_social_phase_state():
                 "regional_collapse_bias": 1,
                 "surface_water_anchor": 0.6,
                 "carcass_anchor": 0.5,
+                "herd_condition_runtime": 0.46,
+                "aerial_condition_runtime": 0.41,
+                "apex_condition_runtime": 0.39,
             }
         },
     )
@@ -1952,6 +1955,7 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.surface_water_anchor == 0.68
     assert lion.runtime_anchor_prosperity > 0.30
     assert lion.regional_health_anchor > 0.20
+    assert lion.condition_runtime == 0.39
     assert lion.regional_prosperity > 0.0
     assert lion.regional_stability > 0.0
     assert lion.regional_prosperity_bias == 1.0
@@ -1964,6 +1968,7 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.carcass_anchor == 0.57
     assert hyena.runtime_anchor_prosperity > 0.30
     assert hyena.regional_health_anchor > 0.20
+    assert hyena.condition_runtime == 0.39
     assert hyena.regional_prosperity > 0.0
     assert hyena.regional_stability > 0.0
     assert hyena.regional_prosperity_bias == 1.0
@@ -1981,6 +1986,7 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.surface_water_anchor == 0.68
     assert antelope.runtime_anchor_prosperity > 0.30
     assert antelope.regional_health_anchor > 0.20
+    assert antelope.condition_runtime == 0.46
     assert antelope.regional_prosperity > 0.0
     assert antelope.regional_stability > 0.0
     assert antelope.regional_prosperity_bias == 1.0
@@ -1994,6 +2000,7 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.surface_water_anchor == 0.68
     assert zebra.runtime_anchor_prosperity > 0.30
     assert zebra.regional_health_anchor > 0.20
+    assert zebra.condition_runtime == 0.46
     assert zebra.regional_prosperity > 0.0
     assert zebra.regional_stability > 0.0
     assert zebra.regional_prosperity_bias == 1.0
@@ -2007,6 +2014,7 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.carcass_anchor == 0.57
     assert vulture.runtime_anchor_prosperity > 0.30
     assert vulture.regional_health_anchor > 0.20
+    assert vulture.condition_runtime == 0.41
     assert vulture.regional_prosperity > 0.0
     assert vulture.regional_stability > 0.0
     assert vulture.regional_prosperity_bias == 1.0
@@ -2106,6 +2114,50 @@ def test_runtime_regional_health_anchor_effect():
     print("✅ Runtime regional health anchor effect test passed")
 
 
+def test_runtime_condition_effect():
+    """condition_runtime 应直接改善 herd 与 carrion 运行期体况和繁殖冷却。"""
+    antelope = Antelope(position=(20, 20), gender=Gender.FEMALE)
+    zebra = Zebra(position=(22, 20), gender=Gender.FEMALE)
+    vulture = Vulture(position=(24, 20), gender=Gender.FEMALE)
+
+    antelope.condition_runtime = 0.46
+    zebra.condition_runtime = 0.42
+    vulture.condition_runtime = 0.41
+
+    antelope.health = 70.0
+    antelope.hunger = 50.0
+    antelope.mate_cooldown = 4
+    zebra.health = 72.0
+    zebra.hunger = 48.0
+    zebra.mate_cooldown = 4
+    vulture.health = 68.0
+    vulture.hunger = 46.0
+    vulture.mate_cooldown = 4
+
+    antelope_base_rate = antelope.reproduction_rate
+    zebra_base_rate = zebra.reproduction_rate
+    vulture_base_rate = vulture.reproduction_rate
+
+    antelope._apply_condition_runtime()
+    zebra._apply_condition_runtime()
+    vulture._apply_condition_runtime()
+
+    assert antelope.health > 70.0
+    assert antelope.hunger < 50.0
+    assert antelope.mate_cooldown < 4
+    assert antelope.reproduction_rate > antelope_base_rate
+    assert zebra.health > 72.0
+    assert zebra.hunger < 48.0
+    assert zebra.mate_cooldown < 4
+    assert zebra.reproduction_rate > zebra_base_rate
+    assert vulture.health > 68.0
+    assert vulture.hunger < 46.0
+    assert vulture.mate_cooldown < 4
+    assert vulture.reproduction_rate > vulture_base_rate
+
+    print("✅ Runtime condition effect test passed")
+
+
 def test_runtime_apex_regional_health_anchor_effect():
     """regional_health_anchor 应直接改善 apex 运行期体况。"""
     lion = Lion(position=(20, 20), gender=Gender.FEMALE)
@@ -2132,6 +2184,38 @@ def test_runtime_apex_regional_health_anchor_effect():
     assert hyena.reproduction_rate > hyena_base_rate
 
     print("✅ Runtime apex regional health anchor effect test passed")
+
+
+def test_runtime_apex_condition_effect():
+    """apex 的 condition_runtime 应直接改善当前体况、冷却和繁殖节律。"""
+    lion = Lion(position=(20, 20), gender=Gender.FEMALE)
+    hyena = Hyena(position=(24, 20), gender=Gender.FEMALE)
+
+    lion.condition_runtime = 0.39
+    hyena.condition_runtime = 0.37
+    lion.health = 72.0
+    lion.hunger = 48.0
+    lion.mate_cooldown = 4
+    hyena.health = 69.0
+    hyena.hunger = 46.0
+    hyena.mate_cooldown = 4
+
+    lion_base_rate = lion.reproduction_rate
+    hyena_base_rate = hyena.reproduction_rate
+
+    lion._apply_condition_runtime()
+    hyena._apply_condition_runtime()
+
+    assert lion.health > 72.0
+    assert lion.hunger < 48.0
+    assert lion.mate_cooldown < 4
+    assert lion.reproduction_rate > lion_base_rate
+    assert hyena.health > 69.0
+    assert hyena.hunger < 46.0
+    assert hyena.mate_cooldown < 4
+    assert hyena.reproduction_rate > hyena_base_rate
+
+    print("✅ Runtime apex condition effect test passed")
 
 
 def test_lion_hotspot_memory_center_effect():
@@ -2857,6 +2941,8 @@ def run_all_tests():
     test_lion_hotspot_memory_center_effect()
     test_hyena_hotspot_memory_center_effect()
     test_runtime_regional_health_bias()
+    test_runtime_condition_effect()
+    test_runtime_apex_condition_effect()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()

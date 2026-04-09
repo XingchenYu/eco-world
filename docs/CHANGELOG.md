@@ -1266,3 +1266,17 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `prosperity_pressure`
   - `collapse_pressure`
   并进一步影响区域长期 `prosperity / collapse_risk / stability`
+- ✅ `RegionSimulation.apply_relationship_runtime_state()` 现也开始把：
+  - `herd_condition_runtime`
+  - `aerial_condition_runtime`
+  - `apex_condition_runtime`
+  直接下沉到运行体
+- ✅ `lion / hyena / antelope / zebra / vulture` 现在新增：
+  - `condition_runtime`
+  - `_apply_condition_runtime()`
+- ✅ 这层真实体况现在会直接改善：
+  - `health`
+  - `hunger`
+  - `mate_cooldown`
+  - `reproduction_rate`
+  也就是说，`runtime condition` 现在已经不只影响链路压力和长期趋势，也开始直接影响运行体的繁殖与恢复节律
