@@ -124,6 +124,7 @@ def build_region_grassland_chain_summary(
         herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
         herd_regional_health_runtime = float(runtime_signals.get("herd_regional_health_runtime", 0.0))
         apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
+        herd_resource_anchor_runtime = float(runtime_signals.get("herd_resource_anchor_runtime", 0.0))
         if int(runtime_signals.get("herd_channel_bias", 0)) > 0:
             add_score("dominant_herd_channeling", 0.18, "上一周期的草食群主导态正在把草原通道重新拉回 herd 核心。")
         if int(runtime_signals.get("apex_hotspot_bias", 0)) > 0:
@@ -149,6 +150,10 @@ def build_region_grassland_chain_summary(
         if apex_regional_health_runtime > 0.0:
             add_score("runtime_apex_health_pull", min(0.18, apex_regional_health_runtime * 0.12), "运行中的顶层捕食者长期健康度正在把草原热点重新压向 apex 核心。")
             add_layer_bias("predator_layer", apex_regional_health_runtime * 0.06)
+        if herd_resource_anchor_runtime > 0.0:
+            add_score("runtime_herd_resource_anchor_pull", min(0.22, herd_resource_anchor_runtime * 0.14), "运行中的草食群资源锚点正在把 herd 通道重新压回稳定饮水与放牧轴。")
+            add_layer_bias("herd_layer", herd_resource_anchor_runtime * 0.08)
+            add_layer_bias("social_layer", herd_resource_anchor_runtime * 0.04)
         surface_water_anchor = float(runtime_signals.get("surface_water_anchor", 0.0))
         if surface_water_anchor > 0.0:
             add_score("surface_water_anchor", min(0.24, surface_water_anchor * 0.16), "区域水源锚点正在把 herd 通道重新拉回稳定饮水走廊。")
@@ -233,6 +238,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_surface_water_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_health_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_resource_anchor_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_memory_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_route_cycle_pressure", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16 * scavenger_bias, feedback_scale)
@@ -809,6 +815,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["antelope"],
             }
         )
+    if scores.get("runtime_herd_resource_anchor_pull", 0.0) >= 0.07 and antelope_count < 20:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_anchor",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "runtime_herd_anchor_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if scores.get("runtime_surface_water_pull", 0.0) >= 0.08 and zebra_count < 16:
         species_pool["zebra"] = species_pool.get("zebra", 0) + 1
         adjustments.append(
@@ -828,6 +845,17 @@ def apply_region_grassland_chain_rebalancing(
                 "target_species": "zebra",
                 "layer_group": "herd_layer",
                 "effect": "runtime_herd_health_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+    if scores.get("runtime_herd_resource_anchor_pull", 0.0) >= 0.07 and zebra_count < 18:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_anchor",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "runtime_herd_anchor_support",
                 "new_target_count": species_pool["zebra"],
             }
         )
