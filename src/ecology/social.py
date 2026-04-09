@@ -121,6 +121,17 @@ def build_region_social_trend_summary(
             "condition_phase_apex_carrion_window",
         }
     )
+    world_pressure_window_count = sum(
+        1
+        for item in list(grassland_adjustments) + list(carrion_adjustments)
+        if isinstance(item, dict)
+        and item.get("effect") in {
+            "world_pressure_herd_window",
+            "world_pressure_apex_window",
+            "world_pressure_aerial_window",
+            "world_pressure_apex_carrion_window",
+        }
+    )
 
     def carry(key: str) -> float:
         return float(previous_scores.get(key, 0.0))
@@ -215,6 +226,7 @@ def build_region_social_trend_summary(
             + herd_anchor_prosperity_runtime * 0.06
             + surface_water_anchor * 0.06
             + condition_phase_window_count * 0.03
+            + world_pressure_window_count * 0.03
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.08,
         ),
     )
@@ -239,6 +251,7 @@ def build_region_social_trend_summary(
             + aerial_anchor_prosperity_runtime * 0.06
             + carcass_anchor * 0.06
             + condition_phase_window_count * 0.03
+            + world_pressure_window_count * 0.03
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.06,
         ),
     )
@@ -268,6 +281,7 @@ def build_region_social_trend_summary(
                     + aerial_resource_anchor_runtime * 0.03
                     + aerial_anchor_prosperity_runtime * 0.03
                     + condition_phase_window_count * 0.05
+                    + world_pressure_window_count * 0.05
                     + surface_water_anchor * 0.06
                     + carcass_anchor * 0.05
                     + apex_anchor_prosperity_runtime * 0.04
@@ -349,6 +363,7 @@ def build_region_social_trend_summary(
                     carry_prosperity("grassland_collapse_phase") * 0.7
                     + boom_bust_scores["grassland_bust_phase"] * 0.28
                     + condition_phase_window_count * 0.05
+                    + world_pressure_window_count * 0.04
                     + shared_hotspot_shift * 0.05
                     + overlap * 0.03
                     - herd_resource_anchor_runtime * 0.02
@@ -710,6 +725,9 @@ def build_region_social_trend_summary(
     if condition_phase_window_count > 0:
         cycle_signals.append("condition_phase_window_memory")
         narrative_trends.append("长期相位体况窗口正在把恢复机会沉淀成新的社群延续记忆。")
+    if world_pressure_window_count > 0:
+        cycle_signals.append("world_pressure_window_memory")
+        narrative_trends.append("世界级长期压力窗口正在把 herd、apex 与 aerial 的恢复机会沉淀成新的区域延续记忆。")
     if apex_regional_bias_runtime >= 0.30:
         cycle_signals.append("apex_regional_bias_runtime")
     if apex_world_pressure_runtime >= 0.26:

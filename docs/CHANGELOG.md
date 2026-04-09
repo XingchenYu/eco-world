@@ -1462,3 +1462,21 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `grassland_chain`
   - `carrion_chain`
 - 也就是说，世界级长期压力现在已经不只回写区域 `health_state`，而开始继续下沉成真实动物体况，并再反向塑造下一轮 `territory/social/grassland/carrion` 节律
+- 现已新增并打通：
+  - `world_pressure_herd_window`
+  - `world_pressure_apex_window`
+  - `world_pressure_aerial_window`
+  - `world_pressure_apex_carrion_window`
+- 这些新的 world pressure window 现在已经进入：
+  - `grassland_rebalancing`
+  - `carrion_rebalancing`
+  - `social_trends.cycle_signals`
+  - 世界级长期压力
+- 同时新增：
+  - `world_pressure_window_memory`
+  也就是说，世界级长期压力现在不只会直接压到运行体，还会先打开 herd/apex/aerial 的恢复窗口，再把这些窗口沉淀成新的社群记忆，继续反向抬高下一轮长期压力
+- 文档阅读说明补充：
+  - `world pressure`：世界级长期压力
+  - `window`：恢复窗口/扩张窗口
+  - `memory`：记忆层
+  - `condition runtime`：运行期真实体况

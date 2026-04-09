@@ -1214,3 +1214,20 @@
   也就是说，世界级长期压力现在已经真正形成：
   `world pressures -> runtime animals -> territory/social/chains -> next world pressures`
   的闭环
+- 这条闭环现已继续推进到恢复窗口层：
+  - `world_pressure_herd_window`
+  - `world_pressure_apex_window`
+  - `world_pressure_aerial_window`
+  - `world_pressure_apex_carrion_window`
+- 它们现在已经进入：
+  - `grassland_rebalancing`
+  - `carrion_rebalancing`
+  - `social_trends.cycle_signals`
+  - 世界级长期压力
+- 同时新增：
+  - `world_pressure_window_memory`
+  也就是说，世界级长期压力现在已经不只是“直接压运行体”，而会先打开 herd/apex/aerial 的恢复窗口，再把这些窗口沉淀成新的长期社群记忆，继续反向影响下一轮 prosperity/collapse 与 world pressures
+- 术语补充：
+  - `world pressure`：世界级长期压力
+  - `window`：窗口，指恢复或扩张机会
+  - `memory`：记忆层，指跨周期保留的历史信号

@@ -890,6 +890,28 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["lion"],
             }
         )
+    if scores.get("runtime_aerial_world_pressure_pull", 0.0) >= 0.05 and vulture_count < 12:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "world_pressure",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "world_pressure_aerial_window",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
+    if scores.get("runtime_apex_world_pressure_pull", 0.0) >= 0.05 and lion_count < 9:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "world_pressure",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "world_pressure_apex_carrion_window",
+                "new_target_count": species_pool["lion"],
+            }
+        )
     if scores.get("runtime_apex_health_anchor_pull", 0.0) >= 0.06 and lion_count < 9:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(
