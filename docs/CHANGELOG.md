@@ -1197,3 +1197,23 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `aerial_regional_health_anchor_runtime`
   - `apex_regional_health_anchor_runtime`
 - ✅ 这意味着运行期区域长期健康锚点现在已经从纯健康值推进成资源-健康复合锚点
+- ✅ `RegionSimulation.apply_relationship_runtime_state()` 现在会把这些复合健康锚点直接注入运行体：
+  - `lion.regional_health_anchor`
+  - `hyena.regional_health_anchor`
+  - `antelope.regional_health_anchor`
+  - `zebra.regional_health_anchor`
+  - `vulture.regional_health_anchor`
+- ✅ 这些新字段现在已经开始直接影响：
+  - `lion / hyena` 的 `pride_center / clan_center` 漂移粘滞
+  - `antelope / zebra` 的 herd 通道选择
+  - `vulture` 的空中尸体通道选择
+- ✅ `runtime_territory_state` 现也开始直接从运行体回收这些 `regional_health_anchor`
+  并把它们继续抬升为：
+  - `apex_regional_health_anchor_runtime`
+  - `herd_regional_health_anchor_runtime`
+  - `aerial_regional_health_anchor_runtime`
+  也就是说，这一层现在已经不是 world 侧单向估算，而变成了：
+  - 区域长期健康
+  - 运行体复合健康锚点
+  - world 汇总
+  的真实闭环

@@ -979,3 +979,21 @@
   - `aerial_regional_health_anchor_runtime`
   - `apex_regional_health_anchor_runtime`
   也就是说，运行期区域长期健康锚点现在已经从“纯健康信号”推进成“资源-健康复合锚点”
+- `RegionSimulation.apply_relationship_runtime_state()` 现也开始把这些复合健康锚点直接注入：
+  - `lion / hyena` 的 `regional_health_anchor`
+  - `antelope / zebra` 的 `regional_health_anchor`
+  - `vulture` 的 `regional_health_anchor`
+- 这些运行体字段现已直接进入：
+  - `lion / hyena` 的中心漂移粘滞
+  - `antelope / zebra` 的 herd 通道选择
+  - `vulture` 的空中尸体通道选择
+- `runtime_territory_state` 现也开始从运行体回收这些 `regional_health_anchor`
+  并把它们继续抬升为：
+  - `apex_regional_health_anchor_runtime`
+  - `herd_regional_health_anchor_runtime`
+  - `aerial_regional_health_anchor_runtime`
+  这意味着这层已经从 world 侧单向估算推进成：
+  - 区域长期健康
+  - 运行体复合健康锚点
+  - world 汇总
+  的双向闭环

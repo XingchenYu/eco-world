@@ -1148,6 +1148,7 @@ class Antelope(Animal):
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
+        self.regional_health_anchor = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1192,6 +1193,7 @@ class Antelope(Animal):
             self.runtime_anchor_prosperity * 0.60,
             self.regional_prosperity * 0.55,
             self.regional_stability * 0.40,
+            self.regional_health_anchor * 0.50,
             self.regional_prosperity_bias * 0.45,
             self.regional_stability_bias * 0.35,
         )
@@ -1235,6 +1237,7 @@ class Zebra(Animal):
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
+        self.regional_health_anchor = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1276,6 +1279,7 @@ class Zebra(Animal):
             self.runtime_anchor_prosperity * 0.60,
             self.regional_prosperity * 0.55,
             self.regional_stability * 0.40,
+            self.regional_health_anchor * 0.50,
             self.regional_prosperity_bias * 0.45,
             self.regional_stability_bias * 0.35,
         )
@@ -1687,6 +1691,7 @@ class Vulture(Animal):
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
+        self.regional_health_anchor = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1737,6 +1742,7 @@ class Vulture(Animal):
             self.runtime_anchor_prosperity * 0.58,
             self.regional_prosperity * 0.52,
             self.regional_stability * 0.36,
+            self.regional_health_anchor * 0.48,
             self.regional_prosperity_bias * 0.42,
             self.regional_stability_bias * 0.32,
         )

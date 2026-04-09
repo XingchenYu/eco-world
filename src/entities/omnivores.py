@@ -584,6 +584,7 @@ class Lion(Animal):
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
+        self.regional_health_anchor = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -684,6 +685,7 @@ class Lion(Animal):
             + self.runtime_anchor_prosperity * 0.05
             + self.regional_prosperity * 0.05
             + self.regional_stability * 0.04
+            + self.regional_health_anchor * 0.05
             + self.regional_prosperity_bias * 0.05
             + self.regional_stability_bias * 0.04
             - self.kill_corridor_bias * 0.03
@@ -806,6 +808,7 @@ class Hyena(Animal):
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
+        self.regional_health_anchor = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -909,6 +912,7 @@ class Hyena(Animal):
             + self.runtime_anchor_prosperity * 0.05
             + self.regional_prosperity * 0.05
             + self.regional_stability * 0.04
+            + self.regional_health_anchor * 0.05
             + self.regional_prosperity_bias * 0.05
             + self.regional_stability_bias * 0.04
             - self.kill_corridor_bias * 0.02
