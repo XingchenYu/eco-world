@@ -1138,6 +1138,8 @@ class Antelope(Animal):
         self.color = (182, 136, 74)
         self.pregnancy_duration = 14
         self.forms_groups = True
+        self.herd_channel_bias = 0.0
+        self.herd_source_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion", "hyena", "wolf", "crocodile"]
@@ -1163,6 +1165,23 @@ class Antelope(Animal):
     def breeding_patch_threshold(self) -> float:
         return 0.10
 
+    def execute_behavior(self, ecosystem):
+        super().execute_behavior(ecosystem)
+        if not self.alive:
+            return
+        self._follow_herd_channel(ecosystem)
+
+    def _follow_herd_channel(self, ecosystem):
+        bias = max(self.herd_channel_bias, self.herd_source_bias * 0.7)
+        if bias <= 0.0:
+            return
+        if self.hunger < 45 and self.seek_habitat(ecosystem, radius=self.vision_range + 2):
+            return
+        if hasattr(ecosystem, "_random_water_adjacent_position") and random.random() < min(0.45, 0.18 + bias * 0.20):
+            target = ecosystem._random_water_adjacent_position()
+            if target:
+                self.move_towards(target, ecosystem)
+
 
 class Zebra(Animal):
     """斑马 - 草原大型群居食草动物。"""
@@ -1183,6 +1202,8 @@ class Zebra(Animal):
         self.color = (210, 210, 210)
         self.pregnancy_duration = 16
         self.forms_groups = True
+        self.herd_channel_bias = 0.0
+        self.herd_source_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion", "hyena", "crocodile"]
@@ -1204,6 +1225,23 @@ class Zebra(Animal):
 
     def breeding_patch_threshold(self) -> float:
         return 0.08
+
+    def execute_behavior(self, ecosystem):
+        super().execute_behavior(ecosystem)
+        if not self.alive:
+            return
+        self._follow_herd_channel(ecosystem)
+
+    def _follow_herd_channel(self, ecosystem):
+        bias = max(self.herd_channel_bias, self.herd_source_bias * 0.7)
+        if bias <= 0.0:
+            return
+        if self.hunger < 48 and self.seek_habitat(ecosystem, radius=self.vision_range + 2):
+            return
+        if hasattr(ecosystem, "_random_water_adjacent_position") and random.random() < min(0.40, 0.16 + bias * 0.18):
+            target = ecosystem._random_water_adjacent_position()
+            if target:
+                self.move_towards(target, ecosystem)
 
 
 class Wolf(Animal):
@@ -1593,6 +1631,8 @@ class Vulture(Animal):
         self.color = (120, 95, 72)
         self.pregnancy_duration = 18
         self.forms_groups = True
+        self.aerial_lane_bias = 0.0
+        self.kill_corridor_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -1623,6 +1663,29 @@ class Vulture(Animal):
                 self.eat(10 + carrion_window * 10)
                 if hasattr(ecosystem, "log_event") and random.random() < 0.15:
                     ecosystem.log_event(f"{self.id} circled over a carrion site")
+
+    def execute_behavior(self, ecosystem):
+        super().execute_behavior(ecosystem)
+        if not self.alive:
+            return
+        self._track_aerial_lanes(ecosystem)
+
+    def _track_aerial_lanes(self, ecosystem):
+        bias = max(self.aerial_lane_bias, self.kill_corridor_bias * 0.8)
+        if bias <= 0.0:
+            return
+        if hasattr(ecosystem, "get_microhabitat_patches"):
+            patches = ecosystem.get_microhabitat_patches({"thermal_column", "open_grazing_range"}, self.position, radius=self.vision_range)
+            patches = [patch for patch in patches if patch.available > 0.05]
+            if patches and random.random() < min(0.55, 0.22 + bias * 0.24):
+                target = max(
+                    patches,
+                    key=lambda patch: patch.available / max(
+                        1,
+                        abs(patch.position[0] - self.position[0]) + abs(patch.position[1] - self.position[1]),
+                    ),
+                )
+                self.move_towards(target.position, ecosystem)
                 return
         super().forage(ecosystem)
 

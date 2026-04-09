@@ -42,6 +42,21 @@
 - ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已开始吸收这些偏置信号，形成下一轮资源布局输入
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增领地主导层测试并通过
 
+### v4.0-alpha38 (2026-04-09 09:25)
+
+- ✅ [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 现已把 `territory` 生成的布局偏置信号回灌到运行体
+- ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 中：
+  - `Lion` 现已读取：
+    - `apex_hotspot_bias`
+    - `kill_corridor_bias`
+  - `Hyena` 现已读取：
+    - `scavenger_hotspot_bias`
+    - `kill_corridor_bias`
+- ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 中：
+  - `Antelope / Zebra` 现已读取 herd 通道偏置
+  - `Vulture` 现已读取空中通道与 kill corridor 偏置
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐运行体偏置信号注入测试并通过
+
 ### v4.0-alpha27 (2026-04-09 05:00)
 
 - ✅ `social_trends.hotspot_scores` 现已开始回灌到 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行体

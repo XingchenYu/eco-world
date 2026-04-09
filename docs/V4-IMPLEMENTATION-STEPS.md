@@ -720,3 +720,7 @@
 - `dominant_layer` 现已开始反向改变：
   - `territory` 的热点/通道偏置信号
   - `grassland_chain / carrion_chain` 下一轮的资源布局输入
+- `territory` 生成的 `*_bias` 信号现已开始回灌到运行体：
+  - `lion / hyena` 的中心漂移强度
+  - `antelope / zebra` 的 herd 通道选择
+  - `vulture` 的空中追踪通道选择

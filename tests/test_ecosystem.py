@@ -1551,12 +1551,31 @@ def test_region_simulation_applies_social_phase_state():
             },
         },
     )
+    region.record_relationship_state(
+        "territory",
+        {
+            "runtime_signals": {
+                "apex_hotspot_bias": 1,
+                "scavenger_hotspot_bias": 1,
+                "herd_channel_bias": 1,
+                "herd_source_bias": 1,
+                "kill_corridor_bias": 1,
+                "aerial_lane_bias": 1,
+            }
+        },
+    )
 
     sim = RegionSimulation(region=region, config={"world": {"grid_size": 20}})
     sim.spawn_animal("lion", sim._random_land_position(), source="manual")
     sim.spawn_animal("hyena", sim._random_land_position(), source="manual")
+    sim.spawn_animal("antelope", sim._random_land_position(), source="manual")
+    sim.spawn_animal("zebra", sim._random_land_position(), source="manual")
+    sim.spawn_animal("vulture", sim._random_land_position(), source="manual")
     lion = next(animal for animal in sim.animals if animal.species == "lion" and animal.alive)
     hyena = next(animal for animal in sim.animals if animal.species == "hyena" and animal.alive)
+    antelope = next(animal for animal in sim.animals if animal.species == "antelope" and animal.alive)
+    zebra = next(animal for animal in sim.animals if animal.species == "zebra" and animal.alive)
+    vulture = next(animal for animal in sim.animals if animal.species == "vulture" and animal.alive)
 
     sim.apply_relationship_runtime_state()
 
@@ -1568,6 +1587,16 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.cycle_contraction_phase == 0.18
     assert hyena.hotspot_memory == 0.49
     assert hyena.shared_hotspot_memory == 0.31
+    assert lion.apex_hotspot_bias == 1.0
+    assert lion.kill_corridor_bias == 1.0
+    assert hyena.scavenger_hotspot_bias == 1.0
+    assert hyena.kill_corridor_bias == 1.0
+    assert antelope.herd_channel_bias == 1.0
+    assert antelope.herd_source_bias == 1.0
+    assert zebra.herd_channel_bias == 1.0
+    assert zebra.herd_source_bias == 1.0
+    assert vulture.aerial_lane_bias == 1.0
+    assert vulture.kill_corridor_bias == 1.0
 
     print("✅ Region simulation social phase injection test passed")
 

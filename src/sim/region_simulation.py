@@ -35,8 +35,10 @@ class RegionSimulation(Ecosystem):
             return
 
         social_state = self.region.relationship_state.get("social_trends", {})
+        territory_state = self.region.relationship_state.get("territory", {})
         phase_scores = social_state.get("phase_scores", {})
         hotspot_scores = social_state.get("hotspot_scores", {})
+        territory_signals = territory_state.get("runtime_signals", {}) if isinstance(territory_state, dict) else {}
         lion_expansion = float(phase_scores.get("lion_expansion_phase", 0.0))
         lion_contraction = float(phase_scores.get("lion_contraction_phase", 0.0))
         hyena_expansion = float(phase_scores.get("hyena_expansion_phase", 0.0))
@@ -44,6 +46,12 @@ class RegionSimulation(Ecosystem):
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        herd_channel_bias = float(territory_signals.get("herd_channel_bias", 0.0))
+        apex_hotspot_bias = float(territory_signals.get("apex_hotspot_bias", 0.0))
+        scavenger_hotspot_bias = float(territory_signals.get("scavenger_hotspot_bias", 0.0))
+        herd_source_bias = float(territory_signals.get("herd_source_bias", 0.0))
+        kill_corridor_bias = float(territory_signals.get("kill_corridor_bias", 0.0))
+        aerial_lane_bias = float(territory_signals.get("aerial_lane_bias", 0.0))
 
         for animal in self.animals:
             if not animal.alive:
@@ -53,11 +61,24 @@ class RegionSimulation(Ecosystem):
                 animal.cycle_contraction_phase = lion_contraction
                 animal.hotspot_memory = lion_hotspot_memory
                 animal.shared_hotspot_memory = shared_hotspot_memory
+                animal.apex_hotspot_bias = apex_hotspot_bias
+                animal.kill_corridor_bias = kill_corridor_bias
             elif animal.species == "hyena":
                 animal.cycle_expansion_phase = hyena_expansion
                 animal.cycle_contraction_phase = hyena_contraction
                 animal.hotspot_memory = hyena_hotspot_memory
                 animal.shared_hotspot_memory = shared_hotspot_memory
+                animal.scavenger_hotspot_bias = scavenger_hotspot_bias
+                animal.kill_corridor_bias = kill_corridor_bias
+            elif animal.species == "antelope":
+                animal.herd_channel_bias = herd_channel_bias
+                animal.herd_source_bias = herd_source_bias
+            elif animal.species == "zebra":
+                animal.herd_channel_bias = herd_channel_bias
+                animal.herd_source_bias = herd_source_bias
+            elif animal.species == "vulture":
+                animal.aerial_lane_bias = aerial_lane_bias
+                animal.kill_corridor_bias = kill_corridor_bias
 
     def get_statistics(self) -> dict:
         stats = super().get_statistics()

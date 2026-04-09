@@ -577,6 +577,8 @@ class Lion(Animal):
         self.cycle_contraction_phase = 0.0
         self.hotspot_memory = 0.0
         self.shared_hotspot_memory = 0.0
+        self.apex_hotspot_bias = 0.0
+        self.kill_corridor_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -665,7 +667,13 @@ class Lion(Animal):
             self.mate_cooldown = max(self.mate_cooldown, 2)
 
     def _update_pride_center_from_cycle(self):
-        stickiness = 0.72 + self.hotspot_memory * 0.18 - self.shared_hotspot_memory * 0.20
+        stickiness = (
+            0.72
+            + self.hotspot_memory * 0.18
+            - self.shared_hotspot_memory * 0.20
+            + self.apex_hotspot_bias * 0.05
+            - self.kill_corridor_bias * 0.03
+        )
         stickiness = max(0.15, min(0.88, stickiness))
         old_x, old_y = self.pride_center
         new_x, new_y = self.position
@@ -775,6 +783,8 @@ class Hyena(Animal):
         self.cycle_contraction_phase = 0.0
         self.hotspot_memory = 0.0
         self.shared_hotspot_memory = 0.0
+        self.scavenger_hotspot_bias = 0.0
+        self.kill_corridor_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -866,7 +876,13 @@ class Hyena(Animal):
             self.mate_cooldown = max(self.mate_cooldown, 2)
 
     def _update_clan_center_from_cycle(self):
-        stickiness = 0.68 + self.hotspot_memory * 0.20 - self.shared_hotspot_memory * 0.16
+        stickiness = (
+            0.68
+            + self.hotspot_memory * 0.20
+            - self.shared_hotspot_memory * 0.16
+            + self.scavenger_hotspot_bias * 0.05
+            - self.kill_corridor_bias * 0.02
+        )
         stickiness = max(0.12, min(0.86, stickiness))
         old_x, old_y = self.clan_center
         new_x, new_y = self.position
