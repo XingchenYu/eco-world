@@ -41,6 +41,7 @@ class RegionSimulation(Ecosystem):
         prosperity_scores = social_state.get("prosperity_scores", {})
         health_state = self.region.health_state if isinstance(self.region.health_state, dict) else {}
         territory_signals = territory_state.get("runtime_signals", {}) if isinstance(territory_state, dict) else {}
+        resource_state = self.region.resource_state if isinstance(self.region.resource_state, dict) else {}
         lion_expansion = float(phase_scores.get("lion_expansion_phase", 0.0))
         lion_contraction = float(phase_scores.get("lion_contraction_phase", 0.0))
         hyena_expansion = float(phase_scores.get("hyena_expansion_phase", 0.0))
@@ -58,8 +59,14 @@ class RegionSimulation(Ecosystem):
         herd_source_bias = float(territory_signals.get("herd_source_bias", 0.0))
         kill_corridor_bias = float(territory_signals.get("kill_corridor_bias", 0.0))
         aerial_lane_bias = float(territory_signals.get("aerial_lane_bias", 0.0))
-        surface_water_anchor = float(territory_signals.get("surface_water_anchor", 0.0))
-        carcass_anchor = float(territory_signals.get("carcass_anchor", 0.0))
+        surface_water_anchor = max(
+            float(territory_signals.get("surface_water_anchor", 0.0)),
+            float(resource_state.get("surface_water", 0.0)),
+        )
+        carcass_anchor = max(
+            float(territory_signals.get("carcass_anchor", 0.0)),
+            float(resource_state.get("carcass_availability", 0.0)),
+        )
         regional_prosperity = float(health_state.get("prosperity", 0.0))
         regional_collapse_risk = float(health_state.get("collapse_risk", 0.0))
         regional_stability = float(health_state.get("stability", 0.0))

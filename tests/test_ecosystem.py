@@ -1726,6 +1726,8 @@ def test_region_simulation_applies_social_phase_state():
             }
         },
     )
+    region.resource_state["surface_water"] = 0.68
+    region.resource_state["carcass_availability"] = 0.57
 
     sim = RegionSimulation(region=region, config={"world": {"grid_size": 20}})
     sim.spawn_animal("lion", sim._random_land_position(), source="manual")
@@ -1745,14 +1747,14 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.cycle_contraction_phase == 0.14
     assert lion.hotspot_memory == 0.52
     assert lion.shared_hotspot_memory == 0.31
-    assert lion.surface_water_anchor == 0.6
+    assert lion.surface_water_anchor == 0.68
     assert lion.regional_prosperity > 0.0
     assert lion.regional_stability > 0.0
     assert hyena.cycle_expansion_phase == 0.58
     assert hyena.cycle_contraction_phase == 0.18
     assert hyena.hotspot_memory == 0.49
     assert hyena.shared_hotspot_memory == 0.31
-    assert hyena.carcass_anchor == 0.5
+    assert hyena.carcass_anchor == 0.57
     assert hyena.regional_prosperity > 0.0
     assert hyena.regional_stability > 0.0
     assert lion.apex_hotspot_bias == 1.0
@@ -1764,7 +1766,7 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.route_cycle_bias == 0.36
     assert antelope.prosperity_phase_bias == 0.41
     assert antelope.collapse_phase_bias == 0.16
-    assert antelope.surface_water_anchor == 0.6
+    assert antelope.surface_water_anchor == 0.68
     assert antelope.regional_prosperity > 0.0
     assert antelope.regional_stability > 0.0
     assert zebra.herd_channel_bias == 1.0
@@ -1772,7 +1774,7 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.route_cycle_bias == 0.36
     assert zebra.prosperity_phase_bias == 0.41
     assert zebra.collapse_phase_bias == 0.16
-    assert zebra.surface_water_anchor == 0.6
+    assert zebra.surface_water_anchor == 0.68
     assert zebra.regional_prosperity > 0.0
     assert zebra.regional_stability > 0.0
     assert vulture.aerial_lane_bias == 1.0
@@ -1780,7 +1782,7 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.carrion_cycle_bias == 0.31
     assert vulture.prosperity_phase_bias == 0.41
     assert vulture.collapse_phase_bias == 0.16
-    assert vulture.carcass_anchor == 0.5
+    assert vulture.carcass_anchor == 0.57
     assert vulture.regional_prosperity > 0.0
     assert vulture.regional_stability > 0.0
 
