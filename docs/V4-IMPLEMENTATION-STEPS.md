@@ -712,6 +712,7 @@
 - 草原热点现已开始具有持续、衰减与迁移记忆，并会继续回灌 `social_trends` 和 `territory`
 - `social_trends.hotspot_scores` 现已开始持久记录 `herd / vulture` 通道热点记忆，并回灌 `grassland_chain / carrion_chain`
 - `social_trends.phase_scores` 现已开始形成 `herd_route_cycle / aerial_carrion_cycle`，并进入草原链与尸体资源链
+- `herd_route_cycle / aerial_carrion_cycle` 现已开始进一步抬升或压低草原区的长期 `boom-bust / prosperity-collapse`
 - `prosperity / collapse` 现已开始直接改变 `grassland_chain / carrion_chain` 的：
   - 摘要权重
   - 反馈系数

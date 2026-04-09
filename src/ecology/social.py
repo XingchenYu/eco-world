@@ -130,6 +130,27 @@ def build_region_social_trend_summary(
         ),
     }
 
+    herd_route_cycle_signal = max(
+        0.0,
+        min(
+            1.0,
+            carry_phase("herd_route_cycle") * 0.66
+            + (carry_hotspot("herd_hotspot_memory") * 0.68 + herd_hotspots * 0.08 + herd_apex_overlap * 0.04) * 0.32
+            + (carry_hotspot("herd_apex_memory") * 0.68 + herd_apex_overlap * 0.10) * 0.18
+            - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.08,
+        ),
+    )
+    aerial_carrion_cycle_signal = max(
+        0.0,
+        min(
+            1.0,
+            carry_phase("aerial_carrion_cycle") * 0.66
+            + (carry_hotspot("vulture_hotspot_memory") * 0.68 + vulture_hotspots * 0.08 + vulture_carrion_overlap * 0.05) * 0.30
+            + (carry_hotspot("vulture_carrion_memory") * 0.68 + vulture_carrion_overlap * 0.10) * 0.22
+            - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.06,
+        ),
+    )
+
     boom_bust_scores = {
         "grassland_boom_phase": round(
             max(
@@ -139,6 +160,8 @@ def build_region_social_trend_summary(
                     carry_boom_bust("grassland_boom_phase") * 0.66
                     + phase_scores["lion_expansion_phase"] * 0.24
                     + phase_scores["hyena_expansion_phase"] * 0.20
+                    + herd_route_cycle_signal * 0.10
+                    + aerial_carrion_cycle_signal * 0.08
                     + max(0.0, pride_strength - takeover_pressure) * 0.10
                     + max(0.0, clan_cohesion - clan_front_pressure) * 0.08
                     + max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.03
@@ -160,6 +183,8 @@ def build_region_social_trend_summary(
                     + max(0.0, clan_front_pressure - clan_cohesion) * 0.08
                     + shared_hotspot_shift * 0.05
                     + shared_hotspot_persistence * 0.04
+                    - herd_route_cycle_signal * 0.06
+                    - aerial_carrion_cycle_signal * 0.05
                     - max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.02
                     - max(0.0, hyena_hotspot_persistence - hyena_hotspot_shift) * 0.02,
                 ),
@@ -176,6 +201,8 @@ def build_region_social_trend_summary(
                     1.0,
                     carry_prosperity("grassland_prosperity_phase") * 0.7
                     + boom_bust_scores["grassland_boom_phase"] * 0.26
+                    + herd_route_cycle_signal * 0.10
+                    + aerial_carrion_cycle_signal * 0.08
                     + max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.03
                     + max(0.0, hyena_hotspot_persistence - hyena_hotspot_shift) * 0.03
                     - boom_bust_scores["grassland_bust_phase"] * 0.12,
@@ -192,6 +219,8 @@ def build_region_social_trend_summary(
                     + boom_bust_scores["grassland_bust_phase"] * 0.28
                     + shared_hotspot_shift * 0.05
                     + overlap * 0.03
+                    - herd_route_cycle_signal * 0.05
+                    - aerial_carrion_cycle_signal * 0.04
                     - boom_bust_scores["grassland_boom_phase"] * 0.10,
                 ),
             ),
@@ -287,32 +316,8 @@ def build_region_social_trend_summary(
         ),
     }
 
-    phase_scores["herd_route_cycle"] = round(
-        max(
-            0.0,
-            min(
-                1.0,
-                carry_phase("herd_route_cycle") * 0.66
-                + hotspot_scores["herd_hotspot_memory"] * 0.32
-                + hotspot_scores["herd_apex_memory"] * 0.18
-                - hotspot_scores["shared_hotspot_memory"] * 0.08,
-            ),
-        ),
-        3,
-    )
-    phase_scores["aerial_carrion_cycle"] = round(
-        max(
-            0.0,
-            min(
-                1.0,
-                carry_phase("aerial_carrion_cycle") * 0.66
-                + hotspot_scores["vulture_hotspot_memory"] * 0.30
-                + hotspot_scores["vulture_carrion_memory"] * 0.22
-                - hotspot_scores["shared_hotspot_memory"] * 0.06,
-            ),
-        ),
-        3,
-    )
+    phase_scores["herd_route_cycle"] = round(herd_route_cycle_signal, 3)
+    phase_scores["aerial_carrion_cycle"] = round(aerial_carrion_cycle_signal, 3)
 
     cycle_signals: List[str] = []
     narrative_trends: List[str] = []
@@ -375,7 +380,7 @@ def build_region_social_trend_summary(
     if boom_bust_scores["grassland_bust_phase"] >= 0.54:
         cycle_signals.append("grassland_bust_phase")
         narrative_trends.append("热点重叠与收缩压力正在把草原拖入更明显的衰退相位。")
-    if prosperity_scores["grassland_prosperity_phase"] >= 0.5:
+    if prosperity_scores["grassland_prosperity_phase"] >= 0.25:
         cycle_signals.append("grassland_prosperity_phase")
         narrative_trends.append("草原顶层社群与热点布局已经累积成更长期的繁荣期。")
     if prosperity_scores["grassland_collapse_phase"] >= 0.46:

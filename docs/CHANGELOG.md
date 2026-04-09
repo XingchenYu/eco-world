@@ -806,6 +806,18 @@ src/core/ecosystem.py        [修改] 导入新物种
   - 尸体资源链 summary 权重
   - 区域反馈强度
 
+# v4.0-alpha36 (2026-04-09 11:25)
+
+- `social.py` 现已把：
+  - `herd_route_cycle`
+  - `aerial_carrion_cycle`
+  接入长期相位：
+  - `grassland_boom_phase`
+  - `grassland_bust_phase`
+  - `grassland_prosperity_phase`
+  - `grassland_collapse_phase`
+- 这意味着 herd/vulture 的长期迁移与追踪周期，已经开始真正改变草原区的长期繁荣/衰退走势
+
 # v4.0-alpha35 (2026-04-09 11:10)
 
 - `social.py` 现已在长期热点记忆之上进一步形成显式周期：

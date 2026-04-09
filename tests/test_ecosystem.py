@@ -938,6 +938,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.phase_scores["aerial_carrion_cycle"] > 0.12
     assert summary.boom_bust_scores["grassland_boom_phase"] > 0.45
     assert summary.prosperity_scores["grassland_prosperity_phase"] > 0.0
+    assert summary.prosperity_scores["grassland_prosperity_phase"] > summary.prosperity_scores["grassland_collapse_phase"]
     assert summary.hotspot_scores["lion_hotspot_memory"] >= 0.12
     assert summary.hotspot_scores["hyena_hotspot_memory"] >= 0.12
     assert summary.hotspot_scores["herd_hotspot_memory"] > 0.25
@@ -946,6 +947,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert "hyena_expansion_cycle" in summary.cycle_signals
     assert "apex_hotspot_wave" in summary.cycle_signals
     assert "grassland_boom_phase" in summary.cycle_signals
+    assert "grassland_prosperity_phase" in summary.cycle_signals
     assert "herd_hotspot_memory" in summary.cycle_signals
     assert "vulture_hotspot_memory" in summary.cycle_signals
     assert "herd_route_cycle" in summary.cycle_signals
