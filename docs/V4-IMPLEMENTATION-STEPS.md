@@ -755,3 +755,8 @@
   - `herd_route_cycle` 回灌到 `surface_water`
   - `aerial_carrion_cycle` 回灌到 `carcass_availability`
 - 长期社群周期现在已经开始直接改区域资源层，而不只影响链路权重和重平衡
+- `territory` 现已开始直接读取区域里的：
+  - `surface_water`
+  - `carcass_availability`
+  并生成 `surface_water_anchor / carcass_anchor`
+- `grassland_chain / carrion_chain` 也已开始吸收这些资源锚点，资源层正式进入草原长期闭环

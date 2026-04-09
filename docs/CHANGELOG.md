@@ -934,6 +934,11 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ `apply_region_social_trend_feedback()` 现在会把 `herd_route_cycle` 回灌到 `surface_water`
 - ✅ `apply_region_social_trend_feedback()` 现在也会把 `aerial_carrion_cycle` 回灌到 `carcass_availability`
 
+# v4.0-alpha44 - Feed regional resource anchors into territory chains
+
+- ✅ `territory` 现在会直接读取区域 `surface_water / carcass_availability`，生成 `surface_water_anchor / carcass_anchor`
+- ✅ `grassland_chain / carrion_chain` 现在会吸收这些资源锚点，资源层正式进入草原长期闭环
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：

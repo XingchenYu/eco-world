@@ -108,6 +108,9 @@ def build_region_carrion_chain_summary(
             add_score("runtime_aerial_lanes", min(0.24, vulture_hotspots * 0.05), "运行中的秃鹫热点正在加深空中尸体追踪通道。")
         if vulture_overlap > 0:
             add_score("runtime_vulture_overlap", min(0.22, vulture_overlap * 0.06), "秃鹫与地面尸体热点重叠正在抬高空地协同追踪强度。")
+        carcass_anchor = float(runtime_signals.get("carcass_anchor", 0.0))
+        if carcass_anchor > 0.0:
+            add_score("carcass_anchor_pressure", min(0.24, carcass_anchor * 0.16), "区域尸体资源锚点正在把清道夫链重新拉向稳定的 carrion 通道。")
     if social_trend_summary is not None:
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}

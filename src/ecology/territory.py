@@ -47,6 +47,8 @@ def build_region_territory_summary(
             narrative_territory.append(narrative)
 
     if region.region_id == "temperate_grassland":
+        surface_water = float(region.resource_state.get("surface_water", 0.0))
+        carcass_availability = float(region.resource_state.get("carcass_availability", 0.0))
         if "lion" in region_species:
             add_pressure("lion", "pride_core_range", 0.58, "seasonal_waterhole", "狮群围绕水源和伏击带形成核心巡猎领地。")
             add_pressure("lion", "male_takeover_front", 0.44, "open_grazing_range", "雄狮接管压力会推动草原核心巡猎区重新划分。")
@@ -58,6 +60,18 @@ def build_region_territory_summary(
             add_pressure("hyena", "carcass_route_overlap", 0.49, "seasonal_waterhole", "尸体与饮水通道重叠会放大清道夫与捕食者的相遇密度。")
         if {"african_elephant", "white_rhino"} & region_species:
             add_pressure("african_elephant", "waterhole_spacing", 0.34, "seasonal_waterhole", "大型植食者会把草原水源点推成高密度共享节点。")
+        if surface_water > 0.0:
+            runtime_signals["surface_water_anchor"] = round(surface_water, 3)
+            pressure_scores["waterhole_spacing"] = round(
+                pressure_scores.get("waterhole_spacing", 0.0) + min(0.12, surface_water * 0.10),
+                2,
+            )
+        if carcass_availability > 0.0:
+            runtime_signals["carcass_anchor"] = round(carcass_availability, 3)
+            pressure_scores["carcass_route_overlap"] = round(
+                pressure_scores.get("carcass_route_overlap", 0.0) + min(0.12, carcass_availability * 0.10),
+                2,
+            )
 
     if region.region_id in {"wetland_lake", "rainforest_river"}:
         if "hippopotamus" in region_species:

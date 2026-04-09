@@ -653,6 +653,7 @@ def test_v4_grassland_chain_summary():
     registry = build_default_world_registry()
 
     grassland = world_map.get_region("temperate_grassland")
+    grassland.resource_state["surface_water"] = 0.6
     wetland = world_map.get_region("wetland_lake")
 
     territory = build_region_territory_summary(
@@ -685,6 +686,7 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["hotspot_overlap_pressure"] > 0.0
     assert grassland_chain.trophic_scores["territory_channel_pressure"] > 0.0
     assert grassland_chain.trophic_scores["carcass_channeling"] > 0.0
+    assert grassland_chain.trophic_scores["surface_water_anchor"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
     assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
     assert grassland_chain.layer_scores["engineering_layer"] > 0.0
@@ -770,6 +772,8 @@ def test_v4_territory_summary_uses_runtime_state():
     world_map = build_default_world_map()
     registry = build_default_world_registry()
     grassland = world_map.get_region("temperate_grassland")
+    grassland.resource_state["surface_water"] = 0.6
+    grassland.resource_state["carcass_availability"] = 0.5
 
     summary = build_region_territory_summary(
         grassland,
@@ -808,8 +812,10 @@ def test_v4_territory_summary_uses_runtime_state():
     assert summary.runtime_signals["herd_hotspot_count"] == 3
     assert summary.runtime_signals["herd_apex_overlap"] == 1
     assert summary.runtime_signals["herd_route_cycle_runtime"] == 0.36
+    assert summary.runtime_signals["surface_water_anchor"] == 0.6
     assert summary.runtime_signals["vulture_hotspot_count"] == 2
     assert summary.runtime_signals["aerial_carrion_cycle_runtime"] == 0.31
+    assert summary.runtime_signals["carcass_anchor"] == 0.5
     assert summary.runtime_signals["vulture_carrion_overlap"] == 1
     assert summary.runtime_signals["shared_hotspot_overlap"] == 1
     assert summary.pressure_scores["pride_core_range"] > 0.58
@@ -978,6 +984,7 @@ def test_v4_carrion_chain_summary():
     registry = build_default_world_registry()
 
     grassland = world_map.get_region("temperate_grassland")
+    grassland.resource_state["carcass_availability"] = 0.5
     wetland = world_map.get_region("wetland_lake")
 
     territory = build_region_territory_summary(
@@ -1004,6 +1011,7 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.resource_scores["carrion_energy_loop"] > 0.0
     assert grassland_chain.resource_scores["kill_corridor_overlap"] > 0.0
     assert grassland_chain.resource_scores["scavenger_lane_pressure"] > 0.0
+    assert grassland_chain.resource_scores["carcass_anchor_pressure"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenge_layer"] > 0.0
     assert grassland_chain.layer_scores["aerial_scavenge_layer"] > 0.0

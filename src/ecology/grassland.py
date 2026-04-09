@@ -137,6 +137,9 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_corridors", min(0.28, herd_hotspots * 0.05), "运行中的食草群热点正在重新加深草原 herd 通道。")
         if herd_apex_overlap > 0:
             add_score("runtime_herd_apex_overlap", min(0.24, herd_apex_overlap * 0.06), "食草群与顶层热点重叠正在抬高草原通道冲突密度。")
+        surface_water_anchor = float(runtime_signals.get("surface_water_anchor", 0.0))
+        if surface_water_anchor > 0.0:
+            add_score("surface_water_anchor", min(0.24, surface_water_anchor * 0.16), "区域水源锚点正在把 herd 通道重新拉回稳定饮水走廊。")
     if social_trend_summary is not None:
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
