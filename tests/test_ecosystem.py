@@ -934,6 +934,8 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.trend_scores["hyena_recovery_bias"] > 0.56
     assert summary.phase_scores["lion_expansion_phase"] > 0.55
     assert summary.phase_scores["hyena_expansion_phase"] > 0.53
+    assert summary.phase_scores["herd_route_cycle"] > 0.15
+    assert summary.phase_scores["aerial_carrion_cycle"] > 0.12
     assert summary.boom_bust_scores["grassland_boom_phase"] > 0.45
     assert summary.prosperity_scores["grassland_prosperity_phase"] > 0.0
     assert summary.hotspot_scores["lion_hotspot_memory"] >= 0.12
@@ -946,6 +948,8 @@ def test_v4_social_trend_summary_uses_memory():
     assert "grassland_boom_phase" in summary.cycle_signals
     assert "herd_hotspot_memory" in summary.cycle_signals
     assert "vulture_hotspot_memory" in summary.cycle_signals
+    assert "herd_route_cycle" in summary.cycle_signals
+    assert "aerial_carrion_cycle" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]
     apply_region_social_trend_feedback(region, summary, feedback_scale=0.05)
@@ -1127,6 +1131,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_herd_apex_overlap" in summary.trophic_scores
     assert "herd_memory_corridors" in summary.trophic_scores
     assert "herd_memory_pressure" in summary.trophic_scores
+    assert "herd_route_cycle_pressure" in summary.trophic_scores
     assert summary.layer_scores["herd_layer"] > 0.69
     assert summary.layer_scores["social_layer"] > 1.0
     assert summary.dominant_layer == "herd_layer"
@@ -1164,6 +1169,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "phase_scores": {
                 "lion_expansion_phase": 0.48,
                 "hyena_expansion_phase": 0.46,
+                "herd_route_cycle": 0.36,
             },
             "boom_bust_scores": {
                 "grassland_boom_phase": 0.44,
@@ -1211,7 +1217,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer", "social_layer"} for item in adjustments)
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
-    assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag"} for item in adjustments)
+    assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag", "herd_route_cycle_support"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_herd_release", "bust_phase_herd_drag", "boom_phase_apex_release", "bust_phase_apex_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_herd_gain", "collapse_phase_scavenger_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_expansion_window", "clan_expansion_window"} for item in adjustments)
@@ -1275,6 +1281,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             "phase_scores": {
                 "lion_expansion_phase": 0.48,
                 "hyena_expansion_phase": 0.46,
+                "aerial_carrion_cycle": 0.34,
             },
             "boom_bust_scores": {
                 "grassland_boom_phase": 0.44,
@@ -1322,6 +1329,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_vulture_overlap" in summary.resource_scores
     assert "aerial_memory_lanes" in summary.resource_scores
     assert "aerial_memory_overlap" in summary.resource_scores
+    assert "aerial_carrion_cycle_pressure" in summary.resource_scores
     assert summary.layer_scores["herd_source_layer"] > 0.9
     assert summary.layer_scores["scavenge_layer"] > 0.68
     assert summary.dominant_layer == "herd_source_layer"
@@ -1359,6 +1367,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "phase_scores": {
                 "lion_expansion_phase": 0.48,
                 "hyena_expansion_phase": 0.46,
+                "aerial_carrion_cycle": 0.34,
             },
             "boom_bust_scores": {
                 "grassland_boom_phase": 0.44,
@@ -1402,7 +1411,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "aerial_scavenge_layer", "herd_source_layer"} for item in adjustments)
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
-    assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn"} for item in adjustments)
+    assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn", "aerial_carrion_cycle_support"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_scavenger_release", "bust_phase_scavenger_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_scavenger_gain", "collapse_phase_apex_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_carrion_expansion_window", "clan_carrion_expansion_window"} for item in adjustments)

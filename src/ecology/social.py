@@ -287,6 +287,33 @@ def build_region_social_trend_summary(
         ),
     }
 
+    phase_scores["herd_route_cycle"] = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                carry_phase("herd_route_cycle") * 0.66
+                + hotspot_scores["herd_hotspot_memory"] * 0.32
+                + hotspot_scores["herd_apex_memory"] * 0.18
+                - hotspot_scores["shared_hotspot_memory"] * 0.08,
+            ),
+        ),
+        3,
+    )
+    phase_scores["aerial_carrion_cycle"] = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                carry_phase("aerial_carrion_cycle") * 0.66
+                + hotspot_scores["vulture_hotspot_memory"] * 0.30
+                + hotspot_scores["vulture_carrion_memory"] * 0.22
+                - hotspot_scores["shared_hotspot_memory"] * 0.06,
+            ),
+        ),
+        3,
+    )
+
     cycle_signals: List[str] = []
     narrative_trends: List[str] = []
 
@@ -324,6 +351,12 @@ def build_region_social_trend_summary(
     if hotspot_scores["vulture_hotspot_memory"] >= 0.28:
         cycle_signals.append("vulture_hotspot_memory")
         narrative_trends.append("空中清道夫热点正在形成跨周期追踪记忆。")
+    if phase_scores["herd_route_cycle"] >= 0.16:
+        cycle_signals.append("herd_route_cycle")
+        narrative_trends.append("食草群通道记忆已经积累成更明确的 herd-route 周期。")
+    if phase_scores["aerial_carrion_cycle"] >= 0.12:
+        cycle_signals.append("aerial_carrion_cycle")
+        narrative_trends.append("空中尸体追踪记忆已经积累成更明确的 aerial-carrion 周期。")
     if hotspot_scores["lion_hotspot_memory"] + hotspot_scores["hyena_hotspot_memory"] >= 0.78:
         cycle_signals.append("apex_hotspot_wave")
         narrative_trends.append("顶层捕食者热点记忆正在放大草原多周期兴衰波动。")
@@ -374,6 +407,7 @@ def apply_region_social_trend_feedback(
     _adjust(region.health_state, "resilience", scores.get("hyena_recovery_bias", 0.0) * 0.16, feedback_scale)
     _adjust(region.health_state, "resilience", phases.get("lion_expansion_phase", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "resilience", phases.get("hyena_expansion_phase", 0.0) * 0.10, feedback_scale)
+    _adjust(region.health_state, "resilience", phases.get("herd_route_cycle", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("lion_decline_bias", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "fragmentation", phases.get("lion_contraction_phase", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "fragmentation", phases.get("hyena_contraction_phase", 0.0) * 0.08, feedback_scale)
@@ -389,6 +423,7 @@ def apply_region_social_trend_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("lion_recovery_bias", 0.0) * 0.12, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("hyena_recovery_bias", 0.0) * 0.10, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", social_trends.hotspot_scores.get("vulture_carrion_memory", 0.0) * 0.06, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", phases.get("aerial_carrion_cycle", 0.0) * 0.05, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("hyena_recovery_bias", 0.0) * 0.08, feedback_scale)
     _adjust(region.resource_state, "surface_water", social_trends.hotspot_scores.get("herd_apex_memory", 0.0) * 0.05, feedback_scale)
 

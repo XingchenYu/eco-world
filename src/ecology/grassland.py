@@ -52,6 +52,7 @@ def build_region_grassland_chain_summary(
         "social_layer": [],
     }
     narrative_chain: List[str] = []
+    herd_route_cycle = 0.0
 
     def add_score(key: str, value: float, narrative: str) -> None:
         trophic_scores[key] = round(trophic_scores.get(key, 0.0) + value, 2)
@@ -138,9 +139,11 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_apex_overlap", min(0.24, herd_apex_overlap * 0.06), "食草群与顶层热点重叠正在抬高草原通道冲突密度。")
     if social_trend_summary is not None:
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
+        phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
         hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
         grassland_prosperity_phase = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
         grassland_collapse_phase = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
+        herd_route_cycle = float(phase_scores.get("herd_route_cycle", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
@@ -166,6 +169,9 @@ def build_region_grassland_chain_summary(
             add_score("herd_memory_corridors", herd_hotspot_memory * 0.22, "食草群热点记忆正在把迁移通道固化为更稳定的 herd 走廊。")
         if herd_apex_memory > 0.0:
             add_score("herd_memory_pressure", herd_apex_memory * 0.20, "食草群与顶层热点记忆叠加时，会把草原 herd 通道重新压向高风险边缘。")
+
+        if herd_route_cycle > 0.0:
+            add_score("herd_route_cycle_pressure", herd_route_cycle * 0.22, "长期 herd-route 周期正在把草原资源重新拉回稳定迁移走廊。")
 
     dominant_layer = _select_dominant_grassland_layer(
         layer_scores,
@@ -209,6 +215,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("dominant_herd_channeling", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_memory_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("herd_route_cycle_pressure", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16 * scavenger_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", -scores.get("clan_pressure", 0.0) * 0.06 * collapse_bias * social_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("carcass_channeling", 0.0) * 0.20 * scavenger_bias, feedback_scale)
@@ -291,6 +298,7 @@ def apply_region_grassland_chain_rebalancing(
     lion_hotspot_memory = 0.0
     hyena_hotspot_memory = 0.0
     shared_hotspot_memory = 0.0
+    herd_route_cycle = 0.0
     if territory_summary is not None:
         runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
         hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
@@ -312,6 +320,7 @@ def apply_region_grassland_chain_rebalancing(
         lion_contraction_phase = float(phase_scores.get("lion_contraction_phase", 0.0))
         hyena_expansion_phase = float(phase_scores.get("hyena_expansion_phase", 0.0))
         hyena_contraction_phase = float(phase_scores.get("hyena_contraction_phase", 0.0))
+        herd_route_cycle = float(phase_scores.get("herd_route_cycle", 0.0))
         boom_bust_scores = getattr(social_trend_summary, "boom_bust_scores", {}) or {}
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         grassland_boom_phase = float(boom_bust_scores.get("grassland_boom_phase", 0.0))
@@ -321,6 +330,7 @@ def apply_region_grassland_chain_rebalancing(
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        herd_route_cycle = float(phase_scores.get("herd_route_cycle", 0.0))
 
     if megaherbivore_stack >= 0.7 and elephant_count > 0 and rhino_count > 0 and giraffe_count > 0:
         if rabbit_count < 24:
@@ -733,6 +743,28 @@ def apply_region_grassland_chain_rebalancing(
                 "layer_group": "herd_layer",
                 "effect": "hotspot_cycle_predator_wave",
                 "new_target_count": species_pool["antelope"],
+            }
+        )
+    if herd_route_cycle >= 0.30 and antelope_count < 17:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "herd_route_cycle_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
+    if herd_route_cycle >= 0.32 and zebra_count < 15:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "herd_route_cycle_support",
+                "new_target_count": species_pool["zebra"],
             }
         )
     if grassland_boom_phase >= 0.45 and antelope_count < 22:

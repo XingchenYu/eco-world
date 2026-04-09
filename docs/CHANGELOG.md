@@ -806,6 +806,23 @@ src/core/ecosystem.py        [修改] 导入新物种
   - 尸体资源链 summary 权重
   - 区域反馈强度
 
+# v4.0-alpha35 (2026-04-09 11:10)
+
+- `social.py` 现已在长期热点记忆之上进一步形成显式周期：
+  - `herd_route_cycle`
+  - `aerial_carrion_cycle`
+- `grassland.py` 现已吸收 herd-route 周期：
+  - `herd_route_cycle_pressure`
+  - `herd_route_cycle_support`
+- `carrion.py` 现已吸收 aerial-carrion 周期：
+  - `aerial_carrion_cycle_pressure`
+  - `aerial_carrion_cycle_support`
+- 这层 herd / vulture 周期现已进入：
+  - `social_trends.phase_scores`
+  - `grassland_chain`
+  - `carrion_chain`
+  - 低频重平衡
+
 # v4.0-alpha34 (2026-04-09 10:35)
 
 - `social.py` 现已把运行中的 `antelope / zebra / vulture` 通道热点写入长期 `hotspot_scores`：

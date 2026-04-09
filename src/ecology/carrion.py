@@ -44,6 +44,7 @@ def build_region_carrion_chain_summary(
         "herd_source_layer": [],
     }
     narrative_chain: List[str] = []
+    aerial_carrion_cycle = 0.0
 
     def add_score(key: str, value: float, narrative: str) -> None:
         resource_scores[key] = round(resource_scores.get(key, 0.0) + value, 2)
@@ -109,9 +110,11 @@ def build_region_carrion_chain_summary(
             add_score("runtime_vulture_overlap", min(0.22, vulture_overlap * 0.06), "秃鹫与地面尸体热点重叠正在抬高空地协同追踪强度。")
     if social_trend_summary is not None:
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
+        phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
         hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
         grassland_prosperity_phase = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
         grassland_collapse_phase = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
+        aerial_carrion_cycle = float(phase_scores.get("aerial_carrion_cycle", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
@@ -137,6 +140,9 @@ def build_region_carrion_chain_summary(
             add_score("aerial_memory_lanes", vulture_hotspot_memory * 0.22, "秃鹫热点记忆正在把空中尸体追踪通道固化下来。")
         if vulture_carrion_memory > 0.0:
             add_score("aerial_memory_overlap", vulture_carrion_memory * 0.20, "秃鹫与尸体热点重叠记忆正在放大空地清道夫协同。")
+
+        if aerial_carrion_cycle > 0.0:
+            add_score("aerial_carrion_cycle_pressure", aerial_carrion_cycle * 0.22, "长期 aerial-carrion 周期正在把空中清道夫追踪重新拉回稳定尸体通道。")
 
     dominant_layer = _select_dominant_carrion_layer(
         layer_scores,
@@ -178,6 +184,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16 * prosperity_bias * scavenger_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("aerial_memory_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("aerial_carrion_cycle_pressure", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18 * prosperity_bias * scavenger_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12 * collapse_bias * scavenger_bias, feedback_scale)
@@ -232,6 +239,7 @@ def apply_region_carrion_chain_rebalancing(
     lion_hotspot_memory = 0.0
     hyena_hotspot_memory = 0.0
     shared_hotspot_memory = 0.0
+    aerial_carrion_cycle = 0.0
     if territory_summary is not None:
         runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
         hotspot_overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
@@ -249,6 +257,7 @@ def apply_region_carrion_chain_rebalancing(
         hyena_recovery_bias = float(trend_scores.get("hyena_recovery_bias", 0.0))
         lion_expansion_phase = float(phase_scores.get("lion_expansion_phase", 0.0))
         hyena_expansion_phase = float(phase_scores.get("hyena_expansion_phase", 0.0))
+        aerial_carrion_cycle = float(phase_scores.get("aerial_carrion_cycle", 0.0))
         boom_bust_scores = getattr(social_trend_summary, "boom_bust_scores", {}) or {}
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         grassland_boom_phase = float(boom_bust_scores.get("grassland_boom_phase", 0.0))
@@ -258,6 +267,7 @@ def apply_region_carrion_chain_rebalancing(
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        aerial_carrion_cycle = float(phase_scores.get("aerial_carrion_cycle", 0.0))
 
     if scores.get("carrion_energy_loop", 0.0) >= 0.7 and antelope_count < 20:
         species_pool["antelope"] = antelope_count + 1
@@ -530,6 +540,17 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "vulture",
                 "layer_group": "aerial_scavenge_layer",
                 "effect": "hotspot_cycle_scavenger_wave",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
+    if aerial_carrion_cycle >= 0.28 and vulture_count < 9:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "social_cycle",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "aerial_carrion_cycle_support",
                 "new_target_count": species_pool["vulture"],
             }
         )
