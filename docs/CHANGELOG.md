@@ -1079,3 +1079,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `lion / hyena` 的中心漂移粘滞
   - `antelope / zebra` 的 herd 通道偏置
   - `vulture` 的空中尸体通道偏置
+- ✅ `WorldSimulation._build_runtime_territory_state()` 现也开始继续吸收运行中的：
+  - `regional_prosperity_bias`
+  - `regional_stability_bias`
+  - `regional_collapse_bias`
+- ✅ 这些运行期长期社会锚点现在已经开始重新汇总成：
+  - `apex_regional_bias_runtime`
+  - `herd_regional_bias_runtime`
+  - `aerial_regional_bias_runtime`
+  并回灌到 `territory.runtime_signals`

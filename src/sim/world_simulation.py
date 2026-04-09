@@ -392,6 +392,9 @@ class WorldSimulation:
             "apex_anchor_prosperity_runtime": 0.0,
             "herd_anchor_prosperity_runtime": 0.0,
             "aerial_anchor_prosperity_runtime": 0.0,
+            "apex_regional_bias_runtime": 0.0,
+            "herd_regional_bias_runtime": 0.0,
+            "aerial_regional_bias_runtime": 0.0,
         }
         lions = [animal for animal in simulation.animals if animal.alive and animal.species == "lion"]
         hyenas = [animal for animal in simulation.animals if animal.alive and animal.species == "hyena"]
@@ -425,6 +428,17 @@ class WorldSimulation:
             state["apex_anchor_prosperity_runtime"] = max(
                 [getattr(animal, "runtime_anchor_prosperity", 0.0) for animal in lions] or [0.0]
             )
+            state["apex_regional_bias_runtime"] = max(
+                [
+                    max(
+                        getattr(animal, "regional_prosperity_bias", 0.0),
+                        getattr(animal, "regional_stability_bias", 0.0),
+                        getattr(animal, "regional_collapse_bias", 0.0),
+                    )
+                    for animal in lions
+                ]
+                or [0.0]
+            )
         if hyenas:
             state["hyena_clan_cohesion"] = max(getattr(animal, "clan_cohesion", 0.0) for animal in hyenas)
             state["hyena_clan_front_pressure"] = max(getattr(animal, "clan_front_pressure", 0.0) for animal in hyenas)
@@ -451,6 +465,20 @@ class WorldSimulation:
             state["apex_anchor_prosperity_runtime"] = max(
                 state["apex_anchor_prosperity_runtime"],
                 max([getattr(animal, "runtime_anchor_prosperity", 0.0) for animal in hyenas] or [0.0]),
+            )
+            state["apex_regional_bias_runtime"] = max(
+                state["apex_regional_bias_runtime"],
+                max(
+                    [
+                        max(
+                            getattr(animal, "regional_prosperity_bias", 0.0),
+                            getattr(animal, "regional_stability_bias", 0.0),
+                            getattr(animal, "regional_collapse_bias", 0.0),
+                        )
+                        for animal in hyenas
+                    ]
+                    or [0.0]
+                ),
             )
         if antelopes or zebras:
             herd_hotspots = {self._territory_hotspot(animal.position) for animal in antelopes + zebras}
@@ -480,6 +508,17 @@ class WorldSimulation:
             state["herd_anchor_prosperity_runtime"] = max(
                 [getattr(animal, "runtime_anchor_prosperity", 0.0) for animal in antelopes + zebras] or [0.0]
             )
+            state["herd_regional_bias_runtime"] = max(
+                [
+                    max(
+                        getattr(animal, "regional_prosperity_bias", 0.0),
+                        getattr(animal, "regional_stability_bias", 0.0),
+                        getattr(animal, "regional_collapse_bias", 0.0),
+                    )
+                    for animal in antelopes + zebras
+                ]
+                or [0.0]
+            )
         if vultures:
             vulture_hotspots = {self._territory_hotspot(animal.position) for animal in vultures}
             state["vulture_hotspot_count"] = float(len(vulture_hotspots))
@@ -507,6 +546,17 @@ class WorldSimulation:
             )
             state["aerial_anchor_prosperity_runtime"] = max(
                 [getattr(animal, "runtime_anchor_prosperity", 0.0) for animal in vultures] or [0.0]
+            )
+            state["aerial_regional_bias_runtime"] = max(
+                [
+                    max(
+                        getattr(animal, "regional_prosperity_bias", 0.0),
+                        getattr(animal, "regional_stability_bias", 0.0),
+                        getattr(animal, "regional_collapse_bias", 0.0),
+                    )
+                    for animal in vultures
+                ]
+                or [0.0]
             )
         if lion_hotspots and hyena_hotspots:
             state["shared_hotspot_overlap"] = float(len(lion_hotspots & hyena_hotspots))
