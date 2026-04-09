@@ -92,6 +92,8 @@ def build_region_carrion_chain_summary(
         hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
         vulture_hotspots = int(runtime_signals.get("vulture_hotspot_count", 0))
         vulture_overlap = int(runtime_signals.get("vulture_carrion_overlap", 0))
+        aerial_regional_health_runtime = float(runtime_signals.get("aerial_regional_health_runtime", 0.0))
+        apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
         if int(runtime_signals.get("herd_source_bias", 0)) > 0:
             add_score("dominant_herd_supply", 0.16, "上一周期的 herd-source 主导态正在把尸体链重新拉向草食群供给通道。")
         if int(runtime_signals.get("kill_corridor_bias", 0)) > 0:
@@ -112,6 +114,12 @@ def build_region_carrion_chain_summary(
         if aerial_carcass_runtime > 0.0:
             add_score("runtime_carcass_pull", min(0.22, aerial_carcass_runtime * 0.16), "运行中的空中尸体追踪正在把清道夫链重新拉向稳定尸体轴。")
             add_layer_bias("aerial_scavenge_layer", aerial_carcass_runtime * 0.08)
+        if aerial_regional_health_runtime > 0.0:
+            add_score("runtime_aerial_health_pull", min(0.20, aerial_regional_health_runtime * 0.14), "运行中的空中清道夫长期健康度正在把尸体追踪重新拉向稳定空中通道。")
+            add_layer_bias("aerial_scavenge_layer", aerial_regional_health_runtime * 0.07)
+        if apex_regional_health_runtime > 0.0:
+            add_score("runtime_apex_health_pull", min(0.18, apex_regional_health_runtime * 0.12), "运行中的顶层捕食者长期健康度正在抬升击杀与残食通道的持续性。")
+            add_layer_bias("kill_layer", apex_regional_health_runtime * 0.06)
         carcass_anchor = float(runtime_signals.get("carcass_anchor", 0.0))
         if carcass_anchor > 0.0:
             add_score("carcass_anchor_pressure", min(0.24, carcass_anchor * 0.16), "区域尸体资源锚点正在把清道夫链重新拉向稳定的 carrion 通道。")

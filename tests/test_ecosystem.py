@@ -972,12 +972,15 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_apex_overlap": 1.0,
             "herd_route_cycle_runtime": 0.34,
             "herd_surface_water_runtime": 0.6,
+            "herd_regional_health_runtime": 0.52,
             "surface_water_anchor": 0.6,
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
             "aerial_carrion_cycle_runtime": 0.28,
             "aerial_carcass_runtime": 0.5,
+            "aerial_regional_health_runtime": 0.44,
             "carcass_anchor": 0.5,
+            "apex_regional_health_runtime": 0.48,
             "shared_hotspot_overlap": 0.0,
         },
     )
@@ -1013,6 +1016,9 @@ def test_v4_social_trend_summary_uses_memory():
     assert "aerial_carrion_cycle" in summary.cycle_signals
     assert "surface_water_anchor" in summary.cycle_signals
     assert "carcass_anchor" in summary.cycle_signals
+    assert "herd_regional_health_runtime" in summary.cycle_signals
+    assert "aerial_regional_health_runtime" in summary.cycle_signals
+    assert "apex_regional_health_runtime" in summary.cycle_signals
     assert "herd_surface_water_runtime" in summary.cycle_signals
     assert "aerial_carcass_runtime" in summary.cycle_signals
 
@@ -1187,6 +1193,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
             "herd_hotspot_count": 3.0,
             "herd_apex_overlap": 1.0,
             "herd_surface_water_runtime": 0.6,
+            "herd_regional_health_runtime": 0.52,
+            "apex_regional_health_runtime": 0.48,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1205,6 +1213,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "dominant_herd_channeling" in summary.trophic_scores
     assert "runtime_herd_corridors" in summary.trophic_scores
     assert "runtime_surface_water_pull" in summary.trophic_scores
+    assert "runtime_herd_health_pull" in summary.trophic_scores
+    assert "runtime_apex_health_pull" in summary.trophic_scores
     assert "runtime_herd_apex_overlap" in summary.trophic_scores
     assert "herd_memory_corridors" in summary.trophic_scores
     assert "herd_memory_pressure" in summary.trophic_scores
@@ -1390,6 +1400,8 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
             "aerial_carcass_runtime": 0.5,
+            "aerial_regional_health_runtime": 0.44,
+            "apex_regional_health_runtime": 0.48,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1408,6 +1420,8 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "dominant_kill_layout" in summary.resource_scores
     assert "runtime_aerial_lanes" in summary.resource_scores
     assert "runtime_carcass_pull" in summary.resource_scores
+    assert "runtime_aerial_health_pull" in summary.resource_scores
+    assert "runtime_apex_health_pull" in summary.resource_scores
     assert "runtime_vulture_overlap" in summary.resource_scores
     assert "aerial_memory_lanes" in summary.resource_scores
     assert "aerial_memory_overlap" in summary.resource_scores

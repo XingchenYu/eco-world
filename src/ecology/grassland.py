@@ -122,6 +122,8 @@ def build_region_grassland_chain_summary(
         hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
         herd_hotspots = int(runtime_signals.get("herd_hotspot_count", 0))
         herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
+        herd_regional_health_runtime = float(runtime_signals.get("herd_regional_health_runtime", 0.0))
+        apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
         if int(runtime_signals.get("herd_channel_bias", 0)) > 0:
             add_score("dominant_herd_channeling", 0.18, "上一周期的草食群主导态正在把草原通道重新拉回 herd 核心。")
         if int(runtime_signals.get("apex_hotspot_bias", 0)) > 0:
@@ -141,6 +143,12 @@ def build_region_grassland_chain_summary(
         if herd_surface_water_runtime > 0.0:
             add_score("runtime_surface_water_pull", min(0.22, herd_surface_water_runtime * 0.16), "运行中的食草群水源依赖正在把草原通道重新拉向稳定水源轴。")
             add_layer_bias("herd_layer", herd_surface_water_runtime * 0.08)
+        if herd_regional_health_runtime > 0.0:
+            add_score("runtime_herd_health_pull", min(0.20, herd_regional_health_runtime * 0.14), "运行中的食草群长期健康度正在把 herd 通道拉向更稳定的草原走廊。")
+            add_layer_bias("herd_layer", herd_regional_health_runtime * 0.07)
+        if apex_regional_health_runtime > 0.0:
+            add_score("runtime_apex_health_pull", min(0.18, apex_regional_health_runtime * 0.12), "运行中的顶层捕食者长期健康度正在把草原热点重新压向 apex 核心。")
+            add_layer_bias("predator_layer", apex_regional_health_runtime * 0.06)
         surface_water_anchor = float(runtime_signals.get("surface_water_anchor", 0.0))
         if surface_water_anchor > 0.0:
             add_score("surface_water_anchor", min(0.24, surface_water_anchor * 0.16), "区域水源锚点正在把 herd 通道重新拉回稳定饮水走廊。")
