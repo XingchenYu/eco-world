@@ -286,12 +286,21 @@ class WorldSimulation:
             "hyena_hotspot_count": 0.0,
             "hyena_cycle_expansion": 0.0,
             "hyena_cycle_contraction": 0.0,
+            "herd_hotspot_count": 0.0,
+            "herd_apex_overlap": 0.0,
+            "vulture_hotspot_count": 0.0,
+            "vulture_carrion_overlap": 0.0,
             "shared_hotspot_overlap": 0.0,
         }
         lions = [animal for animal in simulation.animals if animal.alive and animal.species == "lion"]
         hyenas = [animal for animal in simulation.animals if animal.alive and animal.species == "hyena"]
+        antelopes = [animal for animal in simulation.animals if animal.alive and animal.species == "antelope"]
+        zebras = [animal for animal in simulation.animals if animal.alive and animal.species == "zebra"]
+        vultures = [animal for animal in simulation.animals if animal.alive and animal.species == "vulture"]
         lion_hotspots = set()
         hyena_hotspots = set()
+        herd_hotspots = set()
+        vulture_hotspots = set()
         if lions:
             state["lion_pride_strength"] = max(getattr(animal, "pride_strength", 0.0) for animal in lions)
             state["lion_takeover_pressure"] = max(getattr(animal, "takeover_pressure", 0.0) for animal in lions)
@@ -308,8 +317,18 @@ class WorldSimulation:
             state["hyena_cycle_contraction"] = max(getattr(animal, "cycle_contraction_phase", 0.0) for animal in hyenas)
             hyena_hotspots = {self._territory_hotspot(getattr(animal, "clan_center", animal.position)) for animal in hyenas}
             state["hyena_hotspot_count"] = float(len(hyena_hotspots))
+        if antelopes or zebras:
+            herd_hotspots = {self._territory_hotspot(animal.position) for animal in antelopes + zebras}
+            state["herd_hotspot_count"] = float(len(herd_hotspots))
+        if vultures:
+            vulture_hotspots = {self._territory_hotspot(animal.position) for animal in vultures}
+            state["vulture_hotspot_count"] = float(len(vulture_hotspots))
         if lion_hotspots and hyena_hotspots:
             state["shared_hotspot_overlap"] = float(len(lion_hotspots & hyena_hotspots))
+        if herd_hotspots and (lion_hotspots or hyena_hotspots):
+            state["herd_apex_overlap"] = float(len(herd_hotspots & (lion_hotspots | hyena_hotspots)))
+        if vulture_hotspots and (lion_hotspots or hyena_hotspots):
+            state["vulture_carrion_overlap"] = float(len(vulture_hotspots & (lion_hotspots | hyena_hotspots)))
         return state
 
     @staticmethod

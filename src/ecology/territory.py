@@ -120,6 +120,10 @@ def build_region_territory_summary(
     hyena_hotspot_count = int(runtime_state.get("hyena_hotspot_count", 0.0))
     hyena_cycle_expansion = float(runtime_state.get("hyena_cycle_expansion", 0.0))
     hyena_cycle_contraction = float(runtime_state.get("hyena_cycle_contraction", 0.0))
+    herd_hotspot_count = int(runtime_state.get("herd_hotspot_count", 0.0))
+    herd_apex_overlap = int(runtime_state.get("herd_apex_overlap", 0.0))
+    vulture_hotspot_count = int(runtime_state.get("vulture_hotspot_count", 0.0))
+    vulture_carrion_overlap = int(runtime_state.get("vulture_carrion_overlap", 0.0))
     shared_hotspot_overlap = int(runtime_state.get("shared_hotspot_overlap", 0.0))
 
     if pride_strength > 0.0:
@@ -192,6 +196,30 @@ def build_region_territory_summary(
         )
         pressure_scores["carcass_route_overlap"] = round(
             pressure_scores.get("carcass_route_overlap", 0.0) + min(0.15, shared_hotspot_overlap * 0.07),
+            2,
+        )
+    if herd_hotspot_count > 0:
+        runtime_signals["herd_hotspot_count"] = herd_hotspot_count
+        pressure_scores["waterhole_spacing"] = round(
+            pressure_scores.get("waterhole_spacing", 0.0) + min(0.14, herd_hotspot_count * 0.03),
+            2,
+        )
+    if herd_apex_overlap > 0:
+        runtime_signals["herd_apex_overlap"] = herd_apex_overlap
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.12, herd_apex_overlap * 0.04),
+            2,
+        )
+    if vulture_hotspot_count > 0:
+        runtime_signals["vulture_hotspot_count"] = vulture_hotspot_count
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.10, vulture_hotspot_count * 0.025),
+            2,
+        )
+    if vulture_carrion_overlap > 0:
+        runtime_signals["vulture_carrion_overlap"] = vulture_carrion_overlap
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.12, vulture_carrion_overlap * 0.04),
             2,
         )
 

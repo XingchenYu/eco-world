@@ -785,6 +785,10 @@ def test_v4_territory_summary_uses_runtime_state():
             "hyena_clan_count": 3.0,
             "hyena_hotspot_count": 2.0,
             "hyena_cycle_expansion": 0.5,
+            "herd_hotspot_count": 3.0,
+            "herd_apex_overlap": 1.0,
+            "vulture_hotspot_count": 2.0,
+            "vulture_carrion_overlap": 1.0,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -799,6 +803,10 @@ def test_v4_territory_summary_uses_runtime_state():
     assert summary.runtime_signals["hyena_clan_count"] == 3
     assert summary.runtime_signals["hyena_hotspot_count"] == 2
     assert summary.runtime_signals["hyena_cycle_expansion"] == 0.5
+    assert summary.runtime_signals["herd_hotspot_count"] == 3
+    assert summary.runtime_signals["herd_apex_overlap"] == 1
+    assert summary.runtime_signals["vulture_hotspot_count"] == 2
+    assert summary.runtime_signals["vulture_carrion_overlap"] == 1
     assert summary.runtime_signals["shared_hotspot_overlap"] == 1
     assert summary.pressure_scores["pride_core_range"] > 0.58
     assert summary.pressure_scores["male_takeover_front"] > 0.44
@@ -1083,6 +1091,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
         runtime_state={
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
+            "herd_hotspot_count": 3.0,
+            "herd_apex_overlap": 1.0,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1099,6 +1109,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "prosperity_feedback_bias" in summary.trophic_scores
     assert "collapse_feedback_bias" in summary.trophic_scores
     assert "dominant_herd_channeling" in summary.trophic_scores
+    assert "runtime_herd_corridors" in summary.trophic_scores
+    assert "runtime_herd_apex_overlap" in summary.trophic_scores
     assert summary.layer_scores["herd_layer"] > 0.69
     assert summary.layer_scores["social_layer"] > 1.0
     assert summary.dominant_layer == "herd_layer"
@@ -1270,6 +1282,8 @@ def test_v4_carrion_chain_feedback_updates_region_state():
         runtime_state={
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
+            "vulture_hotspot_count": 2.0,
+            "vulture_carrion_overlap": 1.0,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1286,6 +1300,8 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "prosperity_feedback_bias" in summary.resource_scores
     assert "collapse_feedback_bias" in summary.resource_scores
     assert "dominant_kill_layout" in summary.resource_scores
+    assert "runtime_aerial_lanes" in summary.resource_scores
+    assert "runtime_vulture_overlap" in summary.resource_scores
     assert summary.layer_scores["herd_source_layer"] > 0.9
     assert summary.layer_scores["scavenge_layer"] > 0.68
     assert summary.dominant_layer == "herd_source_layer"
