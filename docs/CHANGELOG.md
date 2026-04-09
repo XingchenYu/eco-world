@@ -1143,3 +1143,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `carcass_route_overlap`
   - `apex_boundary_conflict`
   也就是说，区域长期健康度现在已经开始直接形成 runtime 级领地健康锚点
+- ✅ `social_trends` 现也开始继续吸收：
+  - `herd_regional_health_anchor_runtime`
+  - `aerial_regional_health_anchor_runtime`
+  - `apex_regional_health_anchor_runtime`
+- ✅ 这些运行期区域长期健康锚点现在已经开始直接进入：
+  - herd/vulture 热点记忆
+  - herd/aerial 周期
+  - `grassland_boom_phase / grassland_bust_phase`
+  - `grassland_prosperity_phase / grassland_collapse_phase`

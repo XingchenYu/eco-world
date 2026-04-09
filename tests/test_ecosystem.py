@@ -834,6 +834,7 @@ def test_v4_territory_summary_uses_runtime_state():
             "herd_route_cycle_runtime": 0.36,
             "herd_surface_water_runtime": 0.6,
             "herd_regional_health_runtime": 0.52,
+            "herd_regional_health_anchor_runtime": 0.70,
             "herd_regional_bias_runtime": 0.46,
             "herd_anchor_prosperity_runtime": 0.58,
             "herd_regional_bias_runtime": 1.0,
@@ -841,12 +842,14 @@ def test_v4_territory_summary_uses_runtime_state():
             "aerial_carrion_cycle_runtime": 0.31,
             "aerial_carcass_runtime": 0.5,
             "aerial_regional_health_runtime": 0.44,
+            "aerial_regional_health_anchor_runtime": 0.70,
             "aerial_regional_bias_runtime": 0.42,
             "aerial_anchor_prosperity_runtime": 0.49,
             "aerial_regional_bias_runtime": 1.0,
             "vulture_carrion_overlap": 1.0,
             "shared_hotspot_overlap": 1.0,
             "apex_regional_health_runtime": 0.48,
+            "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
             "apex_regional_bias_runtime": 1.0,
@@ -1091,10 +1094,13 @@ def test_v4_social_trend_summary_uses_memory():
     assert "surface_water_anchor" in summary.cycle_signals
     assert "carcass_anchor" in summary.cycle_signals
     assert "herd_regional_health_runtime" in summary.cycle_signals
+    assert "herd_regional_health_anchor_runtime" in summary.cycle_signals
     assert "herd_regional_bias_runtime" in summary.cycle_signals
     assert "aerial_regional_health_runtime" in summary.cycle_signals
+    assert "aerial_regional_health_anchor_runtime" in summary.cycle_signals
     assert "aerial_regional_bias_runtime" in summary.cycle_signals
     assert "apex_regional_health_runtime" in summary.cycle_signals
+    assert "apex_regional_health_anchor_runtime" in summary.cycle_signals
     assert "apex_regional_bias_runtime" in summary.cycle_signals
     assert "herd_surface_water_runtime" in summary.cycle_signals
     assert "aerial_carcass_runtime" in summary.cycle_signals
