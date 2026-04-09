@@ -1280,3 +1280,9 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `mate_cooldown`
   - `reproduction_rate`
   也就是说，`runtime condition` 现在已经不只影响链路压力和长期趋势，也开始直接影响运行体的繁殖与恢复节律
+- ✅ `lion / hyena` 的社群化产仔路径现在也开始继续读取：
+  - `condition_runtime`
+- ✅ 它现在会继续进入：
+  - 产仔规模
+  - 产后冷却
+  也就是说，草原顶层社群现在已经不只会因为稳定度和资源而延续，真实体况本身也开始直接改变群体延续速度

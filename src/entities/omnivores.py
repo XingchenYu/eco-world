@@ -66,8 +66,14 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
             animal.mate_cooldown = max(animal.mate_cooldown, 8)
             return
 
+    condition_runtime = max(0.0, min(1.0, getattr(animal, "condition_runtime", 0.0)))
+    condition_factor = max(0.80, min(1.25, 0.90 + condition_runtime * 0.30))
+
     base_litter = random.randint(1, 3)
-    litter_size = max(1, min(6, int(round(base_litter * food_factor * predator_pressure * patch_factor * social_factor))))
+    litter_size = max(
+        1,
+        min(6, int(round(base_litter * food_factor * predator_pressure * patch_factor * social_factor * condition_factor))),
+    )
 
     for _ in range(litter_size):
         offspring_pos = (
@@ -82,7 +88,10 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
 
     animal.pregnant = False
     animal.pregnancy_timer = 0
-    postpartum_cooldown = max(18, min(36, int(round(30 - (social_factor - 1.0) * 12))))
+    postpartum_cooldown = max(
+        18,
+        min(36, int(round(30 - (social_factor - 1.0) * 12 - condition_runtime * 6))),
+    )
     animal.mate_cooldown = postpartum_cooldown
 
     support_label = stable_label if social_factor >= 1.0 else unstable_label
