@@ -760,3 +760,14 @@
   - `carcass_availability`
   并生成 `surface_water_anchor / carcass_anchor`
 - `grassland_chain / carrion_chain` 也已开始吸收这些资源锚点，资源层正式进入草原长期闭环
+- `social_trends` 现也开始直接吸收：
+  - `surface_water_anchor`
+  - `carcass_anchor`
+  这些资源锚点现在已经开始反向塑造：
+  - `herd_hotspot_memory / herd_apex_memory`
+  - `vulture_hotspot_memory / vulture_carrion_memory`
+  - `herd_route_cycle / aerial_carrion_cycle`
+- 同时这些资源锚点现在也开始直接抬高或压低：
+  - `grassland_boom_phase / grassland_bust_phase`
+  - `grassland_prosperity_phase / grassland_collapse_phase`
+  资源层已经从链路输入进一步进入草原长期相位本身

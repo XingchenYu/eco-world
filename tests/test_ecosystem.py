@@ -920,6 +920,8 @@ def test_v4_social_trend_summary_uses_memory():
             },
         },
     )
+    region.resource_state["surface_water"] = 0.6
+    region.resource_state["carcass_availability"] = 0.5
     territory = build_region_territory_summary(
         region,
         registry,
@@ -933,9 +935,11 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_hotspot_count": 3.0,
             "herd_apex_overlap": 1.0,
             "herd_route_cycle_runtime": 0.34,
+            "surface_water_anchor": 0.6,
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
             "aerial_carrion_cycle_runtime": 0.28,
+            "carcass_anchor": 0.5,
             "shared_hotspot_overlap": 0.0,
         },
     )
@@ -955,17 +959,22 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.hotspot_scores["hyena_hotspot_memory"] >= 0.12
     assert summary.hotspot_scores["herd_hotspot_memory"] > 0.25
     assert summary.hotspot_scores["vulture_hotspot_memory"] > 0.20
+    assert summary.hotspot_scores["herd_hotspot_memory"] > 0.30
     assert summary.hotspot_scores["herd_apex_memory"] > 0.08
     assert summary.hotspot_scores["vulture_carrion_memory"] > 0.08
+    assert summary.hotspot_scores["vulture_carrion_memory"] > 0.12
     assert "lion_expansion_cycle" in summary.cycle_signals
     assert "hyena_expansion_cycle" in summary.cycle_signals
     assert "apex_hotspot_wave" in summary.cycle_signals
     assert "grassland_boom_phase" in summary.cycle_signals
     assert "grassland_prosperity_phase" in summary.cycle_signals
+    assert "resource_anchor_prosperity" in summary.cycle_signals
     assert "herd_hotspot_memory" in summary.cycle_signals
     assert "vulture_hotspot_memory" in summary.cycle_signals
     assert "herd_route_cycle" in summary.cycle_signals
     assert "aerial_carrion_cycle" in summary.cycle_signals
+    assert "surface_water_anchor" in summary.cycle_signals
+    assert "carcass_anchor" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]
     before_surface_water = region.resource_state["surface_water"]

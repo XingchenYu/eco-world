@@ -54,9 +54,11 @@ def build_region_social_trend_summary(
     herd_hotspots = int(runtime_signals.get("herd_hotspot_count", 0))
     herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
     herd_route_cycle_runtime = float(runtime_signals.get("herd_route_cycle_runtime", 0.0))
+    surface_water_anchor = float(runtime_signals.get("surface_water_anchor", 0.0))
     vulture_hotspots = int(runtime_signals.get("vulture_hotspot_count", 0))
     vulture_carrion_overlap = int(runtime_signals.get("vulture_carrion_overlap", 0))
     aerial_carrion_cycle_runtime = float(runtime_signals.get("aerial_carrion_cycle_runtime", 0.0))
+    carcass_anchor = float(runtime_signals.get("carcass_anchor", 0.0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
 
@@ -140,6 +142,7 @@ def build_region_social_trend_summary(
             + (carry_hotspot("herd_hotspot_memory") * 0.68 + herd_hotspots * 0.08 + herd_apex_overlap * 0.04) * 0.32
             + (carry_hotspot("herd_apex_memory") * 0.68 + herd_apex_overlap * 0.10) * 0.18
             + herd_route_cycle_runtime * 0.08
+            + surface_water_anchor * 0.06
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.08,
         ),
     )
@@ -151,6 +154,7 @@ def build_region_social_trend_summary(
             + (carry_hotspot("vulture_hotspot_memory") * 0.68 + vulture_hotspots * 0.08 + vulture_carrion_overlap * 0.05) * 0.30
             + (carry_hotspot("vulture_carrion_memory") * 0.68 + vulture_carrion_overlap * 0.10) * 0.22
             + aerial_carrion_cycle_runtime * 0.08
+            + carcass_anchor * 0.06
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.06,
         ),
     )
@@ -166,6 +170,8 @@ def build_region_social_trend_summary(
                     + phase_scores["hyena_expansion_phase"] * 0.20
                     + herd_route_cycle_signal * 0.10
                     + aerial_carrion_cycle_signal * 0.08
+                    + surface_water_anchor * 0.06
+                    + carcass_anchor * 0.05
                     + max(0.0, pride_strength - takeover_pressure) * 0.10
                     + max(0.0, clan_cohesion - clan_front_pressure) * 0.08
                     + max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.03
@@ -187,6 +193,8 @@ def build_region_social_trend_summary(
                     + max(0.0, clan_front_pressure - clan_cohesion) * 0.08
                     + shared_hotspot_shift * 0.05
                     + shared_hotspot_persistence * 0.04
+                    - surface_water_anchor * 0.04
+                    - carcass_anchor * 0.03
                     - herd_route_cycle_signal * 0.06
                     - aerial_carrion_cycle_signal * 0.05
                     - max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.02
@@ -207,6 +215,8 @@ def build_region_social_trend_summary(
                     + boom_bust_scores["grassland_boom_phase"] * 0.26
                     + herd_route_cycle_signal * 0.10
                     + aerial_carrion_cycle_signal * 0.08
+                    + surface_water_anchor * 0.06
+                    + carcass_anchor * 0.05
                     + max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.03
                     + max(0.0, hyena_hotspot_persistence - hyena_hotspot_shift) * 0.03
                     - boom_bust_scores["grassland_bust_phase"] * 0.12,
@@ -223,6 +233,8 @@ def build_region_social_trend_summary(
                     + boom_bust_scores["grassland_bust_phase"] * 0.28
                     + shared_hotspot_shift * 0.05
                     + overlap * 0.03
+                    - surface_water_anchor * 0.03
+                    - carcass_anchor * 0.02
                     - herd_route_cycle_signal * 0.05
                     - aerial_carrion_cycle_signal * 0.04
                     - boom_bust_scores["grassland_boom_phase"] * 0.10,
@@ -284,6 +296,7 @@ def build_region_social_trend_summary(
                     + herd_hotspots * 0.08
                     + herd_apex_overlap * 0.04
                     + herd_route_cycle_runtime * 0.06
+                    + surface_water_anchor * 0.06
                 ),
             ),
             3,
@@ -296,6 +309,7 @@ def build_region_social_trend_summary(
                     carry_hotspot("herd_apex_memory") * 0.68
                     + herd_apex_overlap * 0.10
                     + herd_route_cycle_runtime * 0.04
+                    + surface_water_anchor * 0.04
                 ),
             ),
             3,
@@ -309,6 +323,7 @@ def build_region_social_trend_summary(
                     + vulture_hotspots * 0.08
                     + vulture_carrion_overlap * 0.05
                     + aerial_carrion_cycle_runtime * 0.06
+                    + carcass_anchor * 0.06
                 ),
             ),
             3,
@@ -321,6 +336,7 @@ def build_region_social_trend_summary(
                     carry_hotspot("vulture_carrion_memory") * 0.68
                     + vulture_carrion_overlap * 0.10
                     + aerial_carrion_cycle_runtime * 0.04
+                    + carcass_anchor * 0.05
                 ),
             ),
             3,
@@ -446,6 +462,12 @@ def build_region_social_trend_summary(
     if phase_scores["aerial_carrion_cycle"] >= 0.12:
         cycle_signals.append("aerial_carrion_cycle")
         narrative_trends.append("空中尸体追踪记忆已经积累成更明确的 aerial-carrion 周期。")
+    if surface_water_anchor >= 0.45:
+        cycle_signals.append("surface_water_anchor")
+        narrative_trends.append("稳定水源锚点正在持续加固食草群的长期迁移记忆。")
+    if carcass_anchor >= 0.40:
+        cycle_signals.append("carcass_anchor")
+        narrative_trends.append("稳定尸体资源锚点正在持续加固空中清道夫的长期追踪记忆。")
     if hotspot_scores["lion_hotspot_memory"] + hotspot_scores["hyena_hotspot_memory"] >= 0.78:
         cycle_signals.append("apex_hotspot_wave")
         narrative_trends.append("顶层捕食者热点记忆正在放大草原多周期兴衰波动。")
@@ -470,6 +492,9 @@ def build_region_social_trend_summary(
     if prosperity_scores["grassland_collapse_phase"] >= 0.46:
         cycle_signals.append("grassland_collapse_phase")
         narrative_trends.append("草原热点冲突和收缩压力正在累积成区域级衰退期。")
+    if surface_water_anchor + carcass_anchor >= 0.90:
+        cycle_signals.append("resource_anchor_prosperity")
+        narrative_trends.append("稳定水源和尸体资源锚点正在共同抬升草原长期繁荣相位。")
 
     return RegionSocialTrendSummary(
         region_id=region.region_id,

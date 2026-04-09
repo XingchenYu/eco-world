@@ -939,6 +939,22 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ `territory` 现在会直接读取区域 `surface_water / carcass_availability`，生成 `surface_water_anchor / carcass_anchor`
 - ✅ `grassland_chain / carrion_chain` 现在会吸收这些资源锚点，资源层正式进入草原长期闭环
 
+# v4.0-alpha45 - Feed regional resource anchors into social trend memory
+
+- ✅ `social_trends` 现在会直接读取 `surface_water_anchor / carcass_anchor`
+- ✅ 这些资源锚点现在会继续抬升：
+  - `herd_hotspot_memory / herd_apex_memory`
+  - `vulture_hotspot_memory / vulture_carrion_memory`
+  - `herd_route_cycle / aerial_carrion_cycle`
+- ✅ 资源层现在已经不只进入 `territory / grassland_chain / carrion_chain`，也开始进入长期社群记忆与周期层
+
+# v4.0-alpha46 - Feed resource anchors into long-term prosperity phases
+
+- ✅ `surface_water_anchor / carcass_anchor` 现在会继续直接影响：
+  - `grassland_boom_phase / grassland_bust_phase`
+  - `grassland_prosperity_phase / grassland_collapse_phase`
+- ✅ 草原长期繁荣/衰退相位现在已经不只受热点和社群周期驱动，也开始受区域资源锚点直接驱动
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：
