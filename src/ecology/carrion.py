@@ -18,6 +18,7 @@ class RegionCarrionChainSummary:
     resource_scores: Dict[str, float] = field(default_factory=dict)
     layer_scores: Dict[str, float] = field(default_factory=dict)
     layer_species: Dict[str, List[str]] = field(default_factory=dict)
+    dominant_layer: str = ""
     narrative_chain: List[str] = field(default_factory=list)
 
 
@@ -117,12 +118,18 @@ def build_region_carrion_chain_summary(
         if shared_hotspot_memory > 0.0:
             add_score("hotspot_cycle_tracking", shared_hotspot_memory * 0.24, "共享热点记忆会强化秃鹫与地面清道夫对尸体通道的协同追踪。")
 
+    dominant_layer = _select_dominant_carrion_layer(
+        layer_scores,
+        resource_scores,
+    )
+
     return RegionCarrionChainSummary(
         region_id=region.region_id,
         key_species=key_species,
         resource_scores=dict(sorted(resource_scores.items())),
         layer_scores=dict(sorted(layer_scores.items())),
         layer_species={layer: sorted(species) for layer, species in layer_species.items() if species},
+        dominant_layer=dominant_layer,
         narrative_chain=narrative_chain,
     )
 
@@ -137,16 +144,21 @@ def apply_region_carrion_chain_feedback(
     scores = carrion_chain.resource_scores
     prosperity_bias = 1.0 + min(0.35, scores.get("prosperity_feedback_bias", 0.0))
     collapse_bias = 1.0 + min(0.35, scores.get("collapse_feedback_bias", 0.0))
-    _adjust(region.resource_state, "carcass_availability", scores.get("kill_generation", 0.0) * 0.26 * prosperity_bias, feedback_scale)
-    _adjust(region.resource_state, "carcass_availability", scores.get("large_carcass_supply", 0.0) * 0.24 * prosperity_bias, feedback_scale)
-    _adjust(region.resource_state, "carcass_availability", -scores.get("aerial_scavenging", 0.0) * 0.10 * prosperity_bias, feedback_scale)
+    dominant_layer = carrion_chain.dominant_layer
+    herd_bias = 1.15 if dominant_layer == "herd_source_layer" else 1.0
+    kill_bias = 1.15 if dominant_layer == "kill_layer" else 1.0
+    scavenger_bias = 1.15 if dominant_layer == "scavenge_layer" else 1.0
+    aerial_bias = 1.15 if dominant_layer == "aerial_scavenge_layer" else 1.0
+    _adjust(region.resource_state, "carcass_availability", scores.get("kill_generation", 0.0) * 0.26 * prosperity_bias * kill_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("large_carcass_supply", 0.0) * 0.24 * prosperity_bias * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", -scores.get("aerial_scavenging", 0.0) * 0.10 * prosperity_bias * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("kill_corridor_overlap", 0.0) * 0.18, feedback_scale)
-    _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16 * prosperity_bias, feedback_scale)
-    _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18 * prosperity_bias, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16 * collapse_bias, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12 * collapse_bias, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("scavenger_lane_pressure", 0.0) * 0.14 * collapse_bias, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_tracking", 0.0) * 0.14 * collapse_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16 * prosperity_bias * scavenger_bias, feedback_scale)
+    _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18 * prosperity_bias * scavenger_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16 * collapse_bias * kill_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12 * collapse_bias * scavenger_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("scavenger_lane_pressure", 0.0) * 0.14 * collapse_bias * scavenger_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_tracking", 0.0) * 0.14 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_carrion", 0.0) * 0.08 * prosperity_bias, feedback_scale)
@@ -562,6 +574,25 @@ def apply_region_carrion_chain_rebalancing(
         )
 
     return adjustments
+
+
+def _select_dominant_carrion_layer(
+    layer_scores: Dict[str, float],
+    resource_scores: Dict[str, float],
+) -> str:
+    prosperity = float(resource_scores.get("prosperity_feedback_bias", 0.0))
+    collapse = float(resource_scores.get("collapse_feedback_bias", 0.0))
+    if prosperity > collapse:
+        candidates = ("herd_source_layer", "kill_layer", "aerial_scavenge_layer")
+    elif collapse > prosperity:
+        candidates = ("scavenge_layer", "kill_layer", "aerial_scavenge_layer")
+    else:
+        candidates = tuple(layer_scores.keys())
+    ranked = [(layer, float(layer_scores.get(layer, 0.0))) for layer in candidates]
+    ranked = [entry for entry in ranked if entry[1] > 0.0]
+    if not ranked:
+        return ""
+    return max(ranked, key=lambda item: item[1])[0]
 
 
 def _adjust(state: Dict[str, float], key: str, raw_delta: float, feedback_scale: float) -> None:

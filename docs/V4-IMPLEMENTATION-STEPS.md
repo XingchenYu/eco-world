@@ -714,3 +714,6 @@
   - 摘要权重
   - 反馈系数
   - 主导层偏置
+- `prosperity / collapse` 现已开始显式切换：
+  - `grassland_chain` 的 `dominant_layer`
+  - `carrion_chain` 的 `dominant_layer`

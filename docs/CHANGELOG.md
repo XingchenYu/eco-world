@@ -22,6 +22,13 @@
     - `herd_source / kill / scavenge / aerial_scavenge` 层偏置
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐对应反馈测试并通过
 
+### v4.0-alpha36 (2026-04-09 08:55)
+
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 现已根据 `prosperity / collapse` 显式切换 `grassland_chain.dominant_layer`
+- ✅ [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已根据 `prosperity / collapse` 显式切换 `carrion_chain.dominant_layer`
+- ✅ 草原链和尸体资源链的反馈系数现在会继续读取 `dominant_layer`，使 `herd / kill / scavenge / aerial` 等层在不同长期相位下真正成为主导层
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `dominant_layer` 断言并通过
+
 ### v4.0-alpha27 (2026-04-09 05:00)
 
 - ✅ `social_trends.hotspot_scores` 现已开始回灌到 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行体
