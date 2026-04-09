@@ -9,6 +9,19 @@
 - 关系网络
 - 区域分布规则
 
+## 术语对照
+
+- `template`：模板，指一类物种共享的生态位和行为骨架。
+- `species variant`：物种变体，指基于模板的具体真实物种。
+- `ecological role`：生态角色，指该物种在食物网和环境中的功能位置。
+- `life stage`：生命周期阶段，如幼体、亚成体、成体。
+- `diet profile`：食谱画像，指食物来源和食性结构。
+- `microhabitat affinity`：微栖位偏好，指偏好的小尺度环境资源位点。
+- `social profile`：社群画像，指群体、社交和协作方式。
+- `territory profile`：领地画像，指核心区、边界和空间占用方式。
+- `migration profile`：迁移画像，指跨区域移动或季节迁徙方式。
+- `ecological flags`：生态标记，指关键种、工程师种、清道夫等特殊标签。
+
 ## 2. 双层设计
 
 ### 模板层

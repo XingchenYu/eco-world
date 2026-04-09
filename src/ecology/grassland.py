@@ -124,11 +124,13 @@ def build_region_grassland_chain_summary(
         herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
         herd_condition_runtime = float(runtime_signals.get("herd_condition_runtime", 0.0))
         herd_condition_phase_runtime = float(runtime_signals.get("herd_condition_phase_runtime", 0.0))
+        herd_condition_phase_bias_runtime = float(runtime_signals.get("herd_condition_phase_bias_runtime", 0.0))
         herd_regional_health_runtime = float(runtime_signals.get("herd_regional_health_runtime", 0.0))
         herd_regional_health_anchor_runtime = float(runtime_signals.get("herd_regional_health_anchor_runtime", 0.0))
         herd_regional_bias_runtime = float(runtime_signals.get("herd_regional_bias_runtime", 0.0))
         apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
         apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
+        apex_condition_phase_bias_runtime = float(runtime_signals.get("apex_condition_phase_bias_runtime", 0.0))
         apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
         apex_regional_health_anchor_runtime = float(runtime_signals.get("apex_regional_health_anchor_runtime", 0.0))
         apex_condition_anchor_runtime = float(runtime_signals.get("apex_condition_anchor_runtime", 0.0))
@@ -163,6 +165,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_condition_phase_pull", min(0.20, herd_condition_phase_runtime * 0.14), "长期相位修正后的食草群真实体况正在把 herd 通道继续压回更稳定的草原走廊。")
             add_layer_bias("herd_layer", herd_condition_phase_runtime * 0.07)
             add_layer_bias("social_layer", herd_condition_phase_runtime * 0.03)
+        if herd_condition_phase_bias_runtime > 0.0:
+            add_score("runtime_herd_condition_phase_bias_pull", min(0.18, herd_condition_phase_bias_runtime * 0.12), "长期 prosperity/collapse 直接沉淀成的 herd 体况偏置，正在继续放大稳定草原走廊。")
+            add_layer_bias("herd_layer", herd_condition_phase_bias_runtime * 0.06)
+            add_layer_bias("social_layer", herd_condition_phase_bias_runtime * 0.03)
         if herd_regional_health_runtime > 0.0:
             add_score("runtime_herd_health_pull", min(0.20, herd_regional_health_runtime * 0.14), "运行中的食草群长期健康度正在把 herd 通道拉向更稳定的草原走廊。")
             add_layer_bias("herd_layer", herd_regional_health_runtime * 0.07)
@@ -193,6 +199,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_apex_condition_phase_pull", min(0.18, apex_condition_phase_runtime * 0.12), "长期相位修正后的顶层真实体况正在把草原热点继续压向更稳定的 apex 核心。")
             add_layer_bias("predator_layer", apex_condition_phase_runtime * 0.06)
             add_layer_bias("social_layer", apex_condition_phase_runtime * 0.03)
+        if apex_condition_phase_bias_runtime > 0.0:
+            add_score("runtime_apex_condition_phase_bias_pull", min(0.16, apex_condition_phase_bias_runtime * 0.11), "长期 prosperity/collapse 直接沉淀成的 apex 体况偏置，正在继续抬升顶层热点稳定度。")
+            add_layer_bias("predator_layer", apex_condition_phase_bias_runtime * 0.05)
+            add_layer_bias("social_layer", apex_condition_phase_bias_runtime * 0.03)
         if apex_regional_health_anchor_runtime > 0.0:
             add_score("runtime_apex_health_anchor_pull", min(0.18, apex_regional_health_anchor_runtime * 0.12), "运行中的区域长期健康锚点正在继续把 apex 热点压向更稳定的前线核心。")
             add_layer_bias("predator_layer", apex_regional_health_anchor_runtime * 0.06)

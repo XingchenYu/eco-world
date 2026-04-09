@@ -4,6 +4,23 @@
 
 目标不是继续堆功能，而是在不再做大重构的前提下，稳定把项目推进到多尺度虚拟生态世界。
 
+## 术语对照
+
+- `runtime`：运行期，指当前这轮模拟中真实动物、资源、热点正在发生的状态。
+- `anchor`：锚点，指能长期稳定拉动某条链路的资源或状态来源。
+- `condition`：体况，通常由健康、饥饿和恢复状态共同决定。
+- `condition phase`：体况相位，指长期 prosperity/collapse 对体况造成的阶段性偏置。
+- `hotspot`：热点，指动物、资源或冲突持续聚集的空间区域。
+- `pull`：拉力，指某个因素对链路的正向推动强度。
+- `bias`：偏置，指系统被推向某个方向的长期倾向。
+- `prosperity`：繁荣相位，指资源、社群和链路相对稳定、偏增长的阶段。
+- `collapse`：衰退相位，指资源、社群和链路偏脆弱、偏收缩的阶段。
+- `dominant layer`：主导层，指当前周期里实际决定链路走向的那一层。
+- `herd layer`：食草群层。
+- `predator layer`：捕食者层。
+- `scavenger layer`：清道夫层。
+- `aerial scavenge layer`：空中清道夫层。
+
 ## 最新推进
 
 - `Lion / Hyena` 现已新增轻量核心区中心：
@@ -1155,3 +1172,8 @@
   - `territory.runtime_signals`
   - `social_trends.cycle_signals`
   也就是说，长期相位现在已经不只经由摘要和 pull 生效，而会作为运行体自己的长期体况偏置，继续反向塑造下一轮 territory/social 节律
+- `condition_phase_bias_runtime` 现在也继续进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 世界级长期压力
+  也就是说，长期相位沉淀出的运行体体况偏置现在已经不只作用于 `territory/social`，还开始直接抬高 herd/apex/aerial 两条草原链的长期权重

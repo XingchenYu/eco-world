@@ -1393,3 +1393,19 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `territory.runtime_signals`
   - `social_trends.cycle_signals`
   也就是说，长期相位现在已经不只经由摘要和 pull 生效，而会作为运行体自己的长期体况偏置，继续反向塑造下一轮 territory/social 节律
+- ✅ `condition_phase_bias_runtime` 现在也继续进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 世界级长期压力
+  也就是说，长期相位沉淀出的运行体体况偏置现在已经不只作用于 `territory/social`，还开始直接抬高 herd/apex/aerial 两条草原链的长期权重
+- 文档阅读说明：
+  - `runtime`：运行期
+  - `anchor`：锚点
+  - `bias`：偏置
+  - `pull`：拉力
+  - `phase`：相位
+  - `cycle`：周期
+  - `territory`：领地层
+  - `social_trends`：社群趋势层
+  - `grassland_chain`：草原链
+  - `carrion_chain`：尸体资源链

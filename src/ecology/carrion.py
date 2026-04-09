@@ -129,6 +129,11 @@ def build_region_carrion_chain_summary(
             add_score("runtime_aerial_condition_phase_pull", min(0.20, aerial_condition_phase_runtime * 0.14), "长期相位修正后的空中清道夫真实体况正在把尸体追踪继续拉向更稳定的空中通道。")
             add_layer_bias("aerial_scavenge_layer", aerial_condition_phase_runtime * 0.07)
             add_layer_bias("scavenge_layer", aerial_condition_phase_runtime * 0.03)
+        aerial_condition_phase_bias_runtime = float(runtime_signals.get("aerial_condition_phase_bias_runtime", 0.0))
+        if aerial_condition_phase_bias_runtime > 0.0:
+            add_score("runtime_aerial_condition_phase_bias_pull", min(0.18, aerial_condition_phase_bias_runtime * 0.12), "长期 prosperity/collapse 直接沉淀成的空中清道夫体况偏置，正在继续放大空中尸体通道。")
+            add_layer_bias("aerial_scavenge_layer", aerial_condition_phase_bias_runtime * 0.06)
+            add_layer_bias("scavenge_layer", aerial_condition_phase_bias_runtime * 0.03)
         if aerial_regional_health_runtime > 0.0:
             add_score("runtime_aerial_health_pull", min(0.20, aerial_regional_health_runtime * 0.14), "运行中的空中清道夫长期健康度正在把尸体追踪重新拉向稳定空中通道。")
             add_layer_bias("aerial_scavenge_layer", aerial_regional_health_runtime * 0.07)
@@ -171,6 +176,11 @@ def build_region_carrion_chain_summary(
             add_score("runtime_apex_condition_phase_pull", min(0.18, apex_condition_phase_runtime * 0.12), "长期相位修正后的顶层真实体况正在抬升击杀与残食通道的长期前线。")
             add_layer_bias("kill_layer", apex_condition_phase_runtime * 0.06)
             add_layer_bias("scavenge_layer", apex_condition_phase_runtime * 0.03)
+        apex_condition_phase_bias_runtime = float(runtime_signals.get("apex_condition_phase_bias_runtime", 0.0))
+        if apex_condition_phase_bias_runtime > 0.0:
+            add_score("runtime_apex_condition_phase_bias_pull", min(0.16, apex_condition_phase_bias_runtime * 0.11), "长期 prosperity/collapse 直接沉淀成的顶层体况偏置，正在继续抬升击杀前线稳定度。")
+            add_layer_bias("kill_layer", apex_condition_phase_bias_runtime * 0.05)
+            add_layer_bias("scavenge_layer", apex_condition_phase_bias_runtime * 0.03)
         if apex_regional_health_anchor_runtime > 0.0:
             add_score("runtime_apex_health_anchor_pull", min(0.18, apex_regional_health_anchor_runtime * 0.12), "运行中的区域长期健康锚点正在继续抬升击杀与残食通道的稳定前线。")
             add_layer_bias("kill_layer", apex_regional_health_anchor_runtime * 0.06)
