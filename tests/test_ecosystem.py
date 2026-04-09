@@ -1266,6 +1266,9 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     world_map = build_default_world_map()
     registry = build_default_world_registry()
     region = world_map.get_region("temperate_grassland")
+    region.health_state["prosperity"] = 0.42
+    region.health_state["stability"] = 0.36
+    region.health_state["collapse_risk"] = 0.18
 
     initial_rabbit = region.species_pool["rabbit"]
     initial_antelope = region.species_pool["antelope"]
@@ -1348,11 +1351,13 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor_prosperity" for item in adjustments)
+    assert any(item["source_species"] == "regional_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag", "herd_route_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_surface_water_support" for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_health_support", "runtime_apex_health_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_herd_anchor_support" for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_anchor_prosperity_support", "runtime_apex_anchor_prosperity_support"} for item in adjustments)
+    assert any(item["effect"] in {"regional_prosperity_support", "regional_stability_support", "regional_collapse_drag"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_herd_release", "bust_phase_herd_drag", "boom_phase_apex_release", "bust_phase_apex_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_herd_gain", "collapse_phase_scavenger_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_expansion_window", "clan_expansion_window"} for item in adjustments)
@@ -1492,6 +1497,9 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     world_map = build_default_world_map()
     registry = build_default_world_registry()
     region = world_map.get_region("temperate_grassland")
+    region.health_state["prosperity"] = 0.42
+    region.health_state["stability"] = 0.36
+    region.health_state["collapse_risk"] = 0.18
 
     initial_antelope = region.species_pool["antelope"]
     initial_zebra = region.species_pool["zebra"]
@@ -1569,11 +1577,13 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor_prosperity" for item in adjustments)
+    assert any(item["source_species"] == "regional_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn", "aerial_carrion_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_carcass_support" for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_health_support", "runtime_apex_health_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_aerial_anchor_support" for item in adjustments)
     assert any(item["effect"] == "runtime_aerial_anchor_prosperity_support" for item in adjustments)
+    assert any(item["effect"] in {"regional_prosperity_support", "regional_stability_support", "regional_collapse_drag"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_scavenger_release", "bust_phase_scavenger_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_scavenger_gain", "collapse_phase_apex_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_carrion_expansion_window", "clan_carrion_expansion_window"} for item in adjustments)

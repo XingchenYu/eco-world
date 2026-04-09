@@ -828,3 +828,12 @@
   - `regional_stability_anchor`
   - `regional_collapse_anchor`
   也就是说，区域长期健康度现在已经能不经过运行体中转，直接参与两条链的摘要层和主导层偏置
+- `grassland_rebalancing / carrion_rebalancing` 现已继续直接读取：
+  - `regional_prosperity_anchor`
+  - `regional_stability_anchor`
+  - `regional_collapse_anchor`
+  并把它们写成新的低频调整：
+  - `regional_prosperity_support`
+  - `regional_stability_support`
+  - `regional_collapse_drag`
+  也就是说，区域长期健康度现在已经开始不经过运行体中转，直接改变 herd/apex/scavenger 的物种池节律

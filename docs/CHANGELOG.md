@@ -1041,3 +1041,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `regional_stability_anchor`
   - `regional_collapse_anchor`
 - ✅ 这意味着区域长期健康度现在已经开始不经过运行体中转，直接改变两条链的摘要权重与主导层偏置
+- ✅ `grassland_rebalancing` 与 `carrion_rebalancing` 现已继续直接吸收：
+  - `regional_prosperity_anchor`
+  - `regional_stability_anchor`
+  - `regional_collapse_anchor`
+- ✅ 这些区域长期健康锚点现在已经开始直接生成：
+  - `regional_prosperity_support`
+  - `regional_stability_support`
+  - `regional_collapse_drag`
+  并进入草食群、清道夫和顶层捕食者的低频物种池调节

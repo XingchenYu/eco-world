@@ -930,6 +930,39 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["lion"],
             }
         )
+    if scores.get("regional_prosperity_anchor", 0.0) >= 0.07 and antelope_count < 22:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "regional_health",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "regional_prosperity_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
+    if scores.get("regional_stability_anchor", 0.0) >= 0.06 and zebra_count < 20:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "regional_health",
+                "target_species": "zebra",
+                "layer_group": "social_layer",
+                "effect": "regional_stability_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+    if scores.get("regional_collapse_anchor", 0.0) >= 0.07 and lion_count > 3:
+        species_pool["lion"] = species_pool.get("lion", 0) - 1
+        adjustments.append(
+            {
+                "source_species": "regional_health",
+                "target_species": "lion",
+                "layer_group": "predator_layer",
+                "effect": "regional_collapse_drag",
+                "new_target_count": species_pool["lion"],
+            }
+        )
     if grassland_boom_phase >= 0.45 and antelope_count < 22:
         species_pool["antelope"] = species_pool.get("antelope", 0) + 1
         adjustments.append(

@@ -680,6 +680,28 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["vulture"],
             }
         )
+    if scores.get("regional_prosperity_anchor", 0.0) >= 0.07 and vulture_count < 13:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "regional_health",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "regional_prosperity_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
+    if scores.get("regional_stability_anchor", 0.0) >= 0.06 and hyena_count < 10:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "regional_health",
+                "target_species": "hyena",
+                "layer_group": "scavenge_layer",
+                "effect": "regional_stability_support",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
     if shared_hotspot_memory >= 0.42 and lion_count >= 3 and hyena_count >= 3:
         if species_pool.get("hyena", 0) >= species_pool.get("lion", 0):
             species_pool["hyena"] = species_pool["hyena"] - 1
@@ -722,6 +744,17 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "lion",
                 "layer_group": "kill_layer",
                 "effect": "collapse_phase_apex_loss",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if scores.get("regional_collapse_anchor", 0.0) >= 0.07 and lion_count >= 4:
+        species_pool["lion"] = species_pool.get("lion", 0) - 1
+        adjustments.append(
+            {
+                "source_species": "regional_health",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "regional_collapse_drag",
                 "new_target_count": species_pool["lion"],
             }
         )
