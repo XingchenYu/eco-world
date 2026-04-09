@@ -223,6 +223,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("migration_pressure", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("dominant_herd_channeling", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("runtime_surface_water_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_memory_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_route_cycle_pressure", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16 * scavenger_bias, feedback_scale)
@@ -773,6 +774,28 @@ def apply_region_grassland_chain_rebalancing(
                 "target_species": "zebra",
                 "layer_group": "herd_layer",
                 "effect": "herd_route_cycle_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+    if scores.get("runtime_surface_water_pull", 0.0) >= 0.08 and antelope_count < 18:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_resource",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "runtime_surface_water_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
+    if scores.get("runtime_surface_water_pull", 0.0) >= 0.08 and zebra_count < 16:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_resource",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "runtime_surface_water_support",
                 "new_target_count": species_pool["zebra"],
             }
         )

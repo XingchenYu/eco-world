@@ -1158,6 +1158,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
             "hyena_hotspot_count": 2.0,
             "herd_hotspot_count": 3.0,
             "herd_apex_overlap": 1.0,
+            "herd_surface_water_runtime": 0.6,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1175,6 +1176,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "collapse_feedback_bias" in summary.trophic_scores
     assert "dominant_herd_channeling" in summary.trophic_scores
     assert "runtime_herd_corridors" in summary.trophic_scores
+    assert "runtime_surface_water_pull" in summary.trophic_scores
     assert "runtime_herd_apex_overlap" in summary.trophic_scores
     assert "herd_memory_corridors" in summary.trophic_scores
     assert "herd_memory_pressure" in summary.trophic_scores
@@ -1248,6 +1250,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "hyena_clan_count": 2.0,
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
+            "herd_surface_water_runtime": 0.6,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1264,7 +1267,9 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer", "social_layer"} for item in adjustments)
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
+    assert any(item["source_species"] == "runtime_resource" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag", "herd_route_cycle_support"} for item in adjustments)
+    assert any(item["effect"] == "runtime_surface_water_support" for item in adjustments)
     assert any(item["effect"] in {"boom_phase_herd_release", "bust_phase_herd_drag", "boom_phase_apex_release", "bust_phase_apex_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_herd_gain", "collapse_phase_scavenger_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_expansion_window", "clan_expansion_window"} for item in adjustments)
@@ -1356,6 +1361,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             "hyena_hotspot_count": 2.0,
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
+            "aerial_carcass_runtime": 0.5,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1373,6 +1379,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "collapse_feedback_bias" in summary.resource_scores
     assert "dominant_kill_layout" in summary.resource_scores
     assert "runtime_aerial_lanes" in summary.resource_scores
+    assert "runtime_carcass_pull" in summary.resource_scores
     assert "runtime_vulture_overlap" in summary.resource_scores
     assert "aerial_memory_lanes" in summary.resource_scores
     assert "aerial_memory_overlap" in summary.resource_scores
@@ -1442,6 +1449,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "hyena_clan_count": 2.0,
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
+            "aerial_carcass_runtime": 0.5,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1459,6 +1467,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn", "aerial_carrion_cycle_support"} for item in adjustments)
+    assert any(item["effect"] == "runtime_carcass_support" for item in adjustments)
     assert any(item["effect"] in {"boom_phase_scavenger_release", "bust_phase_scavenger_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_scavenger_gain", "collapse_phase_apex_loss"} for item in adjustments)
     assert any(item["effect"] in {"pride_carrion_expansion_window", "clan_carrion_expansion_window"} for item in adjustments)

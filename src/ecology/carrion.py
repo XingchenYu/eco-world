@@ -193,6 +193,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("dominant_kill_layout", 0.0) * 0.12 * kill_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16 * prosperity_bias * scavenger_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("runtime_carcass_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("aerial_memory_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("aerial_carrion_cycle_pressure", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18 * prosperity_bias * scavenger_bias, feedback_scale)
@@ -561,6 +562,17 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "vulture",
                 "layer_group": "aerial_scavenge_layer",
                 "effect": "aerial_carrion_cycle_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
+    if scores.get("runtime_carcass_pull", 0.0) >= 0.08 and vulture_count < 10:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_resource",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "runtime_carcass_support",
                 "new_target_count": species_pool["vulture"],
             }
         )
