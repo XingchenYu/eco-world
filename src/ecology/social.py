@@ -687,6 +687,15 @@ def apply_region_social_trend_feedback(
     _adjust(region.hazard_state, "predation_pressure", phases.get("aerial_carrion_cycle", 0.0) * 0.05, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("hyena_recovery_bias", 0.0) * 0.08, feedback_scale)
     _adjust(region.resource_state, "surface_water", social_trends.hotspot_scores.get("herd_apex_memory", 0.0) * 0.05, feedback_scale)
+    if "herd_regional_health_anchor_runtime" in social_trends.cycle_signals:
+        _adjust(region.resource_state, "surface_water", 0.10, feedback_scale)
+        _adjust(region.health_state, "resilience", 0.08, feedback_scale)
+    if "aerial_regional_health_anchor_runtime" in social_trends.cycle_signals:
+        _adjust(region.resource_state, "carcass_availability", 0.10, feedback_scale)
+        _adjust(region.health_state, "resilience", 0.06, feedback_scale)
+    if "apex_regional_health_anchor_runtime" in social_trends.cycle_signals:
+        _adjust(region.hazard_state, "predation_pressure", 0.08, feedback_scale)
+        _adjust(region.health_state, "resilience", 0.06, feedback_scale)
 
 
 def _adjust(state: Dict[str, float], key: str, raw_delta: float, feedback_scale: float) -> None:

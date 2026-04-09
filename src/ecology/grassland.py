@@ -157,10 +157,6 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_health_anchor_pull", min(0.20, herd_regional_health_anchor_runtime * 0.14), "运行中的区域长期健康锚点正在继续抬升 herd 通道的稳定走廊效应。")
             add_layer_bias("herd_layer", herd_regional_health_anchor_runtime * 0.07)
             add_layer_bias("social_layer", herd_regional_health_anchor_runtime * 0.04)
-        if herd_regional_health_anchor_runtime > 0.0:
-            add_score("runtime_herd_health_anchor_pull", min(0.20, herd_regional_health_anchor_runtime * 0.14), "运行中的区域长期健康锚点正在继续抬升 herd 通道的稳定走廊效应。")
-            add_layer_bias("herd_layer", herd_regional_health_anchor_runtime * 0.07)
-            add_layer_bias("social_layer", herd_regional_health_anchor_runtime * 0.04)
         if herd_regional_bias_runtime > 0.0:
             add_score("runtime_herd_regional_bias_pull", min(0.20, herd_regional_bias_runtime * 0.14), "运行中的区域长期社会锚点正在把 herd 通道继续拉向更稳定的草原走廊。")
             add_layer_bias("herd_layer", herd_regional_bias_runtime * 0.07)
@@ -168,10 +164,6 @@ def build_region_grassland_chain_summary(
         if apex_regional_health_runtime > 0.0:
             add_score("runtime_apex_health_pull", min(0.18, apex_regional_health_runtime * 0.12), "运行中的顶层捕食者长期健康度正在把草原热点重新压向 apex 核心。")
             add_layer_bias("predator_layer", apex_regional_health_runtime * 0.06)
-        if apex_regional_health_anchor_runtime > 0.0:
-            add_score("runtime_apex_health_anchor_pull", min(0.18, apex_regional_health_anchor_runtime * 0.12), "运行中的区域长期健康锚点正在继续把 apex 热点压向更稳定的前线核心。")
-            add_layer_bias("predator_layer", apex_regional_health_anchor_runtime * 0.06)
-            add_layer_bias("social_layer", apex_regional_health_anchor_runtime * 0.04)
         if apex_regional_health_anchor_runtime > 0.0:
             add_score("runtime_apex_health_anchor_pull", min(0.18, apex_regional_health_anchor_runtime * 0.12), "运行中的区域长期健康锚点正在继续把 apex 热点压向更稳定的前线核心。")
             add_layer_bias("predator_layer", apex_regional_health_anchor_runtime * 0.06)

@@ -964,3 +964,9 @@
   - `collapse_pressure`
   - `runtime_resource_pressure`
   并进一步影响区域长期 `prosperity / collapse_risk / stability`
+- `apply_region_social_trend_feedback()` 现也开始继续读取这些 runtime 健康锚点对应的 `cycle_signals`，并把它们继续回灌到：
+  - `surface_water`
+  - `carcass_availability`
+  - `predation_pressure`
+  - `resilience`
+  也就是说，运行期区域长期健康锚点现在已经不仅参与记忆和周期，还开始反向抬升区域资源锚点与韧性本身
