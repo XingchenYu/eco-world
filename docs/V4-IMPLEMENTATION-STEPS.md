@@ -710,3 +710,7 @@
 - 周期层开始影响个体的健康、饥饿、繁殖节奏与交配冷却
 - 周期层现已继续影响 `pride/clan` 的核心区建立强度与前线推进压力
 - 草原热点现已开始具有持续、衰减与迁移记忆，并会继续回灌 `social_trends` 和 `territory`
+- `prosperity / collapse` 现已开始直接改变 `grassland_chain / carrion_chain` 的：
+  - 摘要权重
+  - 反馈系数
+  - 主导层偏置

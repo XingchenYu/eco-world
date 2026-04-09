@@ -54,6 +54,9 @@ def build_region_carrion_chain_summary(
         if species not in layer_species[layer]:
             layer_species[layer].append(species)
 
+    def add_layer_bias(layer: str, value: float) -> None:
+        layer_scores[layer] = round(layer_scores.get(layer, 0.0) + value, 2)
+
     if "lion" in region_species:
         add_score("kill_generation", 0.74, "狮群会把草食群猎杀事件转化成局部尸体资源热点。")
         add_score("kill_site_control", 0.62, "狮群会优先控制击杀点周边的草原空间。")
@@ -99,8 +102,14 @@ def build_region_carrion_chain_summary(
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
         if grassland_prosperity_phase > 0.0:
             add_score("prosperity_phase_carrion", grassland_prosperity_phase * 0.22, "区域繁荣相位正在抬升尸体资源链的整体通量。")
+            add_score("prosperity_feedback_bias", grassland_prosperity_phase * 0.20, "区域繁荣相位正在把尸体资源链推向更高通量的稳定态。")
+            add_layer_bias("herd_source_layer", grassland_prosperity_phase * 0.08)
+            add_layer_bias("aerial_scavenge_layer", grassland_prosperity_phase * 0.06)
         if grassland_collapse_phase > 0.0:
             add_score("collapse_phase_carrion", grassland_collapse_phase * 0.22, "区域衰退相位正在压缩尸体资源链的整体闭合度。")
+            add_score("collapse_feedback_bias", grassland_collapse_phase * 0.20, "区域衰退相位正在把尸体资源链推向更高断裂度的收缩态。")
+            add_layer_bias("kill_layer", grassland_collapse_phase * 0.06)
+            add_layer_bias("scavenge_layer", grassland_collapse_phase * 0.08)
         if lion_hotspot_memory > 0.0:
             add_score("hotspot_cycle_carrion", lion_hotspot_memory * 0.22, "持续的狮群热点记忆会把击杀点维持成更稳定的尸体资源通道。")
         if hyena_hotspot_memory > 0.0:
@@ -126,21 +135,23 @@ def apply_region_carrion_chain_feedback(
     """将尸体资源链轻量回灌到区域状态。"""
 
     scores = carrion_chain.resource_scores
-    _adjust(region.resource_state, "carcass_availability", scores.get("kill_generation", 0.0) * 0.26, feedback_scale)
-    _adjust(region.resource_state, "carcass_availability", scores.get("large_carcass_supply", 0.0) * 0.24, feedback_scale)
-    _adjust(region.resource_state, "carcass_availability", -scores.get("aerial_scavenging", 0.0) * 0.10, feedback_scale)
+    prosperity_bias = 1.0 + min(0.35, scores.get("prosperity_feedback_bias", 0.0))
+    collapse_bias = 1.0 + min(0.35, scores.get("collapse_feedback_bias", 0.0))
+    _adjust(region.resource_state, "carcass_availability", scores.get("kill_generation", 0.0) * 0.26 * prosperity_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("large_carcass_supply", 0.0) * 0.24 * prosperity_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", -scores.get("aerial_scavenging", 0.0) * 0.10 * prosperity_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("kill_corridor_overlap", 0.0) * 0.18, feedback_scale)
-    _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16, feedback_scale)
-    _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("scavenger_lane_pressure", 0.0) * 0.14, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_tracking", 0.0) * 0.14, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_carrion", 0.0) * 0.08, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("prosperity_phase_carrion", 0.0) * 0.10, feedback_scale)
-    _adjust(region.health_state, "fragmentation", scores.get("collapse_phase_carrion", 0.0) * 0.10, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16 * prosperity_bias, feedback_scale)
+    _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18 * prosperity_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16 * collapse_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12 * collapse_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("scavenger_lane_pressure", 0.0) * 0.14 * collapse_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_tracking", 0.0) * 0.14 * collapse_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_carrion", 0.0) * 0.08 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("prosperity_phase_carrion", 0.0) * 0.10 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("collapse_phase_carrion", 0.0) * 0.10 * collapse_bias, feedback_scale)
 
 
 def apply_region_carrion_chain_rebalancing(

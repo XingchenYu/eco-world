@@ -2,6 +2,26 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha35 (2026-04-09 08:40)
+
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 现已把区域级 `prosperity / collapse` 相位推进到“稳定态切换”：
+  - 新增：
+    - `prosperity_feedback_bias`
+    - `collapse_feedback_bias`
+  - `prosperity / collapse` 现在会直接改变草原链的：
+    - 摘要权重
+    - 反馈系数
+    - `herd / predator / scavenger / social` 层偏置
+- ✅ [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已把区域级 `prosperity / collapse` 相位推进到尸体资源链的稳定态切换：
+  - 新增：
+    - `prosperity_feedback_bias`
+    - `collapse_feedback_bias`
+  - `prosperity / collapse` 现在会直接改变尸体资源链的：
+    - 摘要权重
+    - 反馈系数
+    - `herd_source / kill / scavenge / aerial_scavenge` 层偏置
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐对应反馈测试并通过
+
 ### v4.0-alpha27 (2026-04-09 05:00)
 
 - ✅ `social_trends.hotspot_scores` 现已开始回灌到 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行体

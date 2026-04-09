@@ -1076,6 +1076,10 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "hotspot_cycle_overlap" in summary.trophic_scores
     assert "prosperity_phase_weight" in summary.trophic_scores
     assert "collapse_phase_weight" in summary.trophic_scores
+    assert "prosperity_feedback_bias" in summary.trophic_scores
+    assert "collapse_feedback_bias" in summary.trophic_scores
+    assert summary.layer_scores["herd_layer"] > 0.69
+    assert summary.layer_scores["social_layer"] > 1.0
 
     print("✅ V4 grassland chain feedback test passed")
 
@@ -1253,6 +1257,10 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "hotspot_cycle_tracking" in summary.resource_scores
     assert "prosperity_phase_carrion" in summary.resource_scores
     assert "collapse_phase_carrion" in summary.resource_scores
+    assert "prosperity_feedback_bias" in summary.resource_scores
+    assert "collapse_feedback_bias" in summary.resource_scores
+    assert summary.layer_scores["herd_source_layer"] > 0.9
+    assert summary.layer_scores["scavenge_layer"] > 0.68
 
     print("✅ V4 carrion chain feedback test passed")
 

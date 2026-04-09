@@ -62,6 +62,9 @@ def build_region_grassland_chain_summary(
         if species not in layer_species[layer]:
             layer_species[layer].append(species)
 
+    def add_layer_bias(layer: str, value: float) -> None:
+        layer_scores[layer] = round(layer_scores.get(layer, 0.0) + value, 2)
+
     if "african_elephant" in region_species:
         add_score("canopy_opening", 0.82, "大象通过开林和踩踏重塑草灌边界。")
         add_score("seed_dispersal", 0.54, "大象扩大大型种子的景观级扩散。")
@@ -130,8 +133,14 @@ def build_region_grassland_chain_summary(
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
         if grassland_prosperity_phase > 0.0:
             add_score("prosperity_phase_weight", grassland_prosperity_phase * 0.24, "区域繁荣相位正在整体抬升草原链的联动权重。")
+            add_score("prosperity_feedback_bias", grassland_prosperity_phase * 0.22, "区域繁荣相位正在把草原链推向更高连通度的稳定态。")
+            add_layer_bias("herd_layer", grassland_prosperity_phase * 0.10)
+            add_layer_bias("predator_layer", grassland_prosperity_phase * 0.08)
         if grassland_collapse_phase > 0.0:
             add_score("collapse_phase_weight", grassland_collapse_phase * 0.22, "区域衰退相位正在整体压缩草原链的稳定权重。")
+            add_score("collapse_feedback_bias", grassland_collapse_phase * 0.22, "区域衰退相位正在把草原链推向更高断裂度的收缩态。")
+            add_layer_bias("scavenger_layer", grassland_collapse_phase * 0.08)
+            add_layer_bias("social_layer", grassland_collapse_phase * 0.08)
         if lion_hotspot_memory > 0.0:
             add_score("hotspot_cycle_pressure", lion_hotspot_memory * 0.22, "持续的狮群热点记忆会放大草原巡猎核心区的多周期占用。")
         if hyena_hotspot_memory > 0.0:
@@ -157,37 +166,39 @@ def apply_region_grassland_chain_feedback(
     """将草原大型植食者链摘要轻量回灌到区域状态。"""
 
     scores = grassland_chain.trophic_scores
+    prosperity_bias = 1.0 + min(0.35, scores.get("prosperity_feedback_bias", 0.0))
+    collapse_bias = 1.0 + min(0.35, scores.get("collapse_feedback_bias", 0.0))
 
-    _adjust(region.resource_state, "grazing_biomass", scores.get("grazing_pressure", 0.0) * 0.35, feedback_scale)
-    _adjust(region.resource_state, "grazing_biomass", scores.get("herd_grazing", 0.0) * 0.24, feedback_scale)
-    _adjust(region.resource_state, "browse_cover", -scores.get("canopy_browsing", 0.0) * 0.34, feedback_scale)
-    _adjust(region.resource_state, "browse_cover", -scores.get("canopy_opening", 0.0) * 0.25, feedback_scale)
+    _adjust(region.resource_state, "grazing_biomass", scores.get("grazing_pressure", 0.0) * 0.35 * prosperity_bias, feedback_scale)
+    _adjust(region.resource_state, "grazing_biomass", scores.get("herd_grazing", 0.0) * 0.24 * prosperity_bias, feedback_scale)
+    _adjust(region.resource_state, "browse_cover", -scores.get("canopy_browsing", 0.0) * 0.34 * prosperity_bias, feedback_scale)
+    _adjust(region.resource_state, "browse_cover", -scores.get("canopy_opening", 0.0) * 0.25 * collapse_bias, feedback_scale)
     _adjust(region.resource_state, "canopy_cover", -scores.get("canopy_opening", 0.0) * 0.38, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("waterhole_competition_bridge", 0.0) * 0.12, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("migration_pressure", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16, feedback_scale)
-    _adjust(region.resource_state, "carcass_availability", -scores.get("clan_pressure", 0.0) * 0.06, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", -scores.get("clan_pressure", 0.0) * 0.06 * collapse_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("carcass_channeling", 0.0) * 0.20, feedback_scale)
 
     _adjust(region.hazard_state, "predation_pressure", scores.get("canopy_opening", 0.0) * 0.16, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("apex_predation", 0.0) * 0.28, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("apex_rivalry", 0.0) * 0.14, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("territory_channel_pressure", 0.0) * 0.18, feedback_scale)
-    _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_pressure", 0.0) * 0.18, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("apex_predation", 0.0) * 0.28 * collapse_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("apex_rivalry", 0.0) * 0.14 * collapse_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("territory_channel_pressure", 0.0) * 0.18 * collapse_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_pressure", 0.0) * 0.18 * collapse_bias, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)
 
-    _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("vertical_partitioning", 0.0) * 0.18, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("grassland_predator_closure", 0.0) * 0.16, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("herd_predator_loop", 0.0) * 0.16, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("pride_patrol", 0.0) * 0.10, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_pressure", 0.0) * 0.08, feedback_scale)
-    _adjust(region.health_state, "resilience", scores.get("prosperity_phase_weight", 0.0) * 0.12, feedback_scale)
+    _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("vertical_partitioning", 0.0) * 0.18 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("grassland_predator_closure", 0.0) * 0.16 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("herd_predator_loop", 0.0) * 0.16 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("pride_patrol", 0.0) * 0.10 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_pressure", 0.0) * 0.08 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("prosperity_phase_weight", 0.0) * 0.12 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
-    _adjust(region.health_state, "fragmentation", scores.get("group_hunt_instability", 0.0) * 0.08, feedback_scale)
-    _adjust(region.health_state, "fragmentation", scores.get("hotspot_overlap_pressure", 0.0) * 0.10, feedback_scale)
-    _adjust(region.health_state, "fragmentation", scores.get("hotspot_cycle_overlap", 0.0) * 0.10, feedback_scale)
-    _adjust(region.health_state, "fragmentation", scores.get("collapse_phase_weight", 0.0) * 0.12, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("group_hunt_instability", 0.0) * 0.08 * collapse_bias, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("hotspot_overlap_pressure", 0.0) * 0.10 * collapse_bias, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("hotspot_cycle_overlap", 0.0) * 0.10 * collapse_bias, feedback_scale)
+    _adjust(region.health_state, "fragmentation", scores.get("collapse_phase_weight", 0.0) * 0.12 * collapse_bias, feedback_scale)
 
 
 def apply_region_grassland_chain_rebalancing(
