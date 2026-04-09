@@ -404,7 +404,16 @@ class WorldSimulation:
             "apex_regional_bias_runtime": 0.0,
             "herd_regional_bias_runtime": 0.0,
             "aerial_regional_bias_runtime": 0.0,
+            "apex_regional_health_anchor_runtime": 0.0,
+            "herd_regional_health_anchor_runtime": 0.0,
+            "aerial_regional_health_anchor_runtime": 0.0,
         }
+        regional_health_anchor = max(
+            0.0,
+            float(simulation.region.health_state.get("prosperity", 0.0))
+            + float(simulation.region.health_state.get("stability", 0.0))
+            - float(simulation.region.health_state.get("collapse_risk", 0.0)),
+        )
         lions = [animal for animal in simulation.animals if animal.alive and animal.species == "lion"]
         hyenas = [animal for animal in simulation.animals if animal.alive and animal.species == "hyena"]
         antelopes = [animal for animal in simulation.animals if animal.alive and animal.species == "antelope"]
@@ -448,6 +457,10 @@ class WorldSimulation:
                 ]
                 or [0.0]
             )
+            state["apex_regional_health_anchor_runtime"] = max(
+                state["apex_regional_health_runtime"],
+                regional_health_anchor,
+            )
         if hyenas:
             state["hyena_clan_cohesion"] = max(getattr(animal, "clan_cohesion", 0.0) for animal in hyenas)
             state["hyena_clan_front_pressure"] = max(getattr(animal, "clan_front_pressure", 0.0) for animal in hyenas)
@@ -489,6 +502,11 @@ class WorldSimulation:
                     or [0.0]
                 ),
             )
+            state["apex_regional_health_anchor_runtime"] = max(
+                state["apex_regional_health_anchor_runtime"],
+                state["apex_regional_health_runtime"],
+                regional_health_anchor,
+            )
         if antelopes or zebras:
             herd_hotspots = {self._territory_hotspot(animal.position) for animal in antelopes + zebras}
             state["herd_hotspot_count"] = float(len(herd_hotspots))
@@ -528,6 +546,10 @@ class WorldSimulation:
                 ]
                 or [0.0]
             )
+            state["herd_regional_health_anchor_runtime"] = max(
+                state["herd_regional_health_runtime"],
+                regional_health_anchor,
+            )
         if vultures:
             vulture_hotspots = {self._territory_hotspot(animal.position) for animal in vultures}
             state["vulture_hotspot_count"] = float(len(vulture_hotspots))
@@ -566,6 +588,10 @@ class WorldSimulation:
                     for animal in vultures
                 ]
                 or [0.0]
+            )
+            state["aerial_regional_health_anchor_runtime"] = max(
+                state["aerial_regional_health_runtime"],
+                regional_health_anchor,
             )
         if lion_hotspots and hyena_hotspots:
             state["shared_hotspot_overlap"] = float(len(lion_hotspots & hyena_hotspots))

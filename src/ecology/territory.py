@@ -155,6 +155,27 @@ def build_region_territory_summary(
     apex_regional_bias_runtime = float(runtime_state.get("apex_regional_bias_runtime", 0.0))
     herd_regional_bias_runtime = float(runtime_state.get("herd_regional_bias_runtime", 0.0))
     aerial_regional_bias_runtime = float(runtime_state.get("aerial_regional_bias_runtime", 0.0))
+    regional_health_anchor = max(
+        0.0,
+        float(region.health_state.get("prosperity", 0.0))
+        + float(region.health_state.get("stability", 0.0))
+        - float(region.health_state.get("collapse_risk", 0.0)),
+    )
+    apex_regional_health_anchor_runtime = max(
+        float(runtime_state.get("apex_regional_health_anchor_runtime", 0.0)),
+        apex_regional_health_runtime,
+        regional_health_anchor,
+    )
+    herd_regional_health_anchor_runtime = max(
+        float(runtime_state.get("herd_regional_health_anchor_runtime", 0.0)),
+        herd_regional_health_runtime,
+        regional_health_anchor,
+    )
+    aerial_regional_health_anchor_runtime = max(
+        float(runtime_state.get("aerial_regional_health_anchor_runtime", 0.0)),
+        aerial_regional_health_runtime,
+        regional_health_anchor,
+    )
     herd_resource_anchor_runtime = max(0.0, herd_surface_water_runtime * 0.6 + herd_regional_health_runtime * 0.4)
     aerial_resource_anchor_runtime = max(0.0, aerial_carcass_runtime * 0.6 + aerial_regional_health_runtime * 0.4)
 
@@ -254,6 +275,12 @@ def build_region_territory_summary(
             pressure_scores.get("waterhole_spacing", 0.0) + min(0.08, herd_regional_health_runtime * 0.05),
             2,
         )
+    if herd_regional_health_anchor_runtime > 0.0:
+        runtime_signals["herd_regional_health_anchor_runtime"] = round(herd_regional_health_anchor_runtime, 3)
+        pressure_scores["waterhole_spacing"] = round(
+            pressure_scores.get("waterhole_spacing", 0.0) + min(0.10, herd_regional_health_anchor_runtime * 0.06),
+            2,
+        )
     if herd_resource_anchor_runtime > 0.0:
         runtime_signals["herd_resource_anchor_runtime"] = round(herd_resource_anchor_runtime, 3)
         pressure_scores["waterhole_spacing"] = round(
@@ -296,6 +323,12 @@ def build_region_territory_summary(
             pressure_scores.get("carcass_route_overlap", 0.0) + min(0.08, aerial_regional_health_runtime * 0.05),
             2,
         )
+    if aerial_regional_health_anchor_runtime > 0.0:
+        runtime_signals["aerial_regional_health_anchor_runtime"] = round(aerial_regional_health_anchor_runtime, 3)
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.10, aerial_regional_health_anchor_runtime * 0.06),
+            2,
+        )
     if aerial_resource_anchor_runtime > 0.0:
         runtime_signals["aerial_resource_anchor_runtime"] = round(aerial_resource_anchor_runtime, 3)
         pressure_scores["carcass_route_overlap"] = round(
@@ -318,6 +351,12 @@ def build_region_territory_summary(
         runtime_signals["apex_regional_health_runtime"] = round(apex_regional_health_runtime, 3)
         pressure_scores["apex_boundary_conflict"] = round(
             pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.08, apex_regional_health_runtime * 0.05),
+            2,
+        )
+    if apex_regional_health_anchor_runtime > 0.0:
+        runtime_signals["apex_regional_health_anchor_runtime"] = round(apex_regional_health_anchor_runtime, 3)
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.10, apex_regional_health_anchor_runtime * 0.06),
             2,
         )
     if apex_anchor_prosperity_runtime > 0.0:

@@ -912,3 +912,16 @@
   - `collapse_pressure`
   - `runtime_resource_pressure`
   并进一步影响区域长期 `prosperity / collapse_risk / stability`
+- `runtime_territory_state` 现已开始继续把区域：
+  - `prosperity`
+  - `stability`
+  - `collapse_risk`
+  组合成：
+  - `apex_regional_health_anchor_runtime`
+  - `herd_regional_health_anchor_runtime`
+  - `aerial_regional_health_anchor_runtime`
+- `territory.runtime_signals` 现也开始继续吸收这 3 个运行期长期健康锚点，并把它们回灌到：
+  - `waterhole_spacing`
+  - `carcass_route_overlap`
+  - `apex_boundary_conflict`
+  也就是说，区域长期健康度现在已经不只通过运行体个体表现间接传导，而是开始直接形成 runtime 级领地健康锚点
