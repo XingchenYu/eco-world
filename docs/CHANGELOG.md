@@ -29,6 +29,19 @@
 - ✅ 草原链和尸体资源链的反馈系数现在会继续读取 `dominant_layer`，使 `herd / kill / scavenge / aerial` 等层在不同长期相位下真正成为主导层
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增 `dominant_layer` 断言并通过
 
+### v4.0-alpha37 (2026-04-09 09:10)
+
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 现已开始读取上一周期的 `grassland_chain / carrion_chain dominant_layer`
+- ✅ 主导层现在会反向生成新的领地与通道偏置信号：
+  - `herd_channel_bias`
+  - `apex_hotspot_bias`
+  - `scavenger_hotspot_bias`
+  - `herd_source_bias`
+  - `kill_corridor_bias`
+  - `aerial_lane_bias`
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已开始吸收这些偏置信号，形成下一轮资源布局输入
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增领地主导层测试并通过
+
 ### v4.0-alpha27 (2026-04-09 05:00)
 
 - ✅ `social_trends.hotspot_scores` 现已开始回灌到 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行体

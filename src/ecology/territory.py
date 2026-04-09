@@ -72,7 +72,11 @@ def build_region_territory_summary(
             add_pressure("beaver", "dam_complex_claim", 0.47, "reed_belt", "河狸坝系会把缓流水和芦苇带变成长期工程师活动核心。")
 
     previous_territory = region.relationship_state.get("territory", {})
+    previous_grassland = region.relationship_state.get("grassland_chain", {})
+    previous_carrion = region.relationship_state.get("carrion_chain", {})
     previous_runtime = previous_territory.get("runtime_signals", {}) if isinstance(previous_territory, dict) else {}
+    previous_grassland_layer = previous_grassland.get("dominant_layer", "") if isinstance(previous_grassland, dict) else ""
+    previous_carrion_layer = previous_carrion.get("dominant_layer", "") if isinstance(previous_carrion, dict) else ""
 
     for description in recent_events or []:
         if "pride core range" in description:
@@ -236,6 +240,27 @@ def build_region_territory_summary(
             pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.08, overlap_shift * 0.04),
             2,
         )
+
+    if region.region_id == "temperate_grassland":
+        if previous_grassland_layer == "herd_layer":
+            runtime_signals["herd_channel_bias"] = 1
+            pressure_scores["waterhole_spacing"] = round(pressure_scores.get("waterhole_spacing", 0.0) + 0.08, 2)
+        elif previous_grassland_layer == "predator_layer":
+            runtime_signals["apex_hotspot_bias"] = 1
+            pressure_scores["apex_boundary_conflict"] = round(pressure_scores.get("apex_boundary_conflict", 0.0) + 0.08, 2)
+        elif previous_grassland_layer in {"scavenger_layer", "social_layer"}:
+            runtime_signals["scavenger_hotspot_bias"] = 1
+            pressure_scores["carcass_route_overlap"] = round(pressure_scores.get("carcass_route_overlap", 0.0) + 0.07, 2)
+
+        if previous_carrion_layer == "herd_source_layer":
+            runtime_signals["herd_source_bias"] = 1
+            pressure_scores["waterhole_spacing"] = round(pressure_scores.get("waterhole_spacing", 0.0) + 0.05, 2)
+        elif previous_carrion_layer == "kill_layer":
+            runtime_signals["kill_corridor_bias"] = 1
+            pressure_scores["carcass_route_overlap"] = round(pressure_scores.get("carcass_route_overlap", 0.0) + 0.08, 2)
+        elif previous_carrion_layer == "aerial_scavenge_layer":
+            runtime_signals["aerial_lane_bias"] = 1
+            pressure_scores["carcass_route_overlap"] = round(pressure_scores.get("carcass_route_overlap", 0.0) + 0.06, 2)
 
     return RegionTerritorySummary(
         region_id=region.region_id,

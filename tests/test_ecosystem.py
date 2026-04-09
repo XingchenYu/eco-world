@@ -810,6 +810,24 @@ def test_v4_territory_summary_uses_runtime_state():
     print("✅ V4 territory runtime state test passed")
 
 
+def test_v4_territory_summary_uses_dominant_layers():
+    """v4 领地摘要应吸收上一周期链路主导层。"""
+    world_map = build_default_world_map()
+    registry = build_default_world_registry()
+    grassland = world_map.get_region("temperate_grassland")
+    grassland.record_relationship_state("grassland_chain", {"dominant_layer": "herd_layer"})
+    grassland.record_relationship_state("carrion_chain", {"dominant_layer": "kill_layer"})
+
+    summary = build_region_territory_summary(grassland, registry)
+
+    assert summary.runtime_signals["herd_channel_bias"] == 1
+    assert summary.runtime_signals["kill_corridor_bias"] == 1
+    assert summary.pressure_scores["waterhole_spacing"] > 0.34
+    assert summary.pressure_scores["carcass_route_overlap"] > 0.49
+
+    print("✅ V4 territory dominant layer test passed")
+
+
 def test_v4_territory_summary_uses_hotspot_memory():
     """v4 领地摘要应能吸收热点持续与迁移记忆。"""
     world_map = build_default_world_map()
@@ -1056,6 +1074,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
             },
         },
     )
+    region.record_relationship_state("grassland_chain", {"dominant_layer": "herd_layer"})
+    region.record_relationship_state("carrion_chain", {"dominant_layer": "kill_layer"})
 
     territory = build_region_territory_summary(
         region,
@@ -1078,6 +1098,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "collapse_phase_weight" in summary.trophic_scores
     assert "prosperity_feedback_bias" in summary.trophic_scores
     assert "collapse_feedback_bias" in summary.trophic_scores
+    assert "dominant_herd_channeling" in summary.trophic_scores
     assert summary.layer_scores["herd_layer"] > 0.69
     assert summary.layer_scores["social_layer"] > 1.0
     assert summary.dominant_layer == "herd_layer"
@@ -1131,6 +1152,8 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             },
         },
     )
+    region.record_relationship_state("grassland_chain", {"dominant_layer": "herd_layer"})
+    region.record_relationship_state("carrion_chain", {"dominant_layer": "kill_layer"})
 
     territory = build_region_territory_summary(
         region,
@@ -1238,6 +1261,8 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             },
         },
     )
+    region.record_relationship_state("grassland_chain", {"dominant_layer": "herd_layer"})
+    region.record_relationship_state("carrion_chain", {"dominant_layer": "kill_layer"})
 
     territory = build_region_territory_summary(
         region,
@@ -1260,6 +1285,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "collapse_phase_carrion" in summary.resource_scores
     assert "prosperity_feedback_bias" in summary.resource_scores
     assert "collapse_feedback_bias" in summary.resource_scores
+    assert "dominant_kill_layout" in summary.resource_scores
     assert summary.layer_scores["herd_source_layer"] > 0.9
     assert summary.layer_scores["scavenge_layer"] > 0.68
     assert summary.dominant_layer == "herd_source_layer"

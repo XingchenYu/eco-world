@@ -717,3 +717,6 @@
 - `prosperity / collapse` 现已开始显式切换：
   - `grassland_chain` 的 `dominant_layer`
   - `carrion_chain` 的 `dominant_layer`
+- `dominant_layer` 现已开始反向改变：
+  - `territory` 的热点/通道偏置信号
+  - `grassland_chain / carrion_chain` 下一轮的资源布局输入

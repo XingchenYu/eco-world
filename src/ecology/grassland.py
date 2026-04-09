@@ -119,6 +119,12 @@ def build_region_grassland_chain_summary(
         shared_hotspots = int(runtime_signals.get("shared_hotspot_overlap", 0))
         lion_hotspots = int(runtime_signals.get("lion_hotspot_count", 0))
         hyena_hotspots = int(runtime_signals.get("hyena_hotspot_count", 0))
+        if int(runtime_signals.get("herd_channel_bias", 0)) > 0:
+            add_score("dominant_herd_channeling", 0.18, "上一周期的草食群主导态正在把草原通道重新拉回 herd 核心。")
+        if int(runtime_signals.get("apex_hotspot_bias", 0)) > 0:
+            add_score("dominant_apex_layout", 0.18, "上一周期的顶层主导态正在把热点重新压回 apex 巡猎核心。")
+        if int(runtime_signals.get("scavenger_hotspot_bias", 0)) > 0:
+            add_score("dominant_scavenger_layout", 0.16, "上一周期的清道夫主导态正在把草原热点重新拉向尸体资源通道。")
         if shared_hotspots > 0:
             add_score("hotspot_overlap_pressure", min(0.42, shared_hotspots * 0.16), "狮群与鬣狗 clan 的热点重叠会把草原资源通道挤压成更高冲突密度。")
             add_score("carcass_channeling", min(0.36, shared_hotspots * 0.14), "领地热点重叠会把尸体与伏击资源进一步集中到少数核心通道。")
@@ -188,15 +194,18 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "canopy_cover", -scores.get("canopy_opening", 0.0) * 0.38, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("waterhole_competition_bridge", 0.0) * 0.12, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("migration_pressure", 0.0) * 0.10, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("dominant_herd_channeling", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16 * scavenger_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", -scores.get("clan_pressure", 0.0) * 0.06 * collapse_bias * social_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("carcass_channeling", 0.0) * 0.20 * scavenger_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("dominant_scavenger_layout", 0.0) * 0.12 * scavenger_bias, feedback_scale)
 
     _adjust(region.hazard_state, "predation_pressure", scores.get("canopy_opening", 0.0) * 0.16, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("apex_predation", 0.0) * 0.28 * collapse_bias * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("apex_rivalry", 0.0) * 0.14 * collapse_bias * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("territory_channel_pressure", 0.0) * 0.18 * collapse_bias * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_pressure", 0.0) * 0.18 * collapse_bias * predator_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("dominant_apex_layout", 0.0) * 0.14 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)
 
     _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22 * prosperity_bias, feedback_scale)
