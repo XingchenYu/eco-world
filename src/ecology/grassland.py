@@ -876,6 +876,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["antelope"],
             }
         )
+    if scores.get("runtime_herd_condition_pull", 0.0) >= 0.06 and antelope_count < 20:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "condition_herd_recovery",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if scores.get("runtime_herd_health_pull", 0.0) >= 0.06 and antelope_count < 19:
         species_pool["antelope"] = species_pool.get("antelope", 0) + 1
         adjustments.append(
@@ -950,6 +961,17 @@ def apply_region_grassland_chain_rebalancing(
                 "target_species": "zebra",
                 "layer_group": "herd_layer",
                 "effect": "runtime_herd_condition_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+    if scores.get("runtime_herd_condition_pull", 0.0) >= 0.06 and zebra_count < 18:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "condition_herd_recovery",
                 "new_target_count": species_pool["zebra"],
             }
         )
@@ -1028,6 +1050,28 @@ def apply_region_grassland_chain_rebalancing(
                 "layer_group": "predator_layer",
                 "effect": "runtime_apex_condition_support",
                 "new_target_count": species_pool["lion"],
+            }
+        )
+    if scores.get("runtime_apex_condition_pull", 0.0) >= 0.04 and lion_count < 9:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition",
+                "target_species": "lion",
+                "layer_group": "social_layer",
+                "effect": "condition_pride_recovery",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if scores.get("runtime_apex_condition_pull", 0.0) >= 0.04 and hyena_count < 8:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "condition_clan_recovery",
+                "new_target_count": species_pool["hyena"],
             }
         )
     if scores.get("runtime_apex_health_anchor_pull", 0.0) >= 0.06 and lion_count < 8:

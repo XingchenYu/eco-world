@@ -1066,3 +1066,14 @@
   - 产仔规模
   - 产后冷却
   也就是说，草原顶层社群现在已经不只会因为稳定度和资源而延续，真实体况本身也开始直接改变群体延续速度
+- `grassland_rebalancing / carrion_rebalancing` 现在也开始继续读取：
+  - `runtime_herd_condition_pull`
+  - `runtime_aerial_condition_pull`
+  - `runtime_apex_condition_pull`
+- 它们现在会继续打开更明确的恢复窗口：
+  - `condition_herd_recovery`
+  - `condition_pride_recovery`
+  - `condition_clan_recovery`
+  - `condition_aerial_recovery`
+  - `condition_apex_carrion_recovery`
+  也就是说，真实体况现在已经不只影响当前恢复和产仔，还开始直接影响 herd/apex/aerial 的低频恢复节律
