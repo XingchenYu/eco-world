@@ -411,6 +411,8 @@ def test_v4_grassland_runtime_pressure_updates_region_health():
     assert region.ecological_pressures["runtime_herd_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_health_pull"] > 0.0
+    assert region.ecological_pressures["runtime_herd_resource_anchor_pull"] > 0.0
+    assert region.ecological_pressures["runtime_aerial_resource_anchor_pull"] > 0.0
     assert region.health_state["prosperity"] > 0.0
     assert region.health_state["collapse_risk"] >= 0.0
     assert region.health_state["stability"] > 0.0
@@ -1028,6 +1030,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert "aerial_carcass_runtime" in summary.cycle_signals
     assert "herd_resource_anchor_runtime" in summary.cycle_signals
     assert "aerial_resource_anchor_runtime" in summary.cycle_signals
+    assert "runtime_anchor_prosperity" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]
     before_surface_water = region.resource_state["surface_water"]

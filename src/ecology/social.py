@@ -545,6 +545,9 @@ def build_region_social_trend_summary(
     if surface_water_anchor + carcass_anchor >= 0.90:
         cycle_signals.append("resource_anchor_prosperity")
         narrative_trends.append("稳定水源和尸体资源锚点正在共同抬升草原长期繁荣相位。")
+    if herd_resource_anchor_runtime + aerial_resource_anchor_runtime >= 0.88:
+        cycle_signals.append("runtime_anchor_prosperity")
+        narrative_trends.append("运行中的 herd 与 carrion 复合锚点正在共同抬升草原长期繁荣相位。")
 
     return RegionSocialTrendSummary(
         region_id=region.region_id,
