@@ -2002,6 +2002,7 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.runtime_anchor_prosperity > 0.30
     assert lion.regional_health_anchor > 0.20
     assert lion.condition_runtime > 0.41
+    assert lion.condition_phase_bias > 0.20
     assert lion.regional_prosperity > 0.0
     assert lion.regional_stability > 0.0
     assert lion.regional_prosperity_bias == 1.0
@@ -2015,6 +2016,7 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.runtime_anchor_prosperity > 0.30
     assert hyena.regional_health_anchor > 0.20
     assert hyena.condition_runtime > 0.41
+    assert hyena.condition_phase_bias > 0.20
     assert hyena.regional_prosperity > 0.0
     assert hyena.regional_stability > 0.0
     assert hyena.regional_prosperity_bias == 1.0
@@ -2033,6 +2035,7 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.runtime_anchor_prosperity > 0.30
     assert antelope.regional_health_anchor > 0.20
     assert antelope.condition_runtime > 0.48
+    assert antelope.condition_phase_bias > 0.20
     assert antelope.regional_prosperity > 0.0
     assert antelope.regional_stability > 0.0
     assert antelope.regional_prosperity_bias == 1.0
@@ -2047,6 +2050,7 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.runtime_anchor_prosperity > 0.30
     assert zebra.regional_health_anchor > 0.20
     assert zebra.condition_runtime > 0.48
+    assert zebra.condition_phase_bias > 0.20
     assert zebra.regional_prosperity > 0.0
     assert zebra.regional_stability > 0.0
     assert zebra.regional_prosperity_bias == 1.0
@@ -2061,6 +2065,7 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.runtime_anchor_prosperity > 0.30
     assert vulture.regional_health_anchor > 0.20
     assert vulture.condition_runtime > 0.43
+    assert vulture.condition_phase_bias > 0.20
     assert vulture.regional_prosperity > 0.0
     assert vulture.regional_stability > 0.0
     assert vulture.regional_prosperity_bias == 1.0
@@ -2262,6 +2267,82 @@ def test_runtime_apex_condition_effect():
     assert hyena.reproduction_rate > hyena_base_rate
 
     print("✅ Runtime apex condition effect test passed")
+
+
+def test_runtime_condition_phase_bias_effect():
+    """condition_phase_bias 应直接改善 herd 与 carrion 运行期体况和繁殖冷却。"""
+    antelope = Antelope(position=(20, 20), gender=Gender.FEMALE)
+    zebra = Zebra(position=(22, 20), gender=Gender.FEMALE)
+    vulture = Vulture(position=(24, 20), gender=Gender.FEMALE)
+
+    antelope.condition_phase_bias = 0.34
+    zebra.condition_phase_bias = 0.31
+    vulture.condition_phase_bias = 0.33
+
+    antelope.health = 70.0
+    antelope.hunger = 50.0
+    antelope.mate_cooldown = 4
+    zebra.health = 72.0
+    zebra.hunger = 48.0
+    zebra.mate_cooldown = 4
+    vulture.health = 68.0
+    vulture.hunger = 46.0
+    vulture.mate_cooldown = 4
+
+    antelope_base_rate = antelope.reproduction_rate
+    zebra_base_rate = zebra.reproduction_rate
+    vulture_base_rate = vulture.reproduction_rate
+
+    antelope._apply_condition_phase_bias()
+    zebra._apply_condition_phase_bias()
+    vulture._apply_condition_phase_bias()
+
+    assert antelope.health > 70.0
+    assert antelope.hunger < 50.0
+    assert antelope.mate_cooldown < 4
+    assert antelope.reproduction_rate > antelope_base_rate
+    assert zebra.health > 72.0
+    assert zebra.hunger < 48.0
+    assert zebra.mate_cooldown < 4
+    assert zebra.reproduction_rate > zebra_base_rate
+    assert vulture.health > 68.0
+    assert vulture.hunger < 46.0
+    assert vulture.mate_cooldown < 4
+    assert vulture.reproduction_rate > vulture_base_rate
+
+    print("✅ Runtime condition phase bias effect test passed")
+
+
+def test_runtime_apex_condition_phase_bias_effect():
+    """apex 的 condition_phase_bias 应直接改善当前体况、冷却和繁殖节律。"""
+    lion = Lion(position=(20, 20), gender=Gender.FEMALE)
+    hyena = Hyena(position=(24, 20), gender=Gender.FEMALE)
+
+    lion.condition_phase_bias = 0.32
+    hyena.condition_phase_bias = 0.30
+    lion.health = 72.0
+    lion.hunger = 48.0
+    lion.mate_cooldown = 4
+    hyena.health = 69.0
+    hyena.hunger = 46.0
+    hyena.mate_cooldown = 4
+
+    lion_base_rate = lion.reproduction_rate
+    hyena_base_rate = hyena.reproduction_rate
+
+    lion._apply_condition_phase_bias()
+    hyena._apply_condition_phase_bias()
+
+    assert lion.health > 72.0
+    assert lion.hunger < 48.0
+    assert lion.mate_cooldown < 4
+    assert lion.reproduction_rate > lion_base_rate
+    assert hyena.health > 69.0
+    assert hyena.hunger < 46.0
+    assert hyena.mate_cooldown < 4
+    assert hyena.reproduction_rate > hyena_base_rate
+
+    print("✅ Runtime apex condition phase bias effect test passed")
 
 
 def test_lion_hotspot_memory_center_effect():
@@ -3079,8 +3160,12 @@ def run_all_tests():
     test_lion_hotspot_memory_center_effect()
     test_hyena_hotspot_memory_center_effect()
     test_runtime_regional_health_bias()
+    test_runtime_regional_health_anchor_effect()
     test_runtime_condition_effect()
+    test_runtime_condition_phase_bias_effect()
+    test_runtime_apex_regional_health_anchor_effect()
     test_runtime_apex_condition_effect()
+    test_runtime_apex_condition_phase_bias_effect()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()

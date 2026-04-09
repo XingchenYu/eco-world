@@ -113,6 +113,18 @@ class RegionSimulation(Ecosystem):
             regional_health_anchor,
             float(territory_signals.get("aerial_regional_health_anchor_runtime", 0.0)),
         )
+        condition_phase_bias = min(
+            1.0,
+            max(
+                0.0,
+                grassland_prosperity * 0.58
+                + regional_prosperity * 0.18
+                + regional_stability * 0.12
+                + runtime_anchor_prosperity * 0.10
+                - grassland_collapse * 0.28
+                - regional_collapse_risk * 0.16,
+            ),
+        )
 
         for animal in self.animals:
             if not animal.alive:
@@ -131,6 +143,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_stability = regional_stability
                 animal.regional_health_anchor = apex_regional_health_anchor
                 animal.condition_runtime = apex_condition_phase_runtime
+                animal.condition_phase_bias = condition_phase_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -148,6 +161,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_stability = regional_stability
                 animal.regional_health_anchor = apex_regional_health_anchor
                 animal.condition_runtime = apex_condition_phase_runtime
+                animal.condition_phase_bias = condition_phase_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -164,6 +178,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_stability = regional_stability
                 animal.regional_health_anchor = herd_regional_health_anchor
                 animal.condition_runtime = herd_condition_phase_runtime
+                animal.condition_phase_bias = condition_phase_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -180,6 +195,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_stability = regional_stability
                 animal.regional_health_anchor = herd_regional_health_anchor
                 animal.condition_runtime = herd_condition_phase_runtime
+                animal.condition_phase_bias = condition_phase_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -196,6 +212,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_stability = regional_stability
                 animal.regional_health_anchor = aerial_regional_health_anchor
                 animal.condition_runtime = aerial_condition_phase_runtime
+                animal.condition_phase_bias = condition_phase_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias

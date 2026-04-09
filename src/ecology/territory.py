@@ -157,6 +157,9 @@ def build_region_territory_summary(
     apex_condition_phase_runtime = max(float(runtime_state.get("apex_condition_phase_runtime", 0.0)), apex_condition_runtime)
     herd_condition_phase_runtime = max(float(runtime_state.get("herd_condition_phase_runtime", 0.0)), herd_condition_runtime)
     aerial_condition_phase_runtime = max(float(runtime_state.get("aerial_condition_phase_runtime", 0.0)), aerial_condition_runtime)
+    apex_condition_phase_bias_runtime = float(runtime_state.get("apex_condition_phase_bias_runtime", 0.0))
+    herd_condition_phase_bias_runtime = float(runtime_state.get("herd_condition_phase_bias_runtime", 0.0))
+    aerial_condition_phase_bias_runtime = float(runtime_state.get("aerial_condition_phase_bias_runtime", 0.0))
     apex_anchor_prosperity_runtime = float(runtime_state.get("apex_anchor_prosperity_runtime", 0.0))
     herd_anchor_prosperity_runtime = float(runtime_state.get("herd_anchor_prosperity_runtime", 0.0))
     aerial_anchor_prosperity_runtime = float(runtime_state.get("aerial_anchor_prosperity_runtime", 0.0))
@@ -343,6 +346,12 @@ def build_region_territory_summary(
             pressure_scores.get("waterhole_spacing", 0.0) + min(0.09, herd_condition_phase_anchor_runtime * 0.06),
             2,
         )
+    if herd_condition_phase_bias_runtime > 0.0:
+        runtime_signals["herd_condition_phase_bias_runtime"] = round(herd_condition_phase_bias_runtime, 3)
+        pressure_scores["waterhole_spacing"] = round(
+            pressure_scores.get("waterhole_spacing", 0.0) + min(0.07, herd_condition_phase_bias_runtime * 0.05),
+            2,
+        )
     if herd_regional_health_anchor_runtime > 0.0:
         runtime_signals["herd_regional_health_anchor_runtime"] = round(herd_regional_health_anchor_runtime, 3)
         pressure_scores["waterhole_spacing"] = round(
@@ -415,6 +424,12 @@ def build_region_territory_summary(
             pressure_scores.get("carcass_route_overlap", 0.0) + min(0.09, aerial_condition_phase_anchor_runtime * 0.06),
             2,
         )
+    if aerial_condition_phase_bias_runtime > 0.0:
+        runtime_signals["aerial_condition_phase_bias_runtime"] = round(aerial_condition_phase_bias_runtime, 3)
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.07, aerial_condition_phase_bias_runtime * 0.05),
+            2,
+        )
     if aerial_regional_health_anchor_runtime > 0.0:
         runtime_signals["aerial_regional_health_anchor_runtime"] = round(aerial_regional_health_anchor_runtime, 3)
         pressure_scores["carcass_route_overlap"] = round(
@@ -467,6 +482,12 @@ def build_region_territory_summary(
         runtime_signals["apex_condition_phase_anchor_runtime"] = round(apex_condition_phase_anchor_runtime, 3)
         pressure_scores["apex_boundary_conflict"] = round(
             pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.09, apex_condition_phase_anchor_runtime * 0.06),
+            2,
+        )
+    if apex_condition_phase_bias_runtime > 0.0:
+        runtime_signals["apex_condition_phase_bias_runtime"] = round(apex_condition_phase_bias_runtime, 3)
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.07, apex_condition_phase_bias_runtime * 0.05),
             2,
         )
     if apex_regional_health_anchor_runtime > 0.0:

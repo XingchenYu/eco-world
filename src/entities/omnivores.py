@@ -595,6 +595,7 @@ class Lion(Animal):
         self.regional_stability = 0.0
         self.regional_health_anchor = 0.0
         self.condition_runtime = 0.0
+        self.condition_phase_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -634,6 +635,7 @@ class Lion(Animal):
         self._apply_cycle_phase()
         self._apply_regional_health_anchor()
         self._apply_condition_runtime()
+        self._apply_condition_phase_bias()
         self._apply_social_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._pride_timer >= self.pride_interval:
@@ -681,6 +683,16 @@ class Lion(Animal):
         cooldown_relief = max(1, int(condition * 2)) if condition >= 0.35 else int(condition * 2)
         self.mate_cooldown = max(0, self.mate_cooldown - cooldown_relief)
         self.reproduction_rate *= 1.0 + condition * 0.011
+
+    def _apply_condition_phase_bias(self):
+        phase_bias = max(0.0, min(1.0, self.condition_phase_bias))
+        if phase_bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + phase_bias * 0.10)
+        self.hunger = max(0.0, self.hunger - phase_bias * 0.15)
+        if phase_bias >= 0.28:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + phase_bias * 0.009
 
     def _apply_social_stability(self, ecosystem):
         lions = [animal for animal in ecosystem.animals if animal.alive and animal.species == "lion"]
@@ -840,6 +852,7 @@ class Hyena(Animal):
         self.regional_stability = 0.0
         self.regional_health_anchor = 0.0
         self.condition_runtime = 0.0
+        self.condition_phase_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -882,6 +895,7 @@ class Hyena(Animal):
         self._apply_cycle_phase()
         self._apply_regional_health_anchor()
         self._apply_condition_runtime()
+        self._apply_condition_phase_bias()
         self._apply_clan_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._scavenge_timer >= self.scavenge_interval:
@@ -929,6 +943,16 @@ class Hyena(Animal):
         cooldown_relief = max(1, int(condition * 2)) if condition >= 0.35 else int(condition * 2)
         self.mate_cooldown = max(0, self.mate_cooldown - cooldown_relief)
         self.reproduction_rate *= 1.0 + condition * 0.010
+
+    def _apply_condition_phase_bias(self):
+        phase_bias = max(0.0, min(1.0, self.condition_phase_bias))
+        if phase_bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + phase_bias * 0.09)
+        self.hunger = max(0.0, self.hunger - phase_bias * 0.14)
+        if phase_bias >= 0.28:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + phase_bias * 0.008
 
     def _apply_clan_stability(self, ecosystem):
         hyenas = [animal for animal in ecosystem.animals if animal.alive and animal.species == "hyena"]

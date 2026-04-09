@@ -1378,3 +1378,18 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `runtime_aerial_condition_phase_anchor_pull`
   - `runtime_apex_condition_phase_anchor_pull`
   也就是说，长期相位修正后的真实体况锚点现在已经不只影响 `territory/social_trends`，还开始直接改变草原链、尸体资源链和区域长期 prosperity/collapse 判定
+- ✅ 长期 `prosperity / collapse` 现已继续下沉成运行体自己的 `condition_phase_bias`
+  - 已注入：
+    - `lion / hyena`
+    - `antelope / zebra`
+    - `vulture`
+  - 已直接影响：
+    - `health`
+    - `hunger`
+    - `mate_cooldown`
+    - `reproduction_rate`
+- ✅ 这层新的 phase bias 也已重新汇总回：
+  - `runtime_territory_state`
+  - `territory.runtime_signals`
+  - `social_trends.cycle_signals`
+  也就是说，长期相位现在已经不只经由摘要和 pull 生效，而会作为运行体自己的长期体况偏置，继续反向塑造下一轮 territory/social 节律
