@@ -416,6 +416,9 @@ class WorldSimulation:
             "apex_regional_health_anchor_runtime": 0.0,
             "herd_regional_health_anchor_runtime": 0.0,
             "aerial_regional_health_anchor_runtime": 0.0,
+            "apex_condition_runtime": 0.0,
+            "herd_condition_runtime": 0.0,
+            "aerial_condition_runtime": 0.0,
         }
         regional_health_anchor = max(
             0.0,
@@ -454,6 +457,17 @@ class WorldSimulation:
             )
             state["apex_anchor_prosperity_runtime"] = max(
                 [getattr(animal, "runtime_anchor_prosperity", 0.0) for animal in lions] or [0.0]
+            )
+            state["apex_condition_runtime"] = max(
+                [
+                    max(
+                        0.0,
+                        getattr(animal, "health", 0.0) / max(1.0, getattr(animal, "max_health", 100.0))
+                        - getattr(animal, "hunger", 0.0) / 100.0,
+                    )
+                    for animal in lions
+                ]
+                or [0.0]
             )
             lion_health_anchor_runtime = max(
                 [getattr(animal, "regional_health_anchor", 0.0) for animal in lions] or [0.0]
@@ -502,6 +516,20 @@ class WorldSimulation:
             state["apex_anchor_prosperity_runtime"] = max(
                 state["apex_anchor_prosperity_runtime"],
                 max([getattr(animal, "runtime_anchor_prosperity", 0.0) for animal in hyenas] or [0.0]),
+            )
+            state["apex_condition_runtime"] = max(
+                state["apex_condition_runtime"],
+                max(
+                    [
+                        max(
+                            0.0,
+                            getattr(animal, "health", 0.0) / max(1.0, getattr(animal, "max_health", 100.0))
+                            - getattr(animal, "hunger", 0.0) / 100.0,
+                        )
+                        for animal in hyenas
+                    ]
+                    or [0.0]
+                ),
             )
             hyena_health_anchor_runtime = max(
                 [getattr(animal, "regional_health_anchor", 0.0) for animal in hyenas] or [0.0]
@@ -560,6 +588,17 @@ class WorldSimulation:
             state["herd_anchor_prosperity_runtime"] = max(
                 [getattr(animal, "runtime_anchor_prosperity", 0.0) for animal in antelopes + zebras] or [0.0]
             )
+            state["herd_condition_runtime"] = max(
+                [
+                    max(
+                        0.0,
+                        getattr(animal, "health", 0.0) / max(1.0, getattr(animal, "max_health", 100.0))
+                        - getattr(animal, "hunger", 0.0) / 100.0,
+                    )
+                    for animal in antelopes + zebras
+                ]
+                or [0.0]
+            )
             herd_health_anchor_runtime = max(
                 [getattr(animal, "regional_health_anchor", 0.0) for animal in antelopes + zebras] or [0.0]
             )
@@ -608,6 +647,17 @@ class WorldSimulation:
             )
             state["aerial_anchor_prosperity_runtime"] = max(
                 [getattr(animal, "runtime_anchor_prosperity", 0.0) for animal in vultures] or [0.0]
+            )
+            state["aerial_condition_runtime"] = max(
+                [
+                    max(
+                        0.0,
+                        getattr(animal, "health", 0.0) / max(1.0, getattr(animal, "max_health", 100.0))
+                        - getattr(animal, "hunger", 0.0) / 100.0,
+                    )
+                    for animal in vultures
+                ]
+                or [0.0]
             )
             aerial_health_anchor_runtime = max(
                 [getattr(animal, "regional_health_anchor", 0.0) for animal in vultures] or [0.0]

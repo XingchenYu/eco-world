@@ -1229,3 +1229,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `hunger`
   - `reproduction_rate`
   这意味着草原顶层社群现在也开始直接吸收长期健康锚点，而不只是在领地中心漂移上体现
+- ✅ `runtime_territory_state` 现也开始汇总运行体的真实体况 `condition`
+  并继续写入：
+  - `herd_condition_runtime`
+  - `aerial_condition_runtime`
+  - `apex_condition_runtime`
+- ✅ 这些真实体况信号现在已经开始进入：
+  - `territory.runtime_signals`
+  - `social_trends.cycle_signals`
+  也就是说，系统现在已经不只看“锚点和偏置”，也开始把动物当下真实状态并入长期社群节律
