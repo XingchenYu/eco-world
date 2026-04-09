@@ -1181,7 +1181,16 @@ class Antelope(Animal):
         super().execute_behavior(ecosystem)
         if not self.alive:
             return
+        self._apply_regional_health_anchor()
         self._follow_herd_channel(ecosystem)
+
+    def _apply_regional_health_anchor(self):
+        anchor = max(0.0, min(1.0, self.regional_health_anchor))
+        if anchor <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + anchor * 0.22)
+        self.hunger = max(0.0, self.hunger - anchor * 0.35)
+        self.reproduction_rate *= 1.0 + anchor * 0.018
 
     def _follow_herd_channel(self, ecosystem):
         bias = max(
@@ -1267,7 +1276,16 @@ class Zebra(Animal):
         super().execute_behavior(ecosystem)
         if not self.alive:
             return
+        self._apply_regional_health_anchor()
         self._follow_herd_channel(ecosystem)
+
+    def _apply_regional_health_anchor(self):
+        anchor = max(0.0, min(1.0, self.regional_health_anchor))
+        if anchor <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + anchor * 0.20)
+        self.hunger = max(0.0, self.hunger - anchor * 0.30)
+        self.reproduction_rate *= 1.0 + anchor * 0.016
 
     def _follow_herd_channel(self, ecosystem):
         bias = max(
@@ -1730,7 +1748,16 @@ class Vulture(Animal):
         super().execute_behavior(ecosystem)
         if not self.alive:
             return
+        self._apply_regional_health_anchor()
         self._track_aerial_lanes(ecosystem)
+
+    def _apply_regional_health_anchor(self):
+        anchor = max(0.0, min(1.0, self.regional_health_anchor))
+        if anchor <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + anchor * 0.18)
+        self.hunger = max(0.0, self.hunger - anchor * 0.32)
+        self.reproduction_rate *= 1.0 + anchor * 0.015
 
     def _track_aerial_lanes(self, ecosystem):
         bias = max(

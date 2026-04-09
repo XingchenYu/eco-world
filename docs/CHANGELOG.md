@@ -1217,3 +1217,9 @@ src/core/ecosystem.py        [修改] 导入新物种
   - 运行体复合健康锚点
   - world 汇总
   的真实闭环
+- ✅ `regional_health_anchor` 现已继续进入 `antelope / zebra / vulture` 的运行期体况层
+- ✅ 它们现在会直接改善：
+  - `health`
+  - `hunger`
+  - `reproduction_rate`
+  这意味着 herd 与 carrion 运行体现在已经不仅会“往更好的通道移动”，还会在长期健康区表现出更稳的体况和延续节律

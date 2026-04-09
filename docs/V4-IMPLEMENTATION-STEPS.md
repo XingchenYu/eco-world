@@ -997,3 +997,9 @@
   - 运行体复合健康锚点
   - world 汇总
   的双向闭环
+- `regional_health_anchor` 现也开始继续进入 `antelope / zebra / vulture` 的运行期体况层
+- 它们现在会直接改善：
+  - `health`
+  - `hunger`
+  - `reproduction_rate`
+  这意味着 herd 与 carrion 运行体现在已经不仅会顺着长期健康区移动，还会在这些区域维持更稳的体况和延续节律

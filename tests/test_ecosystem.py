@@ -2032,6 +2032,44 @@ def test_runtime_regional_health_bias():
     print("✅ Runtime regional health bias test passed")
 
 
+def test_runtime_regional_health_anchor_effect():
+    """regional_health_anchor 应直接改善 herd 与 carrion 运行期体况。"""
+    antelope = Antelope(position=(20, 20), gender=Gender.FEMALE)
+    zebra = Zebra(position=(22, 20), gender=Gender.FEMALE)
+    vulture = Vulture(position=(24, 20), gender=Gender.FEMALE)
+
+    antelope.regional_health_anchor = 0.60
+    zebra.regional_health_anchor = 0.50
+    vulture.regional_health_anchor = 0.55
+
+    antelope.health = 70.0
+    antelope.hunger = 50.0
+    zebra.health = 72.0
+    zebra.hunger = 48.0
+    vulture.health = 68.0
+    vulture.hunger = 46.0
+
+    antelope_base_rate = antelope.reproduction_rate
+    zebra_base_rate = zebra.reproduction_rate
+    vulture_base_rate = vulture.reproduction_rate
+
+    antelope._apply_regional_health_anchor()
+    zebra._apply_regional_health_anchor()
+    vulture._apply_regional_health_anchor()
+
+    assert antelope.health > 70.0
+    assert antelope.hunger < 50.0
+    assert antelope.reproduction_rate > antelope_base_rate
+    assert zebra.health > 72.0
+    assert zebra.hunger < 48.0
+    assert zebra.reproduction_rate > zebra_base_rate
+    assert vulture.health > 68.0
+    assert vulture.hunger < 46.0
+    assert vulture.reproduction_rate > vulture_base_rate
+
+    print("✅ Runtime regional health anchor effect test passed")
+
+
 def test_lion_hotspot_memory_center_effect():
     """Lion 的热点记忆应让 pride_center 漂移而不是瞬间跳点。"""
     lion = Lion(position=(16, 16), gender=Gender.MALE)
