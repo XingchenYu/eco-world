@@ -409,8 +409,11 @@ def test_v4_grassland_runtime_pressure_updates_region_health():
     assert region.ecological_pressures["collapse_pressure"] > 0.0
     assert region.ecological_pressures["runtime_resource_pressure"] > 0.0
     assert region.ecological_pressures["runtime_herd_health_pull"] > 0.0
+    assert region.ecological_pressures["runtime_herd_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_health_pull"] > 0.0
+    assert region.ecological_pressures["runtime_aerial_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_health_pull"] > 0.0
+    assert region.ecological_pressures["runtime_apex_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_regional_bias_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_regional_bias_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_regional_bias_pull"] > 0.0

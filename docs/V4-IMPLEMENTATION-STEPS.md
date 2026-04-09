@@ -951,3 +951,16 @@
   - 两条链的摘要
   - 两条链的区域反馈
   - herd/aerial/apex 的低频重平衡
+- `WorldSimulation._build_combined_pressures()` 现也开始继续吸收：
+  - `runtime_herd_health_anchor_pull`
+  - `runtime_aerial_health_anchor_pull`
+  - `runtime_apex_health_anchor_pull`
+  以及 `territory.runtime_signals` 里的：
+  - `herd_regional_health_anchor_runtime`
+  - `aerial_regional_health_anchor_runtime`
+  - `apex_regional_health_anchor_runtime`
+  这意味着运行期区域长期健康锚点现在已经开始直接进入世界级：
+  - `prosperity_pressure`
+  - `collapse_pressure`
+  - `runtime_resource_pressure`
+  并进一步影响区域长期 `prosperity / collapse_risk / stability`
