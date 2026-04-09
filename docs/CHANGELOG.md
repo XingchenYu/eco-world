@@ -1117,3 +1117,16 @@ src/core/ecosystem.py        [修改] 导入新物种
   - 尸体资源链摘要
   - 尸体资源链区域反馈
   - 空中清道夫/apex 的低频重平衡
+- ✅ `WorldSimulation._build_combined_pressures()` 现也开始继续吸收：
+  - `runtime_herd_regional_bias_pull`
+  - `runtime_aerial_regional_bias_pull`
+  - `runtime_apex_regional_bias_pull`
+  以及 `territory.runtime_signals` 里的：
+  - `herd_regional_bias_runtime`
+  - `aerial_regional_bias_runtime`
+  - `apex_regional_bias_runtime`
+- ✅ 这些运行中的区域长期社会锚点现在已经开始直接进入：
+  - 世界级 `prosperity_pressure`
+  - 世界级 `collapse_pressure`
+  - 世界级 `runtime_resource_pressure`
+  并进一步影响区域长期 `prosperity / collapse_risk / stability`

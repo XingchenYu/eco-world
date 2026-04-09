@@ -899,3 +899,16 @@
   - `runtime_aerial_regional_bias_pull`
   - `runtime_apex_regional_bias_pull`
   这意味着运行中的区域长期社会锚点现在已经开始直接进入尸体资源链摘要、区域反馈和空中清道夫/apex 重平衡
+- `WorldSimulation._build_combined_pressures()` 现也开始继续直接吸收：
+  - `runtime_herd_regional_bias_pull`
+  - `runtime_aerial_regional_bias_pull`
+  - `runtime_apex_regional_bias_pull`
+  以及 `territory.runtime_signals` 里的：
+  - `herd_regional_bias_runtime`
+  - `aerial_regional_bias_runtime`
+  - `apex_regional_bias_runtime`
+  这意味着运行中的区域长期社会锚点现在已经开始直接进入世界级：
+  - `prosperity_pressure`
+  - `collapse_pressure`
+  - `runtime_resource_pressure`
+  并进一步影响区域长期 `prosperity / collapse_risk / stability`
