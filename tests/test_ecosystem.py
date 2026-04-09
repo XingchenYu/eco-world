@@ -962,8 +962,12 @@ def test_v4_social_trend_summary_uses_memory():
     assert "aerial_carrion_cycle" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]
+    before_surface_water = region.resource_state["surface_water"]
+    before_carcass = region.resource_state["carcass_availability"]
     apply_region_social_trend_feedback(region, summary, feedback_scale=0.05)
     assert region.health_state["resilience"] >= before_resilience
+    assert region.resource_state["surface_water"] >= before_surface_water
+    assert region.resource_state["carcass_availability"] >= before_carcass
 
     print("✅ V4 social trend summary test passed")
 

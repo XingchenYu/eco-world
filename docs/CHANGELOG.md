@@ -929,6 +929,11 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ `runtime_territory_state` 现在会采集运行中的 `herd_route_cycle_runtime / aerial_carrion_cycle_runtime`
 - ✅ `territory.runtime_signals` 与领地压力现在会吸收 herd/carrion 的运行期周期行为，形成更完整的空间反馈闭环
 
+# v4.0-alpha43 - Feed social cycles into regional resources
+
+- ✅ `apply_region_social_trend_feedback()` 现在会把 `herd_route_cycle` 回灌到 `surface_water`
+- ✅ `apply_region_social_trend_feedback()` 现在也会把 `aerial_carrion_cycle` 回灌到 `carcass_availability`
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：

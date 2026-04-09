@@ -497,6 +497,8 @@ def apply_region_social_trend_feedback(
     _adjust(region.health_state, "resilience", phases.get("lion_expansion_phase", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "resilience", phases.get("hyena_expansion_phase", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "resilience", phases.get("herd_route_cycle", 0.0) * 0.08, feedback_scale)
+    _adjust(region.resource_state, "surface_water", phases.get("herd_route_cycle", 0.0) * 0.08, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", phases.get("aerial_carrion_cycle", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("lion_decline_bias", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "fragmentation", phases.get("lion_contraction_phase", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "fragmentation", phases.get("hyena_contraction_phase", 0.0) * 0.08, feedback_scale)

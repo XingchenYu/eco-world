@@ -751,3 +751,7 @@
   - 运行中的 `aerial_carrion_cycle_runtime`
   反向写回 `territory.runtime_signals`
 - 这意味着 herd/carrion 的运行期周期行为已经开始回流到区域领地层
+- `apply_region_social_trend_feedback()` 现已开始把：
+  - `herd_route_cycle` 回灌到 `surface_water`
+  - `aerial_carrion_cycle` 回灌到 `carcass_availability`
+- 长期社群周期现在已经开始直接改区域资源层，而不只影响链路权重和重平衡
