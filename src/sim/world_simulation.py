@@ -128,18 +128,27 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("prosperity_phase_carrion", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_surface_water_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_carcass_pull", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_herd_health_pull", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_apex_health_pull", 0.0)) * 0.8
+            + float(carrion_chain.resource_scores.get("runtime_aerial_health_pull", 0.0))
+            + float(carrion_chain.resource_scores.get("runtime_apex_health_pull", 0.0)) * 0.8
         )
         collapse_pressure = (
             float(social_trends.prosperity_scores.get("grassland_collapse_phase", 0.0))
             + float(grassland_chain.trophic_scores.get("collapse_phase_weight", 0.0))
             + float(carrion_chain.resource_scores.get("collapse_phase_carrion", 0.0))
             + float(social_trends.boom_bust_scores.get("grassland_bust_phase", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_apex_health_pull", 0.0)) * 0.35
+            + float(carrion_chain.resource_scores.get("runtime_apex_health_pull", 0.0)) * 0.4
         )
         runtime_resource_pressure = (
             float(territory.runtime_signals.get("herd_surface_water_runtime", 0.0))
             + float(territory.runtime_signals.get("aerial_carcass_runtime", 0.0))
             + float(territory.runtime_signals.get("surface_water_anchor", 0.0))
             + float(territory.runtime_signals.get("carcass_anchor", 0.0))
+            + float(territory.runtime_signals.get("herd_regional_health_runtime", 0.0))
+            + float(territory.runtime_signals.get("aerial_regional_health_runtime", 0.0))
+            + float(territory.runtime_signals.get("apex_regional_health_runtime", 0.0)) * 0.8
         )
         combined_pressures["prosperity_pressure"] = round(prosperity_pressure, 4)
         combined_pressures["collapse_pressure"] = round(collapse_pressure, 4)
