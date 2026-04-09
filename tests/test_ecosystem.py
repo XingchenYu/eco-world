@@ -1087,6 +1087,10 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
                 "grassland_boom_phase": 0.44,
                 "grassland_bust_phase": 0.18,
             },
+            "prosperity_scores": {
+                "grassland_prosperity_phase": 0.24,
+                "grassland_collapse_phase": 0.12,
+            },
             "hotspot_scores": {
                 "lion_hotspot_memory": 0.46,
                 "hyena_hotspot_memory": 0.44,
@@ -1231,6 +1235,10 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "boom_bust_scores": {
                 "grassland_boom_phase": 0.44,
                 "grassland_bust_phase": 0.18,
+            },
+            "prosperity_scores": {
+                "grassland_prosperity_phase": 0.24,
+                "grassland_collapse_phase": 0.12,
             },
             "hotspot_scores": {
                 "lion_hotspot_memory": 0.46,
