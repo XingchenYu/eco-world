@@ -16,6 +16,14 @@
   - herd / aerial 周期
   - `grassland_boom_phase / grassland_prosperity_phase`
   - `cycle_signals`
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已开始读取：
+  - `runtime_herd_condition_anchor_pull`
+  - `runtime_aerial_condition_anchor_pull`
+  - `runtime_apex_condition_anchor_pull`
+  并把它们继续接入：
+  - 摘要
+  - 区域反馈
+  - 低频重平衡
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐 `condition_anchor_runtime` 断言并通过
 
 ### v4.0-alpha35 (2026-04-09 08:40)

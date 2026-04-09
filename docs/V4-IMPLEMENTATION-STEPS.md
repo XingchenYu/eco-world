@@ -37,6 +37,10 @@
   - `territory.runtime_signals`
   - `social_trends`
   - herd / aerial 长期周期
+- 这层新的 runtime 条件锚点现在也已继续进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  的摘要、区域反馈与低频重平衡
 - 在这之上，区域级长期相位现在进一步汇总成：
   - `grassland_prosperity_phase`
   - `grassland_collapse_phase`

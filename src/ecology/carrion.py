@@ -116,6 +116,7 @@ def build_region_carrion_chain_summary(
             add_score("runtime_vulture_overlap", min(0.22, vulture_overlap * 0.06), "秃鹫与地面尸体热点重叠正在抬高空地协同追踪强度。")
         aerial_carcass_runtime = float(runtime_signals.get("aerial_carcass_runtime", 0.0))
         aerial_regional_health_anchor_runtime = float(runtime_signals.get("aerial_regional_health_anchor_runtime", 0.0))
+        aerial_condition_anchor_runtime = float(runtime_signals.get("aerial_condition_anchor_runtime", 0.0))
         if aerial_carcass_runtime > 0.0:
             add_score("runtime_carcass_pull", min(0.22, aerial_carcass_runtime * 0.16), "运行中的空中尸体追踪正在把清道夫链重新拉向稳定尸体轴。")
             add_layer_bias("aerial_scavenge_layer", aerial_carcass_runtime * 0.08)
@@ -129,6 +130,10 @@ def build_region_carrion_chain_summary(
             add_score("runtime_aerial_health_anchor_pull", min(0.20, aerial_regional_health_anchor_runtime * 0.14), "运行中的区域长期健康锚点正在继续抬升空中尸体追踪的稳定通道。")
             add_layer_bias("aerial_scavenge_layer", aerial_regional_health_anchor_runtime * 0.07)
             add_layer_bias("scavenge_layer", aerial_regional_health_anchor_runtime * 0.04)
+        if aerial_condition_anchor_runtime > 0.0:
+            add_score("runtime_aerial_condition_anchor_pull", min(0.18, aerial_condition_anchor_runtime * 0.13), "运行中的真实体况锚点正在把空中尸体追踪继续拉向更稳定的长期通道。")
+            add_layer_bias("aerial_scavenge_layer", aerial_condition_anchor_runtime * 0.06)
+            add_layer_bias("scavenge_layer", aerial_condition_anchor_runtime * 0.03)
         if aerial_regional_bias_runtime > 0.0:
             add_score("runtime_aerial_regional_bias_pull", min(0.20, aerial_regional_bias_runtime * 0.14), "运行中的区域长期社会锚点正在把空中尸体追踪继续拉向稳定通道。")
             add_layer_bias("aerial_scavenge_layer", aerial_regional_bias_runtime * 0.07)
@@ -144,6 +149,7 @@ def build_region_carrion_chain_summary(
             add_layer_bias("aerial_scavenge_layer", aerial_anchor_prosperity_runtime * 0.07)
             add_layer_bias("scavenge_layer", aerial_anchor_prosperity_runtime * 0.04)
         apex_regional_health_anchor_runtime = float(runtime_signals.get("apex_regional_health_anchor_runtime", 0.0))
+        apex_condition_anchor_runtime = float(runtime_signals.get("apex_condition_anchor_runtime", 0.0))
         if apex_regional_health_runtime > 0.0:
             add_score("runtime_apex_health_pull", min(0.18, apex_regional_health_runtime * 0.12), "运行中的顶层捕食者长期健康度正在抬升击杀与残食通道的持续性。")
             add_layer_bias("kill_layer", apex_regional_health_runtime * 0.06)
@@ -154,6 +160,10 @@ def build_region_carrion_chain_summary(
             add_score("runtime_apex_health_anchor_pull", min(0.18, apex_regional_health_anchor_runtime * 0.12), "运行中的区域长期健康锚点正在继续抬升击杀与残食通道的稳定前线。")
             add_layer_bias("kill_layer", apex_regional_health_anchor_runtime * 0.06)
             add_layer_bias("scavenge_layer", apex_regional_health_anchor_runtime * 0.04)
+        if apex_condition_anchor_runtime > 0.0:
+            add_score("runtime_apex_condition_anchor_pull", min(0.15, apex_condition_anchor_runtime * 0.12), "运行中的顶层体况锚点正在把击杀与残食通道继续拉向更稳定的长期前线。")
+            add_layer_bias("kill_layer", apex_condition_anchor_runtime * 0.05)
+            add_layer_bias("scavenge_layer", apex_condition_anchor_runtime * 0.03)
         if apex_regional_bias_runtime > 0.0:
             add_score("runtime_apex_regional_bias_pull", min(0.18, apex_regional_bias_runtime * 0.12), "运行中的区域长期社会锚点正在把击杀与残食通道继续压向更稳定的 apex 前线。")
             add_layer_bias("kill_layer", apex_regional_bias_runtime * 0.06)
@@ -259,6 +269,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_condition_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_health_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_health_anchor_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_condition_anchor_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_regional_bias_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_resource_anchor_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_anchor_prosperity_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
@@ -275,6 +286,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_anchor_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_anchor_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_regional_bias_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("aerial_memory_overlap", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14 * prosperity_bias, feedback_scale)
@@ -692,6 +704,17 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["vulture"],
             }
         )
+    if scores.get("runtime_aerial_condition_anchor_pull", 0.0) >= 0.05 and vulture_count < 12:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_anchor",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "runtime_aerial_condition_anchor_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
     if scores.get("runtime_aerial_regional_bias_pull", 0.0) >= 0.06 and vulture_count < 12:
         species_pool["vulture"] = species_pool.get("vulture", 0) + 1
         adjustments.append(
@@ -766,6 +789,17 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "lion",
                 "layer_group": "kill_layer",
                 "effect": "runtime_apex_health_anchor_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if scores.get("runtime_apex_condition_anchor_pull", 0.0) >= 0.05 and lion_count < 9:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_anchor",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "runtime_apex_condition_anchor_support",
                 "new_target_count": species_pool["lion"],
             }
         )
