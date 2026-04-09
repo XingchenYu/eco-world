@@ -24,6 +24,11 @@
   - 摘要
   - 区域反馈
   - 低频重平衡
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已把这些 `condition_anchor_pull` 继续接入：
+  - `prosperity_pressure`
+  - `collapse_pressure`
+  - `runtime_resource_pressure`
+  使 runtime 条件锚点开始直接参与区域长期健康判定
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐 `condition_anchor_runtime` 断言并通过
 
 ### v4.0-alpha35 (2026-04-09 08:40)
