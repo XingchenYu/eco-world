@@ -17,6 +17,20 @@
   - `test_hyena_condition_phase_birth_scaling()`
   并已通过全量回归
 
+### v4.0-alpha41 (2026-04-10 12:35)
+
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 现已把 `runtime_apex_condition_phase_*` 继续接入低频恢复窗口：
+  - `condition_phase_pride_window`
+  - `condition_phase_clan_window`
+- ✅ [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已把 `runtime_aerial_condition_phase_* / runtime_apex_condition_phase_*` 继续接入低频恢复窗口：
+  - `condition_phase_aerial_window`
+  - `condition_phase_apex_carrion_window`
+- ✅ 这使长期相位体况偏置现在已经同时影响：
+  - 个体运行期体况
+  - 社群产仔规模与产后冷却
+  - 草原与尸体资源链的低频恢复机会
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐对应断言并通过全量回归
+
 ### v4.0-alpha39 (2026-04-10 11:35)
 
 - ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已新增：

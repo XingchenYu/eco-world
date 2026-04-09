@@ -70,6 +70,12 @@
   - `Lion / Hyena` 的社群产仔规模
   - `Lion / Hyena` 的产后冷却
   这使真实体况与长期相位开始直接影响社群延续节律，而不只影响运行期恢复
+- 在这之上，`runtime_apex_condition_phase_* / runtime_aerial_condition_phase_*` 现在也已继续打开：
+  - `condition_phase_pride_window`
+  - `condition_phase_clan_window`
+  - `condition_phase_aerial_window`
+  - `condition_phase_apex_carrion_window`
+  使长期相位体况偏置开始直接作用于低频恢复窗口，而不只作用于个体体况和产仔冷却
 - 这些长期相位现在也已继续下沉到：
   - 运行体 `condition_runtime`
   使 herd / apex / aerial 的真实体况开始带长期 prosperity/collapse 偏置

@@ -1197,6 +1197,33 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["hyena"],
             }
         )
+    apex_phase_support = (
+        scores.get("runtime_apex_condition_phase_pull", 0.0)
+        + scores.get("runtime_apex_condition_phase_bias_pull", 0.0)
+        + scores.get("runtime_apex_condition_phase_anchor_pull", 0.0)
+    )
+    if apex_phase_support >= 0.10 and lion_count <= 3 and antelope_count + zebra_count >= 20:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_phase",
+                "target_species": "lion",
+                "layer_group": "social_layer",
+                "effect": "condition_phase_pride_window",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    if apex_phase_support >= 0.10 and hyena_count <= 3 and antelope_count + zebra_count >= 20:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_phase",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "condition_phase_clan_window",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
     if scores.get("runtime_apex_health_anchor_pull", 0.0) >= 0.06 and lion_count < 8:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(

@@ -727,6 +727,22 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["vulture"],
             }
         )
+    aerial_phase_support = (
+        scores.get("runtime_aerial_condition_phase_pull", 0.0)
+        + scores.get("runtime_aerial_condition_phase_bias_pull", 0.0)
+        + scores.get("runtime_aerial_condition_phase_anchor_pull", 0.0)
+    )
+    if aerial_phase_support >= 0.10 and vulture_count < 12:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_phase",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "condition_phase_aerial_window",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
     if scores.get("runtime_aerial_health_pull", 0.0) >= 0.06 and vulture_count < 11:
         species_pool["vulture"] = species_pool.get("vulture", 0) + 1
         adjustments.append(
@@ -845,6 +861,22 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "lion",
                 "layer_group": "kill_layer",
                 "effect": "condition_apex_carrion_recovery",
+                "new_target_count": species_pool["lion"],
+            }
+        )
+    apex_phase_support = (
+        scores.get("runtime_apex_condition_phase_pull", 0.0)
+        + scores.get("runtime_apex_condition_phase_bias_pull", 0.0)
+        + scores.get("runtime_apex_condition_phase_anchor_pull", 0.0)
+    )
+    if apex_phase_support >= 0.10 and lion_count < 9:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_condition_phase",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "condition_phase_apex_carrion_window",
                 "new_target_count": species_pool["lion"],
             }
         )
