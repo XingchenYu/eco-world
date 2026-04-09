@@ -1051,6 +1051,14 @@ def test_v4_social_trend_summary_uses_memory():
             },
         },
     )
+    region.record_relationship_state(
+        "grassland_rebalancing",
+        {"adjustments": [{"effect": "condition_phase_pride_window"}, {"effect": "condition_phase_clan_window"}]},
+    )
+    region.record_relationship_state(
+        "carrion_rebalancing",
+        {"adjustments": [{"effect": "condition_phase_aerial_window"}]},
+    )
     region.health_state["prosperity"] = 0.42
     region.health_state["stability"] = 0.36
     region.health_state["collapse_risk"] = 0.18
@@ -1143,6 +1151,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert "apex_condition_phase_anchor_runtime" in summary.cycle_signals
     assert "apex_regional_health_anchor_runtime" in summary.cycle_signals
     assert "apex_condition_anchor_runtime" in summary.cycle_signals
+    assert "condition_phase_window_memory" in summary.cycle_signals
     assert "apex_regional_bias_runtime" in summary.cycle_signals
     assert "herd_surface_water_runtime" in summary.cycle_signals
     assert "aerial_carcass_runtime" in summary.cycle_signals

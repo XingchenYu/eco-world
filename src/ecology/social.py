@@ -34,6 +34,8 @@ def build_region_social_trend_summary(
     previous_boom_bust_scores = previous.get("boom_bust_scores", {}) if isinstance(previous, dict) else {}
     previous_prosperity_scores = previous.get("prosperity_scores", {}) if isinstance(previous, dict) else {}
     previous_hotspot_scores = previous.get("hotspot_scores", {}) if isinstance(previous, dict) else {}
+    previous_grassland_rebalancing = region.relationship_state.get("grassland_rebalancing", {})
+    previous_carrion_rebalancing = region.relationship_state.get("carrion_rebalancing", {})
     runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
 
     pride_strength = float(runtime_signals.get("lion_pride_strength", 0.0))
@@ -95,6 +97,27 @@ def build_region_social_trend_summary(
     regional_prosperity = float(region.health_state.get("prosperity", 0.0))
     regional_collapse = float(region.health_state.get("collapse_risk", 0.0))
     regional_stability = float(region.health_state.get("stability", 0.0))
+    grassland_adjustments = (
+        previous_grassland_rebalancing.get("adjustments", [])
+        if isinstance(previous_grassland_rebalancing, dict)
+        else []
+    )
+    carrion_adjustments = (
+        previous_carrion_rebalancing.get("adjustments", [])
+        if isinstance(previous_carrion_rebalancing, dict)
+        else []
+    )
+    condition_phase_window_count = sum(
+        1
+        for item in list(grassland_adjustments) + list(carrion_adjustments)
+        if isinstance(item, dict)
+        and item.get("effect") in {
+            "condition_phase_pride_window",
+            "condition_phase_clan_window",
+            "condition_phase_aerial_window",
+            "condition_phase_apex_carrion_window",
+        }
+    )
 
     def carry(key: str) -> float:
         return float(previous_scores.get(key, 0.0))
@@ -188,6 +211,7 @@ def build_region_social_trend_summary(
             + herd_resource_anchor_runtime * 0.06
             + herd_anchor_prosperity_runtime * 0.06
             + surface_water_anchor * 0.06
+            + condition_phase_window_count * 0.03
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.08,
         ),
     )
@@ -211,6 +235,7 @@ def build_region_social_trend_summary(
             + aerial_resource_anchor_runtime * 0.06
             + aerial_anchor_prosperity_runtime * 0.06
             + carcass_anchor * 0.06
+            + condition_phase_window_count * 0.03
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.06,
         ),
     )
@@ -238,6 +263,7 @@ def build_region_social_trend_summary(
                     + herd_anchor_prosperity_runtime * 0.04
                     + aerial_resource_anchor_runtime * 0.03
                     + aerial_anchor_prosperity_runtime * 0.03
+                    + condition_phase_window_count * 0.05
                     + surface_water_anchor * 0.06
                     + carcass_anchor * 0.05
                     + apex_anchor_prosperity_runtime * 0.04
@@ -317,6 +343,7 @@ def build_region_social_trend_summary(
                     1.0,
                     carry_prosperity("grassland_collapse_phase") * 0.7
                     + boom_bust_scores["grassland_bust_phase"] * 0.28
+                    + condition_phase_window_count * 0.05
                     + shared_hotspot_shift * 0.05
                     + overlap * 0.03
                     - herd_resource_anchor_runtime * 0.02
@@ -666,6 +693,9 @@ def build_region_social_trend_summary(
         cycle_signals.append("apex_regional_health_anchor_runtime")
     if apex_condition_anchor_runtime >= 0.28:
         cycle_signals.append("apex_condition_anchor_runtime")
+    if condition_phase_window_count > 0:
+        cycle_signals.append("condition_phase_window_memory")
+        narrative_trends.append("长期相位体况窗口正在把恢复机会沉淀成新的社群延续记忆。")
     if apex_regional_bias_runtime >= 0.30:
         cycle_signals.append("apex_regional_bias_runtime")
     if regional_prosperity >= 0.28:
