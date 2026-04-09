@@ -357,6 +357,10 @@ def test_v4_world_simulation_skeleton():
     assert "grassland_rebalancing" in grassland_stats
     assert grassland_stats["carrion_chain"]["key_species"]
     assert grassland_stats["carrion_chain"]["resource_scores"]["carcass_competition_loop"] > 0.0
+    assert grassland_stats["active_region"]["ecological_pressures"]["prosperity_pressure"] > 0.0
+    assert grassland_stats["active_region"]["ecological_pressures"]["runtime_resource_pressure"] > 0.0
+    assert grassland_stats["active_region"]["health_state"]["prosperity"] > 0.0
+    assert grassland_stats["active_region"]["health_state"]["stability"] > 0.0
 
     print("✅ V4 world simulation test passed")
 
@@ -391,6 +395,24 @@ def test_v4_region_relationship_state_persists():
     assert "nile_crocodile" in region.relationship_state["wetland_chain"]["layer_species"]["apex_layer"]
 
     print("✅ V4 region relationship state test passed")
+
+
+def test_v4_grassland_runtime_pressure_updates_region_health():
+    """v4 运行期资源通道应进入区域长期繁荣/衰退压力。"""
+    world_sim = build_default_world_simulation()
+    world_sim.set_active_region("temperate_grassland")
+    world_sim.update()
+
+    region = world_sim.get_active_region()
+
+    assert region.ecological_pressures["prosperity_pressure"] > 0.0
+    assert region.ecological_pressures["collapse_pressure"] > 0.0
+    assert region.ecological_pressures["runtime_resource_pressure"] > 0.0
+    assert region.health_state["prosperity"] > 0.0
+    assert region.health_state["collapse_risk"] >= 0.0
+    assert region.health_state["stability"] > 0.0
+
+    print("✅ V4 grassland runtime pressure health test passed")
 
 
 def test_v4_registry_queries():

@@ -68,6 +68,105 @@ class WorldSimulation:
         self.active_region_id = initial_region_id or next(iter(self.world_map.regions))
         self.ensure_region_simulation(self.active_region_id)
 
+    @staticmethod
+    def _build_combined_pressures(
+        region: Region,
+        cascade: object,
+        competition: object,
+        carrion_chain: object,
+        predation: object,
+        social_trends: object,
+        symbiosis: object,
+        territory: object,
+        wetland_chain: object,
+        grassland_chain: object,
+    ) -> Dict[str, float]:
+        combined_pressures: Dict[str, float] = {}
+        for source in (
+            cascade.active_pressures,
+            competition.contested_resources,
+            predation.vulnerable_resources,
+            social_trends.cycle_signals,
+            symbiosis.supported_resources,
+            territory.contested_zones,
+            wetland_chain.key_species,
+            grassland_chain.key_species,
+            carrion_chain.key_species,
+        ):
+            for key in source:
+                combined_pressures[key] = combined_pressures.get(key, 0.0) + 1.0
+        for key, value in cascade.impact_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in social_trends.hotspot_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in competition.pressure_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in predation.pressure_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in social_trends.trend_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in social_trends.phase_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in social_trends.boom_bust_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in social_trends.prosperity_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in symbiosis.support_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in territory.pressure_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in wetland_chain.trophic_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in grassland_chain.trophic_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        for key, value in carrion_chain.resource_scores.items():
+            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+
+        prosperity_pressure = (
+            float(social_trends.prosperity_scores.get("grassland_prosperity_phase", 0.0))
+            + float(grassland_chain.trophic_scores.get("prosperity_phase_weight", 0.0))
+            + float(carrion_chain.resource_scores.get("prosperity_phase_carrion", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_surface_water_pull", 0.0))
+            + float(carrion_chain.resource_scores.get("runtime_carcass_pull", 0.0))
+        )
+        collapse_pressure = (
+            float(social_trends.prosperity_scores.get("grassland_collapse_phase", 0.0))
+            + float(grassland_chain.trophic_scores.get("collapse_phase_weight", 0.0))
+            + float(carrion_chain.resource_scores.get("collapse_phase_carrion", 0.0))
+            + float(social_trends.boom_bust_scores.get("grassland_bust_phase", 0.0))
+        )
+        runtime_resource_pressure = (
+            float(territory.runtime_signals.get("herd_surface_water_runtime", 0.0))
+            + float(territory.runtime_signals.get("aerial_carcass_runtime", 0.0))
+            + float(territory.runtime_signals.get("surface_water_anchor", 0.0))
+            + float(territory.runtime_signals.get("carcass_anchor", 0.0))
+        )
+        combined_pressures["prosperity_pressure"] = round(prosperity_pressure, 4)
+        combined_pressures["collapse_pressure"] = round(collapse_pressure, 4)
+        combined_pressures["runtime_resource_pressure"] = round(runtime_resource_pressure, 4)
+        return combined_pressures
+
+    @staticmethod
+    def _apply_long_term_health_pressures(region: Region, combined_pressures: Dict[str, float]) -> None:
+        prosperity_pressure = float(combined_pressures.get("prosperity_pressure", 0.0))
+        collapse_pressure = float(combined_pressures.get("collapse_pressure", 0.0))
+        runtime_resource_pressure = float(combined_pressures.get("runtime_resource_pressure", 0.0))
+        current_prosperity = float(region.health_state.get("prosperity", 0.0))
+        current_collapse = float(region.health_state.get("collapse_risk", 0.0))
+        current_stability = float(region.health_state.get("stability", 0.0))
+        region.health_state["prosperity"] = round(
+            max(current_prosperity, prosperity_pressure * 0.18 + runtime_resource_pressure * 0.05),
+            4,
+        )
+        region.health_state["collapse_risk"] = round(
+            max(current_collapse, collapse_pressure * 0.18),
+            4,
+        )
+        region.health_state["stability"] = round(
+            max(current_stability, prosperity_pressure * 0.10 - collapse_pressure * 0.04 + runtime_resource_pressure * 0.03),
+            4,
+        )
+
     def _persist_region_relationships(
         self,
         region: Region,
@@ -205,47 +304,19 @@ class WorldSimulation:
         )
         region.append_adjustments(competition_adjustments + wetland_adjustments + grassland_adjustments + carrion_adjustments)
 
-        combined_pressures: Dict[str, float] = {}
-        for source in (
-            cascade.active_pressures,
-            competition.contested_resources,
-            predation.vulnerable_resources,
-            social_trends.cycle_signals,
-            symbiosis.supported_resources,
-            territory.contested_zones,
-            wetland_chain.key_species,
-            grassland_chain.key_species,
-            carrion_chain.key_species,
-        ):
-            for key in source:
-                combined_pressures[key] = combined_pressures.get(key, 0.0) + 1.0
-        for key, value in cascade.impact_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in social_trends.hotspot_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in competition.pressure_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in predation.pressure_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in social_trends.trend_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in social_trends.phase_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in social_trends.boom_bust_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in social_trends.prosperity_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in symbiosis.support_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in territory.pressure_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in wetland_chain.trophic_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in grassland_chain.trophic_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-        for key, value in carrion_chain.resource_scores.items():
-            combined_pressures[key] = combined_pressures.get(key, 0.0) + value
-
+        combined_pressures = self._build_combined_pressures(
+            region,
+            cascade,
+            competition,
+            carrion_chain,
+            predation,
+            social_trends,
+            symbiosis,
+            territory,
+            wetland_chain,
+            grassland_chain,
+        )
+        self._apply_long_term_health_pressures(region, combined_pressures)
         region.update_ecological_pressures(combined_pressures)
 
     def _build_region_config(self, region_id: str) -> dict:
@@ -484,6 +555,20 @@ class WorldSimulation:
             territory_summary=territory,
             social_trend_summary=social_trends,
         )
+        combined_pressures = self._build_combined_pressures(
+            active_region,
+            cascade,
+            competition,
+            carrion_chain,
+            predation,
+            social_trends,
+            symbiosis,
+            territory,
+            wetland_chain,
+            grassland_chain,
+        )
+        self._apply_long_term_health_pressures(active_region, combined_pressures)
+        active_region.update_ecological_pressures(combined_pressures)
 
         return {
             "world_tick": self.tick_count,
