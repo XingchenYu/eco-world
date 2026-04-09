@@ -45,6 +45,10 @@
   - 世界级长期压力聚合
   - 区域 `prosperity / collapse_risk / stability`
   使真实体况锚点开始直接参与长期区域健康判定
+- 在这之上，`condition_anchor_runtime` 现在也已继续进入：
+  - `grassland_prosperity_phase`
+  - `grassland_collapse_phase`
+  使真实体况锚点开始直接参与长期繁荣/衰退相位，而不只是影响 cycle 与 pressure
 - 在这之上，区域级长期相位现在进一步汇总成：
   - `grassland_prosperity_phase`
   - `grassland_collapse_phase`

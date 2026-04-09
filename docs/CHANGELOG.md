@@ -29,6 +29,14 @@
   - `collapse_pressure`
   - `runtime_resource_pressure`
   使 runtime 条件锚点开始直接参与区域长期健康判定
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 现已把：
+  - `herd_condition_anchor_runtime`
+  - `aerial_condition_anchor_runtime`
+  - `apex_condition_anchor_runtime`
+  继续接入：
+  - `grassland_prosperity_phase`
+  - `grassland_collapse_phase`
+  使真实体况锚点开始直接参与长期繁荣/衰退相位
 - ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐 `condition_anchor_runtime` 断言并通过
 
 ### v4.0-alpha35 (2026-04-09 08:40)

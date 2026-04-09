@@ -274,10 +274,13 @@ def build_region_social_trend_summary(
                     + aerial_carrion_cycle_signal * 0.08
                     + apex_regional_health_runtime * 0.05
                     + apex_regional_health_anchor_runtime * 0.03
+                    + apex_condition_anchor_runtime * 0.03
                     + apex_regional_bias_runtime * 0.04
                     + herd_resource_anchor_runtime * 0.04
+                    + herd_condition_anchor_runtime * 0.03
                     + herd_anchor_prosperity_runtime * 0.03
                     + aerial_resource_anchor_runtime * 0.03
+                    + aerial_condition_anchor_runtime * 0.03
                     + aerial_anchor_prosperity_runtime * 0.03
                     + surface_water_anchor * 0.06
                     + carcass_anchor * 0.05
@@ -299,13 +302,16 @@ def build_region_social_trend_summary(
                     + shared_hotspot_shift * 0.05
                     + overlap * 0.03
                     - herd_resource_anchor_runtime * 0.02
+                    - herd_condition_anchor_runtime * 0.015
                     - herd_anchor_prosperity_runtime * 0.02
                     - aerial_resource_anchor_runtime * 0.02
+                    - aerial_condition_anchor_runtime * 0.015
                     - aerial_anchor_prosperity_runtime * 0.02
                     - surface_water_anchor * 0.03
                     - carcass_anchor * 0.02
                     - herd_route_cycle_signal * 0.05
                     - aerial_carrion_cycle_signal * 0.04
+                    - apex_condition_anchor_runtime * 0.015
                     - boom_bust_scores["grassland_boom_phase"] * 0.10,
                 ),
             ),
