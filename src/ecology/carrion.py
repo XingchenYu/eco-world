@@ -111,6 +111,9 @@ def build_region_carrion_chain_summary(
         carcass_anchor = float(runtime_signals.get("carcass_anchor", 0.0))
         if carcass_anchor > 0.0:
             add_score("carcass_anchor_pressure", min(0.24, carcass_anchor * 0.16), "区域尸体资源锚点正在把清道夫链重新拉向稳定的 carrion 通道。")
+            add_layer_bias("herd_source_layer", carcass_anchor * 0.06)
+            add_layer_bias("aerial_scavenge_layer", carcass_anchor * 0.10)
+            add_layer_bias("scavenge_layer", carcass_anchor * 0.06)
     if social_trend_summary is not None:
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
@@ -634,7 +637,10 @@ def _select_dominant_carrion_layer(
 ) -> str:
     prosperity = float(resource_scores.get("prosperity_feedback_bias", 0.0))
     collapse = float(resource_scores.get("collapse_feedback_bias", 0.0))
-    if prosperity > collapse:
+    carcass_anchor = float(resource_scores.get("carcass_anchor_pressure", 0.0))
+    if carcass_anchor >= 0.10:
+        candidates = ("aerial_scavenge_layer", "herd_source_layer", "scavenge_layer")
+    elif prosperity > collapse:
         candidates = ("herd_source_layer", "kill_layer", "aerial_scavenge_layer")
     elif collapse > prosperity:
         candidates = ("scavenge_layer", "kill_layer", "aerial_scavenge_layer")

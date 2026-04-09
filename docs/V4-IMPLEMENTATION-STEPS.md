@@ -771,3 +771,7 @@
   - `grassland_boom_phase / grassland_bust_phase`
   - `grassland_prosperity_phase / grassland_collapse_phase`
   资源层已经从链路输入进一步进入草原长期相位本身
+- 资源锚点也开始继续影响：
+  - `grassland_chain.dominant_layer`
+  - `carrion_chain.dominant_layer`
+  也就是说，长期水源与尸体资源现在已经开始改变当前周期里哪一层主导草原链和尸体资源链

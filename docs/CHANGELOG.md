@@ -955,6 +955,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `grassland_prosperity_phase / grassland_collapse_phase`
 - ✅ 草原长期繁荣/衰退相位现在已经不只受热点和社群周期驱动，也开始受区域资源锚点直接驱动
 
+# v4.0-alpha47 - Feed resource anchors into dominant layer switching
+
+- ✅ `surface_water_anchor` 现在会继续抬升 `grassland_chain` 的 `herd_layer / browse_layer`
+- ✅ `carcass_anchor_pressure` 现在会继续抬升 `carrion_chain` 的 `aerial_scavenge_layer / herd_source_layer`
+- ✅ 资源锚点现在已经开始直接参与 `dominant_layer` 的切换，而不只是参与链路分数和长期相位
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：

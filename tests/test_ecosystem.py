@@ -696,6 +696,7 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.layer_scores["predator_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenger_layer"] > 0.0
     assert grassland_chain.layer_scores["social_layer"] > 0.0
+    assert grassland_chain.layer_scores["herd_layer"] > grassland_chain.layer_scores["browse_layer"]
     assert "african_elephant" in grassland_chain.layer_species["engineering_layer"]
     assert "white_rhino" in grassland_chain.layer_species["grazing_layer"]
     assert "giraffe" in grassland_chain.layer_species["browse_layer"]
@@ -705,6 +706,7 @@ def test_v4_grassland_chain_summary():
     assert "hyena" in grassland_chain.layer_species["scavenger_layer"]
     assert "lion" in grassland_chain.layer_species["social_layer"]
     assert "hyena" in grassland_chain.layer_species["social_layer"]
+    assert grassland_chain.dominant_layer == "herd_layer"
 
     assert wetland_chain.key_species == []
     assert wetland_chain.trophic_scores == {}
@@ -1025,10 +1027,12 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.layer_scores["scavenge_layer"] > 0.0
     assert grassland_chain.layer_scores["aerial_scavenge_layer"] > 0.0
     assert grassland_chain.layer_scores["herd_source_layer"] > 0.0
+    assert grassland_chain.layer_scores["aerial_scavenge_layer"] > 0.63
     assert "lion" in grassland_chain.layer_species["kill_layer"]
     assert "hyena" in grassland_chain.layer_species["scavenge_layer"]
     assert "vulture" in grassland_chain.layer_species["aerial_scavenge_layer"]
     assert "antelope" in grassland_chain.layer_species["herd_source_layer"]
+    assert grassland_chain.dominant_layer in {"herd_source_layer", "aerial_scavenge_layer"}
 
     assert wetland_chain.key_species == []
     assert wetland_chain.resource_scores == {}

@@ -140,6 +140,8 @@ def build_region_grassland_chain_summary(
         surface_water_anchor = float(runtime_signals.get("surface_water_anchor", 0.0))
         if surface_water_anchor > 0.0:
             add_score("surface_water_anchor", min(0.24, surface_water_anchor * 0.16), "区域水源锚点正在把 herd 通道重新拉回稳定饮水走廊。")
+            add_layer_bias("herd_layer", surface_water_anchor * 0.10)
+            add_layer_bias("browse_layer", surface_water_anchor * 0.04)
     if social_trend_summary is not None:
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
@@ -857,7 +859,10 @@ def _select_dominant_grassland_layer(
 ) -> str:
     prosperity = float(trophic_scores.get("prosperity_feedback_bias", 0.0))
     collapse = float(trophic_scores.get("collapse_feedback_bias", 0.0))
-    if prosperity > collapse:
+    surface_water_anchor = float(trophic_scores.get("surface_water_anchor", 0.0))
+    if surface_water_anchor >= 0.10:
+        candidates = ("herd_layer", "browse_layer", "predator_layer")
+    elif prosperity > collapse:
         candidates = ("herd_layer", "predator_layer", "browse_layer")
     elif collapse > prosperity:
         candidates = ("scavenger_layer", "social_layer", "predator_layer")
