@@ -54,10 +54,12 @@ def build_region_social_trend_summary(
     herd_hotspots = int(runtime_signals.get("herd_hotspot_count", 0))
     herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
     herd_route_cycle_runtime = float(runtime_signals.get("herd_route_cycle_runtime", 0.0))
+    herd_surface_water_runtime = float(runtime_signals.get("herd_surface_water_runtime", 0.0))
     surface_water_anchor = float(runtime_signals.get("surface_water_anchor", 0.0))
     vulture_hotspots = int(runtime_signals.get("vulture_hotspot_count", 0))
     vulture_carrion_overlap = int(runtime_signals.get("vulture_carrion_overlap", 0))
     aerial_carrion_cycle_runtime = float(runtime_signals.get("aerial_carrion_cycle_runtime", 0.0))
+    aerial_carcass_runtime = float(runtime_signals.get("aerial_carcass_runtime", 0.0))
     carcass_anchor = float(runtime_signals.get("carcass_anchor", 0.0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
@@ -142,6 +144,7 @@ def build_region_social_trend_summary(
             + (carry_hotspot("herd_hotspot_memory") * 0.68 + herd_hotspots * 0.08 + herd_apex_overlap * 0.04) * 0.32
             + (carry_hotspot("herd_apex_memory") * 0.68 + herd_apex_overlap * 0.10) * 0.18
             + herd_route_cycle_runtime * 0.08
+            + herd_surface_water_runtime * 0.06
             + surface_water_anchor * 0.06
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.08,
         ),
@@ -154,6 +157,7 @@ def build_region_social_trend_summary(
             + (carry_hotspot("vulture_hotspot_memory") * 0.68 + vulture_hotspots * 0.08 + vulture_carrion_overlap * 0.05) * 0.30
             + (carry_hotspot("vulture_carrion_memory") * 0.68 + vulture_carrion_overlap * 0.10) * 0.22
             + aerial_carrion_cycle_runtime * 0.08
+            + aerial_carcass_runtime * 0.06
             + carcass_anchor * 0.06
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.06,
         ),
@@ -296,6 +300,7 @@ def build_region_social_trend_summary(
                     + herd_hotspots * 0.08
                     + herd_apex_overlap * 0.04
                     + herd_route_cycle_runtime * 0.06
+                    + herd_surface_water_runtime * 0.05
                     + surface_water_anchor * 0.06
                 ),
             ),
@@ -309,6 +314,7 @@ def build_region_social_trend_summary(
                     carry_hotspot("herd_apex_memory") * 0.68
                     + herd_apex_overlap * 0.10
                     + herd_route_cycle_runtime * 0.04
+                    + herd_surface_water_runtime * 0.03
                     + surface_water_anchor * 0.04
                 ),
             ),
@@ -323,6 +329,7 @@ def build_region_social_trend_summary(
                     + vulture_hotspots * 0.08
                     + vulture_carrion_overlap * 0.05
                     + aerial_carrion_cycle_runtime * 0.06
+                    + aerial_carcass_runtime * 0.05
                     + carcass_anchor * 0.06
                 ),
             ),
@@ -336,6 +343,7 @@ def build_region_social_trend_summary(
                     carry_hotspot("vulture_carrion_memory") * 0.68
                     + vulture_carrion_overlap * 0.10
                     + aerial_carrion_cycle_runtime * 0.04
+                    + aerial_carcass_runtime * 0.03
                     + carcass_anchor * 0.05
                 ),
             ),
@@ -465,9 +473,15 @@ def build_region_social_trend_summary(
     if surface_water_anchor >= 0.45:
         cycle_signals.append("surface_water_anchor")
         narrative_trends.append("稳定水源锚点正在持续加固食草群的长期迁移记忆。")
+    if herd_surface_water_runtime >= 0.45:
+        cycle_signals.append("herd_surface_water_runtime")
+        narrative_trends.append("运行中的食草群水源依赖正在把草原 herd 通道固化成更稳定的长期节律。")
     if carcass_anchor >= 0.40:
         cycle_signals.append("carcass_anchor")
         narrative_trends.append("稳定尸体资源锚点正在持续加固空中清道夫的长期追踪记忆。")
+    if aerial_carcass_runtime >= 0.40:
+        cycle_signals.append("aerial_carcass_runtime")
+        narrative_trends.append("运行中的空中尸体追踪正在把清道夫通道固化成更稳定的长期节律。")
     if hotspot_scores["lion_hotspot_memory"] + hotspot_scores["hyena_hotspot_memory"] >= 0.78:
         cycle_signals.append("apex_hotspot_wave")
         narrative_trends.append("顶层捕食者热点记忆正在放大草原多周期兴衰波动。")

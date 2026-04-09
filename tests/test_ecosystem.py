@@ -941,10 +941,12 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_hotspot_count": 3.0,
             "herd_apex_overlap": 1.0,
             "herd_route_cycle_runtime": 0.34,
+            "herd_surface_water_runtime": 0.6,
             "surface_water_anchor": 0.6,
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
             "aerial_carrion_cycle_runtime": 0.28,
+            "aerial_carcass_runtime": 0.5,
             "carcass_anchor": 0.5,
             "shared_hotspot_overlap": 0.0,
         },
@@ -981,6 +983,8 @@ def test_v4_social_trend_summary_uses_memory():
     assert "aerial_carrion_cycle" in summary.cycle_signals
     assert "surface_water_anchor" in summary.cycle_signals
     assert "carcass_anchor" in summary.cycle_signals
+    assert "herd_surface_water_runtime" in summary.cycle_signals
+    assert "aerial_carcass_runtime" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]
     before_surface_water = region.resource_state["surface_water"]
