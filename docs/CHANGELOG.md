@@ -919,6 +919,11 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ `grassland_prosperity_phase / grassland_collapse_phase` 现在会继续反向影响 `herd_route_cycle / aerial_carrion_cycle`
 - ✅ 草原长期繁荣/衰退相位与 herd/carrion 通道周期已开始形成双向耦合，而不再只是单向传导
 
+# v4.0-alpha41 - Feed route cycles into runtime corridor behavior
+
+- ✅ `RegionSimulation.apply_relationship_runtime_state()` 现在会把 `herd_route_cycle / aerial_carrion_cycle` 直接回灌到 `antelope / zebra / vulture`
+- ✅ herd/carrion 长期周期现在会直接影响食草群与秃鹫的运行期通道偏置，而不只作用于摘要和重平衡
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：

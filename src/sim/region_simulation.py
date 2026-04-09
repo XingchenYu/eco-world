@@ -44,6 +44,8 @@ class RegionSimulation(Ecosystem):
         lion_contraction = float(phase_scores.get("lion_contraction_phase", 0.0))
         hyena_expansion = float(phase_scores.get("hyena_expansion_phase", 0.0))
         hyena_contraction = float(phase_scores.get("hyena_contraction_phase", 0.0))
+        herd_route_cycle = float(phase_scores.get("herd_route_cycle", 0.0))
+        aerial_carrion_cycle = float(phase_scores.get("aerial_carrion_cycle", 0.0))
         grassland_prosperity = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
         grassland_collapse = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
@@ -76,16 +78,19 @@ class RegionSimulation(Ecosystem):
             elif animal.species == "antelope":
                 animal.herd_channel_bias = herd_channel_bias
                 animal.herd_source_bias = herd_source_bias
+                animal.route_cycle_bias = herd_route_cycle
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
             elif animal.species == "zebra":
                 animal.herd_channel_bias = herd_channel_bias
                 animal.herd_source_bias = herd_source_bias
+                animal.route_cycle_bias = herd_route_cycle
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
             elif animal.species == "vulture":
                 animal.aerial_lane_bias = aerial_lane_bias
                 animal.kill_corridor_bias = kill_corridor_bias
+                animal.carrion_cycle_bias = aerial_carrion_cycle
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
 

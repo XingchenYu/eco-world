@@ -1592,6 +1592,8 @@ def test_region_simulation_applies_social_phase_state():
                 "lion_contraction_phase": 0.14,
                 "hyena_expansion_phase": 0.58,
                 "hyena_contraction_phase": 0.18,
+                "herd_route_cycle": 0.36,
+                "aerial_carrion_cycle": 0.31,
             },
             "prosperity_scores": {
                 "grassland_prosperity_phase": 0.41,
@@ -1646,14 +1648,17 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.kill_corridor_bias == 1.0
     assert antelope.herd_channel_bias == 1.0
     assert antelope.herd_source_bias == 1.0
+    assert antelope.route_cycle_bias == 0.36
     assert antelope.prosperity_phase_bias == 0.41
     assert antelope.collapse_phase_bias == 0.16
     assert zebra.herd_channel_bias == 1.0
     assert zebra.herd_source_bias == 1.0
+    assert zebra.route_cycle_bias == 0.36
     assert zebra.prosperity_phase_bias == 0.41
     assert zebra.collapse_phase_bias == 0.16
     assert vulture.aerial_lane_bias == 1.0
     assert vulture.kill_corridor_bias == 1.0
+    assert vulture.carrion_cycle_bias == 0.31
     assert vulture.prosperity_phase_bias == 0.41
     assert vulture.collapse_phase_bias == 0.16
 
@@ -1668,14 +1673,20 @@ def test_herd_and_carrion_runtime_prosperity_bias():
 
     antelope.prosperity_phase_bias = 0.45
     antelope.collapse_phase_bias = 0.10
+    antelope.route_cycle_bias = 0.34
     zebra.prosperity_phase_bias = 0.40
     zebra.collapse_phase_bias = 0.08
+    zebra.route_cycle_bias = 0.32
     vulture.prosperity_phase_bias = 0.42
     vulture.collapse_phase_bias = 0.12
+    vulture.carrion_cycle_bias = 0.30
 
     assert antelope.prosperity_phase_bias > antelope.collapse_phase_bias
+    assert antelope.route_cycle_bias > 0.0
     assert zebra.prosperity_phase_bias > zebra.collapse_phase_bias
+    assert zebra.route_cycle_bias > 0.0
     assert vulture.prosperity_phase_bias > vulture.collapse_phase_bias
+    assert vulture.carrion_cycle_bias > 0.0
 
     print("✅ Herd and carrion runtime prosperity bias test passed")
 

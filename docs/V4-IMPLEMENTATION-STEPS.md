@@ -741,3 +741,8 @@
   - `herd_route_cycle`
   - `aerial_carrion_cycle`
   长期区域相位和 herd/carrion 通道周期已经开始形成双向耦合
+- `RegionSimulation.apply_relationship_runtime_state()` 现已继续把：
+  - `herd_route_cycle`
+  - `aerial_carrion_cycle`
+  直接回灌到 `antelope / zebra / vulture` 的运行期偏置
+- herd/carrion 的长期周期现在已直接进入运行体空间行为，而不只停留在摘要和重平衡层

@@ -1140,6 +1140,7 @@ class Antelope(Animal):
         self.forms_groups = True
         self.herd_channel_bias = 0.0
         self.herd_source_bias = 0.0
+        self.route_cycle_bias = 0.0
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
 
@@ -1177,6 +1178,7 @@ class Antelope(Animal):
         bias = max(
             self.herd_channel_bias,
             self.herd_source_bias * 0.7,
+            self.route_cycle_bias * 0.9,
             self.prosperity_phase_bias * 0.85,
         )
         collapse_drag = self.collapse_phase_bias * 0.12
@@ -1211,6 +1213,7 @@ class Zebra(Animal):
         self.forms_groups = True
         self.herd_channel_bias = 0.0
         self.herd_source_bias = 0.0
+        self.route_cycle_bias = 0.0
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
 
@@ -1245,6 +1248,7 @@ class Zebra(Animal):
         bias = max(
             self.herd_channel_bias,
             self.herd_source_bias * 0.7,
+            self.route_cycle_bias * 0.9,
             self.prosperity_phase_bias * 0.85,
         )
         collapse_drag = self.collapse_phase_bias * 0.12
@@ -1647,6 +1651,7 @@ class Vulture(Animal):
         self.forms_groups = True
         self.aerial_lane_bias = 0.0
         self.kill_corridor_bias = 0.0
+        self.carrion_cycle_bias = 0.0
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
 
@@ -1690,6 +1695,7 @@ class Vulture(Animal):
         bias = max(
             self.aerial_lane_bias,
             self.kill_corridor_bias * 0.8,
+            self.carrion_cycle_bias * 0.92,
             self.prosperity_phase_bias * 0.9,
         )
         collapse_drag = self.collapse_phase_bias * 0.10
