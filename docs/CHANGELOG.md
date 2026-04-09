@@ -1152,3 +1152,19 @@ src/core/ecosystem.py        [修改] 导入新物种
   - herd/aerial 周期
   - `grassland_boom_phase / grassland_bust_phase`
   - `grassland_prosperity_phase / grassland_collapse_phase`
+- ✅ `grassland_chain` 现也开始继续吸收：
+  - `herd_regional_health_anchor_runtime`
+  - `apex_regional_health_anchor_runtime`
+  并把它们写成：
+  - `runtime_herd_health_anchor_pull`
+  - `runtime_apex_health_anchor_pull`
+- ✅ `carrion_chain` 现也开始继续吸收：
+  - `aerial_regional_health_anchor_runtime`
+  - `apex_regional_health_anchor_runtime`
+  并把它们写成：
+  - `runtime_aerial_health_anchor_pull`
+  - `runtime_apex_health_anchor_pull`
+- ✅ 这些运行期区域长期健康锚点现在已经开始直接进入：
+  - 两条链摘要
+  - 两条链区域反馈
+  - herd/aerial/apex 的低频重平衡

@@ -935,3 +935,19 @@
   - `boom-bust`
   - `prosperity / collapse`
   也就是说，运行期区域长期健康锚点现在已经开始直接塑造下一轮社群长期相位
+- `grassland_chain` 现也开始继续读取：
+  - `herd_regional_health_anchor_runtime`
+  - `apex_regional_health_anchor_runtime`
+  并把它们写成：
+  - `runtime_herd_health_anchor_pull`
+  - `runtime_apex_health_anchor_pull`
+- `carrion_chain` 现也开始继续读取：
+  - `aerial_regional_health_anchor_runtime`
+  - `apex_regional_health_anchor_runtime`
+  并把它们写成：
+  - `runtime_aerial_health_anchor_pull`
+  - `runtime_apex_health_anchor_pull`
+- 这意味着运行期区域长期健康锚点现在已经开始直接进入：
+  - 两条链的摘要
+  - 两条链的区域反馈
+  - herd/aerial/apex 的低频重平衡
