@@ -1071,3 +1071,11 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `apex_boundary_conflict`
   - `carcass_route_overlap`
   也就是说，区域长期社会锚点现在已经开始直接改变领地布局压力，而不只停留在 `social_trends`
+- ✅ `RegionSimulation.apply_relationship_runtime_state()` 现也开始继续吸收：
+  - `regional_prosperity_bias`
+  - `regional_stability_bias`
+  - `regional_collapse_bias`
+- ✅ 这些区域长期社会锚点现在已经开始直接进入：
+  - `lion / hyena` 的中心漂移粘滞
+  - `antelope / zebra` 的 herd 通道偏置
+  - `vulture` 的空中尸体通道偏置

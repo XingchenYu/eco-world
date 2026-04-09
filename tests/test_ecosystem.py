@@ -1821,6 +1821,9 @@ def test_region_simulation_applies_social_phase_state():
                 "herd_source_bias": 1,
                 "kill_corridor_bias": 1,
                 "aerial_lane_bias": 1,
+                "regional_prosperity_bias": 1,
+                "regional_stability_bias": 1,
+                "regional_collapse_bias": 1,
                 "surface_water_anchor": 0.6,
                 "carcass_anchor": 0.5,
             }
@@ -1851,6 +1854,9 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.runtime_anchor_prosperity > 0.30
     assert lion.regional_prosperity > 0.0
     assert lion.regional_stability > 0.0
+    assert lion.regional_prosperity_bias == 1.0
+    assert lion.regional_stability_bias == 1.0
+    assert lion.regional_collapse_bias == 1.0
     assert hyena.cycle_expansion_phase == 0.58
     assert hyena.cycle_contraction_phase == 0.18
     assert hyena.hotspot_memory == 0.49
@@ -1859,6 +1865,9 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.runtime_anchor_prosperity > 0.30
     assert hyena.regional_prosperity > 0.0
     assert hyena.regional_stability > 0.0
+    assert hyena.regional_prosperity_bias == 1.0
+    assert hyena.regional_stability_bias == 1.0
+    assert hyena.regional_collapse_bias == 1.0
     assert lion.apex_hotspot_bias == 1.0
     assert lion.kill_corridor_bias == 1.0
     assert hyena.scavenger_hotspot_bias == 1.0
@@ -1872,6 +1881,9 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.runtime_anchor_prosperity > 0.30
     assert antelope.regional_prosperity > 0.0
     assert antelope.regional_stability > 0.0
+    assert antelope.regional_prosperity_bias == 1.0
+    assert antelope.regional_stability_bias == 1.0
+    assert antelope.regional_collapse_bias == 1.0
     assert zebra.herd_channel_bias == 1.0
     assert zebra.herd_source_bias == 1.0
     assert zebra.route_cycle_bias == 0.36
@@ -1881,6 +1893,9 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.runtime_anchor_prosperity > 0.30
     assert zebra.regional_prosperity > 0.0
     assert zebra.regional_stability > 0.0
+    assert zebra.regional_prosperity_bias == 1.0
+    assert zebra.regional_stability_bias == 1.0
+    assert zebra.regional_collapse_bias == 1.0
     assert vulture.aerial_lane_bias == 1.0
     assert vulture.kill_corridor_bias == 1.0
     assert vulture.carrion_cycle_bias == 0.31
@@ -1890,6 +1905,9 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.runtime_anchor_prosperity > 0.30
     assert vulture.regional_prosperity > 0.0
     assert vulture.regional_stability > 0.0
+    assert vulture.regional_prosperity_bias == 1.0
+    assert vulture.regional_stability_bias == 1.0
+    assert vulture.regional_collapse_bias == 1.0
 
     print("✅ Region simulation social phase injection test passed")
 

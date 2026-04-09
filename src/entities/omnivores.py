@@ -584,6 +584,9 @@ class Lion(Animal):
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
+        self.regional_prosperity_bias = 0.0
+        self.regional_stability_bias = 0.0
+        self.regional_collapse_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -681,8 +684,11 @@ class Lion(Animal):
             + self.runtime_anchor_prosperity * 0.05
             + self.regional_prosperity * 0.05
             + self.regional_stability * 0.04
+            + self.regional_prosperity_bias * 0.05
+            + self.regional_stability_bias * 0.04
             - self.kill_corridor_bias * 0.03
             - self.regional_collapse_risk * 0.04
+            - self.regional_collapse_bias * 0.04
         )
         stickiness = max(0.15, min(0.88, stickiness))
         old_x, old_y = self.pride_center
@@ -800,6 +806,9 @@ class Hyena(Animal):
         self.regional_prosperity = 0.0
         self.regional_collapse_risk = 0.0
         self.regional_stability = 0.0
+        self.regional_prosperity_bias = 0.0
+        self.regional_stability_bias = 0.0
+        self.regional_collapse_bias = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -900,8 +909,11 @@ class Hyena(Animal):
             + self.runtime_anchor_prosperity * 0.05
             + self.regional_prosperity * 0.05
             + self.regional_stability * 0.04
+            + self.regional_prosperity_bias * 0.05
+            + self.regional_stability_bias * 0.04
             - self.kill_corridor_bias * 0.02
             - self.regional_collapse_risk * 0.04
+            - self.regional_collapse_bias * 0.04
         )
         stickiness = max(0.12, min(0.86, stickiness))
         old_x, old_y = self.clan_center

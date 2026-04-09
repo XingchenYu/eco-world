@@ -859,3 +859,9 @@
   - `apex_boundary_conflict`
   - `carcass_route_overlap`
   也就是说，区域长期社会锚点现在已经开始直接改变领地布局压力，而不只停留在 `social_trends`
+- `RegionSimulation.apply_relationship_runtime_state()` 现已继续把：
+  - `regional_prosperity_bias`
+  - `regional_stability_bias`
+  - `regional_collapse_bias`
+  直接注入 `lion / hyena / antelope / zebra / vulture`
+  这意味着区域长期社会锚点现在已经开始直接改变运行体的中心漂移粘滞与通道偏置，而不只停留在领地摘要层
