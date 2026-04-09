@@ -57,6 +57,7 @@ def build_region_social_trend_summary(
     herd_surface_water_runtime = float(runtime_signals.get("herd_surface_water_runtime", 0.0))
     herd_regional_health_runtime = float(runtime_signals.get("herd_regional_health_runtime", 0.0))
     herd_resource_anchor_runtime = float(runtime_signals.get("herd_resource_anchor_runtime", 0.0))
+    herd_anchor_prosperity_runtime = float(runtime_signals.get("herd_anchor_prosperity_runtime", 0.0))
     surface_water_anchor = float(runtime_signals.get("surface_water_anchor", 0.0))
     vulture_hotspots = int(runtime_signals.get("vulture_hotspot_count", 0))
     vulture_carrion_overlap = int(runtime_signals.get("vulture_carrion_overlap", 0))
@@ -64,8 +65,10 @@ def build_region_social_trend_summary(
     aerial_carcass_runtime = float(runtime_signals.get("aerial_carcass_runtime", 0.0))
     aerial_regional_health_runtime = float(runtime_signals.get("aerial_regional_health_runtime", 0.0))
     aerial_resource_anchor_runtime = float(runtime_signals.get("aerial_resource_anchor_runtime", 0.0))
+    aerial_anchor_prosperity_runtime = float(runtime_signals.get("aerial_anchor_prosperity_runtime", 0.0))
     carcass_anchor = float(runtime_signals.get("carcass_anchor", 0.0))
     apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
+    apex_anchor_prosperity_runtime = float(runtime_signals.get("apex_anchor_prosperity_runtime", 0.0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
 
@@ -152,6 +155,7 @@ def build_region_social_trend_summary(
             + herd_surface_water_runtime * 0.06
             + herd_regional_health_runtime * 0.06
             + herd_resource_anchor_runtime * 0.06
+            + herd_anchor_prosperity_runtime * 0.06
             + surface_water_anchor * 0.06
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.08,
         ),
@@ -167,6 +171,7 @@ def build_region_social_trend_summary(
             + aerial_carcass_runtime * 0.06
             + aerial_regional_health_runtime * 0.06
             + aerial_resource_anchor_runtime * 0.06
+            + aerial_anchor_prosperity_runtime * 0.06
             + carcass_anchor * 0.06
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.06,
         ),
@@ -185,9 +190,12 @@ def build_region_social_trend_summary(
                     + aerial_carrion_cycle_signal * 0.08
                     + apex_regional_health_runtime * 0.06
                     + herd_resource_anchor_runtime * 0.04
+                    + herd_anchor_prosperity_runtime * 0.04
                     + aerial_resource_anchor_runtime * 0.03
+                    + aerial_anchor_prosperity_runtime * 0.03
                     + surface_water_anchor * 0.06
                     + carcass_anchor * 0.05
+                    + apex_anchor_prosperity_runtime * 0.04
                     + max(0.0, pride_strength - takeover_pressure) * 0.10
                     + max(0.0, clan_cohesion - clan_front_pressure) * 0.08
                     + max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.03
@@ -210,7 +218,9 @@ def build_region_social_trend_summary(
                     + shared_hotspot_shift * 0.05
                     + shared_hotspot_persistence * 0.04
                     - herd_resource_anchor_runtime * 0.03
+                    - herd_anchor_prosperity_runtime * 0.02
                     - aerial_resource_anchor_runtime * 0.02
+                    - aerial_anchor_prosperity_runtime * 0.02
                     - surface_water_anchor * 0.04
                     - carcass_anchor * 0.03
                     - herd_route_cycle_signal * 0.06
@@ -235,9 +245,12 @@ def build_region_social_trend_summary(
                     + aerial_carrion_cycle_signal * 0.08
                     + apex_regional_health_runtime * 0.05
                     + herd_resource_anchor_runtime * 0.04
+                    + herd_anchor_prosperity_runtime * 0.03
                     + aerial_resource_anchor_runtime * 0.03
+                    + aerial_anchor_prosperity_runtime * 0.03
                     + surface_water_anchor * 0.06
                     + carcass_anchor * 0.05
+                    + apex_anchor_prosperity_runtime * 0.04
                     + max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.03
                     + max(0.0, hyena_hotspot_persistence - hyena_hotspot_shift) * 0.03
                     - boom_bust_scores["grassland_bust_phase"] * 0.12,
@@ -255,7 +268,9 @@ def build_region_social_trend_summary(
                     + shared_hotspot_shift * 0.05
                     + overlap * 0.03
                     - herd_resource_anchor_runtime * 0.02
+                    - herd_anchor_prosperity_runtime * 0.02
                     - aerial_resource_anchor_runtime * 0.02
+                    - aerial_anchor_prosperity_runtime * 0.02
                     - surface_water_anchor * 0.03
                     - carcass_anchor * 0.02
                     - herd_route_cycle_signal * 0.05
@@ -500,6 +515,8 @@ def build_region_social_trend_summary(
         cycle_signals.append("herd_surface_water_runtime")
     if herd_resource_anchor_runtime >= 0.42:
         cycle_signals.append("herd_resource_anchor_runtime")
+    if herd_anchor_prosperity_runtime >= 0.40:
+        cycle_signals.append("herd_anchor_prosperity_runtime")
         narrative_trends.append("运行中的食草群水源依赖正在把草原 herd 通道固化成更稳定的长期节律。")
     if herd_regional_health_runtime >= 0.30:
         cycle_signals.append("herd_regional_health_runtime")
@@ -511,6 +528,10 @@ def build_region_social_trend_summary(
         cycle_signals.append("aerial_carcass_runtime")
     if aerial_resource_anchor_runtime >= 0.38:
         cycle_signals.append("aerial_resource_anchor_runtime")
+    if aerial_anchor_prosperity_runtime >= 0.36:
+        cycle_signals.append("aerial_anchor_prosperity_runtime")
+    if apex_anchor_prosperity_runtime >= 0.34:
+        cycle_signals.append("apex_anchor_prosperity_runtime")
         narrative_trends.append("运行中的空中尸体追踪正在把清道夫通道固化成更稳定的长期节律。")
     if aerial_regional_health_runtime >= 0.28:
         cycle_signals.append("aerial_regional_health_runtime")

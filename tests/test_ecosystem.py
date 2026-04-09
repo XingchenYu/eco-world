@@ -825,13 +825,16 @@ def test_v4_territory_summary_uses_runtime_state():
             "herd_route_cycle_runtime": 0.36,
             "herd_surface_water_runtime": 0.6,
             "herd_regional_health_runtime": 0.52,
+            "herd_anchor_prosperity_runtime": 0.58,
             "vulture_hotspot_count": 2.0,
             "aerial_carrion_cycle_runtime": 0.31,
             "aerial_carcass_runtime": 0.5,
             "aerial_regional_health_runtime": 0.44,
+            "aerial_anchor_prosperity_runtime": 0.49,
             "vulture_carrion_overlap": 1.0,
             "shared_hotspot_overlap": 1.0,
             "apex_regional_health_runtime": 0.48,
+            "apex_anchor_prosperity_runtime": 0.46,
         },
     )
 
@@ -851,14 +854,17 @@ def test_v4_territory_summary_uses_runtime_state():
     assert summary.runtime_signals["herd_surface_water_runtime"] == 0.6
     assert summary.runtime_signals["herd_regional_health_runtime"] == 0.52
     assert summary.runtime_signals["herd_resource_anchor_runtime"] > 0.56
+    assert summary.runtime_signals["herd_anchor_prosperity_runtime"] == 0.58
     assert summary.runtime_signals["surface_water_anchor"] == 0.6
     assert summary.runtime_signals["vulture_hotspot_count"] == 2
     assert summary.runtime_signals["aerial_carrion_cycle_runtime"] == 0.31
     assert summary.runtime_signals["aerial_carcass_runtime"] == 0.5
     assert summary.runtime_signals["aerial_regional_health_runtime"] == 0.44
     assert summary.runtime_signals["aerial_resource_anchor_runtime"] > 0.47
+    assert summary.runtime_signals["aerial_anchor_prosperity_runtime"] == 0.49
     assert summary.runtime_signals["carcass_anchor"] == 0.5
     assert summary.runtime_signals["apex_regional_health_runtime"] == 0.48
+    assert summary.runtime_signals["apex_anchor_prosperity_runtime"] == 0.46
     assert summary.runtime_signals["vulture_carrion_overlap"] == 1
     assert summary.runtime_signals["shared_hotspot_overlap"] == 1
     assert summary.pressure_scores["pride_core_range"] > 0.58
@@ -980,14 +986,17 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_route_cycle_runtime": 0.34,
             "herd_surface_water_runtime": 0.6,
             "herd_regional_health_runtime": 0.52,
+            "herd_anchor_prosperity_runtime": 0.58,
             "surface_water_anchor": 0.6,
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
             "aerial_carrion_cycle_runtime": 0.28,
             "aerial_carcass_runtime": 0.5,
             "aerial_regional_health_runtime": 0.44,
+            "aerial_anchor_prosperity_runtime": 0.49,
             "carcass_anchor": 0.5,
             "apex_regional_health_runtime": 0.48,
+            "apex_anchor_prosperity_runtime": 0.46,
             "shared_hotspot_overlap": 0.0,
         },
     )
@@ -1029,7 +1038,10 @@ def test_v4_social_trend_summary_uses_memory():
     assert "herd_surface_water_runtime" in summary.cycle_signals
     assert "aerial_carcass_runtime" in summary.cycle_signals
     assert "herd_resource_anchor_runtime" in summary.cycle_signals
+    assert "herd_anchor_prosperity_runtime" in summary.cycle_signals
     assert "aerial_resource_anchor_runtime" in summary.cycle_signals
+    assert "aerial_anchor_prosperity_runtime" in summary.cycle_signals
+    assert "apex_anchor_prosperity_runtime" in summary.cycle_signals
     assert "runtime_anchor_prosperity" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]

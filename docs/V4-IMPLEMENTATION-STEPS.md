@@ -775,3 +775,26 @@
   - `grassland_chain.dominant_layer`
   - `carrion_chain.dominant_layer`
   也就是说，长期水源与尸体资源现在已经开始改变当前周期里哪一层主导草原链和尸体资源链
+- `RegionSimulation.apply_relationship_runtime_state()` 现已把：
+  - `runtime_anchor_prosperity`
+  直接注入 `lion / hyena / antelope / zebra / vulture`
+  它已经开始参与运行体的中心漂移、通道选择和空间粘滞
+- `runtime_territory_state` 现已继续汇总：
+  - `apex_anchor_prosperity_runtime`
+  - `herd_anchor_prosperity_runtime`
+  - `aerial_anchor_prosperity_runtime`
+  这意味着运行体繁荣锚点已经开始被重新收集成区域级空间信号
+- `territory.runtime_signals` 现已继续吸收这些繁荣锚点，并把它们回灌到：
+  - `waterhole_spacing`
+  - `carcass_route_overlap`
+  - `apex_boundary_conflict`
+  运行体长期繁荣度现在已开始直接抬高领地与通道压力
+- `social_trends` 现已继续读取：
+  - `herd_anchor_prosperity_runtime`
+  - `aerial_anchor_prosperity_runtime`
+  - `apex_anchor_prosperity_runtime`
+  并让它们进入：
+  - `herd_route_cycle / aerial_carrion_cycle`
+  - `grassland_boom_phase / grassland_prosperity_phase`
+  - `cycle_signals`
+  也就是说，运行体繁荣锚点已经开始反向塑造长期记忆、周期和区域相位

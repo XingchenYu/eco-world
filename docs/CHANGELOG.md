@@ -991,3 +991,21 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ `bat` / `owl` 夜间优先捕食 `night_moth` 时，改为尊重 `get_predation_chance()` 的保底约束，不再绕过猎物保留量
 - ✅ `minnow` 略微延长寿命并增强低密度补群参数，减少约 42 tick 首代老化叠加高位鱼压力造成的 prey 断层
 - ✅ 针对 `night_moth -> bat/owl` 与 `minnow -> pike/catfish` 执行多 seed 200 tick 回归验证
+# v4 Ongoing - Runtime prosperity anchors feed back into territory and social trends
+
+- ✅ `runtime_anchor_prosperity` 现已从 `lion / hyena / antelope / zebra / vulture` 重新汇总回 `runtime_territory_state`
+- ✅ `territory.runtime_signals` 新增：
+  - `apex_anchor_prosperity_runtime`
+  - `herd_anchor_prosperity_runtime`
+  - `aerial_anchor_prosperity_runtime`
+- ✅ 这些运行期繁荣锚点已经开始直接影响：
+  - `waterhole_spacing`
+  - `carcass_route_overlap`
+  - `apex_boundary_conflict`
+- ✅ `social_trends` 现已继续吸收这些运行期繁荣锚点，并让它们进入：
+  - `herd_route_cycle`
+  - `aerial_carrion_cycle`
+  - `grassland_boom_phase`
+  - `grassland_prosperity_phase`
+  - `cycle_signals`
+- ✅ 新增并通过回归断言，验证 `territory` 与 `social_trends` 都能读到这批新的运行期繁荣锚点
