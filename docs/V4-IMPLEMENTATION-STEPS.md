@@ -1120,3 +1120,12 @@
   - `runtime_aerial_condition_phase_pull`
   - `runtime_apex_condition_phase_pull`
   也就是说，长期相位修正后的真实体况现在已经不只影响 `territory/social_trends`，还开始直接改变草原链、尸体资源链和区域长期健康判定
+- phase-conditioned runtime 现已进一步抬升成新的 territory/social 锚点：
+  - `herd_condition_phase_anchor_runtime`
+  - `aerial_condition_phase_anchor_runtime`
+  - `apex_condition_phase_anchor_runtime`
+- 它们现在已经进入：
+  - `runtime_territory_state`
+  - `territory.runtime_signals`
+  - `social_trends.cycle_signals`
+  也就是说，长期相位修正后的真实体况现在不只作为一次性 pull 使用，而开始作为下一轮长期 territory/social 节律的稳定锚点
