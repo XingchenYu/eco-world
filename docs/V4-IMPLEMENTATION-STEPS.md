@@ -1231,3 +1231,16 @@
   - `world pressure`：世界级长期压力
   - `window`：窗口，指恢复或扩张机会
   - `memory`：记忆层，指跨周期保留的历史信号
+- 这条 world pressure window 闭环现已继续下沉到运行体偏置层：
+  - `world_pressure_window_bias`
+  - `herd_world_pressure_window_runtime`
+  - `aerial_world_pressure_window_runtime`
+  - `apex_world_pressure_window_runtime`
+- 它们现在已经进入：
+  - `lion / hyena / antelope / zebra / vulture`
+  - `runtime_territory_state`
+  - `territory.runtime_signals`
+  - `social_trends.cycle_signals`
+- 也就是说，`world_pressure_window_memory` 现在已经不只作为社群长期记忆存在，而会继续下沉成运行体自己的恢复偏置，再反向抬高下一轮 territory/social 的长期节律
+- 术语补充：
+  - `window bias`：窗口偏置，指长期窗口记忆沉淀到运行体后的直接行为/恢复偏置

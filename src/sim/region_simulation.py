@@ -139,6 +139,19 @@ class RegionSimulation(Ecosystem):
                 - regional_collapse_risk * 0.26,
             ),
         )
+        world_pressure_window_memory = 1.0 if "world_pressure_window_memory" in cycle_signals else 0.0
+        world_pressure_window_bias = min(
+            1.0,
+            max(
+                0.0,
+                world_pressure_window_memory * 0.26
+                + world_pressure_bias * 0.42
+                + condition_phase_bias * 0.16
+                + runtime_anchor_prosperity * 0.10
+                + regional_stability * 0.08
+                - regional_collapse_risk * 0.12,
+            ),
+        )
 
         for animal in self.animals:
             if not animal.alive:
@@ -159,6 +172,7 @@ class RegionSimulation(Ecosystem):
                 animal.condition_runtime = apex_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
                 animal.world_pressure_bias = world_pressure_bias
+                animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -178,6 +192,7 @@ class RegionSimulation(Ecosystem):
                 animal.condition_runtime = apex_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
                 animal.world_pressure_bias = world_pressure_bias
+                animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -196,6 +211,7 @@ class RegionSimulation(Ecosystem):
                 animal.condition_runtime = herd_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
                 animal.world_pressure_bias = world_pressure_bias
+                animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -214,6 +230,7 @@ class RegionSimulation(Ecosystem):
                 animal.condition_runtime = herd_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
                 animal.world_pressure_bias = world_pressure_bias
+                animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -232,6 +249,7 @@ class RegionSimulation(Ecosystem):
                 animal.condition_runtime = aerial_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
                 animal.world_pressure_bias = world_pressure_bias
+                animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias

@@ -1480,3 +1480,15 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `window`：恢复窗口/扩张窗口
   - `memory`：记忆层
   - `condition runtime`：运行期真实体况
+- 现已新增并打通：
+  - `world_pressure_window_bias`
+  - `herd_world_pressure_window_runtime`
+  - `aerial_world_pressure_window_runtime`
+  - `apex_world_pressure_window_runtime`
+- 它们现在已经进入：
+  - `lion / hyena / antelope / zebra / vulture` 的运行体状态
+  - `territory.runtime_signals`
+  - `social_trends.cycle_signals`
+- 也就是说，`world_pressure_window_memory` 现在已经不只停留在长期记忆层，而会继续下沉成运行体自己的恢复偏置，再重新反向塑造下一轮 territory/social 节律
+- 文档阅读说明补充：
+  - `window bias`：窗口偏置，指“长期窗口记忆”下沉后对运行体产生的直接恢复倾向
