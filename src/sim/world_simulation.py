@@ -434,6 +434,9 @@ class WorldSimulation:
             "apex_condition_runtime": 0.0,
             "herd_condition_runtime": 0.0,
             "aerial_condition_runtime": 0.0,
+            "apex_condition_phase_runtime": 0.0,
+            "herd_condition_phase_runtime": 0.0,
+            "aerial_condition_phase_runtime": 0.0,
             "apex_condition_anchor_runtime": 0.0,
             "herd_condition_anchor_runtime": 0.0,
             "aerial_condition_anchor_runtime": 0.0,
@@ -486,6 +489,9 @@ class WorldSimulation:
                     for animal in lions
                 ]
                 or [0.0]
+            )
+            state["apex_condition_phase_runtime"] = max(
+                [getattr(animal, "condition_runtime", 0.0) for animal in lions] or [0.0]
             )
             lion_health_anchor_runtime = max(
                 [getattr(animal, "regional_health_anchor", 0.0) for animal in lions] or [0.0]
@@ -555,6 +561,10 @@ class WorldSimulation:
                     ]
                     or [0.0]
                 ),
+            )
+            state["apex_condition_phase_runtime"] = max(
+                state["apex_condition_phase_runtime"],
+                max([getattr(animal, "condition_runtime", 0.0) for animal in hyenas] or [0.0]),
             )
             hyena_health_anchor_runtime = max(
                 [getattr(animal, "regional_health_anchor", 0.0) for animal in hyenas] or [0.0]
@@ -634,6 +644,9 @@ class WorldSimulation:
                 ]
                 or [0.0]
             )
+            state["herd_condition_phase_runtime"] = max(
+                [getattr(animal, "condition_runtime", 0.0) for animal in antelopes + zebras] or [0.0]
+            )
             herd_health_anchor_runtime = max(
                 [getattr(animal, "regional_health_anchor", 0.0) for animal in antelopes + zebras] or [0.0]
             )
@@ -700,6 +713,9 @@ class WorldSimulation:
                     for animal in vultures
                 ]
                 or [0.0]
+            )
+            state["aerial_condition_phase_runtime"] = max(
+                [getattr(animal, "condition_runtime", 0.0) for animal in vultures] or [0.0]
             )
             aerial_health_anchor_runtime = max(
                 [getattr(animal, "regional_health_anchor", 0.0) for animal in vultures] or [0.0]

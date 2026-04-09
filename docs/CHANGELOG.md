@@ -1338,3 +1338,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `condition_aerial_recovery`
   - `condition_apex_carrion_recovery`
   也就是说，真实体况现在已经不只影响当前恢复和产仔，还开始直接影响 herd/apex/aerial 的低频恢复节律
+- ✅ phase-adjusted `condition_runtime` 现在也开始继续进入：
+  - `runtime_territory_state`
+  - `territory.runtime_signals`
+  - `social_trends.cycle_signals`
+- ✅ 新增并打通：
+  - `herd_condition_phase_runtime`
+  - `aerial_condition_phase_runtime`
+  - `apex_condition_phase_runtime`
+  也就是说，长期 `prosperity / collapse` 相位现在已经不只通过摘要层起作用，而会继续沿着真实运行体体况反向塑造 `territory` 和 `social_trends`
