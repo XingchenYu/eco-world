@@ -1188,3 +1188,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `predation_pressure`
   - `resilience`
   也就是说，运行期区域长期健康锚点现在已经开始反向抬升区域资源锚点与韧性本身
+- ✅ `runtime_territory_state` 现也开始继续把：
+  - `surface_water`
+  - `carcass_availability`
+  - `runtime_anchor_prosperity`
+  反向并入：
+  - `herd_regional_health_anchor_runtime`
+  - `aerial_regional_health_anchor_runtime`
+  - `apex_regional_health_anchor_runtime`
+- ✅ 这意味着运行期区域长期健康锚点现在已经从纯健康值推进成资源-健康复合锚点

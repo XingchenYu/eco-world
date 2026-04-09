@@ -874,7 +874,7 @@ def test_v4_territory_summary_uses_runtime_state():
     assert summary.runtime_signals["herd_route_cycle_runtime"] == 0.36
     assert summary.runtime_signals["herd_surface_water_runtime"] == 0.6
     assert summary.runtime_signals["herd_regional_health_runtime"] == 0.52
-    assert summary.runtime_signals["herd_regional_health_anchor_runtime"] >= 0.70
+    assert summary.runtime_signals["herd_regional_health_anchor_runtime"] >= 0.67
     assert summary.runtime_signals["herd_resource_anchor_runtime"] > 0.56
     assert summary.runtime_signals["herd_anchor_prosperity_runtime"] == 0.58
     assert summary.runtime_signals["herd_regional_bias_runtime"] == 1.0
@@ -883,13 +883,13 @@ def test_v4_territory_summary_uses_runtime_state():
     assert summary.runtime_signals["aerial_carrion_cycle_runtime"] == 0.31
     assert summary.runtime_signals["aerial_carcass_runtime"] == 0.5
     assert summary.runtime_signals["aerial_regional_health_runtime"] == 0.44
-    assert summary.runtime_signals["aerial_regional_health_anchor_runtime"] >= 0.70
+    assert summary.runtime_signals["aerial_regional_health_anchor_runtime"] >= 0.66
     assert summary.runtime_signals["aerial_resource_anchor_runtime"] > 0.47
     assert summary.runtime_signals["aerial_anchor_prosperity_runtime"] == 0.49
     assert summary.runtime_signals["aerial_regional_bias_runtime"] == 1.0
     assert summary.runtime_signals["carcass_anchor"] == 0.5
     assert summary.runtime_signals["apex_regional_health_runtime"] == 0.48
-    assert summary.runtime_signals["apex_regional_health_anchor_runtime"] >= 0.70
+    assert summary.runtime_signals["apex_regional_health_anchor_runtime"] >= 0.64
     assert summary.runtime_signals["apex_anchor_prosperity_runtime"] == 0.46
     assert summary.runtime_signals["apex_regional_bias_runtime"] == 1.0
     assert summary.runtime_signals["vulture_carrion_overlap"] == 1
