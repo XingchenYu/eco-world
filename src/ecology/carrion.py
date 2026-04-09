@@ -122,6 +122,11 @@ def build_region_carrion_chain_summary(
             add_score("runtime_aerial_resource_anchor_pull", min(0.22, aerial_resource_anchor_runtime * 0.14), "运行中的空地复合尸体锚点正在把清道夫链重新压回稳定 carrion 走廊。")
             add_layer_bias("aerial_scavenge_layer", aerial_resource_anchor_runtime * 0.08)
             add_layer_bias("scavenge_layer", aerial_resource_anchor_runtime * 0.04)
+        aerial_anchor_prosperity_runtime = float(runtime_signals.get("aerial_anchor_prosperity_runtime", 0.0))
+        if aerial_anchor_prosperity_runtime > 0.0:
+            add_score("runtime_aerial_anchor_prosperity_pull", min(0.20, aerial_anchor_prosperity_runtime * 0.13), "运行中的空中繁荣锚点正在把清道夫链重新推向更持久的稳定尸体通道。")
+            add_layer_bias("aerial_scavenge_layer", aerial_anchor_prosperity_runtime * 0.07)
+            add_layer_bias("scavenge_layer", aerial_anchor_prosperity_runtime * 0.04)
         if apex_regional_health_runtime > 0.0:
             add_score("runtime_apex_health_pull", min(0.18, apex_regional_health_runtime * 0.12), "运行中的顶层捕食者长期健康度正在抬升击杀与残食通道的持续性。")
             add_layer_bias("kill_layer", apex_regional_health_runtime * 0.06)
@@ -209,6 +214,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_carcass_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_health_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_resource_anchor_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_anchor_prosperity_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("aerial_memory_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("aerial_carrion_cycle_pressure", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18 * prosperity_bias * scavenger_bias, feedback_scale)
@@ -611,6 +617,17 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "vulture",
                 "layer_group": "aerial_scavenge_layer",
                 "effect": "runtime_aerial_anchor_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
+    if scores.get("runtime_aerial_anchor_prosperity_pull", 0.0) >= 0.06 and vulture_count < 13:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_anchor_prosperity",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "runtime_aerial_anchor_prosperity_support",
                 "new_target_count": species_pool["vulture"],
             }
         )

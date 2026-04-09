@@ -798,3 +798,15 @@
   - `grassland_boom_phase / grassland_prosperity_phase`
   - `cycle_signals`
   也就是说，运行体繁荣锚点已经开始反向塑造长期记忆、周期和区域相位
+- `grassland_chain` 现已继续吸收：
+  - `herd_anchor_prosperity_runtime`
+  - `apex_anchor_prosperity_runtime`
+  并把它们写成：
+  - `runtime_herd_anchor_prosperity_pull`
+  - `runtime_apex_anchor_prosperity_pull`
+  这意味着运行体繁荣锚点已经开始直接进入草原链摘要、反馈和低频 herd/apex 重平衡
+- `carrion_chain` 现已继续吸收：
+  - `aerial_anchor_prosperity_runtime`
+  并把它写成：
+  - `runtime_aerial_anchor_prosperity_pull`
+  这意味着运行体繁荣锚点已经开始直接进入尸体资源链摘要、反馈和空中清道夫重平衡

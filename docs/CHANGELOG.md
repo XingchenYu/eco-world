@@ -1009,3 +1009,15 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `grassland_prosperity_phase`
   - `cycle_signals`
 - ✅ 新增并通过回归断言，验证 `territory` 与 `social_trends` 都能读到这批新的运行期繁荣锚点
+- ✅ `grassland_chain` 现已继续把：
+  - `herd_anchor_prosperity_runtime`
+  - `apex_anchor_prosperity_runtime`
+  写成：
+  - `runtime_herd_anchor_prosperity_pull`
+  - `runtime_apex_anchor_prosperity_pull`
+  并接入区域反馈与低频 herd/apex 重平衡
+- ✅ `carrion_chain` 现已继续把：
+  - `aerial_anchor_prosperity_runtime`
+  写成：
+  - `runtime_aerial_anchor_prosperity_pull`
+  并接入区域反馈与空中清道夫重平衡
