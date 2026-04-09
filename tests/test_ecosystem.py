@@ -699,6 +699,8 @@ def test_v4_grassland_chain_summary():
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
             "herd_surface_water_runtime": 0.6,
+            "herd_condition_runtime": 0.46,
+            "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -724,6 +726,8 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["territory_channel_pressure"] > 0.0
     assert grassland_chain.trophic_scores["carcass_channeling"] > 0.0
     assert grassland_chain.trophic_scores["runtime_surface_water_pull"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_herd_condition_pull"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_apex_condition_pull"] > 0.0
     assert grassland_chain.trophic_scores["surface_water_anchor"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
     assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
@@ -1156,6 +1160,8 @@ def test_v4_carrion_chain_summary():
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
             "aerial_carcass_runtime": 0.5,
+            "aerial_condition_runtime": 0.41,
+            "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1175,6 +1181,8 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.resource_scores["kill_corridor_overlap"] > 0.0
     assert grassland_chain.resource_scores["scavenger_lane_pressure"] > 0.0
     assert grassland_chain.resource_scores["runtime_carcass_pull"] > 0.0
+    assert grassland_chain.resource_scores["runtime_aerial_condition_pull"] > 0.0
+    assert grassland_chain.resource_scores["runtime_apex_condition_pull"] > 0.0
     assert grassland_chain.resource_scores["carcass_anchor_pressure"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenge_layer"] > 0.0
@@ -1303,11 +1311,13 @@ def test_v4_grassland_chain_feedback_updates_region_state():
             "herd_hotspot_count": 3.0,
             "herd_apex_overlap": 1.0,
             "herd_surface_water_runtime": 0.6,
+            "herd_condition_runtime": 0.46,
             "herd_regional_health_runtime": 0.52,
             "herd_regional_health_anchor_runtime": 0.70,
             "herd_regional_bias_runtime": 0.46,
             "herd_anchor_prosperity_runtime": 0.58,
             "apex_regional_health_runtime": 0.48,
+            "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1329,11 +1339,13 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "dominant_herd_channeling" in summary.trophic_scores
     assert "runtime_herd_corridors" in summary.trophic_scores
     assert "runtime_surface_water_pull" in summary.trophic_scores
+    assert "runtime_herd_condition_pull" in summary.trophic_scores
     assert "runtime_herd_health_pull" in summary.trophic_scores
     assert "runtime_herd_health_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_regional_bias_pull" in summary.trophic_scores
     assert "runtime_herd_resource_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_anchor_prosperity_pull" in summary.trophic_scores
+    assert "runtime_apex_condition_pull" in summary.trophic_scores
     assert "runtime_apex_health_pull" in summary.trophic_scores
     assert "runtime_apex_health_anchor_pull" in summary.trophic_scores
     assert "runtime_apex_regional_bias_pull" in summary.trophic_scores
@@ -1417,11 +1429,13 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
             "herd_surface_water_runtime": 0.6,
+            "herd_condition_runtime": 0.46,
             "herd_regional_health_runtime": 0.52,
             "herd_regional_health_anchor_runtime": 0.70,
             "herd_regional_bias_runtime": 0.46,
             "herd_anchor_prosperity_runtime": 0.58,
             "apex_regional_health_runtime": 0.48,
+            "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1442,6 +1456,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["source_species"] == "runtime_resource" for item in adjustments)
+    assert any(item["source_species"] == "runtime_condition" for item in adjustments)
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["source_species"] == "runtime_health_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_regional_bias" for item in adjustments)
@@ -1450,6 +1465,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "regional_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag", "herd_route_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_surface_water_support" for item in adjustments)
+    assert any(item["effect"] in {"runtime_herd_condition_support", "runtime_apex_condition_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_health_support", "runtime_apex_health_support", "runtime_herd_health_anchor_support", "runtime_apex_health_anchor_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_regional_bias_support", "runtime_apex_regional_bias_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_herd_anchor_support" for item in adjustments)
@@ -1550,11 +1566,13 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
             "aerial_carcass_runtime": 0.5,
+            "aerial_condition_runtime": 0.41,
             "aerial_regional_health_runtime": 0.44,
             "aerial_regional_health_anchor_runtime": 0.70,
             "aerial_regional_bias_runtime": 0.42,
             "aerial_anchor_prosperity_runtime": 0.49,
             "apex_regional_health_runtime": 0.48,
+            "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1576,6 +1594,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "dominant_kill_layout" in summary.resource_scores
     assert "runtime_aerial_lanes" in summary.resource_scores
     assert "runtime_carcass_pull" in summary.resource_scores
+    assert "runtime_aerial_condition_pull" in summary.resource_scores
     assert "runtime_aerial_health_pull" in summary.resource_scores
     assert "runtime_aerial_health_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_regional_bias_pull" in summary.resource_scores
@@ -1583,6 +1602,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_aerial_anchor_prosperity_pull" in summary.resource_scores
     assert "regional_prosperity_anchor" in summary.resource_scores
     assert "regional_stability_anchor" in summary.resource_scores
+    assert "runtime_apex_condition_pull" in summary.resource_scores
     assert "runtime_apex_health_pull" in summary.resource_scores
     assert "runtime_apex_health_anchor_pull" in summary.resource_scores
     assert "runtime_apex_regional_bias_pull" in summary.resource_scores
@@ -1659,11 +1679,13 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
             "aerial_carcass_runtime": 0.5,
+            "aerial_condition_runtime": 0.41,
             "aerial_regional_health_runtime": 0.44,
             "aerial_regional_health_anchor_runtime": 0.70,
             "aerial_regional_bias_runtime": 0.42,
             "aerial_anchor_prosperity_runtime": 0.49,
             "apex_regional_health_runtime": 0.48,
+            "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1683,6 +1705,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["layer_group"] in {"kill_layer", "scavenge_layer", "aerial_scavenge_layer", "herd_source_layer"} for item in adjustments)
     assert any(item["source_species"] == "territory" for item in adjustments)
     assert any(item["source_species"] == "social_state" for item in adjustments)
+    assert any(item["source_species"] == "runtime_condition" for item in adjustments)
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["source_species"] == "runtime_health_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_regional_bias" for item in adjustments)
@@ -1691,6 +1714,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "regional_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn", "aerial_carrion_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_carcass_support" for item in adjustments)
+    assert any(item["effect"] in {"runtime_aerial_condition_support", "runtime_apex_condition_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_health_support", "runtime_apex_health_support", "runtime_aerial_health_anchor_support", "runtime_apex_health_anchor_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_regional_bias_support", "runtime_apex_regional_bias_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_aerial_anchor_support" for item in adjustments)

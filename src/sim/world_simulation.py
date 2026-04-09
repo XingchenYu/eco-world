@@ -127,6 +127,7 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("prosperity_phase_weight", 0.0))
             + float(carrion_chain.resource_scores.get("prosperity_phase_carrion", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_surface_water_pull", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_herd_condition_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_regional_bias_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_health_anchor_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_resource_anchor_pull", 0.0))
@@ -136,12 +137,15 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_aerial_resource_anchor_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_anchor_prosperity_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_health_pull", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_apex_condition_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_pull", 0.0)) * 0.8
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_regional_bias_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_anchor_prosperity_pull", 0.0)) * 0.8
+            + float(carrion_chain.resource_scores.get("runtime_aerial_condition_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_health_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_health_anchor_pull", 0.0))
+            + float(carrion_chain.resource_scores.get("runtime_apex_condition_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_health_pull", 0.0)) * 0.8
             + float(carrion_chain.resource_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_regional_bias_pull", 0.0)) * 0.7
@@ -151,9 +155,11 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("collapse_phase_weight", 0.0))
             + float(carrion_chain.resource_scores.get("collapse_phase_carrion", 0.0))
             + float(social_trends.boom_bust_scores.get("grassland_bust_phase", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_apex_condition_pull", 0.0)) * 0.28
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_pull", 0.0)) * 0.35
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.20
             + float(grassland_chain.trophic_scores.get("runtime_apex_regional_bias_pull", 0.0)) * 0.20
+            + float(carrion_chain.resource_scores.get("runtime_apex_condition_pull", 0.0)) * 0.30
             + float(carrion_chain.resource_scores.get("runtime_apex_health_pull", 0.0)) * 0.4
             + float(carrion_chain.resource_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.22
             + float(carrion_chain.resource_scores.get("runtime_apex_regional_bias_pull", 0.0)) * 0.25

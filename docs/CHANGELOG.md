@@ -1238,3 +1238,31 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `territory.runtime_signals`
   - `social_trends.cycle_signals`
   也就是说，系统现在已经不只看“锚点和偏置”，也开始把动物当下真实状态并入长期社群节律
+- ✅ `grassland_chain` 现在也开始继续读取：
+  - `herd_condition_runtime`
+  - `apex_condition_runtime`
+  并把它们写成：
+  - `runtime_herd_condition_pull`
+  - `runtime_apex_condition_pull`
+- ✅ 这些真实体况 pull 现在已经继续进入：
+  - 草原链摘要
+  - 草原链区域反馈
+  - `antelope / zebra / lion` 的低频重平衡
+- ✅ `carrion_chain` 现在也开始继续读取：
+  - `aerial_condition_runtime`
+  - `apex_condition_runtime`
+  并把它们写成：
+  - `runtime_aerial_condition_pull`
+  - `runtime_apex_condition_pull`
+- ✅ 这些真实体况 pull 现在已经继续进入：
+  - 尸体资源链摘要
+  - 尸体资源链区域反馈
+  - `vulture / lion` 的低频重平衡
+- ✅ `WorldSimulation._build_combined_pressures()` 现也开始继续吸收：
+  - `runtime_herd_condition_pull`
+  - `runtime_aerial_condition_pull`
+  - `runtime_apex_condition_pull`
+  这意味着运行中的真实体况现在已经开始直接进入世界级：
+  - `prosperity_pressure`
+  - `collapse_pressure`
+  并进一步影响区域长期 `prosperity / collapse_risk / stability`
