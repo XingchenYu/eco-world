@@ -1347,3 +1347,14 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `aerial_condition_phase_runtime`
   - `apex_condition_phase_runtime`
   也就是说，长期 `prosperity / collapse` 相位现在已经不只通过摘要层起作用，而会继续沿着真实运行体体况反向塑造 `territory` 和 `social_trends`
+- ✅ 这组 phase-conditioned runtime 现在也开始继续进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 区域反馈
+  - 低频重平衡
+  - 世界级长期压力
+- ✅ 新增并打通：
+  - `runtime_herd_condition_phase_pull`
+  - `runtime_aerial_condition_phase_pull`
+  - `runtime_apex_condition_phase_pull`
+  也就是说，长期相位修正后的真实体况现在已经不只影响 `territory/social_trends`，还开始直接改变草原链、尸体资源链和区域长期健康判定

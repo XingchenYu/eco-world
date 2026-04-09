@@ -730,7 +730,9 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["carcass_channeling"] > 0.0
     assert grassland_chain.trophic_scores["runtime_surface_water_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_herd_condition_pull"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_herd_condition_phase_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_condition_pull"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_apex_condition_phase_pull"] > 0.0
     assert grassland_chain.trophic_scores["surface_water_anchor"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
     assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
@@ -1355,6 +1357,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_herd_corridors" in summary.trophic_scores
     assert "runtime_surface_water_pull" in summary.trophic_scores
     assert "runtime_herd_condition_pull" in summary.trophic_scores
+    assert "runtime_herd_condition_phase_pull" in summary.trophic_scores
     assert "runtime_herd_health_pull" in summary.trophic_scores
     assert "runtime_herd_health_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_condition_anchor_pull" in summary.trophic_scores
@@ -1362,6 +1365,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_herd_resource_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_anchor_prosperity_pull" in summary.trophic_scores
     assert "runtime_apex_condition_pull" in summary.trophic_scores
+    assert "runtime_apex_condition_phase_pull" in summary.trophic_scores
     assert "runtime_apex_health_pull" in summary.trophic_scores
     assert "runtime_apex_health_anchor_pull" in summary.trophic_scores
     assert "runtime_apex_condition_anchor_pull" in summary.trophic_scores
@@ -1477,6 +1481,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["source_species"] == "runtime_health_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_condition_anchor" for item in adjustments)
+    assert any(item["source_species"] == "runtime_condition_phase" for item in adjustments)
     assert any(item["source_species"] == "runtime_regional_bias" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor_prosperity" for item in adjustments)
@@ -1615,6 +1620,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_aerial_lanes" in summary.resource_scores
     assert "runtime_carcass_pull" in summary.resource_scores
     assert "runtime_aerial_condition_pull" in summary.resource_scores
+    assert "runtime_aerial_condition_phase_pull" in summary.resource_scores
     assert "runtime_aerial_health_pull" in summary.resource_scores
     assert "runtime_aerial_health_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_condition_anchor_pull" in summary.resource_scores
@@ -1624,6 +1630,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "regional_prosperity_anchor" in summary.resource_scores
     assert "regional_stability_anchor" in summary.resource_scores
     assert "runtime_apex_condition_pull" in summary.resource_scores
+    assert "runtime_apex_condition_phase_pull" in summary.resource_scores
     assert "runtime_apex_health_pull" in summary.resource_scores
     assert "runtime_apex_health_anchor_pull" in summary.resource_scores
     assert "runtime_apex_condition_anchor_pull" in summary.resource_scores
@@ -1729,6 +1736,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "social_state" for item in adjustments)
     assert any(item["source_species"] == "runtime_condition" for item in adjustments)
     assert any(item["source_species"] == "runtime_condition_anchor" for item in adjustments)
+    assert any(item["source_species"] == "runtime_condition_phase" for item in adjustments)
     assert any(item["source_species"] == "runtime_health" for item in adjustments)
     assert any(item["source_species"] == "runtime_health_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_regional_bias" for item in adjustments)
