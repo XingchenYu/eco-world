@@ -1450,3 +1450,15 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `social_trends`：社群趋势层
   - `grassland_chain`：草原链
   - `carrion_chain`：尸体资源链
+- 新增并打通：
+  - `world_pressure_bias`：世界级长期压力回灌到运行体后的体况偏置
+  - `herd_world_pressure_runtime`
+  - `aerial_world_pressure_runtime`
+  - `apex_world_pressure_runtime`
+- 它们现在已经进入：
+  - `lion / hyena / antelope / zebra / vulture` 的运行体状态
+  - `territory.runtime_signals`
+  - `social_trends.cycle_signals`
+  - `grassland_chain`
+  - `carrion_chain`
+- 也就是说，世界级长期压力现在已经不只回写区域 `health_state`，而开始继续下沉成真实动物体况，并再反向塑造下一轮 `territory/social/grassland/carrion` 节律

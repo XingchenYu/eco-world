@@ -215,6 +215,9 @@ def build_region_territory_summary(
         + aerial_carcass_runtime * 0.12
         + aerial_anchor_prosperity_runtime * 0.08,
     )
+    apex_world_pressure_runtime = float(runtime_state.get("apex_world_pressure_runtime", 0.0))
+    herd_world_pressure_runtime = float(runtime_state.get("herd_world_pressure_runtime", 0.0))
+    aerial_world_pressure_runtime = float(runtime_state.get("aerial_world_pressure_runtime", 0.0))
     apex_condition_anchor_runtime = max(
         float(runtime_state.get("apex_condition_anchor_runtime", 0.0)),
         apex_condition_runtime * 0.62
@@ -516,6 +519,24 @@ def build_region_territory_summary(
         )
     if aerial_regional_bias_runtime > 0.0:
         runtime_signals["aerial_regional_bias_runtime"] = round(aerial_regional_bias_runtime, 3)
+    if herd_world_pressure_runtime > 0.0:
+        runtime_signals["herd_world_pressure_runtime"] = round(herd_world_pressure_runtime, 3)
+        pressure_scores["waterhole_spacing"] = round(
+            pressure_scores.get("waterhole_spacing", 0.0) + min(0.10, herd_world_pressure_runtime * 0.08),
+            2,
+        )
+    if aerial_world_pressure_runtime > 0.0:
+        runtime_signals["aerial_world_pressure_runtime"] = round(aerial_world_pressure_runtime, 3)
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.10, aerial_world_pressure_runtime * 0.08),
+            2,
+        )
+    if apex_world_pressure_runtime > 0.0:
+        runtime_signals["apex_world_pressure_runtime"] = round(apex_world_pressure_runtime, 3)
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.10, apex_world_pressure_runtime * 0.08),
+            2,
+        )
         pressure_scores["carcass_route_overlap"] = round(
             pressure_scores.get("carcass_route_overlap", 0.0) + min(0.08, aerial_regional_bias_runtime * 0.05),
             2,

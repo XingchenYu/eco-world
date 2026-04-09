@@ -39,6 +39,7 @@ class RegionSimulation(Ecosystem):
         phase_scores = social_state.get("phase_scores", {})
         hotspot_scores = social_state.get("hotspot_scores", {})
         prosperity_scores = social_state.get("prosperity_scores", {})
+        cycle_signals = social_state.get("cycle_signals", []) if isinstance(social_state, dict) else []
         health_state = self.region.health_state if isinstance(self.region.health_state, dict) else {}
         territory_signals = territory_state.get("runtime_signals", {}) if isinstance(territory_state, dict) else {}
         resource_state = self.region.resource_state if isinstance(self.region.resource_state, dict) else {}
@@ -125,6 +126,19 @@ class RegionSimulation(Ecosystem):
                 - regional_collapse_risk * 0.16,
             ),
         )
+        condition_window_memory = 1.0 if "condition_phase_window_memory" in cycle_signals else 0.0
+        world_pressure_bias = min(
+            1.0,
+            max(
+                0.0,
+                regional_prosperity * 0.42
+                + regional_stability * 0.24
+                + runtime_anchor_prosperity * 0.12
+                + condition_phase_bias * 0.10
+                + condition_window_memory * 0.08
+                - regional_collapse_risk * 0.26,
+            ),
+        )
 
         for animal in self.animals:
             if not animal.alive:
@@ -144,6 +158,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = apex_regional_health_anchor
                 animal.condition_runtime = apex_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.world_pressure_bias = world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -162,6 +177,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = apex_regional_health_anchor
                 animal.condition_runtime = apex_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.world_pressure_bias = world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -179,6 +195,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = herd_regional_health_anchor
                 animal.condition_runtime = herd_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.world_pressure_bias = world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -196,6 +213,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = herd_regional_health_anchor
                 animal.condition_runtime = herd_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.world_pressure_bias = world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -213,6 +231,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = aerial_regional_health_anchor
                 animal.condition_runtime = aerial_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.world_pressure_bias = world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias

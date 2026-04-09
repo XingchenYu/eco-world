@@ -1194,3 +1194,23 @@
   - `carrion_chain`
   - 世界级长期压力
   也就是说，长期相位沉淀出的运行体体况偏置现在已经不只作用于 `territory/social`，还开始直接抬高 herd/apex/aerial 两条草原链的长期权重
+- 世界级长期压力现在已经继续下沉成运行体自己的：
+  - `world_pressure_bias`
+- 已注入：
+  - `lion / hyena`
+  - `antelope / zebra`
+  - `vulture`
+- 已直接影响：
+  - `health`
+  - `hunger`
+  - `mate_cooldown`
+  - `reproduction_rate`
+- 同时这层新的 world pressure runtime 也已重新汇总回：
+  - `runtime_territory_state`
+  - `territory.runtime_signals`
+  - `social_trends.cycle_signals`
+  - `grassland_chain`
+  - `carrion_chain`
+  也就是说，世界级长期压力现在已经真正形成：
+  `world pressures -> runtime animals -> territory/social/chains -> next world pressures`
+  的闭环

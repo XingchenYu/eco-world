@@ -118,6 +118,7 @@ def build_region_carrion_chain_summary(
             add_score("runtime_vulture_overlap", min(0.22, vulture_overlap * 0.06), "秃鹫与地面尸体热点重叠正在抬高空地协同追踪强度。")
         aerial_carcass_runtime = float(runtime_signals.get("aerial_carcass_runtime", 0.0))
         aerial_regional_health_anchor_runtime = float(runtime_signals.get("aerial_regional_health_anchor_runtime", 0.0))
+        aerial_world_pressure_runtime = float(runtime_signals.get("aerial_world_pressure_runtime", 0.0))
         aerial_condition_anchor_runtime = float(runtime_signals.get("aerial_condition_anchor_runtime", 0.0))
         if aerial_carcass_runtime > 0.0:
             add_score("runtime_carcass_pull", min(0.22, aerial_carcass_runtime * 0.16), "运行中的空中尸体追踪正在把清道夫链重新拉向稳定尸体轴。")
@@ -141,6 +142,10 @@ def build_region_carrion_chain_summary(
             add_score("runtime_aerial_health_anchor_pull", min(0.20, aerial_regional_health_anchor_runtime * 0.14), "运行中的区域长期健康锚点正在继续抬升空中尸体追踪的稳定通道。")
             add_layer_bias("aerial_scavenge_layer", aerial_regional_health_anchor_runtime * 0.07)
             add_layer_bias("scavenge_layer", aerial_regional_health_anchor_runtime * 0.04)
+        if aerial_world_pressure_runtime > 0.0:
+            add_score("runtime_aerial_world_pressure_pull", min(0.18, aerial_world_pressure_runtime * 0.12), "世界级长期压力回灌成的空中偏置，正在继续抬升秃鹫尸体通道的跨周期稳定度。")
+            add_layer_bias("aerial_scavenge_layer", aerial_world_pressure_runtime * 0.06)
+            add_layer_bias("scavenge_layer", aerial_world_pressure_runtime * 0.03)
         aerial_condition_phase_anchor_runtime = float(runtime_signals.get("aerial_condition_phase_anchor_runtime", 0.0))
         if aerial_condition_anchor_runtime > 0.0:
             add_score("runtime_aerial_condition_anchor_pull", min(0.18, aerial_condition_anchor_runtime * 0.13), "运行中的真实体况锚点正在把空中尸体追踪继续拉向更稳定的长期通道。")
@@ -165,6 +170,7 @@ def build_region_carrion_chain_summary(
             add_layer_bias("aerial_scavenge_layer", aerial_anchor_prosperity_runtime * 0.07)
             add_layer_bias("scavenge_layer", aerial_anchor_prosperity_runtime * 0.04)
         apex_regional_health_anchor_runtime = float(runtime_signals.get("apex_regional_health_anchor_runtime", 0.0))
+        apex_world_pressure_runtime = float(runtime_signals.get("apex_world_pressure_runtime", 0.0))
         apex_condition_anchor_runtime = float(runtime_signals.get("apex_condition_anchor_runtime", 0.0))
         if apex_regional_health_runtime > 0.0:
             add_score("runtime_apex_health_pull", min(0.18, apex_regional_health_runtime * 0.12), "运行中的顶层捕食者长期健康度正在抬升击杀与残食通道的持续性。")
@@ -185,6 +191,10 @@ def build_region_carrion_chain_summary(
             add_score("runtime_apex_health_anchor_pull", min(0.18, apex_regional_health_anchor_runtime * 0.12), "运行中的区域长期健康锚点正在继续抬升击杀与残食通道的稳定前线。")
             add_layer_bias("kill_layer", apex_regional_health_anchor_runtime * 0.06)
             add_layer_bias("scavenge_layer", apex_regional_health_anchor_runtime * 0.04)
+        if apex_world_pressure_runtime > 0.0:
+            add_score("runtime_apex_world_pressure_pull", min(0.16, apex_world_pressure_runtime * 0.11), "世界级长期压力回灌成的 apex 偏置，正在继续抬升击杀走廊与残食前线。")
+            add_layer_bias("kill_layer", apex_world_pressure_runtime * 0.05)
+            add_layer_bias("scavenge_layer", apex_world_pressure_runtime * 0.03)
         apex_condition_phase_anchor_runtime = float(runtime_signals.get("apex_condition_phase_anchor_runtime", 0.0))
         if apex_condition_anchor_runtime > 0.0:
             add_score("runtime_apex_condition_anchor_pull", min(0.15, apex_condition_anchor_runtime * 0.12), "运行中的顶层体况锚点正在把击杀与残食通道继续拉向更稳定的长期前线。")

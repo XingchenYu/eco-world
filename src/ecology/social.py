@@ -92,6 +92,9 @@ def build_region_social_trend_summary(
     aerial_condition_anchor_runtime = float(runtime_signals.get("aerial_condition_anchor_runtime", 0.0))
     apex_regional_health_anchor_runtime = float(runtime_signals.get("apex_regional_health_anchor_runtime", 0.0))
     apex_condition_anchor_runtime = float(runtime_signals.get("apex_condition_anchor_runtime", 0.0))
+    herd_world_pressure_runtime = float(runtime_signals.get("herd_world_pressure_runtime", 0.0))
+    aerial_world_pressure_runtime = float(runtime_signals.get("aerial_world_pressure_runtime", 0.0))
+    apex_world_pressure_runtime = float(runtime_signals.get("apex_world_pressure_runtime", 0.0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
     regional_prosperity = float(region.health_state.get("prosperity", 0.0))
@@ -260,6 +263,7 @@ def build_region_social_trend_summary(
                     + apex_condition_anchor_runtime * 0.04
                     + apex_regional_bias_runtime * 0.05
                     + herd_resource_anchor_runtime * 0.04
+                    + herd_world_pressure_runtime * 0.04
                     + herd_anchor_prosperity_runtime * 0.04
                     + aerial_resource_anchor_runtime * 0.03
                     + aerial_anchor_prosperity_runtime * 0.03
@@ -289,6 +293,7 @@ def build_region_social_trend_summary(
                     + shared_hotspot_shift * 0.05
                     + shared_hotspot_persistence * 0.04
                     - herd_resource_anchor_runtime * 0.03
+                    - herd_world_pressure_runtime * 0.02
                     - herd_anchor_prosperity_runtime * 0.02
                     - aerial_resource_anchor_runtime * 0.02
                     - aerial_anchor_prosperity_runtime * 0.02
@@ -418,6 +423,7 @@ def build_region_social_trend_summary(
                     + herd_route_cycle_runtime * 0.06
                     + herd_surface_water_runtime * 0.05
                     + herd_regional_health_runtime * 0.05
+                    + herd_world_pressure_runtime * 0.04
                     + herd_condition_runtime * 0.04
                     + herd_regional_health_anchor_runtime * 0.04
                     + herd_regional_bias_runtime * 0.05
@@ -458,6 +464,7 @@ def build_region_social_trend_summary(
                     + aerial_carrion_cycle_runtime * 0.06
                     + aerial_carcass_runtime * 0.05
                     + aerial_regional_health_runtime * 0.05
+                    + aerial_world_pressure_runtime * 0.04
                     + aerial_condition_runtime * 0.04
                     + aerial_regional_health_anchor_runtime * 0.04
                     + aerial_regional_bias_runtime * 0.05
@@ -478,6 +485,7 @@ def build_region_social_trend_summary(
                     + aerial_carrion_cycle_runtime * 0.04
                     + aerial_carcass_runtime * 0.03
                     + apex_regional_health_runtime * 0.03
+                    + apex_world_pressure_runtime * 0.03
                     + apex_regional_health_anchor_runtime * 0.03
                     + apex_regional_bias_runtime * 0.03
                     + carcass_anchor * 0.05
@@ -501,6 +509,7 @@ def build_region_social_trend_summary(
                 + regional_prosperity * 0.05
                 + regional_stability * 0.04
                 + herd_regional_health_anchor_runtime * 0.04
+                + herd_world_pressure_runtime * 0.04
                 - collapse_drag * 0.04,
             ),
         ),
@@ -530,6 +539,7 @@ def build_region_social_trend_summary(
                 + regional_prosperity * 0.04
                 + regional_stability * 0.03
                 + aerial_regional_health_anchor_runtime * 0.04
+                + aerial_world_pressure_runtime * 0.04
                 - collapse_drag * 0.04,
             ),
         ),
@@ -649,6 +659,8 @@ def build_region_social_trend_summary(
         cycle_signals.append("herd_condition_anchor_runtime")
     if herd_regional_bias_runtime >= 0.30:
         cycle_signals.append("herd_regional_bias_runtime")
+    if herd_world_pressure_runtime >= 0.28:
+        cycle_signals.append("herd_world_pressure_runtime")
     if carcass_anchor >= 0.40:
         cycle_signals.append("carcass_anchor")
         narrative_trends.append("稳定尸体资源锚点正在持续加固空中清道夫的长期追踪记忆。")
@@ -678,6 +690,8 @@ def build_region_social_trend_summary(
         cycle_signals.append("aerial_condition_anchor_runtime")
     if aerial_regional_bias_runtime >= 0.28:
         cycle_signals.append("aerial_regional_bias_runtime")
+    if aerial_world_pressure_runtime >= 0.26:
+        cycle_signals.append("aerial_world_pressure_runtime")
     if apex_regional_health_runtime >= 0.30:
         cycle_signals.append("apex_regional_health_runtime")
         narrative_trends.append("顶层捕食者的区域健康度正在抬升长期社群繁荣相位。")
@@ -698,6 +712,8 @@ def build_region_social_trend_summary(
         narrative_trends.append("长期相位体况窗口正在把恢复机会沉淀成新的社群延续记忆。")
     if apex_regional_bias_runtime >= 0.30:
         cycle_signals.append("apex_regional_bias_runtime")
+    if apex_world_pressure_runtime >= 0.26:
+        cycle_signals.append("apex_world_pressure_runtime")
     if regional_prosperity >= 0.28:
         cycle_signals.append("regional_prosperity_anchor")
     if regional_stability >= 0.24:

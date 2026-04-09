@@ -615,6 +615,7 @@ class Lion(Animal):
         self.regional_health_anchor = 0.0
         self.condition_runtime = 0.0
         self.condition_phase_bias = 0.0
+        self.world_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -655,6 +656,7 @@ class Lion(Animal):
         self._apply_regional_health_anchor()
         self._apply_condition_runtime()
         self._apply_condition_phase_bias()
+        self._apply_world_pressure_bias()
         self._apply_social_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._pride_timer >= self.pride_interval:
@@ -713,6 +715,16 @@ class Lion(Animal):
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + phase_bias * 0.009
 
+    def _apply_world_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.world_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.08)
+        self.hunger = max(0.0, self.hunger - bias * 0.12)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.007
+
     def _apply_social_stability(self, ecosystem):
         lions = [animal for animal in ecosystem.animals if animal.alive and animal.species == "lion"]
         pride_size = sum(1 for animal in lions if getattr(animal, "pride_id", None) == self.pride_id)
@@ -747,6 +759,7 @@ class Lion(Animal):
             + self.regional_prosperity * 0.05
             + self.regional_stability * 0.04
             + self.regional_health_anchor * 0.05
+            + self.world_pressure_bias * 0.04
             + self.regional_prosperity_bias * 0.05
             + self.regional_stability_bias * 0.04
             - self.kill_corridor_bias * 0.03
@@ -872,6 +885,7 @@ class Hyena(Animal):
         self.regional_health_anchor = 0.0
         self.condition_runtime = 0.0
         self.condition_phase_bias = 0.0
+        self.world_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -915,6 +929,7 @@ class Hyena(Animal):
         self._apply_regional_health_anchor()
         self._apply_condition_runtime()
         self._apply_condition_phase_bias()
+        self._apply_world_pressure_bias()
         self._apply_clan_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._scavenge_timer >= self.scavenge_interval:
@@ -973,6 +988,16 @@ class Hyena(Animal):
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + phase_bias * 0.008
 
+    def _apply_world_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.world_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.08)
+        self.hunger = max(0.0, self.hunger - bias * 0.12)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.007
+
     def _apply_clan_stability(self, ecosystem):
         hyenas = [animal for animal in ecosystem.animals if animal.alive and animal.species == "hyena"]
         clan_size = sum(1 for animal in hyenas if getattr(animal, "clan_id", None) == self.clan_id)
@@ -1007,6 +1032,7 @@ class Hyena(Animal):
             + self.regional_prosperity * 0.05
             + self.regional_stability * 0.04
             + self.regional_health_anchor * 0.05
+            + self.world_pressure_bias * 0.04
             + self.regional_prosperity_bias * 0.05
             + self.regional_stability_bias * 0.04
             - self.kill_corridor_bias * 0.02
