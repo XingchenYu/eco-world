@@ -580,6 +580,9 @@ class Lion(Animal):
         self.apex_hotspot_bias = 0.0
         self.kill_corridor_bias = 0.0
         self.surface_water_anchor = 0.0
+        self.regional_prosperity = 0.0
+        self.regional_collapse_risk = 0.0
+        self.regional_stability = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -634,15 +637,15 @@ class Lion(Animal):
         expansion = max(0.0, min(1.0, self.cycle_expansion_phase))
         contraction = max(0.0, min(1.0, self.cycle_contraction_phase))
         if expansion > 0.0:
-            self.health = min(getattr(self, "max_health", 100), self.health + expansion * 0.35)
-            self.hunger = max(0.0, self.hunger - expansion * 0.7)
+            self.health = min(getattr(self, "max_health", 100), self.health + expansion * 0.35 + self.regional_prosperity * 0.08)
+            self.hunger = max(0.0, self.hunger - expansion * 0.7 - self.regional_stability * 0.05)
             self.mate_cooldown = max(0, self.mate_cooldown - int(expansion * 2))
             self.reproduction_rate *= 1.0 + expansion * 0.08
         if contraction > 0.0:
-            self.hunger = min(100.0, self.hunger + contraction * 0.55)
+            self.hunger = min(100.0, self.hunger + contraction * 0.55 + self.regional_collapse_risk * 0.06)
             self.mate_cooldown += int(contraction * 2)
             self.reproduction_rate *= max(0.78, 1.0 - contraction * 0.12)
-            self.health = max(0.0, self.health - contraction * 0.18)
+            self.health = max(0.0, self.health - contraction * 0.18 - self.regional_collapse_risk * 0.04)
 
     def _apply_social_stability(self, ecosystem):
         lions = [animal for animal in ecosystem.animals if animal.alive and animal.species == "lion"]
@@ -674,7 +677,10 @@ class Lion(Animal):
             - self.shared_hotspot_memory * 0.20
             + self.apex_hotspot_bias * 0.05
             + self.surface_water_anchor * 0.06
+            + self.regional_prosperity * 0.05
+            + self.regional_stability * 0.04
             - self.kill_corridor_bias * 0.03
+            - self.regional_collapse_risk * 0.04
         )
         stickiness = max(0.15, min(0.88, stickiness))
         old_x, old_y = self.pride_center
@@ -788,6 +794,9 @@ class Hyena(Animal):
         self.scavenger_hotspot_bias = 0.0
         self.kill_corridor_bias = 0.0
         self.carcass_anchor = 0.0
+        self.regional_prosperity = 0.0
+        self.regional_collapse_risk = 0.0
+        self.regional_stability = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion"]
@@ -845,15 +854,15 @@ class Hyena(Animal):
         expansion = max(0.0, min(1.0, self.cycle_expansion_phase))
         contraction = max(0.0, min(1.0, self.cycle_contraction_phase))
         if expansion > 0.0:
-            self.health = min(getattr(self, "max_health", 100), self.health + expansion * 0.30)
-            self.hunger = max(0.0, self.hunger - expansion * 0.65)
+            self.health = min(getattr(self, "max_health", 100), self.health + expansion * 0.30 + self.regional_prosperity * 0.07)
+            self.hunger = max(0.0, self.hunger - expansion * 0.65 - self.regional_stability * 0.05)
             self.mate_cooldown = max(0, self.mate_cooldown - int(expansion * 2))
             self.reproduction_rate *= 1.0 + expansion * 0.07
         if contraction > 0.0:
-            self.hunger = min(100.0, self.hunger + contraction * 0.5)
+            self.hunger = min(100.0, self.hunger + contraction * 0.5 + self.regional_collapse_risk * 0.05)
             self.mate_cooldown += int(contraction * 2)
             self.reproduction_rate *= max(0.80, 1.0 - contraction * 0.10)
-            self.health = max(0.0, self.health - contraction * 0.16)
+            self.health = max(0.0, self.health - contraction * 0.16 - self.regional_collapse_risk * 0.04)
 
     def _apply_clan_stability(self, ecosystem):
         hyenas = [animal for animal in ecosystem.animals if animal.alive and animal.species == "hyena"]
@@ -885,7 +894,10 @@ class Hyena(Animal):
             - self.shared_hotspot_memory * 0.16
             + self.scavenger_hotspot_bias * 0.05
             + self.carcass_anchor * 0.06
+            + self.regional_prosperity * 0.05
+            + self.regional_stability * 0.04
             - self.kill_corridor_bias * 0.02
+            - self.regional_collapse_risk * 0.04
         )
         stickiness = max(0.12, min(0.86, stickiness))
         old_x, old_y = self.clan_center

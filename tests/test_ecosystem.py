@@ -49,7 +49,7 @@ from src.ecology.carrion import (
 )
 from src.entities.omnivores import Hyena, Lion
 from src.entities.plants import Grass, Tree
-from src.entities.animals import Rabbit, Fox, Gender
+from src.entities.animals import Antelope, Fox, Gender, Rabbit, Vulture, Zebra
 from src.main import load_config
 from src.sim.region_simulation import RegionSimulation
 from src.sim.world_simulation import build_default_world_simulation
@@ -1715,11 +1715,15 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.hotspot_memory == 0.52
     assert lion.shared_hotspot_memory == 0.31
     assert lion.surface_water_anchor == 0.6
+    assert lion.regional_prosperity > 0.0
+    assert lion.regional_stability > 0.0
     assert hyena.cycle_expansion_phase == 0.58
     assert hyena.cycle_contraction_phase == 0.18
     assert hyena.hotspot_memory == 0.49
     assert hyena.shared_hotspot_memory == 0.31
     assert hyena.carcass_anchor == 0.5
+    assert hyena.regional_prosperity > 0.0
+    assert hyena.regional_stability > 0.0
     assert lion.apex_hotspot_bias == 1.0
     assert lion.kill_corridor_bias == 1.0
     assert hyena.scavenger_hotspot_bias == 1.0
@@ -1730,18 +1734,24 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.prosperity_phase_bias == 0.41
     assert antelope.collapse_phase_bias == 0.16
     assert antelope.surface_water_anchor == 0.6
+    assert antelope.regional_prosperity > 0.0
+    assert antelope.regional_stability > 0.0
     assert zebra.herd_channel_bias == 1.0
     assert zebra.herd_source_bias == 1.0
     assert zebra.route_cycle_bias == 0.36
     assert zebra.prosperity_phase_bias == 0.41
     assert zebra.collapse_phase_bias == 0.16
     assert zebra.surface_water_anchor == 0.6
+    assert zebra.regional_prosperity > 0.0
+    assert zebra.regional_stability > 0.0
     assert vulture.aerial_lane_bias == 1.0
     assert vulture.kill_corridor_bias == 1.0
     assert vulture.carrion_cycle_bias == 0.31
     assert vulture.prosperity_phase_bias == 0.41
     assert vulture.collapse_phase_bias == 0.16
     assert vulture.carcass_anchor == 0.5
+    assert vulture.regional_prosperity > 0.0
+    assert vulture.regional_stability > 0.0
 
     print("✅ Region simulation social phase injection test passed")
 
@@ -1770,6 +1780,32 @@ def test_herd_and_carrion_runtime_prosperity_bias():
     assert vulture.carrion_cycle_bias > 0.0
 
     print("✅ Herd and carrion runtime prosperity bias test passed")
+
+
+def test_runtime_regional_health_bias():
+    """区域长期健康度应进入 herd 与 carrion 运行偏置。"""
+    antelope = Antelope(position=(20, 20), gender=Gender.FEMALE)
+    zebra = Zebra(position=(22, 20), gender=Gender.FEMALE)
+    vulture = Vulture(position=(24, 20), gender=Gender.FEMALE)
+
+    antelope.regional_prosperity = 0.42
+    antelope.regional_stability = 0.30
+    antelope.regional_collapse_risk = 0.08
+    zebra.regional_prosperity = 0.40
+    zebra.regional_stability = 0.28
+    zebra.regional_collapse_risk = 0.06
+    vulture.regional_prosperity = 0.38
+    vulture.regional_stability = 0.24
+    vulture.regional_collapse_risk = 0.05
+
+    assert antelope.regional_prosperity > antelope.regional_collapse_risk
+    assert antelope.regional_stability > 0.0
+    assert zebra.regional_prosperity > zebra.regional_collapse_risk
+    assert zebra.regional_stability > 0.0
+    assert vulture.regional_prosperity > vulture.regional_collapse_risk
+    assert vulture.regional_stability > 0.0
+
+    print("✅ Runtime regional health bias test passed")
 
 
 def test_lion_hotspot_memory_center_effect():
@@ -2493,6 +2529,7 @@ def run_all_tests():
     test_region_simulation_applies_social_phase_state()
     test_lion_hotspot_memory_center_effect()
     test_hyena_hotspot_memory_center_effect()
+    test_runtime_regional_health_bias()
     test_v4_carrion_chain_summary()
     test_v4_wetland_chain_feedback_updates_region_state()
     test_v4_wetland_chain_rebalancing_updates_species_pool()

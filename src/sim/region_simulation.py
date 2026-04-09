@@ -39,6 +39,7 @@ class RegionSimulation(Ecosystem):
         phase_scores = social_state.get("phase_scores", {})
         hotspot_scores = social_state.get("hotspot_scores", {})
         prosperity_scores = social_state.get("prosperity_scores", {})
+        health_state = self.region.health_state if isinstance(self.region.health_state, dict) else {}
         territory_signals = territory_state.get("runtime_signals", {}) if isinstance(territory_state, dict) else {}
         lion_expansion = float(phase_scores.get("lion_expansion_phase", 0.0))
         lion_contraction = float(phase_scores.get("lion_contraction_phase", 0.0))
@@ -59,6 +60,15 @@ class RegionSimulation(Ecosystem):
         aerial_lane_bias = float(territory_signals.get("aerial_lane_bias", 0.0))
         surface_water_anchor = float(territory_signals.get("surface_water_anchor", 0.0))
         carcass_anchor = float(territory_signals.get("carcass_anchor", 0.0))
+        regional_prosperity = float(health_state.get("prosperity", 0.0))
+        regional_collapse_risk = float(health_state.get("collapse_risk", 0.0))
+        regional_stability = float(health_state.get("stability", 0.0))
+        if regional_prosperity <= 0.0:
+            regional_prosperity = grassland_prosperity * 0.6 + max(herd_route_cycle, aerial_carrion_cycle) * 0.12
+        if regional_collapse_risk <= 0.0:
+            regional_collapse_risk = grassland_collapse * 0.6
+        if regional_stability <= 0.0:
+            regional_stability = max(0.0, regional_prosperity * 0.5 - regional_collapse_risk * 0.2)
 
         for animal in self.animals:
             if not animal.alive:
@@ -71,6 +81,9 @@ class RegionSimulation(Ecosystem):
                 animal.apex_hotspot_bias = apex_hotspot_bias
                 animal.kill_corridor_bias = kill_corridor_bias
                 animal.surface_water_anchor = surface_water_anchor
+                animal.regional_prosperity = regional_prosperity
+                animal.regional_collapse_risk = regional_collapse_risk
+                animal.regional_stability = regional_stability
             elif animal.species == "hyena":
                 animal.cycle_expansion_phase = hyena_expansion
                 animal.cycle_contraction_phase = hyena_contraction
@@ -79,6 +92,9 @@ class RegionSimulation(Ecosystem):
                 animal.scavenger_hotspot_bias = scavenger_hotspot_bias
                 animal.kill_corridor_bias = kill_corridor_bias
                 animal.carcass_anchor = carcass_anchor
+                animal.regional_prosperity = regional_prosperity
+                animal.regional_collapse_risk = regional_collapse_risk
+                animal.regional_stability = regional_stability
             elif animal.species == "antelope":
                 animal.herd_channel_bias = herd_channel_bias
                 animal.herd_source_bias = herd_source_bias
@@ -86,6 +102,9 @@ class RegionSimulation(Ecosystem):
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
                 animal.surface_water_anchor = surface_water_anchor
+                animal.regional_prosperity = regional_prosperity
+                animal.regional_collapse_risk = regional_collapse_risk
+                animal.regional_stability = regional_stability
             elif animal.species == "zebra":
                 animal.herd_channel_bias = herd_channel_bias
                 animal.herd_source_bias = herd_source_bias
@@ -93,6 +112,9 @@ class RegionSimulation(Ecosystem):
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
                 animal.surface_water_anchor = surface_water_anchor
+                animal.regional_prosperity = regional_prosperity
+                animal.regional_collapse_risk = regional_collapse_risk
+                animal.regional_stability = regional_stability
             elif animal.species == "vulture":
                 animal.aerial_lane_bias = aerial_lane_bias
                 animal.kill_corridor_bias = kill_corridor_bias
@@ -100,6 +122,9 @@ class RegionSimulation(Ecosystem):
                 animal.prosperity_phase_bias = grassland_prosperity
                 animal.collapse_phase_bias = grassland_collapse
                 animal.carcass_anchor = carcass_anchor
+                animal.regional_prosperity = regional_prosperity
+                animal.regional_collapse_risk = regional_collapse_risk
+                animal.regional_stability = regional_stability
 
     def get_statistics(self) -> dict:
         stats = super().get_statistics()

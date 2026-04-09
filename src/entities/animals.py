@@ -1144,6 +1144,9 @@ class Antelope(Animal):
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
         self.surface_water_anchor = 0.0
+        self.regional_prosperity = 0.0
+        self.regional_collapse_risk = 0.0
+        self.regional_stability = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion", "hyena", "wolf", "crocodile"]
@@ -1182,8 +1185,10 @@ class Antelope(Animal):
             self.route_cycle_bias * 0.9,
             self.prosperity_phase_bias * 0.85,
             self.surface_water_anchor * 0.95,
+            self.regional_prosperity * 0.55,
+            self.regional_stability * 0.40,
         )
-        collapse_drag = self.collapse_phase_bias * 0.12
+        collapse_drag = self.collapse_phase_bias * 0.12 + self.regional_collapse_risk * 0.08
         if bias <= 0.0:
             return
         if self.hunger < max(28, 45 - self.prosperity_phase_bias * 12 + self.collapse_phase_bias * 6) and self.seek_habitat(ecosystem, radius=self.vision_range + 2):
@@ -1219,6 +1224,9 @@ class Zebra(Animal):
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
         self.surface_water_anchor = 0.0
+        self.regional_prosperity = 0.0
+        self.regional_collapse_risk = 0.0
+        self.regional_stability = 0.0
 
     def get_predators(self) -> List[str]:
         return ["lion", "hyena", "crocodile"]
@@ -1254,8 +1262,10 @@ class Zebra(Animal):
             self.route_cycle_bias * 0.9,
             self.prosperity_phase_bias * 0.85,
             self.surface_water_anchor * 0.95,
+            self.regional_prosperity * 0.55,
+            self.regional_stability * 0.40,
         )
-        collapse_drag = self.collapse_phase_bias * 0.12
+        collapse_drag = self.collapse_phase_bias * 0.12 + self.regional_collapse_risk * 0.08
         if bias <= 0.0:
             return
         if self.hunger < max(30, 48 - self.prosperity_phase_bias * 12 + self.collapse_phase_bias * 6) and self.seek_habitat(ecosystem, radius=self.vision_range + 2):
@@ -1659,6 +1669,9 @@ class Vulture(Animal):
         self.prosperity_phase_bias = 0.0
         self.collapse_phase_bias = 0.0
         self.carcass_anchor = 0.0
+        self.regional_prosperity = 0.0
+        self.regional_collapse_risk = 0.0
+        self.regional_stability = 0.0
 
     def get_predators(self) -> List[str]:
         return []
@@ -1703,8 +1716,10 @@ class Vulture(Animal):
             self.carrion_cycle_bias * 0.92,
             self.prosperity_phase_bias * 0.9,
             self.carcass_anchor * 0.95,
+            self.regional_prosperity * 0.52,
+            self.regional_stability * 0.36,
         )
-        collapse_drag = self.collapse_phase_bias * 0.10
+        collapse_drag = self.collapse_phase_bias * 0.10 + self.regional_collapse_risk * 0.07
         if bias <= 0.0:
             return
         if hasattr(ecosystem, "get_microhabitat_patches"):
