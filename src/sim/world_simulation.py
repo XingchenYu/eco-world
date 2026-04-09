@@ -353,6 +353,7 @@ class WorldSimulation:
         return self.ensure_region_simulation(self.active_region_id)
 
     def _build_runtime_territory_state(self, simulation: RegionSimulation) -> Dict[str, float]:
+        region_resource_state = simulation.region.resource_state if simulation.region is not None and isinstance(simulation.region.resource_state, dict) else {}
         state = {
             "lion_pride_strength": 0.0,
             "lion_takeover_pressure": 0.0,
@@ -440,6 +441,10 @@ class WorldSimulation:
             state["herd_surface_water_runtime"] = max(
                 [getattr(animal, "surface_water_anchor", 0.0) for animal in antelopes + zebras] or [0.0]
             )
+            state["herd_surface_water_runtime"] = max(
+                state["herd_surface_water_runtime"],
+                float(region_resource_state.get("surface_water", 0.0)),
+            )
             state["herd_regional_health_runtime"] = max(
                 [
                     max(
@@ -460,6 +465,10 @@ class WorldSimulation:
             )
             state["aerial_carcass_runtime"] = max(
                 [getattr(animal, "carcass_anchor", 0.0) for animal in vultures] or [0.0]
+            )
+            state["aerial_carcass_runtime"] = max(
+                state["aerial_carcass_runtime"],
+                float(region_resource_state.get("carcass_availability", 0.0)),
             )
             state["aerial_regional_health_runtime"] = max(
                 [
