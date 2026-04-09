@@ -746,3 +746,8 @@
   - `aerial_carrion_cycle`
   直接回灌到 `antelope / zebra / vulture` 的运行期偏置
 - herd/carrion 的长期周期现在已直接进入运行体空间行为，而不只停留在摘要和重平衡层
+- `runtime_territory_state` 现已开始把：
+  - 运行中的 `herd_route_cycle_runtime`
+  - 运行中的 `aerial_carrion_cycle_runtime`
+  反向写回 `territory.runtime_signals`
+- 这意味着 herd/carrion 的运行期周期行为已经开始回流到区域领地层

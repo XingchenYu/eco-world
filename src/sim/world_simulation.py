@@ -291,6 +291,8 @@ class WorldSimulation:
             "vulture_hotspot_count": 0.0,
             "vulture_carrion_overlap": 0.0,
             "shared_hotspot_overlap": 0.0,
+            "herd_route_cycle_runtime": 0.0,
+            "aerial_carrion_cycle_runtime": 0.0,
         }
         lions = [animal for animal in simulation.animals if animal.alive and animal.species == "lion"]
         hyenas = [animal for animal in simulation.animals if animal.alive and animal.species == "hyena"]
@@ -320,9 +322,15 @@ class WorldSimulation:
         if antelopes or zebras:
             herd_hotspots = {self._territory_hotspot(animal.position) for animal in antelopes + zebras}
             state["herd_hotspot_count"] = float(len(herd_hotspots))
+            state["herd_route_cycle_runtime"] = max(
+                [getattr(animal, "route_cycle_bias", 0.0) for animal in antelopes + zebras] or [0.0]
+            )
         if vultures:
             vulture_hotspots = {self._territory_hotspot(animal.position) for animal in vultures}
             state["vulture_hotspot_count"] = float(len(vulture_hotspots))
+            state["aerial_carrion_cycle_runtime"] = max(
+                [getattr(animal, "carrion_cycle_bias", 0.0) for animal in vultures] or [0.0]
+            )
         if lion_hotspots and hyena_hotspots:
             state["shared_hotspot_overlap"] = float(len(lion_hotspots & hyena_hotspots))
         if herd_hotspots and (lion_hotspots or hyena_hotspots):

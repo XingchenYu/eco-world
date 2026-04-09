@@ -924,6 +924,11 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ `RegionSimulation.apply_relationship_runtime_state()` 现在会把 `herd_route_cycle / aerial_carrion_cycle` 直接回灌到 `antelope / zebra / vulture`
 - ✅ herd/carrion 长期周期现在会直接影响食草群与秃鹫的运行期通道偏置，而不只作用于摘要和重平衡
 
+# v4.0-alpha42 - Feed runtime route cycles back into territory
+
+- ✅ `runtime_territory_state` 现在会采集运行中的 `herd_route_cycle_runtime / aerial_carrion_cycle_runtime`
+- ✅ `territory.runtime_signals` 与领地压力现在会吸收 herd/carrion 的运行期周期行为，形成更完整的空间反馈闭环
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：
