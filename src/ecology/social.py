@@ -33,6 +33,7 @@ def build_region_social_trend_summary(
     previous_phase_scores = previous.get("phase_scores", {}) if isinstance(previous, dict) else {}
     previous_boom_bust_scores = previous.get("boom_bust_scores", {}) if isinstance(previous, dict) else {}
     previous_prosperity_scores = previous.get("prosperity_scores", {}) if isinstance(previous, dict) else {}
+    previous_hotspot_scores = previous.get("hotspot_scores", {}) if isinstance(previous, dict) else {}
     runtime_signals = getattr(territory_summary, "runtime_signals", {}) or {}
 
     pride_strength = float(runtime_signals.get("lion_pride_strength", 0.0))
@@ -50,6 +51,10 @@ def build_region_social_trend_summary(
     lion_hotspot_shift = int(runtime_signals.get("lion_hotspot_shift", 0))
     hyena_hotspot_shift = int(runtime_signals.get("hyena_hotspot_shift", 0))
     shared_hotspot_shift = int(runtime_signals.get("shared_hotspot_shift", 0))
+    herd_hotspots = int(runtime_signals.get("herd_hotspot_count", 0))
+    herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
+    vulture_hotspots = int(runtime_signals.get("vulture_hotspot_count", 0))
+    vulture_carrion_overlap = int(runtime_signals.get("vulture_carrion_overlap", 0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
 
@@ -64,6 +69,9 @@ def build_region_social_trend_summary(
 
     def carry_prosperity(key: str) -> float:
         return float(previous_prosperity_scores.get(key, 0.0))
+
+    def carry_hotspot(key: str) -> float:
+        return float(previous_hotspot_scores.get(key, 0.0))
 
     lion_recovery = min(
         1.0,
@@ -193,15 +201,88 @@ def build_region_social_trend_summary(
 
     hotspot_scores = {
         "lion_hotspot_memory": round(
-            max(0.0, min(1.0, lion_hotspot_persistence * 0.18 + lion_hotspots * 0.06 - lion_hotspot_shift * 0.05)),
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_hotspot("lion_hotspot_memory") * 0.66
+                    + lion_hotspot_persistence * 0.18
+                    + lion_hotspots * 0.06
+                    - lion_hotspot_shift * 0.05,
+                ),
+            ),
             3,
         ),
         "hyena_hotspot_memory": round(
-            max(0.0, min(1.0, hyena_hotspot_persistence * 0.16 + hyena_hotspots * 0.06 - hyena_hotspot_shift * 0.05)),
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_hotspot("hyena_hotspot_memory") * 0.66
+                    + hyena_hotspot_persistence * 0.16
+                    + hyena_hotspots * 0.06
+                    - hyena_hotspot_shift * 0.05,
+                ),
+            ),
             3,
         ),
         "shared_hotspot_memory": round(
-            max(0.0, min(1.0, shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06)),
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_hotspot("shared_hotspot_memory") * 0.66
+                    + shared_hotspot_persistence * 0.20
+                    + overlap * 0.08
+                    - shared_hotspot_shift * 0.06,
+                ),
+            ),
+            3,
+        ),
+        "herd_hotspot_memory": round(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_hotspot("herd_hotspot_memory") * 0.68
+                    + herd_hotspots * 0.08
+                    + herd_apex_overlap * 0.04,
+                ),
+            ),
+            3,
+        ),
+        "herd_apex_memory": round(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_hotspot("herd_apex_memory") * 0.68
+                    + herd_apex_overlap * 0.10,
+                ),
+            ),
+            3,
+        ),
+        "vulture_hotspot_memory": round(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_hotspot("vulture_hotspot_memory") * 0.68
+                    + vulture_hotspots * 0.08
+                    + vulture_carrion_overlap * 0.05,
+                ),
+            ),
+            3,
+        ),
+        "vulture_carrion_memory": round(
+            max(
+                0.0,
+                min(
+                    1.0,
+                    carry_hotspot("vulture_carrion_memory") * 0.68
+                    + vulture_carrion_overlap * 0.10,
+                ),
+            ),
             3,
         ),
     }
@@ -237,12 +318,24 @@ def build_region_social_trend_summary(
     if hotspot_scores["shared_hotspot_memory"] >= 0.34:
         cycle_signals.append("shared_hotspot_memory")
         narrative_trends.append("狮群与鬣狗热点重叠正在形成长期通道记忆。")
+    if hotspot_scores["herd_hotspot_memory"] >= 0.30:
+        cycle_signals.append("herd_hotspot_memory")
+        narrative_trends.append("食草群通道热点正在形成跨周期迁移记忆。")
+    if hotspot_scores["vulture_hotspot_memory"] >= 0.28:
+        cycle_signals.append("vulture_hotspot_memory")
+        narrative_trends.append("空中清道夫热点正在形成跨周期追踪记忆。")
     if hotspot_scores["lion_hotspot_memory"] + hotspot_scores["hyena_hotspot_memory"] >= 0.78:
         cycle_signals.append("apex_hotspot_wave")
         narrative_trends.append("顶层捕食者热点记忆正在放大草原多周期兴衰波动。")
     if hotspot_scores["shared_hotspot_memory"] >= 0.42:
         cycle_signals.append("shared_hotspot_churn")
         narrative_trends.append("共享热点记忆正在把草原热点冲突转化为更明显的周期性震荡。")
+    if hotspot_scores["herd_hotspot_memory"] + hotspot_scores["herd_apex_memory"] >= 0.44:
+        cycle_signals.append("herd_route_memory")
+        narrative_trends.append("食草群热点记忆正在把水源与草场重新织成更稳定的 herd 通道。")
+    if hotspot_scores["vulture_hotspot_memory"] + hotspot_scores["vulture_carrion_memory"] >= 0.40:
+        cycle_signals.append("aerial_carrion_memory")
+        narrative_trends.append("空中尸体通道记忆正在强化秃鹫对击杀走廊的长期跟踪。")
     if boom_bust_scores["grassland_boom_phase"] >= 0.45:
         cycle_signals.append("grassland_boom_phase")
         narrative_trends.append("草原社群热点与扩张周期正在共同推高长期繁荣相位。")
@@ -290,10 +383,14 @@ def apply_region_social_trend_feedback(
     _adjust(region.health_state, "fragmentation", social_trends.prosperity_scores.get("grassland_collapse_phase", 0.0) * 0.12, feedback_scale)
     _adjust(region.health_state, "resilience", social_trends.hotspot_scores.get("lion_hotspot_memory", 0.0) * 0.10, feedback_scale)
     _adjust(region.health_state, "resilience", social_trends.hotspot_scores.get("hyena_hotspot_memory", 0.0) * 0.09, feedback_scale)
+    _adjust(region.health_state, "resilience", social_trends.hotspot_scores.get("herd_hotspot_memory", 0.0) * 0.08, feedback_scale)
+    _adjust(region.health_state, "biodiversity", social_trends.hotspot_scores.get("vulture_hotspot_memory", 0.0) * 0.07, feedback_scale)
     _adjust(region.hazard_state, "territorial_conflict", social_trends.hotspot_scores.get("shared_hotspot_memory", 0.0) * 0.10, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("lion_recovery_bias", 0.0) * 0.12, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("hyena_recovery_bias", 0.0) * 0.10, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", social_trends.hotspot_scores.get("vulture_carrion_memory", 0.0) * 0.06, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("hyena_recovery_bias", 0.0) * 0.08, feedback_scale)
+    _adjust(region.resource_state, "surface_water", social_trends.hotspot_scores.get("herd_apex_memory", 0.0) * 0.05, feedback_scale)
 
 
 def _adjust(state: Dict[str, float], key: str, raw_delta: float, feedback_scale: float) -> None:

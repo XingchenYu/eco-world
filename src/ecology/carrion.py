@@ -115,6 +115,8 @@ def build_region_carrion_chain_summary(
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        vulture_hotspot_memory = float(hotspot_scores.get("vulture_hotspot_memory", 0.0))
+        vulture_carrion_memory = float(hotspot_scores.get("vulture_carrion_memory", 0.0))
         if grassland_prosperity_phase > 0.0:
             add_score("prosperity_phase_carrion", grassland_prosperity_phase * 0.22, "区域繁荣相位正在抬升尸体资源链的整体通量。")
             add_score("prosperity_feedback_bias", grassland_prosperity_phase * 0.20, "区域繁荣相位正在把尸体资源链推向更高通量的稳定态。")
@@ -131,6 +133,10 @@ def build_region_carrion_chain_summary(
             add_score("hotspot_cycle_carrion", hyena_hotspot_memory * 0.20, "持续的鬣狗热点记忆会延长尸体资源的地面清道夫使用窗口。")
         if shared_hotspot_memory > 0.0:
             add_score("hotspot_cycle_tracking", shared_hotspot_memory * 0.24, "共享热点记忆会强化秃鹫与地面清道夫对尸体通道的协同追踪。")
+        if vulture_hotspot_memory > 0.0:
+            add_score("aerial_memory_lanes", vulture_hotspot_memory * 0.22, "秃鹫热点记忆正在把空中尸体追踪通道固化下来。")
+        if vulture_carrion_memory > 0.0:
+            add_score("aerial_memory_overlap", vulture_carrion_memory * 0.20, "秃鹫与尸体热点重叠记忆正在放大空地清道夫协同。")
 
     dominant_layer = _select_dominant_carrion_layer(
         layer_scores,
@@ -171,6 +177,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("dominant_kill_layout", 0.0) * 0.12 * kill_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("hotspot_cycle_carrion", 0.0) * 0.16 * prosperity_bias * scavenger_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("aerial_memory_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carcass_recycling", 0.0) * 0.18 * prosperity_bias * scavenger_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("kill_site_control", 0.0) * 0.16 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("carcass_competition_loop", 0.0) * 0.12 * collapse_bias * scavenger_bias, feedback_scale)
@@ -179,6 +186,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_tracking", 0.0) * 0.14 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("dominant_aerial_tracking", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_vulture_overlap", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("aerial_memory_overlap", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("carrion_energy_loop", 0.0) * 0.14 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("full_carrion_closure", 0.0) * 0.12 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_carrion", 0.0) * 0.08 * prosperity_bias, feedback_scale)

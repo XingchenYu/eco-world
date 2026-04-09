@@ -144,6 +144,8 @@ def build_region_grassland_chain_summary(
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
+        herd_hotspot_memory = float(hotspot_scores.get("herd_hotspot_memory", 0.0))
+        herd_apex_memory = float(hotspot_scores.get("herd_apex_memory", 0.0))
         if grassland_prosperity_phase > 0.0:
             add_score("prosperity_phase_weight", grassland_prosperity_phase * 0.24, "区域繁荣相位正在整体抬升草原链的联动权重。")
             add_score("prosperity_feedback_bias", grassland_prosperity_phase * 0.22, "区域繁荣相位正在把草原链推向更高连通度的稳定态。")
@@ -160,6 +162,10 @@ def build_region_grassland_chain_summary(
             add_score("hotspot_cycle_pressure", hyena_hotspot_memory * 0.20, "持续的鬣狗热点记忆会强化清道夫通道的多周期跟随。")
         if shared_hotspot_memory > 0.0:
             add_score("hotspot_cycle_overlap", shared_hotspot_memory * 0.24, "共享热点记忆会让草原热点冲突在多周期内持续回响。")
+        if herd_hotspot_memory > 0.0:
+            add_score("herd_memory_corridors", herd_hotspot_memory * 0.22, "食草群热点记忆正在把迁移通道固化为更稳定的 herd 走廊。")
+        if herd_apex_memory > 0.0:
+            add_score("herd_memory_pressure", herd_apex_memory * 0.20, "食草群与顶层热点记忆叠加时，会把草原 herd 通道重新压向高风险边缘。")
 
     dominant_layer = _select_dominant_grassland_layer(
         layer_scores,
@@ -202,6 +208,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("migration_pressure", 0.0) * 0.10, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("dominant_herd_channeling", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("herd_memory_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16 * scavenger_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", -scores.get("clan_pressure", 0.0) * 0.06 * collapse_bias * social_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("carcass_channeling", 0.0) * 0.20 * scavenger_bias, feedback_scale)
@@ -212,6 +219,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("apex_rivalry", 0.0) * 0.14 * collapse_bias * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("territory_channel_pressure", 0.0) * 0.18 * collapse_bias * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("hotspot_cycle_pressure", 0.0) * 0.18 * collapse_bias * predator_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("herd_memory_pressure", 0.0) * 0.14 * collapse_bias * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("dominant_apex_layout", 0.0) * 0.14 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_herd_apex_overlap", 0.0) * 0.12 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)

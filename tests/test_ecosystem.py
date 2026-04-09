@@ -903,6 +903,10 @@ def test_v4_social_trend_summary_uses_memory():
                 "lion_hotspot_memory": 0.46,
                 "hyena_hotspot_memory": 0.44,
                 "shared_hotspot_memory": 0.38,
+                "herd_hotspot_memory": 0.34,
+                "herd_apex_memory": 0.22,
+                "vulture_hotspot_memory": 0.30,
+                "vulture_carrion_memory": 0.26,
             },
         },
     )
@@ -916,6 +920,10 @@ def test_v4_social_trend_summary_uses_memory():
             "hyena_clan_cohesion": 0.65,
             "hyena_clan_count": 2.0,
             "hyena_hotspot_count": 2.0,
+            "herd_hotspot_count": 3.0,
+            "herd_apex_overlap": 1.0,
+            "vulture_hotspot_count": 2.0,
+            "vulture_carrion_overlap": 1.0,
             "shared_hotspot_overlap": 0.0,
         },
     )
@@ -930,10 +938,14 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.prosperity_scores["grassland_prosperity_phase"] > 0.0
     assert summary.hotspot_scores["lion_hotspot_memory"] >= 0.12
     assert summary.hotspot_scores["hyena_hotspot_memory"] >= 0.12
+    assert summary.hotspot_scores["herd_hotspot_memory"] > 0.25
+    assert summary.hotspot_scores["vulture_hotspot_memory"] > 0.20
     assert "lion_expansion_cycle" in summary.cycle_signals
     assert "hyena_expansion_cycle" in summary.cycle_signals
     assert "apex_hotspot_wave" in summary.cycle_signals
     assert "grassland_boom_phase" in summary.cycle_signals
+    assert "herd_hotspot_memory" in summary.cycle_signals
+    assert "vulture_hotspot_memory" in summary.cycle_signals
 
     before_resilience = region.health_state["resilience"]
     apply_region_social_trend_feedback(region, summary, feedback_scale=0.05)
@@ -1079,6 +1091,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
                 "lion_hotspot_memory": 0.46,
                 "hyena_hotspot_memory": 0.44,
                 "shared_hotspot_memory": 0.43,
+                "herd_hotspot_memory": 0.40,
+                "herd_apex_memory": 0.28,
             },
         },
     )
@@ -1111,6 +1125,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "dominant_herd_channeling" in summary.trophic_scores
     assert "runtime_herd_corridors" in summary.trophic_scores
     assert "runtime_herd_apex_overlap" in summary.trophic_scores
+    assert "herd_memory_corridors" in summary.trophic_scores
+    assert "herd_memory_pressure" in summary.trophic_scores
     assert summary.layer_scores["herd_layer"] > 0.69
     assert summary.layer_scores["social_layer"] > 1.0
     assert summary.dominant_layer == "herd_layer"
@@ -1161,6 +1177,8 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
                 "lion_hotspot_memory": 0.46,
                 "hyena_hotspot_memory": 0.44,
                 "shared_hotspot_memory": 0.43,
+                "vulture_hotspot_memory": 0.38,
+                "vulture_carrion_memory": 0.32,
             },
         },
     )
@@ -1302,6 +1320,8 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "dominant_kill_layout" in summary.resource_scores
     assert "runtime_aerial_lanes" in summary.resource_scores
     assert "runtime_vulture_overlap" in summary.resource_scores
+    assert "aerial_memory_lanes" in summary.resource_scores
+    assert "aerial_memory_overlap" in summary.resource_scores
     assert summary.layer_scores["herd_source_layer"] > 0.9
     assert summary.layer_scores["scavenge_layer"] > 0.68
     assert summary.dominant_layer == "herd_source_layer"

@@ -806,6 +806,25 @@ src/core/ecosystem.py        [修改] 导入新物种
   - 尸体资源链 summary 权重
   - 区域反馈强度
 
+# v4.0-alpha34 (2026-04-09 10:35)
+
+- `social.py` 现已把运行中的 `antelope / zebra / vulture` 通道热点写入长期 `hotspot_scores`：
+  - `herd_hotspot_memory`
+  - `herd_apex_memory`
+  - `vulture_hotspot_memory`
+  - `vulture_carrion_memory`
+- `grassland.py` 现已吸收 herd 通道热点记忆：
+  - `herd_memory_corridors`
+  - `herd_memory_pressure`
+- `carrion.py` 现已吸收空中尸体通道记忆：
+  - `aerial_memory_lanes`
+  - `aerial_memory_overlap`
+- 这层 herd / vulture 热点记忆现已进入：
+  - `social_trends`
+  - `grassland_chain`
+  - `carrion_chain`
+  - 区域反馈
+
 # v4.0-alpha33 (2026-04-09 07:45)
 
 - `social.py` 新增区域级长期相位：
