@@ -914,6 +914,11 @@ src/core/ecosystem.py        [修改] 导入新物种
 - ✅ `grassland_prosperity_phase / grassland_collapse_phase` 现在会反向影响 `herd_hotspot_memory / herd_apex_memory / vulture_hotspot_memory / vulture_carrion_memory`
 - ✅ 长期区域繁荣/衰退不再只作用于摘要和运行态行为，也开始改变 herd 与空中尸体通道记忆的累积方向
 
+# v4.0-alpha40 - Couple prosperity phases back into route cycles
+
+- ✅ `grassland_prosperity_phase / grassland_collapse_phase` 现在会继续反向影响 `herd_route_cycle / aerial_carrion_cycle`
+- ✅ 草原长期繁荣/衰退相位与 herd/carrion 通道周期已开始形成双向耦合，而不再只是单向传导
+
 
 - ✅ 使用默认 `config.yaml` 执行 `5 seeds x 200 ticks` 回归，检查陆地哺乳动物 `deer / rabbit / fox / wolf / mouse / wild_boar / squirrel`
 - ✅ `tick 200` 存活数分别为：

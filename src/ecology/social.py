@@ -228,6 +228,9 @@ def build_region_social_trend_summary(
         ),
     }
 
+    prosperity_phase_signal = prosperity_scores["grassland_prosperity_phase"]
+    collapse_phase_signal = prosperity_scores["grassland_collapse_phase"]
+
     hotspot_scores = {
         "lion_hotspot_memory": round(
             max(
@@ -367,8 +370,30 @@ def build_region_social_trend_summary(
         3,
     )
 
-    phase_scores["herd_route_cycle"] = round(herd_route_cycle_signal, 3)
-    phase_scores["aerial_carrion_cycle"] = round(aerial_carrion_cycle_signal, 3)
+    phase_scores["herd_route_cycle"] = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                herd_route_cycle_signal
+                + prosperity_phase_signal * 0.06
+                - collapse_phase_signal * 0.04,
+            ),
+        ),
+        3,
+    )
+    phase_scores["aerial_carrion_cycle"] = round(
+        max(
+            0.0,
+            min(
+                1.0,
+                aerial_carrion_cycle_signal
+                + prosperity_phase_signal * 0.05
+                - collapse_phase_signal * 0.03,
+            ),
+        ),
+        3,
+    )
 
     cycle_signals: List[str] = []
     narrative_trends: List[str] = []

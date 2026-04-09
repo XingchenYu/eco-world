@@ -934,8 +934,8 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.trend_scores["hyena_recovery_bias"] > 0.56
     assert summary.phase_scores["lion_expansion_phase"] > 0.55
     assert summary.phase_scores["hyena_expansion_phase"] > 0.53
-    assert summary.phase_scores["herd_route_cycle"] > 0.15
-    assert summary.phase_scores["aerial_carrion_cycle"] > 0.12
+    assert summary.phase_scores["herd_route_cycle"] > 0.18
+    assert summary.phase_scores["aerial_carrion_cycle"] > 0.14
     assert summary.boom_bust_scores["grassland_boom_phase"] > 0.45
     assert summary.prosperity_scores["grassland_prosperity_phase"] > 0.0
     assert summary.prosperity_scores["grassland_prosperity_phase"] > summary.prosperity_scores["grassland_collapse_phase"]

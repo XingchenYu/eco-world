@@ -737,3 +737,7 @@
   - `vulture_hotspot_memory`
   - `vulture_carrion_memory`
   也就是说，长期区域相位已开始改变 herd 与空中尸体通道记忆的累积方向
+- `grassland_prosperity_phase / grassland_collapse_phase` 现已继续反向影响：
+  - `herd_route_cycle`
+  - `aerial_carrion_cycle`
+  长期区域相位和 herd/carrion 通道周期已经开始形成双向耦合
