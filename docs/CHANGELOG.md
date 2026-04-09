@@ -1032,3 +1032,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `prosperity_pressure`
   - `runtime_resource_pressure`
   - `health_state["prosperity" / "stability"]`
+- ✅ `grassland_chain` 与 `carrion_chain` 现已继续直接吸收区域：
+  - `prosperity`
+  - `stability`
+  - `collapse_risk`
+  并把它们写成：
+  - `regional_prosperity_anchor`
+  - `regional_stability_anchor`
+  - `regional_collapse_anchor`
+- ✅ 这意味着区域长期健康度现在已经开始不经过运行体中转，直接改变两条链的摘要权重与主导层偏置

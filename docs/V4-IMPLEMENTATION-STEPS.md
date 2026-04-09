@@ -819,3 +819,12 @@
   - `aerial_anchor_prosperity_runtime`
   - `apex_anchor_prosperity_runtime`
   也就是说，运行体繁荣锚点现在已经直接进入区域级 `prosperity_pressure / runtime_resource_pressure`，开始影响长期健康判定
+- `grassland_chain / carrion_chain` 现已继续直接读取区域：
+  - `health_state["prosperity"]`
+  - `health_state["stability"]`
+  - `health_state["collapse_risk"]`
+  并把它们写成：
+  - `regional_prosperity_anchor`
+  - `regional_stability_anchor`
+  - `regional_collapse_anchor`
+  也就是说，区域长期健康度现在已经能不经过运行体中转，直接参与两条链的摘要层和主导层偏置

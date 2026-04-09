@@ -204,6 +204,22 @@ def build_region_grassland_chain_summary(
         if herd_route_cycle > 0.0:
             add_score("herd_route_cycle_pressure", herd_route_cycle * 0.22, "长期 herd-route 周期正在把草原资源重新拉回稳定迁移走廊。")
 
+    regional_prosperity = float(region.health_state.get("prosperity", 0.0))
+    regional_collapse = float(region.health_state.get("collapse_risk", 0.0))
+    regional_stability = float(region.health_state.get("stability", 0.0))
+    if regional_prosperity > 0.0:
+        add_score("regional_prosperity_anchor", min(0.24, regional_prosperity * 0.18), "区域长期繁荣度正在直接抬升草原链的稳定主导层。")
+        add_layer_bias("herd_layer", regional_prosperity * 0.08)
+        add_layer_bias("browse_layer", regional_prosperity * 0.05)
+    if regional_stability > 0.0:
+        add_score("regional_stability_anchor", min(0.20, regional_stability * 0.16), "区域长期稳定度正在直接压低草原链的瞬时波动。")
+        add_layer_bias("social_layer", regional_stability * 0.07)
+        add_layer_bias("herd_layer", regional_stability * 0.04)
+    if regional_collapse > 0.0:
+        add_score("regional_collapse_anchor", min(0.22, regional_collapse * 0.16), "区域长期衰退风险正在把草原链推回更脆弱的顶层和清道夫主导。")
+        add_layer_bias("predator_layer", regional_collapse * 0.06)
+        add_layer_bias("scavenger_layer", regional_collapse * 0.06)
+
     dominant_layer = _select_dominant_grassland_layer(
         layer_scores,
         trophic_scores,

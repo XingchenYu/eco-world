@@ -172,6 +172,22 @@ def build_region_carrion_chain_summary(
         if aerial_carrion_cycle > 0.0:
             add_score("aerial_carrion_cycle_pressure", aerial_carrion_cycle * 0.22, "长期 aerial-carrion 周期正在把空中清道夫追踪重新拉回稳定尸体通道。")
 
+    regional_prosperity = float(region.health_state.get("prosperity", 0.0))
+    regional_collapse = float(region.health_state.get("collapse_risk", 0.0))
+    regional_stability = float(region.health_state.get("stability", 0.0))
+    if regional_prosperity > 0.0:
+        add_score("regional_prosperity_anchor", min(0.22, regional_prosperity * 0.17), "区域长期繁荣度正在直接抬升尸体资源链的稳定供给层。")
+        add_layer_bias("herd_source_layer", regional_prosperity * 0.07)
+        add_layer_bias("aerial_scavenge_layer", regional_prosperity * 0.05)
+    if regional_stability > 0.0:
+        add_score("regional_stability_anchor", min(0.18, regional_stability * 0.15), "区域长期稳定度正在直接强化空地清道夫通道的延续性。")
+        add_layer_bias("scavenge_layer", regional_stability * 0.06)
+        add_layer_bias("aerial_scavenge_layer", regional_stability * 0.05)
+    if regional_collapse > 0.0:
+        add_score("regional_collapse_anchor", min(0.22, regional_collapse * 0.16), "区域长期衰退风险正在把尸体资源链推回更高断裂度的击杀和争夺主导。")
+        add_layer_bias("kill_layer", regional_collapse * 0.07)
+        add_layer_bias("scavenge_layer", regional_collapse * 0.05)
+
     dominant_layer = _select_dominant_carrion_layer(
         layer_scores,
         resource_scores,

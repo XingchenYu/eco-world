@@ -1175,6 +1175,9 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     world_map = build_default_world_map()
     registry = build_default_world_registry()
     region = world_map.get_region("temperate_grassland")
+    region.health_state["prosperity"] = 0.42
+    region.health_state["stability"] = 0.36
+    region.health_state["collapse_risk"] = 0.18
 
     initial_browse = region.resource_state["browse_cover"]
     initial_biodiversity = region.health_state["biodiversity"]
@@ -1245,6 +1248,8 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_herd_anchor_prosperity_pull" in summary.trophic_scores
     assert "runtime_apex_health_pull" in summary.trophic_scores
     assert "runtime_apex_anchor_prosperity_pull" in summary.trophic_scores
+    assert "regional_prosperity_anchor" in summary.trophic_scores
+    assert "regional_stability_anchor" in summary.trophic_scores
     assert "runtime_herd_apex_overlap" in summary.trophic_scores
     assert "herd_memory_corridors" in summary.trophic_scores
     assert "herd_memory_pressure" in summary.trophic_scores
@@ -1398,6 +1403,9 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     world_map = build_default_world_map()
     registry = build_default_world_registry()
     region = world_map.get_region("temperate_grassland")
+    region.health_state["prosperity"] = 0.42
+    region.health_state["stability"] = 0.36
+    region.health_state["collapse_risk"] = 0.18
 
     initial_carrion = region.resource_state["carcass_availability"]
     initial_resilience = region.health_state["resilience"]
@@ -1465,6 +1473,8 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_aerial_health_pull" in summary.resource_scores
     assert "runtime_aerial_resource_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_anchor_prosperity_pull" in summary.resource_scores
+    assert "regional_prosperity_anchor" in summary.resource_scores
+    assert "regional_stability_anchor" in summary.resource_scores
     assert "runtime_apex_health_pull" in summary.resource_scores
     assert "runtime_vulture_overlap" in summary.resource_scores
     assert "aerial_memory_lanes" in summary.resource_scores
