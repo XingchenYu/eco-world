@@ -1223,3 +1223,9 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `hunger`
   - `reproduction_rate`
   这意味着 herd 与 carrion 运行体现在已经不仅会“往更好的通道移动”，还会在长期健康区表现出更稳的体况和延续节律
+- ✅ `regional_health_anchor` 现也继续进入 `lion / hyena` 的运行期体况层
+- ✅ 它现在也会直接改善 apex 运行体的：
+  - `health`
+  - `hunger`
+  - `reproduction_rate`
+  这意味着草原顶层社群现在也开始直接吸收长期健康锚点，而不只是在领地中心漂移上体现

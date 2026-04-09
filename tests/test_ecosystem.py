@@ -2070,6 +2070,34 @@ def test_runtime_regional_health_anchor_effect():
     print("✅ Runtime regional health anchor effect test passed")
 
 
+def test_runtime_apex_regional_health_anchor_effect():
+    """regional_health_anchor 应直接改善 apex 运行期体况。"""
+    lion = Lion(position=(20, 20), gender=Gender.FEMALE)
+    hyena = Hyena(position=(24, 20), gender=Gender.FEMALE)
+
+    lion.regional_health_anchor = 0.58
+    hyena.regional_health_anchor = 0.52
+    lion.health = 72.0
+    lion.hunger = 48.0
+    hyena.health = 69.0
+    hyena.hunger = 46.0
+
+    lion_base_rate = lion.reproduction_rate
+    hyena_base_rate = hyena.reproduction_rate
+
+    lion._apply_regional_health_anchor()
+    hyena._apply_regional_health_anchor()
+
+    assert lion.health > 72.0
+    assert lion.hunger < 48.0
+    assert lion.reproduction_rate > lion_base_rate
+    assert hyena.health > 69.0
+    assert hyena.hunger < 46.0
+    assert hyena.reproduction_rate > hyena_base_rate
+
+    print("✅ Runtime apex regional health anchor effect test passed")
+
+
 def test_lion_hotspot_memory_center_effect():
     """Lion 的热点记忆应让 pride_center 漂移而不是瞬间跳点。"""
     lion = Lion(position=(16, 16), gender=Gender.MALE)

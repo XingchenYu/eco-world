@@ -622,6 +622,7 @@ class Lion(Animal):
         self._pride_core_timer += 1
         self._takeover_timer += 1
         self._apply_cycle_phase()
+        self._apply_regional_health_anchor()
         self._apply_social_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._pride_timer >= self.pride_interval:
@@ -651,6 +652,14 @@ class Lion(Animal):
             self.mate_cooldown += int(contraction * 2)
             self.reproduction_rate *= max(0.78, 1.0 - contraction * 0.12)
             self.health = max(0.0, self.health - contraction * 0.18 - self.regional_collapse_risk * 0.04)
+
+    def _apply_regional_health_anchor(self):
+        anchor = max(0.0, min(1.0, self.regional_health_anchor))
+        if anchor <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + anchor * 0.18)
+        self.hunger = max(0.0, self.hunger - anchor * 0.26)
+        self.reproduction_rate *= 1.0 + anchor * 0.014
 
     def _apply_social_stability(self, ecosystem):
         lions = [animal for animal in ecosystem.animals if animal.alive and animal.species == "lion"]
@@ -849,6 +858,7 @@ class Hyena(Animal):
         self._clan_timer += 1
         self._clan_front_timer += 1
         self._apply_cycle_phase()
+        self._apply_regional_health_anchor()
         self._apply_clan_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._scavenge_timer >= self.scavenge_interval:
@@ -878,6 +888,14 @@ class Hyena(Animal):
             self.mate_cooldown += int(contraction * 2)
             self.reproduction_rate *= max(0.80, 1.0 - contraction * 0.10)
             self.health = max(0.0, self.health - contraction * 0.16 - self.regional_collapse_risk * 0.04)
+
+    def _apply_regional_health_anchor(self):
+        anchor = max(0.0, min(1.0, self.regional_health_anchor))
+        if anchor <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + anchor * 0.16)
+        self.hunger = max(0.0, self.hunger - anchor * 0.24)
+        self.reproduction_rate *= 1.0 + anchor * 0.013
 
     def _apply_clan_stability(self, ecosystem):
         hyenas = [animal for animal in ecosystem.animals if animal.alive and animal.species == "hyena"]
