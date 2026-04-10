@@ -9,6 +9,15 @@
 - ✅ 新增 [docs/CODE-REVIEW-GRAPH.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH.md)，提供完整中文接入说明、术语解释和本仓库推荐评审范围
 - ✅ [README.md](/Users/yumini/Projects/eco-world/README.md) 已新增 `Code Review Graph` 入口和中文说明
 
+### v4.0-alpha44 (2026-04-10 13:35)
+
+- ✅ 新增 [docs/CODE-REVIEW-GRAPH-WORKFLOWS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-WORKFLOWS.md)，补齐：
+  - 当前项目 graph 的中文说明
+  - 主图谱与草原长期闭环的 Mermaid 图
+  - `code-review-graph` 在本仓库里的 review 工作流
+  - 哪些文件是当前 graph 的枢纽、热点和高风险模块
+- ✅ [README.md](/Users/yumini/Projects/eco-world/README.md) 和 [docs/CODE-REVIEW-GRAPH.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH.md) 已新增工作流文档入口
+
 ### v4.0-alpha40 (2026-04-10 12:10)
 
 - ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 现已把：

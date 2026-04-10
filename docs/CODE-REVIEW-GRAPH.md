@@ -184,4 +184,14 @@ uvx --version
 - 有仓库级忽略规则
 - 有中文说明文档
 
+如果你想继续看：
+
+- 这个项目当前的主图谱长什么样
+- 哪些文件是 graph 里的枢纽和热点
+- 后续 code review 应该按什么顺序读
+
+请继续看：
+
+- [Code Review Graph 工作流说明](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-WORKFLOWS.md)
+
 后续如果本机依赖也补齐，就可以直接把它用于这个项目的模块依赖图、改动影响面和大规模 code review 导航。
