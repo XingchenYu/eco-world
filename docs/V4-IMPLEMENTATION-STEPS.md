@@ -1250,3 +1250,12 @@
   - 世界级长期压力聚合
 - 也就是说，这条闭环已经继续推进成：
   `world_pressure_window_memory -> runtime window bias -> runtime_territory_state -> grassland/carrion/world pressures`
+- 现已新增并打通：
+  - `runtime_herd_world_pressure_window_pull`
+  - `runtime_aerial_world_pressure_window_pull`
+  - `runtime_apex_world_pressure_window_pull`
+- 它们现在已经进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 世界级长期压力
+- 也就是说，world pressure window 这条线现在已经不只在 territory/social 层闭环，而开始直接改变草原链、尸体资源链和长期 prosperity/collapse 聚合

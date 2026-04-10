@@ -1369,11 +1369,13 @@ def test_v4_grassland_chain_feedback_updates_region_state():
             "herd_regional_health_anchor_runtime": 0.70,
             "herd_regional_bias_runtime": 0.46,
             "herd_anchor_prosperity_runtime": 0.58,
+            "herd_world_pressure_window_runtime": 0.36,
             "apex_regional_health_runtime": 0.48,
             "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
+            "apex_world_pressure_window_runtime": 0.31,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1396,6 +1398,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_herd_condition_phase_pull" in summary.trophic_scores
     assert "runtime_herd_health_pull" in summary.trophic_scores
     assert "runtime_herd_health_anchor_pull" in summary.trophic_scores
+    assert "runtime_herd_world_pressure_window_pull" in summary.trophic_scores
     assert "runtime_herd_condition_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_condition_phase_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_regional_bias_pull" in summary.trophic_scores
@@ -1405,6 +1408,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_apex_condition_phase_pull" in summary.trophic_scores
     assert "runtime_apex_health_pull" in summary.trophic_scores
     assert "runtime_apex_health_anchor_pull" in summary.trophic_scores
+    assert "runtime_apex_world_pressure_window_pull" in summary.trophic_scores
     assert "runtime_apex_condition_anchor_pull" in summary.trophic_scores
     assert "runtime_apex_condition_phase_anchor_pull" in summary.trophic_scores
     assert "runtime_apex_regional_bias_pull" in summary.trophic_scores
@@ -1642,11 +1646,13 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             "aerial_regional_health_anchor_runtime": 0.70,
             "aerial_regional_bias_runtime": 0.42,
             "aerial_anchor_prosperity_runtime": 0.49,
+            "aerial_world_pressure_window_runtime": 0.34,
             "apex_regional_health_runtime": 0.48,
             "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
+            "apex_world_pressure_window_runtime": 0.31,
             "shared_hotspot_overlap": 1.0,
         },
     )
@@ -1669,6 +1675,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_aerial_condition_phase_pull" in summary.resource_scores
     assert "runtime_aerial_health_pull" in summary.resource_scores
     assert "runtime_aerial_health_anchor_pull" in summary.resource_scores
+    assert "runtime_aerial_world_pressure_window_pull" in summary.resource_scores
     assert "runtime_aerial_condition_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_condition_phase_anchor_pull" in summary.resource_scores
     assert "runtime_aerial_regional_bias_pull" in summary.resource_scores
@@ -1680,6 +1687,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "runtime_apex_condition_phase_pull" in summary.resource_scores
     assert "runtime_apex_health_pull" in summary.resource_scores
     assert "runtime_apex_health_anchor_pull" in summary.resource_scores
+    assert "runtime_apex_world_pressure_window_pull" in summary.resource_scores
     assert "runtime_apex_condition_anchor_pull" in summary.resource_scores
     assert "runtime_apex_condition_phase_anchor_pull" in summary.resource_scores
     assert "runtime_apex_regional_bias_pull" in summary.resource_scores

@@ -1498,3 +1498,12 @@ src/core/ecosystem.py        [修改] 导入新物种
   - 世界级长期压力聚合
 - 也就是说，`world_pressure_window_bias -> runtime_territory_state`
   这条线现在已经不只影响 territory/social，还会继续抬高草原链、尸体资源链和下一轮区域 prosperity/collapse 判定
+- 现已新增并打通：
+  - `runtime_herd_world_pressure_window_pull`
+  - `runtime_aerial_world_pressure_window_pull`
+  - `runtime_apex_world_pressure_window_pull`
+- 它们现在已经进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 世界级长期压力
+- 也就是说，world pressure window 现在已经从“运行体偏置”继续推进成了草原链与尸体资源链的直接长期输入
