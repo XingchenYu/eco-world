@@ -1494,6 +1494,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "hyena_hotspot_count": 2.0,
             "herd_surface_water_runtime": 0.6,
             "herd_world_pressure_runtime": 0.62,
+            "herd_world_pressure_window_runtime": 0.36,
             "herd_condition_runtime": 0.46,
             "herd_regional_health_runtime": 0.52,
             "herd_regional_health_anchor_runtime": 0.70,
@@ -1501,6 +1502,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "herd_anchor_prosperity_runtime": 0.58,
             "apex_regional_health_runtime": 0.48,
             "apex_world_pressure_runtime": 0.58,
+            "apex_world_pressure_window_runtime": 0.31,
             "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
@@ -1532,6 +1534,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "runtime_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor_prosperity" for item in adjustments)
     assert any(item["source_species"] == "world_pressure" for item in adjustments)
+    assert any(item["source_species"] == "world_pressure_window" for item in adjustments)
     assert any(item["source_species"] == "regional_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_predator_wave", "hotspot_cycle_overlap_drag", "herd_route_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_surface_water_support" for item in adjustments)
@@ -1539,6 +1542,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["effect"] in {"condition_herd_recovery", "condition_pride_recovery", "condition_clan_recovery"} for item in adjustments)
     assert any(item["effect"] in {"condition_phase_pride_window", "condition_phase_clan_window"} for item in adjustments)
     assert any(item["effect"] in {"world_pressure_herd_window", "world_pressure_apex_window"} for item in adjustments)
+    assert any(item["effect"] in {"world_pressure_window_herd_support", "world_pressure_window_apex_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_health_support", "runtime_apex_health_support", "runtime_herd_health_anchor_support", "runtime_apex_health_anchor_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_condition_anchor_support", "runtime_apex_condition_anchor_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_herd_condition_phase_anchor_support", "runtime_apex_condition_phase_anchor_support"} for item in adjustments)
@@ -1765,6 +1769,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "hyena_hotspot_count": 2.0,
             "aerial_carcass_runtime": 0.5,
             "aerial_world_pressure_runtime": 0.60,
+            "aerial_world_pressure_window_runtime": 0.34,
             "aerial_condition_runtime": 0.41,
             "aerial_regional_health_runtime": 0.44,
             "aerial_regional_health_anchor_runtime": 0.70,
@@ -1772,6 +1777,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "aerial_anchor_prosperity_runtime": 0.49,
             "apex_regional_health_runtime": 0.48,
             "apex_world_pressure_runtime": 0.58,
+            "apex_world_pressure_window_runtime": 0.31,
             "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
@@ -1802,6 +1808,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["source_species"] == "runtime_anchor" for item in adjustments)
     assert any(item["source_species"] == "runtime_anchor_prosperity" for item in adjustments)
     assert any(item["source_species"] == "world_pressure" for item in adjustments)
+    assert any(item["source_species"] == "world_pressure_window" for item in adjustments)
     assert any(item["source_species"] == "regional_health" for item in adjustments)
     assert any(item["effect"] in {"hotspot_cycle_scavenger_wave", "hotspot_cycle_churn", "aerial_carrion_cycle_support"} for item in adjustments)
     assert any(item["effect"] == "runtime_carcass_support" for item in adjustments)
@@ -1809,6 +1816,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["effect"] in {"condition_aerial_recovery", "condition_apex_carrion_recovery"} for item in adjustments)
     assert any(item["effect"] in {"condition_phase_aerial_window", "condition_phase_apex_carrion_window"} for item in adjustments)
     assert any(item["effect"] in {"world_pressure_aerial_window", "world_pressure_apex_carrion_window"} for item in adjustments)
+    assert any(item["effect"] in {"world_pressure_window_aerial_support", "world_pressure_window_apex_carrion_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_health_support", "runtime_apex_health_support", "runtime_aerial_health_anchor_support", "runtime_apex_health_anchor_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_regional_bias_support", "runtime_apex_regional_bias_support"} for item in adjustments)
     assert any(item["effect"] in {"runtime_aerial_condition_phase_anchor_support", "runtime_apex_condition_phase_anchor_support"} for item in adjustments)

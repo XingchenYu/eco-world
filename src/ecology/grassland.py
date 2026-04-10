@@ -359,6 +359,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_regional_bias_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_resource_anchor_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_anchor_prosperity_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_world_pressure_window_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_memory_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("herd_route_cycle_pressure", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "dung_cycle", scores.get("carrion_scavenging", 0.0) * 0.16 * scavenger_bias, feedback_scale)
@@ -382,6 +383,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_phase_anchor_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_regional_bias_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_anchor_prosperity_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_world_pressure_window_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "drought_risk", scores.get("grazing_pressure", 0.0) * 0.08, feedback_scale)
 
     _adjust(region.health_state, "biodiversity", scores.get("megaherbivore_stack", 0.0) * 0.22 * prosperity_bias, feedback_scale)
@@ -391,6 +393,8 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("pride_patrol", 0.0) * 0.10 * prosperity_bias * social_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_pressure", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("prosperity_phase_weight", 0.0) * 0.12 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("runtime_herd_world_pressure_window_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("runtime_apex_world_pressure_window_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("group_hunt_instability", 0.0) * 0.08 * collapse_bias, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("hotspot_overlap_pressure", 0.0) * 0.10 * collapse_bias, feedback_scale)
@@ -1255,6 +1259,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["antelope"],
             }
         )
+    if scores.get("runtime_herd_world_pressure_window_pull", 0.0) >= 0.04 and zebra_count < 18:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "world_pressure_window",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "world_pressure_window_herd_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
     if scores.get("runtime_apex_world_pressure_pull", 0.0) >= 0.05 and lion_count < 8:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(
@@ -1264,6 +1279,17 @@ def apply_region_grassland_chain_rebalancing(
                 "layer_group": "predator_layer",
                 "effect": "world_pressure_apex_window",
                 "new_target_count": species_pool["lion"],
+            }
+        )
+    if scores.get("runtime_apex_world_pressure_window_pull", 0.0) >= 0.04 and hyena_count < 8:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "world_pressure_window",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "world_pressure_window_apex_support",
+                "new_target_count": species_pool["hyena"],
             }
         )
     if scores.get("runtime_apex_health_anchor_pull", 0.0) >= 0.06 and lion_count < 8:

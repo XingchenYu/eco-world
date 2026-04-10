@@ -2,6 +2,26 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha46 (2026-04-10 14:10)
+
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 现已把：
+  - `runtime_herd_world_pressure_window_pull`
+  - `runtime_apex_world_pressure_window_pull`
+  正式接进：
+  - 草原链区域反馈
+  - 草原链低频重平衡
+- ✅ [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已把：
+  - `runtime_aerial_world_pressure_window_pull`
+  - `runtime_apex_world_pressure_window_pull`
+  正式接进：
+  - 尸体资源链区域反馈
+  - 尸体资源链低频重平衡
+- ✅ 这使 `world_pressure_window_runtime` 不再只是摘要层和世界级压力输入，而开始真正改变：
+  - `surface_water`
+  - `carcass_availability`
+  - `predation_pressure`
+  - herd / aerial / apex 的物种池恢复节律
+
 ### v4.0-alpha43 (2026-04-10 13:20)
 
 - ✅ 新增 [/.mcp.json](/Users/yumini/Projects/eco-world/.mcp.json)，为仓库补上 `code-review-graph` 的项目级 MCP 接入骨架
