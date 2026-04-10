@@ -18,6 +18,15 @@
   - 哪些文件是当前 graph 的枢纽、热点和高风险模块
 - ✅ [README.md](/Users/yumini/Projects/eco-world/README.md) 和 [docs/CODE-REVIEW-GRAPH.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH.md) 已新增工作流文档入口
 
+### v4.0-alpha45 (2026-04-10 13:50)
+
+- ✅ 新增 [docs/CODE-REVIEW-GRAPH-MAINTENANCE.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-MAINTENANCE.md)，明确规定：
+  - 哪些变化算 graph 结构变化
+  - 什么情况下必须更新 graph 文档
+  - 每次更新时要检查哪些内容
+  - 这个项目后续最容易触发 graph 漂移的核心模块
+- ✅ [README.md](/Users/yumini/Projects/eco-world/README.md) 和 [docs/CODE-REVIEW-GRAPH.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH.md) 已新增维护规则入口
+
 ### v4.0-alpha40 (2026-04-10 12:10)
 
 - ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 现已把：
