@@ -2,6 +2,15 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha48 (2026-04-10 15:00)
+
+- ✅ 新增 [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py)，可根据当前改动文件直接输出：
+  - 建议编译文件
+  - 建议测试组
+  - 是否需要补 `all` 全量回归
+- ✅ [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md) 已新增脚本说明与命令示例
+- ✅ [docs/USAGE.md](/Users/yumini/Projects/eco-world/docs/USAGE.md) 已从旧的单一全量测试说明，更新为分组测试 + graph-guided 检查入口
+
 ### v4.0-alpha47 (2026-04-10 14:35)
 
 - ✅ 新增 [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md)，补齐：

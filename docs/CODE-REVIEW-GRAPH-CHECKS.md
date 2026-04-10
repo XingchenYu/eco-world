@@ -37,6 +37,16 @@
 - `species`：关键物种运行体与个体行为测试
 - `all`：全量回归
 
+仓库里还新增了一个辅助脚本：
+
+- [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py)
+
+它会根据改动文件，直接给出：
+
+- 建议编译哪些文件
+- 建议先跑哪些测试组
+- 是否建议补 `all`
+
 ## 常用命令
 
 只跑草原主线：
@@ -61,6 +71,18 @@ PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py world
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py all
+```
+
+根据当前改动自动给建议：
+
+```bash
+python3 scripts/graph_checks.py
+```
+
+手动指定改动文件：
+
+```bash
+python3 scripts/graph_checks.py src/ecology/grassland.py src/ecology/carrion.py
 ```
 
 ## Graph 驱动的编译与测试建议

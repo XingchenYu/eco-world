@@ -110,7 +110,29 @@ PYTHONPATH=. python3 src/main.py --headless
 基础测试：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py basic
+```
+
+按模块运行测试：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py world
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py wetland
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py grassland
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py runtime
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py species
+```
+
+全量回归：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py all
+```
+
+按 graph 自动生成检查建议：
+
+```bash
+python3 scripts/graph_checks.py
 ```
 
 食物链测试：

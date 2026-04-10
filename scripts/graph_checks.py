@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""根据改动文件给出 graph-guided 编译与测试建议。"""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+from typing import Iterable, List, Sequence, Set
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def _normalize(paths: Iterable[str]) -> List[str]:
+    normalized: List[str] = []
+    for raw in paths:
+        raw = raw.strip()
+        if not raw:
+            continue
+        path = Path(raw)
+        if path.is_absolute():
+            try:
+                normalized.append(str(path.relative_to(ROOT)))
+            except ValueError:
+                normalized.append(str(path))
+        else:
+            normalized.append(raw)
+    return normalized
+
+
+def _git_changed_files() -> List[str]:
+    result = subprocess.run(
+        ["git", "diff", "--name-only", "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return _normalize(result.stdout.splitlines())
+
+
+def _matches(paths: Sequence[str], prefixes: Sequence[str]) -> bool:
+    return any(any(path.startswith(prefix) for prefix in prefixes) for path in paths)
+
+
+def _add_compile_targets(targets: Set[str], *paths: str) -> None:
+    targets.update(paths)
+    targets.add("tests/test_ecosystem.py")
+
+
+def build_plan(changed_files: Sequence[str]) -> dict:
+    compile_targets: Set[str] = set()
+    test_groups: List[str] = []
+    reasons: List[str] = []
+    full_regression = False
+
+    if _matches(changed_files, ("src/ecology/grassland.py", "src/ecology/carrion.py")):
+        _add_compile_targets(
+            compile_targets,
+            "src/ecology/grassland.py",
+            "src/ecology/carrion.py",
+        )
+        test_groups.append("grassland")
+        reasons.append("检测到草原链或尸体资源链改动，优先跑 grassland 组。")
+
+    if _matches(changed_files, ("src/ecology/social.py", "src/ecology/territory.py")):
+        _add_compile_targets(
+            compile_targets,
+            "src/ecology/social.py",
+            "src/ecology/territory.py",
+            "src/ecology/grassland.py",
+            "src/ecology/carrion.py",
+        )
+        test_groups.extend(["world", "runtime", "grassland"])
+        reasons.append("检测到 social/territory 改动，优先检查 world、runtime、grassland。")
+
+    if _matches(changed_files, ("src/sim/world_simulation.py", "src/sim/region_simulation.py")):
+        _add_compile_targets(
+            compile_targets,
+            "src/sim/world_simulation.py",
+            "src/sim/region_simulation.py",
+            "src/ecology/social.py",
+            "src/ecology/territory.py",
+            "src/ecology/grassland.py",
+            "src/ecology/carrion.py",
+        )
+        test_groups.extend(["world", "runtime", "grassland"])
+        reasons.append("检测到 sim 枢纽改动，优先检查 world、runtime、grassland。")
+
+    if _matches(changed_files, ("src/entities/animals.py", "src/entities/omnivores.py")):
+        _add_compile_targets(
+            compile_targets,
+            "src/entities/animals.py",
+            "src/entities/omnivores.py",
+        )
+        test_groups.extend(["species", "runtime"])
+        reasons.append("检测到运行体改动，优先检查 species、runtime。")
+
+    if _matches(changed_files, ("src/world/", "src/data/")):
+        _add_compile_targets(
+            compile_targets,
+            "src/sim/world_simulation.py",
+            "src/sim/region_simulation.py",
+            "src/world/world_map.py",
+            "src/world/region.py",
+            "src/data/models.py",
+            "src/data/registry.py",
+            "src/data/defaults.py",
+        )
+        test_groups.extend(["world", "wetland", "grassland"])
+        reasons.append("检测到 world/data 改动，优先检查 world、wetland、grassland。")
+
+    if _matches(changed_files, ("tests/test_ecosystem.py",)):
+        _add_compile_targets(compile_targets, "tests/test_ecosystem.py")
+        full_regression = True
+        reasons.append("检测到测试入口改动，建议至少补一次 all 全量回归。")
+
+    if _matches(changed_files, ("src/core/ecosystem.py", "src/data/defaults.py")):
+        full_regression = True
+        reasons.append("检测到共享核心层改动，建议补 all 全量回归。")
+
+    if not compile_targets:
+        _add_compile_targets(compile_targets, "tests/test_ecosystem.py")
+        test_groups.append("basic")
+        reasons.append("未命中高耦合图谱规则，先跑 basic 冒烟测试。")
+
+    ordered_groups: List[str] = []
+    for group in test_groups:
+        if group not in ordered_groups:
+            ordered_groups.append(group)
+    if full_regression and "all" not in ordered_groups:
+        ordered_groups.append("all")
+
+    return {
+        "changed_files": list(changed_files),
+        "compile_targets": sorted(compile_targets),
+        "test_groups": ordered_groups,
+        "reasons": reasons,
+    }
+
+
+def format_plan(plan: dict) -> str:
+    compile_cmd = (
+        "PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile "
+        + " ".join(plan["compile_targets"])
+    )
+    lines = [
+        "Graph-guided checks / 图谱驱动检查建议",
+        "",
+        "Changed files / 改动文件:",
+    ]
+    lines.extend(f"- {path}" for path in plan["changed_files"])
+    lines.append("")
+    lines.append("Compile command / 编译命令:")
+    lines.append(compile_cmd)
+    lines.append("")
+    lines.append("Test groups / 建议测试组:")
+    for group in plan["test_groups"]:
+        lines.append(
+            f"- {group}: PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
+        )
+    lines.append("")
+    lines.append("Reasons / 规则命中原因:")
+    lines.extend(f"- {reason}" for reason in plan["reasons"])
+    return "\n".join(lines)
+
+
+def main(argv: Sequence[str]) -> int:
+    if len(argv) > 1:
+        changed_files = _normalize(argv[1:])
+    else:
+        changed_files = _git_changed_files()
+    if not changed_files:
+        print("No changed files detected / 未检测到改动文件。")
+        return 0
+    print(format_plan(build_plan(changed_files)))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))
