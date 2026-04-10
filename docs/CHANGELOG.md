@@ -2,6 +2,26 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha49 (2026-04-10 15:20)
+
+- ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 现已把：
+  - `world_pressure_bias`
+  - `world_pressure_window_bias`
+  正式接入统一的社群化产仔路径 `_social_group_birth(...)`
+- ✅ 这意味着世界级长期压力现在已经不只影响：
+  - 运行期体况
+  - 低频恢复窗口
+  - 长期相位与世界压力
+  还会继续直接影响：
+  - `lion / hyena` 的产仔规模
+  - 产后冷却
+  - 社群延续节律
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增并通过：
+  - `test_lion_world_pressure_birth_scaling()`
+  - `test_lion_world_pressure_window_birth_scaling()`
+  - `test_hyena_world_pressure_birth_scaling()`
+  - `test_hyena_world_pressure_window_birth_scaling()`
+
 ### v4.0-alpha48 (2026-04-10 15:00)
 
 - ✅ 新增 [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py)，可根据当前改动文件直接输出：

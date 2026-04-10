@@ -69,11 +69,18 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
     condition_runtime = max(0.0, min(1.0, getattr(animal, "condition_runtime", 0.0)))
     condition_phase_bias = max(0.0, min(1.0, getattr(animal, "condition_phase_bias", 0.0)))
     regional_health_anchor = max(0.0, min(1.0, getattr(animal, "regional_health_anchor", 0.0)))
+    world_pressure_bias = max(0.0, min(1.0, getattr(animal, "world_pressure_bias", 0.0)))
+    world_pressure_window_bias = max(0.0, min(1.0, getattr(animal, "world_pressure_window_bias", 0.0)))
     condition_factor = max(
         0.80,
         min(
             1.32,
-            0.88 + condition_runtime * 0.24 + condition_phase_bias * 0.16 + regional_health_anchor * 0.10,
+            0.88
+            + condition_runtime * 0.24
+            + condition_phase_bias * 0.16
+            + regional_health_anchor * 0.10
+            + world_pressure_bias * 0.08
+            + world_pressure_window_bias * 0.07,
         ),
     )
 
@@ -107,6 +114,8 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
                     - condition_runtime * 5
                     - condition_phase_bias * 3
                     - regional_health_anchor * 2
+                    - world_pressure_bias * 2
+                    - world_pressure_window_bias * 2
                 )
             ),
         ),
