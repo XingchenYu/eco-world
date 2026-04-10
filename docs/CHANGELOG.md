@@ -2,6 +2,13 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha43 (2026-04-10 13:20)
+
+- ✅ 新增 [/.mcp.json](/Users/yumini/Projects/eco-world/.mcp.json)，为仓库补上 `code-review-graph` 的项目级 MCP 接入骨架
+- ✅ 新增 [/.code-review-graphignore](/Users/yumini/Projects/eco-world/.code-review-graphignore)，排除缓存、资源图、临时目录和低价值历史文档
+- ✅ 新增 [docs/CODE-REVIEW-GRAPH.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH.md)，提供完整中文接入说明、术语解释和本仓库推荐评审范围
+- ✅ [README.md](/Users/yumini/Projects/eco-world/README.md) 已新增 `Code Review Graph` 入口和中文说明
+
 ### v4.0-alpha40 (2026-04-10 12:10)
 
 - ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 现已把：
