@@ -189,10 +189,12 @@ uvx --version
 - 这个项目当前的主图谱长什么样
 - 哪些文件是 graph 里的枢纽和热点
 - 后续 code review 应该按什么顺序读
+- 怎样按 graph 决定编译和测试范围
 
 请继续看：
 
 - [Code Review Graph 工作流说明](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-WORKFLOWS.md)
 - [Code Review Graph 维护规则](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-MAINTENANCE.md)
+- [Code Review Graph 检查与测试规则](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md)
 
 后续如果本机依赖也补齐，就可以直接把它用于这个项目的模块依赖图、改动影响面和大规模 code review 导航。

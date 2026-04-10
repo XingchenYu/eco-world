@@ -3444,107 +3444,150 @@ def test_vulture_registration_and_spawn():
     print("✅ Vulture registration test passed")
 
 
+def _run_test_group(name, tests):
+    """按分组运行测试。"""
+    print(f"🧪 Running EcoWorld tests [{name}]...\n")
+    for test in tests:
+        test()
+    print(f"\n✅ {name} tests passed!")
+
+
+BASIC_TESTS = [
+    test_environment,
+    test_plants,
+    test_animals,
+    test_ecosystem_update,
+    test_food_chain,
+    test_statistics,
+    test_minnow_registration_and_spawn,
+    test_shrimp_uses_shallow_or_river_habitat,
+    test_load_config_preserves_world_dimensions,
+    test_land_animals_do_not_spawn_in_water,
+    test_amphibious_animals_can_spawn_in_water,
+    test_night_moth_registration_and_spawn,
+]
+
+WORLD_TESTS = [
+    test_v4_world_and_data_skeleton,
+    test_v4_world_simulation_skeleton,
+    test_v4_region_relationship_state_persists,
+    test_v4_registry_queries,
+    test_v4_region_food_web_summary,
+    test_v4_region_cascade_summary,
+    test_v4_cascade_feedback_updates_region_state,
+    test_v4_region_competition_summary,
+    test_v4_competition_feedback_rebalances_species_pool,
+    test_v4_region_predation_summary,
+    test_v4_region_symbiosis_summary,
+    test_v4_territory_summary,
+    test_v4_territory_summary_uses_runtime_events,
+    test_v4_territory_summary_uses_runtime_state,
+    test_v4_territory_summary_uses_regional_social_anchors,
+    test_v4_territory_summary_uses_hotspot_memory,
+    test_v4_social_trend_summary_uses_memory,
+    test_region_simulation_uses_region_defaults,
+]
+
+WETLAND_TESTS = [
+    test_v4_wetland_chain_summary,
+    test_v4_wetland_chain_feedback_updates_region_state,
+    test_v4_wetland_chain_rebalancing_updates_species_pool,
+    test_beaver_registration_and_spawn,
+    test_beaver_engineering_effect,
+    test_crocodile_registration_and_spawn,
+    test_crocodile_ambush_effect,
+    test_hippopotamus_registration_and_spawn,
+    test_hippopotamus_nutrient_cycle_effect,
+]
+
+GRASSLAND_TESTS = [
+    test_v4_grassland_chain_summary,
+    test_v4_grassland_chain_feedback_updates_region_state,
+    test_v4_grassland_chain_rebalancing_updates_species_pool,
+    test_v4_grassland_chain_recolonization_window,
+    test_v4_carrion_chain_summary,
+    test_v4_carrion_chain_feedback_updates_region_state,
+    test_v4_carrion_chain_rebalancing_updates_species_pool,
+    test_v4_carrion_chain_recolonization_window,
+    test_v4_social_trend_rebalancing_support,
+    test_v4_territory_feedback_updates_region_state,
+    test_v4_predation_feedback_updates_region_state,
+    test_v4_symbiosis_feedback_updates_region_state,
+]
+
+RUNTIME_TESTS = [
+    test_region_simulation_applies_social_phase_state,
+    test_lion_hotspot_memory_center_effect,
+    test_hyena_hotspot_memory_center_effect,
+    test_runtime_regional_health_bias,
+    test_runtime_regional_health_anchor_effect,
+    test_runtime_condition_effect,
+    test_runtime_condition_phase_bias_effect,
+    test_runtime_world_pressure_bias_effect,
+    test_runtime_world_pressure_window_bias_effect,
+    test_runtime_apex_regional_health_anchor_effect,
+    test_runtime_apex_condition_effect,
+    test_runtime_apex_condition_phase_bias_effect,
+    test_runtime_apex_world_pressure_bias_effect,
+    test_runtime_apex_world_pressure_window_bias_effect,
+]
+
+SPECIES_TESTS = [
+    test_elephant_registration_and_spawn,
+    test_elephant_engineering_effect,
+    test_white_rhino_registration_and_spawn,
+    test_white_rhino_grazing_effect,
+    test_giraffe_registration_and_spawn,
+    test_giraffe_canopy_effect,
+    test_antelope_registration_and_spawn,
+    test_zebra_registration_and_spawn,
+    test_lion_registration_and_spawn,
+    test_lion_hunt_corridor_effect,
+    test_lion_pride_core_effect,
+    test_lion_cycle_core_effect,
+    test_lion_male_takeover_effect,
+    test_lion_social_stability_effect,
+    test_lion_cycle_phase_effect,
+    test_lion_social_birth_scaling,
+    test_lion_condition_birth_scaling,
+    test_lion_condition_phase_birth_scaling,
+    test_hyena_registration_and_spawn,
+    test_hyena_scavenging_effect,
+    test_hyena_den_cluster_effect,
+    test_hyena_cycle_den_effect,
+    test_hyena_clan_front_effect,
+    test_hyena_clan_stability_effect,
+    test_hyena_social_birth_scaling,
+    test_hyena_condition_birth_scaling,
+    test_hyena_condition_phase_birth_scaling,
+    test_hyena_cycle_phase_effect,
+    test_vulture_registration_and_spawn,
+]
+
+TEST_GROUPS = {
+    "basic": BASIC_TESTS,
+    "world": WORLD_TESTS,
+    "wetland": WETLAND_TESTS,
+    "grassland": GRASSLAND_TESTS,
+    "runtime": RUNTIME_TESTS,
+    "species": SPECIES_TESTS,
+}
+
+
 def run_all_tests():
     """运行所有测试"""
-    print("🧪 Running EcoWorld tests...\n")
-    
-    test_environment()
-    test_plants()
-    test_animals()
-    test_ecosystem_update()
-    test_food_chain()
-    test_statistics()
-    test_minnow_registration_and_spawn()
-    test_shrimp_uses_shallow_or_river_habitat()
-    test_load_config_preserves_world_dimensions()
-    test_land_animals_do_not_spawn_in_water()
-    test_amphibious_animals_can_spawn_in_water()
-    test_night_moth_registration_and_spawn()
-    test_v4_world_and_data_skeleton()
-    test_v4_world_simulation_skeleton()
-    test_v4_region_relationship_state_persists()
-    test_v4_registry_queries()
-    test_v4_region_food_web_summary()
-    test_v4_region_cascade_summary()
-    test_v4_cascade_feedback_updates_region_state()
-    test_v4_region_competition_summary()
-    test_v4_competition_feedback_rebalances_species_pool()
-    test_v4_region_predation_summary()
-    test_v4_region_symbiosis_summary()
-    test_v4_wetland_chain_summary()
-    test_v4_grassland_chain_summary()
-    test_v4_territory_summary()
-    test_v4_territory_summary_uses_runtime_events()
-    test_v4_territory_summary_uses_runtime_state()
-    test_v4_territory_summary_uses_regional_social_anchors()
-    test_v4_territory_summary_uses_hotspot_memory()
-    test_v4_social_trend_summary_uses_memory()
-    test_region_simulation_applies_social_phase_state()
-    test_lion_hotspot_memory_center_effect()
-    test_hyena_hotspot_memory_center_effect()
-    test_runtime_regional_health_bias()
-    test_runtime_regional_health_anchor_effect()
-    test_runtime_condition_effect()
-    test_runtime_condition_phase_bias_effect()
-    test_runtime_world_pressure_bias_effect()
-    test_runtime_world_pressure_window_bias_effect()
-    test_runtime_apex_regional_health_anchor_effect()
-    test_runtime_apex_condition_effect()
-    test_runtime_apex_condition_phase_bias_effect()
-    test_runtime_apex_world_pressure_bias_effect()
-    test_runtime_apex_world_pressure_window_bias_effect()
-    test_v4_carrion_chain_summary()
-    test_v4_wetland_chain_feedback_updates_region_state()
-    test_v4_wetland_chain_rebalancing_updates_species_pool()
-    test_v4_grassland_chain_feedback_updates_region_state()
-    test_v4_grassland_chain_rebalancing_updates_species_pool()
-    test_v4_grassland_chain_recolonization_window()
-    test_v4_social_trend_rebalancing_support()
-    test_v4_territory_feedback_updates_region_state()
-    test_v4_carrion_chain_feedback_updates_region_state()
-    test_v4_carrion_chain_rebalancing_updates_species_pool()
-    test_v4_carrion_chain_recolonization_window()
-    test_v4_predation_feedback_updates_region_state()
-    test_v4_symbiosis_feedback_updates_region_state()
-    test_region_simulation_uses_region_defaults()
-    test_beaver_registration_and_spawn()
-    test_beaver_engineering_effect()
-    test_crocodile_registration_and_spawn()
-    test_crocodile_ambush_effect()
-    test_hippopotamus_registration_and_spawn()
-    test_hippopotamus_nutrient_cycle_effect()
-    test_elephant_registration_and_spawn()
-    test_elephant_engineering_effect()
-    test_white_rhino_registration_and_spawn()
-    test_white_rhino_grazing_effect()
-    test_giraffe_registration_and_spawn()
-    test_giraffe_canopy_effect()
-    test_antelope_registration_and_spawn()
-    test_zebra_registration_and_spawn()
-    test_lion_registration_and_spawn()
-    test_lion_hunt_corridor_effect()
-    test_lion_pride_core_effect()
-    test_lion_cycle_core_effect()
-    test_lion_male_takeover_effect()
-    test_lion_social_stability_effect()
-    test_lion_cycle_phase_effect()
-    test_lion_social_birth_scaling()
-    test_lion_condition_birth_scaling()
-    test_lion_condition_phase_birth_scaling()
-    test_hyena_registration_and_spawn()
-    test_hyena_scavenging_effect()
-    test_hyena_den_cluster_effect()
-    test_hyena_cycle_den_effect()
-    test_hyena_clan_front_effect()
-    test_hyena_clan_stability_effect()
-    test_hyena_social_birth_scaling()
-    test_hyena_condition_birth_scaling()
-    test_hyena_condition_phase_birth_scaling()
-    test_hyena_cycle_phase_effect()
-    test_vulture_registration_and_spawn()
-    
-    print("\n✅ All tests passed!")
+    all_tests = []
+    for tests in TEST_GROUPS.values():
+        all_tests.extend(tests)
+    _run_test_group("all", all_tests)
 
 
 if __name__ == "__main__":
-    run_all_tests()
+    group = sys.argv[1].lower() if len(sys.argv) > 1 else "all"
+    if group == "all":
+        run_all_tests()
+    elif group in TEST_GROUPS:
+        _run_test_group(group, TEST_GROUPS[group])
+    else:
+        valid = ", ".join(["all"] + list(TEST_GROUPS.keys()))
+        raise SystemExit(f"Unknown test group: {group}. Valid groups: {valid}")

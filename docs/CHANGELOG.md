@@ -2,6 +2,22 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha47 (2026-04-10 14:35)
+
+- ✅ 新增 [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md)，补齐：
+  - `graph-guided checks` 的中文说明
+  - 按影响面选择编译和测试的规则
+  - 当前仓库的选择性测试组与命令示例
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 现已支持按组运行：
+  - `basic`
+  - `world`
+  - `wetland`
+  - `grassland`
+  - `runtime`
+  - `species`
+  - `all`
+- ✅ [README.md](/Users/yumini/Projects/eco-world/README.md) 与 [docs/CODE-REVIEW-GRAPH.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH.md) 已新增检查与测试规则入口
+
 ### v4.0-alpha46 (2026-04-10 14:10)
 
 - ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 现已把：
