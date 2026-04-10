@@ -52,7 +52,7 @@ from src.entities.plants import Grass, Tree
 from src.entities.animals import Antelope, Fox, Gender, Rabbit, Vulture, Zebra
 from src.main import load_config
 from src.sim.region_simulation import RegionSimulation
-from src.sim.world_simulation import build_default_world_simulation
+from src.sim.world_simulation import WorldSimulation, build_default_world_simulation
 from src.world.world_map import build_default_world_map
 
 
@@ -1096,6 +1096,7 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_condition_runtime": 0.46,
             "herd_regional_bias_runtime": 0.46,
             "herd_anchor_prosperity_runtime": 0.58,
+            "herd_world_pressure_window_runtime": 0.36,
             "surface_water_anchor": 0.6,
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
@@ -1105,11 +1106,13 @@ def test_v4_social_trend_summary_uses_memory():
             "aerial_condition_runtime": 0.41,
             "aerial_regional_bias_runtime": 0.42,
             "aerial_anchor_prosperity_runtime": 0.49,
+            "aerial_world_pressure_window_runtime": 0.34,
             "carcass_anchor": 0.5,
             "apex_regional_health_runtime": 0.48,
             "apex_condition_runtime": 0.39,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
+            "apex_world_pressure_window_runtime": 0.31,
             "shared_hotspot_overlap": 0.0,
         },
     )
@@ -1167,6 +1170,9 @@ def test_v4_social_trend_summary_uses_memory():
     assert "apex_condition_anchor_runtime" in summary.cycle_signals
     assert "condition_phase_window_memory" in summary.cycle_signals
     assert "world_pressure_window_memory" in summary.cycle_signals
+    assert "herd_world_pressure_window_runtime" in summary.cycle_signals
+    assert "aerial_world_pressure_window_runtime" in summary.cycle_signals
+    assert "apex_world_pressure_window_runtime" in summary.cycle_signals
     assert "apex_regional_bias_runtime" in summary.cycle_signals
     assert "herd_surface_water_runtime" in summary.cycle_signals
     assert "aerial_carcass_runtime" in summary.cycle_signals
@@ -2116,6 +2122,10 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.regional_prosperity_bias == 1.0
     assert vulture.regional_stability_bias == 1.0
     assert vulture.regional_collapse_bias == 1.0
+    runtime_state = WorldSimulation()._build_runtime_territory_state(sim)
+    assert runtime_state["herd_world_pressure_window_runtime"] > 0.10
+    assert runtime_state["aerial_world_pressure_window_runtime"] > 0.10
+    assert runtime_state["apex_world_pressure_window_runtime"] > 0.10
 
     print("✅ Region simulation social phase injection test passed")
 

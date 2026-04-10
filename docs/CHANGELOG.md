@@ -1492,3 +1492,9 @@ src/core/ecosystem.py        [修改] 导入新物种
 - 也就是说，`world_pressure_window_memory` 现在已经不只停留在长期记忆层，而会继续下沉成运行体自己的恢复偏置，再重新反向塑造下一轮 territory/social 节律
 - 文档阅读说明补充：
   - `window bias`：窗口偏置，指“长期窗口记忆”下沉后对运行体产生的直接恢复倾向
+- 这批新的 runtime window 信号现在也已继续进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 世界级长期压力聚合
+- 也就是说，`world_pressure_window_bias -> runtime_territory_state`
+  这条线现在已经不只影响 territory/social，还会继续抬高草原链、尸体资源链和下一轮区域 prosperity/collapse 判定

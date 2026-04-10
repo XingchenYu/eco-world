@@ -1244,3 +1244,9 @@
 - 也就是说，`world_pressure_window_memory` 现在已经不只作为社群长期记忆存在，而会继续下沉成运行体自己的恢复偏置，再反向抬高下一轮 territory/social 的长期节律
 - 术语补充：
   - `window bias`：窗口偏置，指长期窗口记忆沉淀到运行体后的直接行为/恢复偏置
+- 这组新的 runtime window 信号现在也已继续进入：
+  - `grassland_chain`
+  - `carrion_chain`
+  - 世界级长期压力聚合
+- 也就是说，这条闭环已经继续推进成：
+  `world_pressure_window_memory -> runtime window bias -> runtime_territory_state -> grassland/carrion/world pressures`

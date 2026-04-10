@@ -128,6 +128,7 @@ def build_region_grassland_chain_summary(
         herd_regional_health_runtime = float(runtime_signals.get("herd_regional_health_runtime", 0.0))
         herd_regional_health_anchor_runtime = float(runtime_signals.get("herd_regional_health_anchor_runtime", 0.0))
         herd_world_pressure_runtime = float(runtime_signals.get("herd_world_pressure_runtime", 0.0))
+        herd_world_pressure_window_runtime = float(runtime_signals.get("herd_world_pressure_window_runtime", 0.0))
         herd_regional_bias_runtime = float(runtime_signals.get("herd_regional_bias_runtime", 0.0))
         apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
         apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
@@ -135,6 +136,7 @@ def build_region_grassland_chain_summary(
         apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
         apex_regional_health_anchor_runtime = float(runtime_signals.get("apex_regional_health_anchor_runtime", 0.0))
         apex_world_pressure_runtime = float(runtime_signals.get("apex_world_pressure_runtime", 0.0))
+        apex_world_pressure_window_runtime = float(runtime_signals.get("apex_world_pressure_window_runtime", 0.0))
         apex_condition_anchor_runtime = float(runtime_signals.get("apex_condition_anchor_runtime", 0.0))
         apex_regional_bias_runtime = float(runtime_signals.get("apex_regional_bias_runtime", 0.0))
         herd_resource_anchor_runtime = float(runtime_signals.get("herd_resource_anchor_runtime", 0.0))
@@ -182,6 +184,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_world_pressure_pull", min(0.18, herd_world_pressure_runtime * 0.12), "世界级长期压力回灌成的 herd 偏置，正在继续抬升草原走廊的跨周期稳定度。")
             add_layer_bias("herd_layer", herd_world_pressure_runtime * 0.06)
             add_layer_bias("social_layer", herd_world_pressure_runtime * 0.03)
+        if herd_world_pressure_window_runtime > 0.0:
+            add_score("runtime_herd_world_pressure_window_pull", min(0.18, herd_world_pressure_window_runtime * 0.12), "世界级长期压力窗口沉淀成的 herd 运行期偏置，正在继续抬升草原走廊的恢复强度。")
+            add_layer_bias("herd_layer", herd_world_pressure_window_runtime * 0.06)
+            add_layer_bias("social_layer", herd_world_pressure_window_runtime * 0.03)
         herd_condition_phase_anchor_runtime = float(runtime_signals.get("herd_condition_phase_anchor_runtime", 0.0))
         if herd_condition_anchor_runtime > 0.0:
             add_score("runtime_herd_condition_anchor_pull", min(0.18, herd_condition_anchor_runtime * 0.13), "运行中的真实体况锚点正在把 herd 通道继续拉向更稳定的草原走廊。")
@@ -217,6 +223,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_apex_world_pressure_pull", min(0.16, apex_world_pressure_runtime * 0.11), "世界级长期压力回灌成的 apex 偏置，正在继续抬升顶层热点和捕食前线。")
             add_layer_bias("predator_layer", apex_world_pressure_runtime * 0.05)
             add_layer_bias("social_layer", apex_world_pressure_runtime * 0.03)
+        if apex_world_pressure_window_runtime > 0.0:
+            add_score("runtime_apex_world_pressure_window_pull", min(0.16, apex_world_pressure_window_runtime * 0.11), "世界级长期压力窗口沉淀成的 apex 运行期偏置，正在继续抬升顶层热点恢复前线。")
+            add_layer_bias("predator_layer", apex_world_pressure_window_runtime * 0.05)
+            add_layer_bias("social_layer", apex_world_pressure_window_runtime * 0.03)
         apex_condition_phase_anchor_runtime = float(runtime_signals.get("apex_condition_phase_anchor_runtime", 0.0))
         if apex_condition_anchor_runtime > 0.0:
             add_score("runtime_apex_condition_anchor_pull", min(0.15, apex_condition_anchor_runtime * 0.12), "运行中的顶层体况锚点正在把 apex 热点继续拉回更稳定的长期核心。")
