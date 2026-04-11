@@ -52,6 +52,10 @@
   - `smoke`：最小冒烟检查
   - `targeted`：按 graph 影响面执行
   - `full`：全量回归
+- 现在还支持：
+  - `--staged`：只看已暂存改动，适合准备提交前快速检查
+  - `--profile`：只输出某一档检查方案，减少说明性输出
+  - `--commands-only`：只输出可执行命令，进一步减少 token 消耗
 
 ## 常用命令
 
@@ -85,6 +89,12 @@ PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py all
 python3 scripts/graph_checks.py
 ```
 
+只看已暂存改动：
+
+```bash
+python3 scripts/graph_checks.py --staged
+```
+
 手动指定改动文件：
 
 ```bash
@@ -99,6 +109,12 @@ python3 scripts/graph_checks.py docs/CODE-REVIEW-GRAPH.md README.md
 
 它会直接告诉你这次可以跳过编译和测试。
 
+只输出 `targeted` 档命令：
+
+```bash
+python3 scripts/graph_checks.py --profile targeted --commands-only src/ecology/grassland.py src/ecology/carrion.py
+```
+
 ## 三档检查方案
 
 为了减少“每次都要重新判断检查强度”的 token 消耗，脚本现在会直接输出三档：
@@ -112,6 +128,14 @@ python3 scripts/graph_checks.py docs/CODE-REVIEW-GRAPH.md README.md
 - `full`
   - 跑 `all`
   - 只在共享层、测试入口或高风险改动时使用
+
+如果你已经知道自己只想要某一档命令，不需要整段解释，可以直接用：
+
+```bash
+python3 scripts/graph_checks.py --profile smoke --commands-only
+python3 scripts/graph_checks.py --profile targeted --commands-only
+python3 scripts/graph_checks.py --profile full --commands-only
+```
 
 ## Graph 驱动的编译与测试建议
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import bisect
 import re
 import subprocess
@@ -37,9 +38,14 @@ def _normalize(paths: Iterable[str]) -> List[str]:
     return normalized
 
 
-def _git_changed_files() -> List[str]:
+def _git_changed_files(staged: bool = False) -> List[str]:
+    args = ["git", "diff", "--name-only"]
+    if staged:
+        args.append("--cached")
+    else:
+        args.append("HEAD")
     result = subprocess.run(
-        ["git", "diff", "--name-only", "HEAD"],
+        args,
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -322,7 +328,39 @@ def _build_profiles(compile_targets: Sequence[str], test_groups: Sequence[str]) 
     return profiles
 
 
-def format_plan(plan: dict) -> str:
+def _format_profile_commands(profile: dict) -> str:
+    lines: List[str] = []
+    compile_cmd = (
+        "PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile "
+        + " ".join(profile["compile_targets"])
+    )
+    lines.append(compile_cmd)
+    if profile["test_groups"]:
+        for group in profile["test_groups"]:
+            lines.append(
+                f"PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
+            )
+    else:
+        lines.append("skip tests / 可跳过测试")
+    return "\n".join(lines)
+
+
+def format_plan(plan: dict, profile_only: str | None = None, commands_only: bool = False) -> str:
+    if profile_only:
+        profile = plan["profiles"].get(profile_only)
+        if not profile:
+            return f"Unknown profile / 未知检查档位: {profile_only}"
+        if commands_only:
+            return _format_profile_commands(profile)
+        return "\n".join(
+            [
+                f"Profile / 检查档位: {profile_only}",
+                profile["description"],
+                "",
+                _format_profile_commands(profile),
+            ]
+        )
+
     lines = [
         "Graph-guided checks / 图谱驱动检查建议",
         "",
@@ -360,31 +398,52 @@ def format_plan(plan: dict) -> str:
         if not profile:
             continue
         lines.append(f"- {name}: {profile['description']}")
-        compile_cmd = (
-            "  PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile "
-            + " ".join(profile["compile_targets"])
-        )
-        lines.append(compile_cmd)
-        if profile["test_groups"]:
-            for group in profile["test_groups"]:
-                lines.append(f"  PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}")
-        else:
-            lines.append("  skip tests / 可跳过测试")
+        lines.append("  " + _format_profile_commands(profile).replace("\n", "\n  "))
     lines.append("")
     lines.append("Reasons / 规则命中原因:")
     lines.extend(f"- {reason}" for reason in plan["reasons"])
     return "\n".join(lines)
 
 
+def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="根据改动文件给出 graph-guided 编译与测试建议。"
+    )
+    parser.add_argument(
+        "--staged",
+        action="store_true",
+        help="只读取 git staged / 已暂存的改动文件。",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=("smoke", "targeted", "full"),
+        help="只输出某一档检查方案。",
+    )
+    parser.add_argument(
+        "--commands-only",
+        action="store_true",
+        help="只输出可执行命令，减少解释性文本。",
+    )
+    parser.add_argument("paths", nargs="*", help="手动指定改动文件。")
+    return parser.parse_args(argv[1:])
+
+
 def main(argv: Sequence[str]) -> int:
-    if len(argv) > 1:
-        changed_files = _normalize(argv[1:])
+    args = _parse_args(argv)
+    if args.paths:
+        changed_files = _normalize(args.paths)
     else:
-        changed_files = _git_changed_files()
+        changed_files = _git_changed_files(staged=args.staged)
     if not changed_files:
         print("No changed files detected / 未检测到改动文件。")
         return 0
-    print(format_plan(build_plan(changed_files)))
+    print(
+        format_plan(
+            build_plan(changed_files),
+            profile_only=args.profile,
+            commands_only=args.commands_only,
+        )
+    )
     return 0
 
 

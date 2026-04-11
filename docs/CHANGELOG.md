@@ -1613,3 +1613,8 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `carrion_chain`
   - 世界级长期压力
 - 也就是说，world pressure window 现在已经从“运行体偏置”继续推进成了草原链与尸体资源链的直接长期输入
+- `scripts/graph_checks.py` 新增：
+  - `--staged`：只分析已暂存改动
+  - `--profile smoke|targeted|full`：只输出某一档检查方案
+  - `--commands-only`：只输出可执行命令，减少说明性文本和 token 消耗
+- [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md) 与 [docs/USAGE.md](/Users/yumini/Projects/eco-world/docs/USAGE.md) 已同步补充中文说明与命令示例

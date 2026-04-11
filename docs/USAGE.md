@@ -135,6 +135,18 @@ PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py all
 python3 scripts/graph_checks.py
 ```
 
+如果只想要某一档最小命令，减少说明输出：
+
+```bash
+python3 scripts/graph_checks.py --profile targeted --commands-only
+```
+
+如果只检查已暂存改动：
+
+```bash
+python3 scripts/graph_checks.py --staged
+```
+
 食物链测试：
 
 ```bash
