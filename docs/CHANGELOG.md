@@ -2,6 +2,14 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha51 (2026-04-11 09:40)
+
+- ✅ [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py) 现已新增三档 graph-guided 检查方案：
+  - `smoke`
+  - `targeted`
+  - `full`
+- ✅ [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md) 已补充三档方案的中文解释，后续不需要每次再人工判断“到底该跑多重”
+
 ### v4.0-alpha50 (2026-04-11 09:20)
 
 - ✅ [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py) 现已支持更细的 graph-guided 检查策略：

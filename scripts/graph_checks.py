@@ -197,6 +197,7 @@ def build_plan(changed_files: Sequence[str]) -> dict:
             "test_groups": [],
             "reasons": ["仅检测到文档或配置说明改动，可跳过代码编译与测试。"],
             "skip_checks": True,
+            "profiles": {},
         }
 
     if _matches(changed_files, ("src/ecology/grassland.py", "src/ecology/carrion.py")):
@@ -289,7 +290,36 @@ def build_plan(changed_files: Sequence[str]) -> dict:
         "test_groups": ordered_groups,
         "reasons": reasons,
         "skip_checks": False,
+        "profiles": _build_profiles(sorted(compile_targets), ordered_groups),
     }
+
+
+def _build_profiles(compile_targets: Sequence[str], test_groups: Sequence[str]) -> Dict[str, dict]:
+    profiles: Dict[str, dict] = {}
+    if not compile_targets:
+        return profiles
+
+    smoke_groups = [group for group in test_groups if group in {"basic", "world", "runtime", "grassland", "species", "wetland"}]
+    smoke_groups = smoke_groups[:1] if smoke_groups else []
+
+    targeted_groups = [group for group in test_groups if group != "all"]
+
+    profiles["smoke"] = {
+        "compile_targets": list(compile_targets),
+        "test_groups": smoke_groups,
+        "description": "最小代价确认当前主改动没有立即损坏。",
+    }
+    profiles["targeted"] = {
+        "compile_targets": list(compile_targets),
+        "test_groups": targeted_groups,
+        "description": "按 graph 影响面覆盖本轮真正相关的模块。",
+    }
+    profiles["full"] = {
+        "compile_targets": list(compile_targets),
+        "test_groups": ["all"],
+        "description": "共享层、测试入口或高风险改动时使用全量回归。",
+    }
+    return profiles
 
 
 def format_plan(plan: dict) -> str:
@@ -323,6 +353,23 @@ def format_plan(plan: dict) -> str:
         lines.append(
             f"- {group}: PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
         )
+    lines.append("")
+    lines.append("Profiles / 三档检查方案:")
+    for name in ("smoke", "targeted", "full"):
+        profile = plan["profiles"].get(name)
+        if not profile:
+            continue
+        lines.append(f"- {name}: {profile['description']}")
+        compile_cmd = (
+            "  PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile "
+            + " ".join(profile["compile_targets"])
+        )
+        lines.append(compile_cmd)
+        if profile["test_groups"]:
+            for group in profile["test_groups"]:
+                lines.append(f"  PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}")
+        else:
+            lines.append("  skip tests / 可跳过测试")
     lines.append("")
     lines.append("Reasons / 规则命中原因:")
     lines.extend(f"- {reason}" for reason in plan["reasons"])

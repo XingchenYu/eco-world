@@ -48,6 +48,10 @@
 - 是否建议补 `all`
 - 如果只是文档改动，会直接建议跳过代码检查
 - 如果改了 [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py)，会尽量根据改动落在哪些测试函数里，推断应该跑哪个测试组，而不是默认一律 `all`
+- 现在还会直接输出三档方案：
+  - `smoke`：最小冒烟检查
+  - `targeted`：按 graph 影响面执行
+  - `full`：全量回归
 
 ## 常用命令
 
@@ -94,6 +98,20 @@ python3 scripts/graph_checks.py docs/CODE-REVIEW-GRAPH.md README.md
 ```
 
 它会直接告诉你这次可以跳过编译和测试。
+
+## 三档检查方案
+
+为了减少“每次都要重新判断检查强度”的 token 消耗，脚本现在会直接输出三档：
+
+- `smoke`
+  - 最小代价确认当前主改动没立即坏掉
+  - 适合快速自检
+- `targeted`
+  - 按 graph 影响面执行真正相关的编译和测试
+  - 这是默认推荐档
+- `full`
+  - 跑 `all`
+  - 只在共享层、测试入口或高风险改动时使用
 
 ## Graph 驱动的编译与测试建议
 
