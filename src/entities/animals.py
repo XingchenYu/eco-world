@@ -551,10 +551,28 @@ class Animal(Creature):
                 self.pregnancy_timer = 0
                 self.mate_cooldown = max(self.mate_cooldown, 8)
                 return
+
+        condition_runtime = max(0.0, min(1.0, getattr(self, "condition_runtime", 0.0)))
+        condition_phase_bias = max(0.0, min(1.0, getattr(self, "condition_phase_bias", 0.0)))
+        regional_health_anchor = max(0.0, min(1.0, getattr(self, "regional_health_anchor", 0.0)))
+        world_pressure_bias = max(0.0, min(1.0, getattr(self, "world_pressure_bias", 0.0)))
+        world_pressure_window_bias = max(0.0, min(1.0, getattr(self, "world_pressure_window_bias", 0.0)))
+        condition_factor = max(
+            0.80,
+            min(
+                1.32,
+                0.88
+                + condition_runtime * 0.22
+                + condition_phase_bias * 0.16
+                + regional_health_anchor * 0.10
+                + world_pressure_bias * 0.08
+                + world_pressure_window_bias * 0.07,
+            ),
+        )
             
         # 产下后代（数量由环境决定）
         base_litter = random.randint(1, 3)
-        litter_size = max(1, min(5, int(base_litter * food_factor * predator_pressure * patch_factor)))
+        litter_size = max(1, min(5, int(base_litter * food_factor * predator_pressure * patch_factor * condition_factor)))
         
         for _ in range(litter_size):
             offspring_pos = (
@@ -570,7 +588,22 @@ class Animal(Creature):
         # 重置怀孕状态
         self.pregnant = False
         self.pregnancy_timer = 0
-        self.mate_cooldown = 30  # 产后更长冷却期
+        self.mate_cooldown = max(
+            18,
+            min(
+                30,
+                int(
+                    round(
+                        30
+                        - condition_runtime * 5
+                        - condition_phase_bias * 3
+                        - regional_health_anchor * 2
+                        - world_pressure_bias * 2
+                        - world_pressure_window_bias * 2
+                    )
+                ),
+            ),
+        )
         
         ecosystem.balance.record_causal_event(
             cause=f"{self.species}产仔",

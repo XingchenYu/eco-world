@@ -2,6 +2,24 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha52 (2026-04-11 10:35)
+
+- ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 的通用产仔路径 `_give_birth(...)` 现已把：
+  - `condition_runtime`：运行期真实体况
+  - `condition_phase_bias`：长期体况相位偏置
+  - `regional_health_anchor`：区域健康锚点
+  - `world_pressure_bias`：世界级长期压力偏置
+  - `world_pressure_window_bias`：世界级窗口偏置
+  一并接入 herd / aerial 物种的产仔规模与产后冷却
+- ✅ 这意味着世界级长期压力和区域健康度现在已经不只继续影响：
+  - `lion / hyena`
+  也开始继续影响：
+  - `antelope / zebra / vulture`
+  的群体延续节律
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已新增并通过：
+  - `test_antelope_world_pressure_birth_scaling()`
+  - `test_vulture_world_pressure_window_birth_scaling()`
+
 ### v4.0-alpha51 (2026-04-11 09:40)
 
 - ✅ [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py) 现已新增三档 graph-guided 检查方案：

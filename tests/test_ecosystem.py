@@ -2883,6 +2883,98 @@ def test_zebra_registration_and_spawn():
     print("✅ Zebra registration test passed")
 
 
+def test_antelope_world_pressure_birth_scaling():
+    """羚羊世界压力偏置应继续改善产后冷却和 herd 延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("antelope", pos_high, source="manual")
+    antelope_high = eco_high.animals[-1]
+    antelope_high.gender = Gender.FEMALE
+    antelope_high.pregnant = True
+    antelope_high.condition_runtime = 0.4
+    antelope_high.world_pressure_bias = 0.8
+    antelope_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("antelope")
+
+    random.seed(84)
+    antelope_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("antelope")
+    high_cooldown = antelope_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("antelope", pos_low, source="manual")
+    antelope_low = eco_low.animals[-1]
+    antelope_low.gender = Gender.FEMALE
+    antelope_low.pregnant = True
+    antelope_low.condition_runtime = 0.4
+    antelope_low.world_pressure_bias = 0.0
+    antelope_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("antelope")
+
+    random.seed(84)
+    antelope_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("antelope")
+    low_cooldown = antelope_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Antelope world pressure birth scaling test passed")
+
+
+def test_vulture_world_pressure_window_birth_scaling():
+    """秃鹫世界压力窗口偏置应继续改善产后冷却和 aerial 延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("vulture", pos_high, source="manual")
+    vulture_high = eco_high.animals[-1]
+    vulture_high.gender = Gender.FEMALE
+    vulture_high.pregnant = True
+    vulture_high.condition_runtime = 0.4
+    vulture_high.world_pressure_window_bias = 0.8
+    vulture_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("vulture")
+
+    random.seed(85)
+    vulture_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("vulture")
+    high_cooldown = vulture_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("vulture", pos_low, source="manual")
+    vulture_low = eco_low.animals[-1]
+    vulture_low.gender = Gender.FEMALE
+    vulture_low.pregnant = True
+    vulture_low.condition_runtime = 0.4
+    vulture_low.world_pressure_window_bias = 0.0
+    vulture_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("vulture")
+
+    random.seed(85)
+    vulture_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("vulture")
+    low_cooldown = vulture_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Vulture world pressure window birth scaling test passed")
+
+
 def test_lion_registration_and_spawn():
     """狮应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
