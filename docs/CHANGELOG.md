@@ -1636,3 +1636,7 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `--profile smoke|targeted|full`：只输出某一档检查方案
   - `--commands-only`：只输出可执行命令，减少说明性文本和 token 消耗
 - [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md) 与 [docs/USAGE.md](/Users/yumini/Projects/eco-world/docs/USAGE.md) 已同步补充中文说明与命令示例
+- `scripts/graph_checks.py` 现已继续优化：
+  - `--emit compile|tests|both`：只输出需要的命令类型
+  - `src/entities/animals.py` / `src/entities/omnivores.py` 现已支持更细的 diff-aware 归类，不再默认所有运行体改动都一律跑 `species + runtime`
+- [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md) 与 [docs/USAGE.md](/Users/yumini/Projects/eco-world/docs/USAGE.md) 已同步补充中文说明与示例

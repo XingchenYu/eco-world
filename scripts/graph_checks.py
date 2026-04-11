@@ -92,8 +92,12 @@ def _parse_changed_new_lines(diff_text: str) -> Set[int]:
 
 def _test_function_ranges() -> List[Tuple[int, str]]:
     test_file = ROOT / "tests/test_ecosystem.py"
+    return _python_def_ranges(test_file)
+
+
+def _python_def_ranges(path: Path) -> List[Tuple[int, str]]:
     ranges: List[Tuple[int, str]] = []
-    with test_file.open("r", encoding="utf-8") as handle:
+    with path.open("r", encoding="utf-8") as handle:
         for lineno, line in enumerate(handle, start=1):
             if line.startswith("def "):
                 name = line[4 : line.index("(")]
@@ -190,6 +194,81 @@ def _classify_test_file_diff() -> Tuple[Set[str], bool]:
     return changed_groups, touches_harness
 
 
+def _infer_group_from_entity_def(path: str, name: str) -> str | None:
+    if path == "src/entities/animals.py":
+        if name in {"_give_birth"}:
+            return "species"
+        if any(
+            token in name
+            for token in (
+                "runtime",
+                "cycle",
+                "bias",
+                "condition",
+                "route",
+                "drift",
+            )
+        ):
+            return "runtime"
+        if name.startswith("_apply_"):
+            return "runtime"
+        if any(token in name for token in ("antelope", "zebra", "vulture")):
+            return "species"
+    if path == "src/entities/omnivores.py":
+        if name in {"_social_group_birth"}:
+            return "species"
+        if any(
+            token in name
+            for token in (
+                "runtime",
+                "stability",
+                "cycle",
+                "core",
+                "front",
+                "corridor",
+                "cluster",
+                "bias",
+                "center",
+                "pressure",
+            )
+        ):
+            return "runtime"
+        if name.startswith("_apply_"):
+            return "runtime"
+        if any(token in name for token in ("lion", "hyena")):
+            return "species"
+    return None
+
+
+def _classify_entity_diff(path: str) -> Tuple[Set[str], bool]:
+    diff_text = _git_diff_text(path)
+    changed_lines = _parse_changed_new_lines(diff_text)
+    if not changed_lines:
+        return set(), False
+
+    function_ranges = _python_def_ranges(ROOT / path)
+    if not function_ranges:
+        return set(), True
+
+    function_starts = [line for line, _ in function_ranges]
+    changed_groups: Set[str] = set()
+    touches_unknown = False
+
+    for line in changed_lines:
+        idx = bisect.bisect_right(function_starts, line) - 1
+        if idx < 0:
+            touches_unknown = True
+            continue
+        _, func_name = function_ranges[idx]
+        group = _infer_group_from_entity_def(path, func_name)
+        if group is None:
+            touches_unknown = True
+            continue
+        changed_groups.add(group)
+
+    return changed_groups, touches_unknown
+
+
 def build_plan(changed_files: Sequence[str]) -> dict:
     compile_targets: Set[str] = set()
     test_groups: List[str] = []
@@ -245,8 +324,21 @@ def build_plan(changed_files: Sequence[str]) -> dict:
             "src/entities/animals.py",
             "src/entities/omnivores.py",
         )
-        test_groups.extend(["species", "runtime"])
-        reasons.append("检测到运行体改动，优先检查 species、runtime。")
+        entity_groups: Set[str] = set()
+        touches_unknown = False
+        for entity_path in ("src/entities/animals.py", "src/entities/omnivores.py"):
+            if entity_path not in changed_files:
+                continue
+            groups, unknown = _classify_entity_diff(entity_path)
+            entity_groups.update(groups)
+            touches_unknown = touches_unknown or unknown
+        if entity_groups and not touches_unknown:
+            ordered_entity_groups = [group for group in ("species", "runtime") if group in entity_groups]
+            test_groups.extend(ordered_entity_groups)
+            reasons.append("检测到运行体改动，且 diff 可归类到具体行为函数，按受影响的 species/runtime 组增量执行。")
+        else:
+            test_groups.extend(["species", "runtime"])
+            reasons.append("检测到运行体改动，优先检查 species、runtime。")
 
     if _matches(changed_files, ("src/world/", "src/data/")):
         _add_compile_targets(
@@ -328,36 +420,43 @@ def _build_profiles(compile_targets: Sequence[str], test_groups: Sequence[str]) 
     return profiles
 
 
-def _format_profile_commands(profile: dict) -> str:
+def _format_profile_commands(profile: dict, emit: str = "both") -> str:
     lines: List[str] = []
-    compile_cmd = (
-        "PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile "
-        + " ".join(profile["compile_targets"])
-    )
-    lines.append(compile_cmd)
-    if profile["test_groups"]:
-        for group in profile["test_groups"]:
-            lines.append(
-                f"PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
-            )
-    else:
-        lines.append("skip tests / 可跳过测试")
+    if emit in {"both", "compile"}:
+        compile_cmd = (
+            "PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile "
+            + " ".join(profile["compile_targets"])
+        )
+        lines.append(compile_cmd)
+    if emit in {"both", "tests"}:
+        if profile["test_groups"]:
+            for group in profile["test_groups"]:
+                lines.append(
+                    f"PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
+                )
+        else:
+            lines.append("skip tests / 可跳过测试")
     return "\n".join(lines)
 
 
-def format_plan(plan: dict, profile_only: str | None = None, commands_only: bool = False) -> str:
+def format_plan(
+    plan: dict,
+    profile_only: str | None = None,
+    commands_only: bool = False,
+    emit: str = "both",
+) -> str:
     if profile_only:
         profile = plan["profiles"].get(profile_only)
         if not profile:
             return f"Unknown profile / 未知检查档位: {profile_only}"
         if commands_only:
-            return _format_profile_commands(profile)
+            return _format_profile_commands(profile, emit=emit)
         return "\n".join(
             [
                 f"Profile / 检查档位: {profile_only}",
                 profile["description"],
                 "",
-                _format_profile_commands(profile),
+                _format_profile_commands(profile, emit=emit),
             ]
         )
 
@@ -398,7 +497,7 @@ def format_plan(plan: dict, profile_only: str | None = None, commands_only: bool
         if not profile:
             continue
         lines.append(f"- {name}: {profile['description']}")
-        lines.append("  " + _format_profile_commands(profile).replace("\n", "\n  "))
+        lines.append("  " + _format_profile_commands(profile, emit=emit).replace("\n", "\n  "))
     lines.append("")
     lines.append("Reasons / 规则命中原因:")
     lines.extend(f"- {reason}" for reason in plan["reasons"])
@@ -424,6 +523,12 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="只输出可执行命令，减少解释性文本。",
     )
+    parser.add_argument(
+        "--emit",
+        choices=("both", "compile", "tests"),
+        default="both",
+        help="只输出编译命令、测试命令，或两者都输出。",
+    )
     parser.add_argument("paths", nargs="*", help="手动指定改动文件。")
     return parser.parse_args(argv[1:])
 
@@ -442,6 +547,7 @@ def main(argv: Sequence[str]) -> int:
             build_plan(changed_files),
             profile_only=args.profile,
             commands_only=args.commands_only,
+            emit=args.emit,
         )
     )
     return 0

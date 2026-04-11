@@ -141,6 +141,12 @@ python3 scripts/graph_checks.py
 python3 scripts/graph_checks.py --profile targeted --commands-only
 ```
 
+如果只想拿测试命令，不要编译命令：
+
+```bash
+python3 scripts/graph_checks.py --profile targeted --emit tests --commands-only
+```
+
 如果只检查已暂存改动：
 
 ```bash

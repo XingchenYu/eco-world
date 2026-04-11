@@ -56,6 +56,11 @@
   - `--staged`：只看已暂存改动，适合准备提交前快速检查
   - `--profile`：只输出某一档检查方案，减少说明性输出
   - `--commands-only`：只输出可执行命令，进一步减少 token 消耗
+  - `--emit compile|tests|both`：只输出编译命令、测试命令，或两者都输出
+- 运行体文件现在还支持更细粒度的 diff 归类：
+  - 如果改动落在 `src/entities/animals.py` 的 `_give_birth(...)` 这类函数里，会优先推荐 `species`
+  - 如果改动落在运行期偏置、周期、漂移、稳定度相关函数里，会优先推荐 `runtime`
+  - 不再默认所有运行体改动都一律 `species + runtime`
 
 ## 常用命令
 
@@ -115,6 +120,18 @@ python3 scripts/graph_checks.py docs/CODE-REVIEW-GRAPH.md README.md
 python3 scripts/graph_checks.py --profile targeted --commands-only src/ecology/grassland.py src/ecology/carrion.py
 ```
 
+只输出测试命令：
+
+```bash
+python3 scripts/graph_checks.py --profile targeted --emit tests --commands-only src/entities/animals.py
+```
+
+只输出编译命令：
+
+```bash
+python3 scripts/graph_checks.py --profile targeted --emit compile --commands-only src/ecology/social.py
+```
+
 ## 三档检查方案
 
 为了减少“每次都要重新判断检查强度”的 token 消耗，脚本现在会直接输出三档：
@@ -135,6 +152,13 @@ python3 scripts/graph_checks.py --profile targeted --commands-only src/ecology/g
 python3 scripts/graph_checks.py --profile smoke --commands-only
 python3 scripts/graph_checks.py --profile targeted --commands-only
 python3 scripts/graph_checks.py --profile full --commands-only
+```
+
+如果你只需要一类命令，可以再叠加：
+
+```bash
+python3 scripts/graph_checks.py --profile targeted --emit tests --commands-only
+python3 scripts/graph_checks.py --profile targeted --emit compile --commands-only
 ```
 
 ## Graph 驱动的编译与测试建议
