@@ -46,6 +46,8 @@
 - 建议编译哪些文件
 - 建议先跑哪些测试组
 - 是否建议补 `all`
+- 如果只是文档改动，会直接建议跳过代码检查
+- 如果改了 [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py)，会尽量根据改动落在哪些测试函数里，推断应该跑哪个测试组，而不是默认一律 `all`
 
 ## 常用命令
 
@@ -84,6 +86,14 @@ python3 scripts/graph_checks.py
 ```bash
 python3 scripts/graph_checks.py src/ecology/grassland.py src/ecology/carrion.py
 ```
+
+如果只是文档改动：
+
+```bash
+python3 scripts/graph_checks.py docs/CODE-REVIEW-GRAPH.md README.md
+```
+
+它会直接告诉你这次可以跳过编译和测试。
 
 ## Graph 驱动的编译与测试建议
 

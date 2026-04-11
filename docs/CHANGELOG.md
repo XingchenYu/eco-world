@@ -2,6 +2,14 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha50 (2026-04-11 09:20)
+
+- ✅ [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py) 现已支持更细的 graph-guided 检查策略：
+  - 文档改动直接建议跳过代码检查
+  - [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 改动会尽量按受影响测试函数推断测试组
+  - 不再默认“一改测试文件就强制 `all`”
+- ✅ [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md) 已同步补充这套更细粒度的说明
+
 ### v4.0-alpha49 (2026-04-10 15:20)
 
 - ✅ [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 现已把：
