@@ -144,6 +144,7 @@ class RegionSimulation(Ecosystem):
             ),
         )
         world_pressure_window_memory = 1.0 if "world_pressure_window_memory" in cycle_signals else 0.0
+        birth_cycle_window_memory = 1.0 if "birth_cycle_window_memory" in cycle_signals else 0.0
         world_pressure_window_bias = min(
             1.0,
             max(
@@ -199,6 +200,7 @@ class RegionSimulation(Ecosystem):
                 apex_birth_memory * 0.28
                 + apex_birth_memory_world_pressure_bias * 0.36
                 + world_pressure_window_bias * 0.16
+                + birth_cycle_window_memory * 0.14
                 + runtime_anchor_prosperity * 0.10
                 - regional_collapse_risk * 0.10,
             ),
@@ -210,6 +212,7 @@ class RegionSimulation(Ecosystem):
                 herd_birth_memory * 0.30
                 + herd_birth_memory_world_pressure_bias * 0.36
                 + world_pressure_window_bias * 0.14
+                + birth_cycle_window_memory * 0.16
                 + runtime_anchor_prosperity * 0.12
                 - regional_collapse_risk * 0.10,
             ),
@@ -221,6 +224,7 @@ class RegionSimulation(Ecosystem):
                 aerial_birth_memory * 0.30
                 + aerial_birth_memory_world_pressure_bias * 0.36
                 + world_pressure_window_bias * 0.14
+                + birth_cycle_window_memory * 0.16
                 + runtime_anchor_prosperity * 0.12
                 - regional_collapse_risk * 0.10,
             ),

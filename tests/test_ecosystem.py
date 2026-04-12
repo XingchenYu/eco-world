@@ -409,6 +409,7 @@ def test_v4_grassland_runtime_pressure_updates_region_health():
     assert region.ecological_pressures["collapse_pressure"] > 0.0
     assert region.ecological_pressures["runtime_resource_pressure"] > 0.0
     assert "condition_phase_window_memory" in region.relationship_state["social_trends"]["cycle_signals"]
+    assert "birth_cycle_window_memory" in region.relationship_state["social_trends"]["cycle_signals"]
     assert region.ecological_pressures["runtime_herd_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_birth_memory_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_birth_memory_world_pressure_pull"] > 0.0
@@ -1085,6 +1086,8 @@ def test_v4_social_trend_summary_uses_memory():
                 {"effect": "condition_phase_clan_window"},
                 {"effect": "world_pressure_herd_window"},
                 {"effect": "world_pressure_apex_window"},
+                {"effect": "birth_cycle_herd_window"},
+                {"effect": "birth_cycle_apex_window"},
             ]
         },
     )
@@ -1095,6 +1098,8 @@ def test_v4_social_trend_summary_uses_memory():
                 {"effect": "condition_phase_aerial_window"},
                 {"effect": "world_pressure_aerial_window"},
                 {"effect": "world_pressure_apex_carrion_window"},
+                {"effect": "birth_cycle_aerial_window"},
+                {"effect": "birth_cycle_apex_carrion_window"},
             ]
         },
     )
@@ -1225,6 +1230,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert "apex_condition_anchor_runtime" in summary.cycle_signals
     assert "condition_phase_window_memory" in summary.cycle_signals
     assert "world_pressure_window_memory" in summary.cycle_signals
+    assert "birth_cycle_window_memory" in summary.cycle_signals
     assert "herd_world_pressure_window_runtime" in summary.cycle_signals
     assert "aerial_world_pressure_window_runtime" in summary.cycle_signals
     assert "apex_world_pressure_window_runtime" in summary.cycle_signals
