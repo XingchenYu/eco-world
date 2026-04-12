@@ -1823,3 +1823,8 @@ src/core/ecosystem.py        [修改] 导入新物种
     - `herd_route_cycle`
     - `aerial_carrion_cycle`
   - 并且当强度足够时，会显式写入 `cycle_signals`
+- 主线继续推进：
+  - `birth_cycle_window_memory_strength` 现在也开始进入：
+    - `grassland_boom_phase / grassland_bust_phase`
+    - `grassland_prosperity_phase / grassland_collapse_phase`
+  - 也就是说，繁殖窗口的真实生效强度现在已经不只影响周期层，还会继续改变长期繁荣/衰退相位

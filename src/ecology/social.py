@@ -361,6 +361,7 @@ def build_region_social_trend_summary(
                     + condition_phase_window_count * 0.05
                     + world_pressure_window_count * 0.05
                     + birth_cycle_window_count * 0.04
+                    + trend_scores["birth_cycle_window_memory_strength"] * 0.08
                     + surface_water_anchor * 0.06
                     + carcass_anchor * 0.05
                     + apex_anchor_prosperity_runtime * 0.04
@@ -397,6 +398,7 @@ def build_region_social_trend_summary(
                     - aerial_carrion_cycle_signal * 0.05
                     - apex_regional_bias_runtime * 0.03
                     - apex_regional_health_anchor_runtime * 0.02
+                    - trend_scores["birth_cycle_window_memory_strength"] * 0.04
                     - max(0.0, lion_hotspot_persistence - lion_hotspot_shift) * 0.02
                     - max(0.0, hyena_hotspot_persistence - hyena_hotspot_shift) * 0.02,
                 ),
@@ -434,6 +436,7 @@ def build_region_social_trend_summary(
                     + aerial_resource_anchor_runtime * 0.03
                     + aerial_condition_anchor_runtime * 0.03
                     + aerial_anchor_prosperity_runtime * 0.03
+                    + trend_scores["birth_cycle_window_memory_strength"] * 0.08
                     + surface_water_anchor * 0.06
                     + carcass_anchor * 0.05
                     + apex_anchor_prosperity_runtime * 0.04
@@ -454,6 +457,7 @@ def build_region_social_trend_summary(
                     + condition_phase_window_count * 0.05
                     + world_pressure_window_count * 0.04
                     + birth_cycle_window_count * 0.04
+                    + trend_scores["birth_cycle_window_memory_strength"] * 0.06
                     + shared_hotspot_shift * 0.05
                     + overlap * 0.03
                     - herd_resource_anchor_runtime * 0.02
