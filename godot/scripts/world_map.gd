@@ -928,7 +928,7 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
 			side_box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
 			side_box.add_child(_make_section("区域连接", active_region.get("connectors", []), true, "target_region_id", "strength"))
-			side_box.add_child(_make_route_section(route_summary))
+			side_box.add_child(_make_route_section(route_summary, active_region))
 			side_box.add_child(_make_intro_section(active_region))
 		"chains":
 			side_box.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。", _tab_accent_color("chains"), region_accent, active_region))
@@ -1054,7 +1054,7 @@ func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
 
 	var summary := active_region.get("region_summary", {})
 	var summary_title := Label.new()
-	summary_title.text = "区域概况"
+	summary_title.text = "%s · 区域概况" % _region_type_chip(active_region)
 	_style_primary_title(summary_title, 22)
 	box.add_child(summary_title)
 
@@ -1080,7 +1080,7 @@ func _make_focus_card(active_region: Dictionary) -> PanelContainer:
 	box.add_theme_constant_override("separation", 6)
 
 	var title := Label.new()
-	title.text = "区域定位"
+	title.text = "%s · 区域定位" % _region_type_chip(active_region)
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
@@ -1103,7 +1103,7 @@ func _make_intro_section(active_region: Dictionary) -> PanelContainer:
 	box.add_theme_constant_override("separation", 6)
 
 	var title := Label.new()
-	title.text = "区域档案"
+	title.text = "%s · 区域档案" % _region_type_chip(active_region)
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
@@ -1167,12 +1167,12 @@ func _make_species_section(top_species: Array, active_region: Dictionary) -> VBo
 	return box
 
 
-func _make_route_section(route_summary: Array) -> PanelContainer:
+func _make_route_section(route_summary: Array, active_region: Dictionary) -> PanelContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 
 	var title := Label.new()
-	title.text = "通道情报"
+	title.text = "%s · 通道情报" % _region_type_chip(active_region)
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
