@@ -132,6 +132,16 @@ func _animate_side_panel_refresh() -> void:
 	tween.tween_property(side_panel, "modulate:a", 1.0, 0.18)
 
 
+func _animate_tab_transition() -> void:
+	if side_scroll == null:
+		return
+	side_scroll.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	side_scroll.position = Vector2(18, 0)
+	var tween := create_tween()
+	tween.tween_property(side_scroll, "modulate:a", 1.0, 0.18)
+	tween.parallel().tween_property(side_scroll, "position:x", 0.0, 0.22)
+
+
 func _animate_status_flash() -> void:
 	if status_label == null:
 		return
@@ -1193,6 +1203,7 @@ func _on_tab_pressed(tab_id: String) -> void:
 	for child in side_box.get_children():
 		child.queue_free()
 	_build_side_panel()
+	_animate_tab_transition()
 	_animate_side_panel_refresh()
 	_animate_status_flash()
 
