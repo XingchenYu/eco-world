@@ -1813,3 +1813,7 @@ src/core/ecosystem.py        [修改] 导入新物种
   - 已新增 `birth_cycle_window_memory_strength`
   - 它会按窗口与 support 的真实生效强度，继续抬升运行体的 `birth_cycle_bias`
   - 也就是说，慢反馈繁殖窗口现在不再只是“发生过/没发生过”，而是开始按强度回灌 herd / apex / aerial 的真实繁殖节律
+- 主线继续推进：
+  - `world_simulation` 里的长期压力聚合与 `runtime_territory_state`
+    现在也开始按 `birth_cycle_window_memory_strength` 计入，而不再只看布尔型 `birth_cycle_window_memory`
+  - 也就是说，世界层和运行期 territory 聚合现在都会识别“窗口生效得有多强”，而不只是“窗口是否存在”

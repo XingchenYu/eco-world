@@ -114,6 +114,7 @@ class WorldSimulation:
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in social_trends.prosperity_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
+        birth_cycle_window_memory_strength = float(social_trends.trend_scores.get("birth_cycle_window_memory_strength", 0.0))
         for key, value in symbiosis.support_scores.items():
             combined_pressures[key] = combined_pressures.get(key, 0.0) + value
         for key, value in territory.pressure_scores.items():
@@ -196,7 +197,8 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_apex_regional_bias_pull", 0.0)) * 0.7
             + (0.18 if "condition_phase_window_memory" in social_trends.cycle_signals else 0.0)
             + (0.16 if "world_pressure_window_memory" in social_trends.cycle_signals else 0.0)
-            + (0.14 if "birth_cycle_window_memory" in social_trends.cycle_signals else 0.0)
+            + (0.06 if "birth_cycle_window_memory" in social_trends.cycle_signals else 0.0)
+            + birth_cycle_window_memory_strength * 0.14
         )
         collapse_pressure = (
             float(social_trends.prosperity_scores.get("grassland_collapse_phase", 0.0))
@@ -233,7 +235,8 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_apex_regional_bias_pull", 0.0)) * 0.25
             + (0.10 if "condition_phase_window_memory" in social_trends.cycle_signals else 0.0)
             + (0.08 if "world_pressure_window_memory" in social_trends.cycle_signals else 0.0)
-            + (0.08 if "birth_cycle_window_memory" in social_trends.cycle_signals else 0.0)
+            + (0.04 if "birth_cycle_window_memory" in social_trends.cycle_signals else 0.0)
+            + birth_cycle_window_memory_strength * 0.08
         )
         runtime_resource_pressure = (
             float(territory.runtime_signals.get("herd_surface_water_runtime", 0.0))
@@ -547,6 +550,8 @@ class WorldSimulation:
         social_state = simulation.region.relationship_state.get("social_trends", {})
         cycle_signals = social_state.get("cycle_signals", []) if isinstance(social_state, dict) else []
         birth_cycle_window_memory = 1.0 if "birth_cycle_window_memory" in cycle_signals else 0.0
+        trend_scores = social_state.get("trend_scores", {}) if isinstance(social_state, dict) else {}
+        birth_cycle_window_memory_strength = float(trend_scores.get("birth_cycle_window_memory_strength", 0.0))
         birth_signals = self._collect_runtime_birth_signals(simulation)
         state.update(birth_signals)
         regional_health_anchor = max(
@@ -658,6 +663,7 @@ class WorldSimulation:
                 1.0,
                 state["apex_birth_cycle_runtime"] * 0.64
                 + birth_cycle_window_memory * 0.28
+                + birth_cycle_window_memory_strength * 0.18
                 + state["apex_anchor_prosperity_runtime"] * 0.08,
             )
         if hyenas:
@@ -784,6 +790,7 @@ class WorldSimulation:
                     1.0,
                     state["apex_birth_cycle_runtime"] * 0.64
                     + birth_cycle_window_memory * 0.28
+                    + birth_cycle_window_memory_strength * 0.18
                     + state["apex_anchor_prosperity_runtime"] * 0.08,
                 ),
             )
@@ -886,6 +893,7 @@ class WorldSimulation:
                 1.0,
                 state["herd_birth_cycle_runtime"] * 0.64
                 + birth_cycle_window_memory * 0.28
+                + birth_cycle_window_memory_strength * 0.18
                 + state["herd_anchor_prosperity_runtime"] * 0.08,
             )
         if vultures:
@@ -987,6 +995,7 @@ class WorldSimulation:
                 1.0,
                 state["aerial_birth_cycle_runtime"] * 0.64
                 + birth_cycle_window_memory * 0.28
+                + birth_cycle_window_memory_strength * 0.18
                 + state["aerial_anchor_prosperity_runtime"] * 0.08,
             )
         if lion_hotspots and hyena_hotspots:
