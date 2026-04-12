@@ -181,6 +181,11 @@ def build_region_carrion_chain_summary(
             add_score("runtime_aerial_birth_cycle_window_pull", min(0.18, aerial_birth_cycle_window_runtime * 0.12), "多周期繁殖窗口重新汇总成的空中运行期信号，正在继续抬升秃鹫尸体通道的恢复强度。")
             add_layer_bias("aerial_scavenge_layer", aerial_birth_cycle_window_runtime * 0.06)
             add_layer_bias("scavenge_layer", aerial_birth_cycle_window_runtime * 0.03)
+        aerial_birth_cycle_window_pressure_runtime = float(runtime_signals.get("aerial_birth_cycle_window_pressure_runtime", 0.0))
+        if aerial_birth_cycle_window_pressure_runtime > 0.0:
+            add_score("runtime_aerial_birth_cycle_window_pressure_pull", min(0.18, aerial_birth_cycle_window_pressure_runtime * 0.12), "繁殖窗口强度沉淀成的空中运行期压力偏置，正在继续抬升秃鹫尸体通道的恢复强度。")
+            add_layer_bias("aerial_scavenge_layer", aerial_birth_cycle_window_pressure_runtime * 0.06)
+            add_layer_bias("scavenge_layer", aerial_birth_cycle_window_pressure_runtime * 0.03)
         aerial_condition_phase_anchor_runtime = float(runtime_signals.get("aerial_condition_phase_anchor_runtime", 0.0))
         if aerial_condition_anchor_runtime > 0.0:
             add_score("runtime_aerial_condition_anchor_pull", min(0.18, aerial_condition_anchor_runtime * 0.13), "运行中的真实体况锚点正在把空中尸体追踪继续拉向更稳定的长期通道。")
@@ -257,6 +262,11 @@ def build_region_carrion_chain_summary(
             add_score("runtime_apex_birth_cycle_window_pull", min(0.16, apex_birth_cycle_window_runtime * 0.11), "多周期繁殖窗口重新汇总成的 apex 运行期信号，正在继续抬升击杀走廊恢复前线。")
             add_layer_bias("kill_layer", apex_birth_cycle_window_runtime * 0.05)
             add_layer_bias("scavenge_layer", apex_birth_cycle_window_runtime * 0.03)
+        apex_birth_cycle_window_pressure_runtime = float(runtime_signals.get("apex_birth_cycle_window_pressure_runtime", 0.0))
+        if apex_birth_cycle_window_pressure_runtime > 0.0:
+            add_score("runtime_apex_birth_cycle_window_pressure_pull", min(0.16, apex_birth_cycle_window_pressure_runtime * 0.11), "繁殖窗口强度沉淀成的 apex 运行期压力偏置，正在继续抬升击杀走廊恢复前线。")
+            add_layer_bias("kill_layer", apex_birth_cycle_window_pressure_runtime * 0.05)
+            add_layer_bias("scavenge_layer", apex_birth_cycle_window_pressure_runtime * 0.03)
         apex_condition_phase_anchor_runtime = float(runtime_signals.get("apex_condition_phase_anchor_runtime", 0.0))
         if apex_condition_anchor_runtime > 0.0:
             add_score("runtime_apex_condition_anchor_pull", min(0.15, apex_condition_anchor_runtime * 0.12), "运行中的顶层体况锚点正在把击杀与残食通道继续拉向更稳定的长期前线。")

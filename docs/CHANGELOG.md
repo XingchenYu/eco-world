@@ -36,6 +36,16 @@
   - `cycle_signals`
 - ✅ 这条慢反馈主线现在已经补成：
   - `birth_cycle window -> memory strength -> pressure bias -> runtime territory -> social memory`
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现在也已继续接入：
+  - `runtime_herd_birth_cycle_window_pressure_pull`
+  - `runtime_aerial_birth_cycle_window_pressure_pull`
+  - `runtime_apex_birth_cycle_window_pressure_pull`
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现在会把这组新 pull 与对应 `territory.runtime_signals` 继续纳入：
+  - `prosperity_pressure`
+  - `collapse_pressure`
+  - `runtime_resource_pressure`
+- ✅ 这条慢反馈主线现在已经继续推进成：
+  - `birth_cycle window -> memory strength -> pressure bias -> runtime territory -> chain summaries -> world pressures`
 
 ### v4.0-alpha60 (2026-04-12 15:35)
 
