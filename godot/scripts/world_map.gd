@@ -124,6 +124,30 @@ func _species_category(species_id: String) -> String:
 	return "区域种"
 
 
+func _animate_side_panel_refresh() -> void:
+	if side_panel == null:
+		return
+	side_panel.modulate = Color(1.0, 1.0, 1.0, 0.72)
+	var tween := create_tween()
+	tween.tween_property(side_panel, "modulate:a", 1.0, 0.18)
+
+
+func _animate_status_flash() -> void:
+	if status_label == null:
+		return
+	status_label.modulate = Color8(255, 240, 180)
+	var tween := create_tween()
+	tween.tween_property(status_label, "modulate", Color8(170, 180, 188), 0.28)
+
+
+func _animate_focus_glow(glow: ColorRect, focus_frame: ColorRect) -> void:
+	var tween := create_tween().set_loops()
+	tween.tween_property(glow, "modulate:a", 0.92, 0.75)
+	tween.parallel().tween_property(focus_frame, "modulate:a", 0.88, 0.75)
+	tween.tween_property(glow, "modulate:a", 0.42, 0.75)
+	tween.parallel().tween_property(focus_frame, "modulate:a", 0.38, 0.75)
+
+
 func _tab_icon(tab_id: String) -> String:
 	return {
 		"overview": "◎",
@@ -489,6 +513,7 @@ func _build_map_nodes(regions: Array) -> void:
 			focus_frame.custom_minimum_size = shell.custom_minimum_size + Vector2(8, 8)
 			map_layer.add_child(focus_frame)
 			map_layer.move_child(focus_frame, map_layer.get_child_count() - 2)
+			_animate_focus_glow(glow, focus_frame)
 
 		var shell_box := VBoxContainer.new()
 		shell_box.add_theme_constant_override("separation", 4)
@@ -1157,9 +1182,9 @@ func _make_section(
 func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
-	for child in side_box.get_children():
-		child.queue_free()
-	_build_side_panel()
+	_render_world()
+	_animate_side_panel_refresh()
+	_animate_status_flash()
 
 
 func _on_tab_pressed(tab_id: String) -> void:
@@ -1168,6 +1193,8 @@ func _on_tab_pressed(tab_id: String) -> void:
 	for child in side_box.get_children():
 		child.queue_free()
 	_build_side_panel()
+	_animate_side_panel_refresh()
+	_animate_status_flash()
 
 
 func _on_auto_refresh_toggled(enabled: bool) -> void:
