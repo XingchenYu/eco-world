@@ -35,6 +35,11 @@
   - `surface_water`
   - `carcass_availability`
   - `resilience`
+- ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 与 [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 现在已把：
+  - `birth_cycle_window_pressure_bias`
+  正式接入产仔路径：
+  - `litter_size`
+  - `mate_cooldown`
 
 ### v4.0-alpha62 (2026-04-12 16:55)
 

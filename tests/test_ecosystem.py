@@ -3696,6 +3696,52 @@ def test_vulture_birth_cycle_scaling():
     assert high_count >= before_high
     assert low_count >= before_low
     assert high_count >= low_count
+
+
+def test_antelope_birth_cycle_window_pressure_scaling():
+    """羚羊 birth_cycle_window_pressure_bias 应继续改善产后冷却和 herd 延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("antelope", pos_high, source="manual")
+    antelope_high = eco_high.animals[-1]
+    antelope_high.gender = Gender.FEMALE
+    antelope_high.pregnant = True
+    antelope_high.condition_runtime = 0.4
+    antelope_high.birth_cycle_window_pressure_bias = 0.8
+    antelope_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("antelope")
+
+    random.seed(186)
+    antelope_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("antelope")
+    high_cooldown = antelope_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("antelope", pos_low, source="manual")
+    antelope_low = eco_low.animals[-1]
+    antelope_low.gender = Gender.FEMALE
+    antelope_low.pregnant = True
+    antelope_low.condition_runtime = 0.4
+    antelope_low.birth_cycle_window_pressure_bias = 0.0
+    antelope_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("antelope")
+
+    random.seed(186)
+    antelope_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("antelope")
+    low_cooldown = antelope_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Antelope birth cycle window pressure scaling test passed")
     assert high_cooldown < low_cooldown
 
     print("✅ Vulture birth cycle scaling test passed")
@@ -4114,6 +4160,52 @@ def test_lion_birth_cycle_scaling():
     assert high_cooldown < low_cooldown
 
     print("✅ Lion birth cycle scaling test passed")
+
+
+def test_lion_birth_cycle_window_pressure_scaling():
+    """狮群 birth_cycle_window_pressure_bias 应继续改善产后冷却和群体延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("lion", pos_high, source="manual")
+    lion_high = eco_high.animals[-1]
+    lion_high.gender = Gender.FEMALE
+    lion_high.pregnant = True
+    lion_high.pride_stability = 0.6
+    lion_high.birth_cycle_window_pressure_bias = 0.8
+    lion_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("lion")
+
+    random.seed(156)
+    lion_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("lion")
+    high_cooldown = lion_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("lion", pos_low, source="manual")
+    lion_low = eco_low.animals[-1]
+    lion_low.gender = Gender.FEMALE
+    lion_low.pregnant = True
+    lion_low.pride_stability = 0.6
+    lion_low.birth_cycle_window_pressure_bias = 0.0
+    lion_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("lion")
+
+    random.seed(156)
+    lion_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("lion")
+    low_cooldown = lion_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Lion birth cycle window pressure scaling test passed")
 
 
 def test_hyena_registration_and_spawn():
@@ -4670,6 +4762,7 @@ SPECIES_TESTS = [
     test_lion_world_pressure_birth_scaling,
     test_lion_world_pressure_window_birth_scaling,
     test_lion_birth_cycle_scaling,
+    test_lion_birth_cycle_window_pressure_scaling,
     test_hyena_registration_and_spawn,
     test_hyena_scavenging_effect,
     test_hyena_den_cluster_effect,
@@ -4685,6 +4778,7 @@ SPECIES_TESTS = [
     test_hyena_cycle_phase_effect,
     test_vulture_registration_and_spawn,
     test_antelope_birth_cycle_scaling,
+    test_antelope_birth_cycle_window_pressure_scaling,
     test_vulture_birth_cycle_scaling,
 ]
 

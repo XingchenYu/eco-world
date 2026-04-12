@@ -74,6 +74,7 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
     birth_memory_bias = max(0.0, min(1.0, getattr(animal, "birth_memory_bias", 0.0)))
     birth_memory_world_pressure_bias = max(0.0, min(1.0, getattr(animal, "birth_memory_world_pressure_bias", 0.0)))
     birth_cycle_bias = max(0.0, min(1.0, getattr(animal, "birth_cycle_bias", 0.0)))
+    birth_cycle_window_pressure_bias = max(0.0, min(1.0, getattr(animal, "birth_cycle_window_pressure_bias", 0.0)))
     condition_factor = max(
         0.80,
         min(
@@ -87,6 +88,7 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
             + birth_memory_bias * 0.08
             + birth_memory_world_pressure_bias * 0.08
             + birth_cycle_bias * 0.08
+            + birth_cycle_window_pressure_bias * 0.08
         ),
     )
 
@@ -125,6 +127,7 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
                     - birth_memory_bias * 2
                     - birth_memory_world_pressure_bias * 2
                     - birth_cycle_bias * 2
+                    - birth_cycle_window_pressure_bias * 2
                 )
             ),
         ),
