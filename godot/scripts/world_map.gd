@@ -217,6 +217,16 @@ func _animate_tab_hover(button: Button, hover_color: Color, rest_color: Color, e
 		tween.parallel().tween_property(button, "scale", Vector2.ONE, 0.12)
 
 
+func _animate_card_hover(panel: PanelContainer, entering: bool) -> void:
+	var tween := create_tween()
+	if entering:
+		tween.tween_property(panel, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.10)
+		tween.parallel().tween_property(panel, "scale", Vector2(1.01, 1.01), 0.10)
+	else:
+		tween.tween_property(panel, "modulate", Color(1.0, 1.0, 1.0, 0.96), 0.12)
+		tween.parallel().tween_property(panel, "scale", Vector2.ONE, 0.12)
+
+
 func _tab_icon(tab_id: String) -> String:
 	return {
 		"overview": "◎",
@@ -1054,6 +1064,7 @@ func _make_status_chip(title_text: String, icon_text: String, value_text: String
 
 func _wrap_menu_card(content: Control, accent: Color = Color8(88, 110, 126)) -> PanelContainer:
 	var panel := PanelContainer.new()
+	panel.modulate = Color(1.0, 1.0, 1.0, 0.96)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	panel.add_child(box)
@@ -1063,6 +1074,12 @@ func _wrap_menu_card(content: Control, accent: Color = Color8(88, 110, 126)) -> 
 	accent_bar.custom_minimum_size = Vector2(0, 4)
 	box.add_child(accent_bar)
 	box.add_child(content)
+	panel.mouse_entered.connect(func() -> void:
+		_animate_card_hover(panel, true)
+	)
+	panel.mouse_exited.connect(func() -> void:
+		_animate_card_hover(panel, false)
+	)
 	return panel
 
 
