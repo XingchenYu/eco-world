@@ -46,6 +46,26 @@ var bulletin_cache: Array = []
 var legend_cache: Array = []
 
 
+func _style_primary_title(label: Label, size: int = 22) -> void:
+	label.add_theme_font_size_override("font_size", size)
+	label.modulate = Color8(245, 237, 215)
+
+
+func _style_secondary_title(label: Label, size: int = 18) -> void:
+	label.add_theme_font_size_override("font_size", size)
+	label.modulate = Color8(223, 215, 182)
+
+
+func _style_body(label: Label, size: int = 15) -> void:
+	label.add_theme_font_size_override("font_size", size)
+	label.modulate = Color8(214, 218, 222)
+
+
+func _style_dim(label: Label, size: int = 14) -> void:
+	label.add_theme_font_size_override("font_size", size)
+	label.modulate = Color8(170, 180, 188)
+
+
 func _ready() -> void:
 	_build_ui()
 	_load_world_data()
@@ -76,12 +96,12 @@ func _build_ui() -> void:
 
 	title_label = Label.new()
 	title_label.text = "阿瑞利亚生态世界"
-	title_label.add_theme_font_size_override("font_size", 34)
+	_style_primary_title(title_label, 34)
 	header_box.add_child(title_label)
 
 	subtitle_label = Label.new()
 	subtitle_label.text = "Godot 世界地图界面"
-	subtitle_label.add_theme_font_size_override("font_size", 18)
+	_style_secondary_title(subtitle_label, 18)
 	header_box.add_child(subtitle_label)
 
 	refresh_button = Button.new()
@@ -130,7 +150,7 @@ func _build_ui() -> void:
 
 	status_label = Label.new()
 	status_label.text = "先运行 Python 导出脚本生成 world_state.json"
-	status_label.add_theme_font_size_override("font_size", 16)
+	_style_dim(status_label, 16)
 	footer_panel.add_child(status_label)
 
 	refresh_timer = Timer.new()
@@ -230,19 +250,19 @@ func _build_world_backdrop() -> void:
 	var west_label := Label.new()
 	west_label.text = "西境大陆"
 	west_label.position = Vector2(map_size.x * 0.12, map_size.y * 0.10)
-	west_label.add_theme_font_size_override("font_size", 28)
+	_style_primary_title(west_label, 28)
 	map_layer.add_child(west_label)
 
 	var sea_label := Label.new()
 	sea_label.text = "东岸航海带"
 	sea_label.position = Vector2(map_size.x * 0.70, map_size.y * 0.16)
-	sea_label.add_theme_font_size_override("font_size", 24)
+	_style_secondary_title(sea_label, 24)
 	map_layer.add_child(sea_label)
 
 	var coral_label := Label.new()
 	coral_label.text = "珊瑚群岛海"
 	coral_label.position = Vector2(map_size.x * 0.73, map_size.y * 0.61)
-	coral_label.add_theme_font_size_override("font_size", 22)
+	_style_secondary_title(coral_label, 22)
 	map_layer.add_child(coral_label)
 
 
@@ -344,7 +364,7 @@ func _build_map_nodes(regions: Array) -> void:
 
 		var name := Label.new()
 		name.text = str(region.get("name", region_id))
-		name.add_theme_font_size_override("font_size", 20)
+		_style_primary_title(name, 20)
 		text_box.add_child(name)
 
 		var role := Label.new()
@@ -352,12 +372,12 @@ func _build_map_nodes(regions: Array) -> void:
 			float(region.get("prosperity", 0.0)),
 			float(region.get("collapse_risk", 0.0)),
 		]
-		role.add_theme_font_size_override("font_size", 15)
+		_style_body(role, 15)
 		text_box.add_child(role)
 
 		var footer := Label.new()
 		footer.text = "种群 %s · 进入区域情报" % str(region.get("species_population", 0))
-		footer.add_theme_font_size_override("font_size", 15)
+		_style_dim(footer, 15)
 		shell_box.add_child(footer)
 
 		var button := Button.new()
@@ -387,13 +407,14 @@ func _build_world_bulletin() -> void:
 
 	var title := Label.new()
 	title.text = "世界播报"
-	title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(title, 22)
 	box.add_child(title)
 
 	for line in bulletin_cache.slice(0, 4):
 		var item := Label.new()
 		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		item.text = "• %s" % str(line)
+		_style_body(item, 15)
 		box.add_child(item)
 
 
@@ -409,14 +430,30 @@ func _build_map_legend() -> void:
 
 	var title := Label.new()
 	title.text = "地图图例"
-	title.add_theme_font_size_override("font_size", 20)
+	_style_primary_title(title, 20)
 	box.add_child(title)
 
 	for entry_variant in legend_cache.slice(0, 5):
 		var entry: Dictionary = entry_variant
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		box.add_child(row)
+
+		var swatch := ColorRect.new()
+		swatch.color = {
+			"forest": Color8(78, 137, 96),
+			"grassland": Color8(198, 173, 96),
+			"wetland": Color8(92, 154, 162),
+			"coast": Color8(80, 141, 191),
+			"coral": Color8(203, 132, 177),
+		}.get(str(entry.get("color", "")), Color8(210, 210, 210))
+		swatch.custom_minimum_size = Vector2(14, 14)
+		row.add_child(swatch)
+
 		var label := Label.new()
-		label.text = "■ %s" % str(entry.get("label", ""))
-		box.add_child(label)
+		label.text = str(entry.get("label", ""))
+		_style_body(label, 15)
+		row.add_child(label)
 
 
 func _build_side_panel() -> void:
@@ -430,12 +467,12 @@ func _build_side_panel() -> void:
 
 	var title := Label.new()
 	title.text = "%s · 焦点区域" % str(active_region.get("name", "未选择"))
-	title.add_theme_font_size_override("font_size", 28)
+	_style_primary_title(title, 28)
 	side_box.add_child(title)
 
 	var climate := Label.new()
 	climate.text = str(active_region.get("region_role", "生态观测区"))
-	climate.add_theme_font_size_override("font_size", 18)
+	_style_secondary_title(climate, 18)
 	side_box.add_child(climate)
 	side_box.add_child(_make_status_strip(active_region))
 	side_box.add_child(_make_tabs())
@@ -500,12 +537,12 @@ func _make_status_chip(title_text: String, value_text: String) -> PanelContainer
 
 	var title := Label.new()
 	title.text = title_text
-	title.add_theme_font_size_override("font_size", 14)
+	_style_dim(title, 14)
 	box.add_child(title)
 
 	var value := Label.new()
 	value.text = value_text
-	value.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(value, 22)
 	box.add_child(value)
 	return panel
 
@@ -523,12 +560,13 @@ func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
 	var summary := active_region.get("region_summary", {})
 	var summary_title := Label.new()
 	summary_title.text = "区域概况"
-	summary_title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(summary_title, 22)
 	box.add_child(summary_title)
 
 	var biomes := Label.new()
 	biomes.text = "群系：%s" % " / ".join(active_region.get("dominant_biomes", []))
 	biomes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_body(biomes, 15)
 	box.add_child(biomes)
 
 	var stats := Label.new()
@@ -537,6 +575,7 @@ func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
 		str(summary.get("habitat_count", 0)),
 		str(summary.get("species_pool_count", 0)),
 	]
+	_style_dim(stats, 15)
 	box.add_child(stats)
 	return _wrap_menu_card(box)
 
@@ -547,18 +586,19 @@ func _make_focus_card(active_region: Dictionary) -> PanelContainer:
 
 	var title := Label.new()
 	title.text = "区域定位"
-	title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(title, 22)
 	box.add_child(title)
 
 	var role := Label.new()
 	role.text = str(active_region.get("region_role", "生态观测区"))
-	role.add_theme_font_size_override("font_size", 18)
+	_style_secondary_title(role, 18)
 	role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(role)
 
 	var intro := Label.new()
 	intro.text = str(active_region.get("region_intro", ""))
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_body(intro, 15)
 	box.add_child(intro)
 	return _wrap_menu_card(box)
 
@@ -569,12 +609,13 @@ func _make_intro_section(active_region: Dictionary) -> PanelContainer:
 
 	var title := Label.new()
 	title.text = "区域档案"
-	title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(title, 22)
 	box.add_child(title)
 
 	var intro := Label.new()
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	intro.text = str(active_region.get("region_intro", "暂无区域档案。"))
+	_style_body(intro, 15)
 	box.add_child(intro)
 	return _wrap_menu_card(box)
 
@@ -584,7 +625,7 @@ func _make_species_section(top_species: Array) -> VBoxContainer:
 	box.add_theme_constant_override("separation", 8)
 	var title := Label.new()
 	title.text = "核心物种"
-	title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(title, 22)
 	box.add_child(title)
 	for row_variant in top_species:
 		var row: Dictionary = row_variant
@@ -595,18 +636,18 @@ func _make_species_section(top_species: Array) -> VBoxContainer:
 
 		var chip := Label.new()
 		chip.text = "◉"
-		chip.add_theme_font_size_override("font_size", 20)
+		_style_secondary_title(chip, 20)
 		row_box.add_child(chip)
 
 		var name := Label.new()
 		name.text = str(row.get("label", row.get("species_id", "")))
 		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name.add_theme_font_size_override("font_size", 18)
+		_style_body(name, 18)
 		row_box.add_child(name)
 
 		var count := Label.new()
 		count.text = "× %s" % str(row.get("count", 0))
-		count.add_theme_font_size_override("font_size", 18)
+		_style_secondary_title(count, 18)
 		row_box.add_child(count)
 		box.add_child(card)
 	return box
@@ -618,13 +659,14 @@ func _make_route_section(route_summary: Array) -> PanelContainer:
 
 	var title := Label.new()
 	title.text = "通道情报"
-	title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(title, 22)
 	box.add_child(title)
 
 	for line in route_summary:
 		var label := Label.new()
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.text = "• %s" % str(line)
+		_style_body(label, 15)
 		box.add_child(label)
 	return _wrap_menu_card(box)
 
@@ -634,7 +676,7 @@ func _make_story_section(narrative: Dictionary) -> VBoxContainer:
 	story.add_theme_constant_override("separation", 8)
 	var title := Label.new()
 	title.text = "区域播报"
-	title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(title, 22)
 	story.add_child(title)
 
 	for key in ["territory", "social_trends", "grassland_chain", "carrion_chain", "wetland_chain", "symbiosis", "predation"]:
@@ -642,6 +684,7 @@ func _make_story_section(narrative: Dictionary) -> VBoxContainer:
 			var item := Label.new()
 			item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			item.text = "• %s" % str(line)
+			_style_body(item, 15)
 			story.add_child(item)
 	return story
 
@@ -652,13 +695,14 @@ func _make_badge_list(title_text: String, rows: Array) -> PanelContainer:
 
 	var title := Label.new()
 	title.text = title_text
-	title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(title, 22)
 	box.add_child(title)
 
 	for line in rows:
 		var item := Label.new()
 		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		item.text = "◆ %s" % str(line)
+		_style_body(item, 15)
 		box.add_child(item)
 	return _wrap_menu_card(box)
 
@@ -674,7 +718,7 @@ func _make_section(
 	box.add_theme_constant_override("separation", 6)
 	var title := Label.new()
 	title.text = title_text
-	title.add_theme_font_size_override("font_size", 22)
+	_style_primary_title(title, 22)
 	box.add_child(title)
 
 	if is_rows:
@@ -689,6 +733,7 @@ func _make_section(
 					str(row.get("connection_type", "")),
 					float(row.get("strength", 0.0)),
 				]
+			_style_body(label, 15)
 			box.add_child(label)
 	else:
 		var items: Array = []
@@ -698,6 +743,7 @@ func _make_section(
 		for item in items.slice(0, 5):
 			var label := Label.new()
 			label.text = "%s: %.2f" % [str(item["key"]), float(item["value"])]
+			_style_body(label, 15)
 			box.add_child(label)
 	var panel := PanelContainer.new()
 	panel.add_child(box)
