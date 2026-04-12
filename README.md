@@ -130,6 +130,18 @@ PYTHONPATH=. python3 src/main.py
 PYTHONPATH=. python3 src/main.py --advanced
 ```
 
+v4 世界界面：
+
+```bash
+PYTHONPATH=. python3 src/main.py --world-ui
+```
+
+v4 世界无头模式：
+
+```bash
+PYTHONPATH=. python3 src/main.py --world-ui --headless
+```
+
 测试配置：
 
 ```bash

@@ -10,6 +10,8 @@ from pathlib import Path
 from src.core.ecosystem import Ecosystem
 from src.renderer.gui import Renderer
 from src.renderer.advanced_gui import AdvancedRenderer
+from src.renderer.world_gui import WorldRenderer
+from src.sim.world_simulation import build_default_world_simulation
 
 
 def load_config(config_path: str = None) -> dict:
@@ -34,6 +36,7 @@ def main():
     parser.add_argument("--headless", action="store_true", help="Run without GUI (for testing)")
     parser.add_argument("--advanced", "-a", action="store_true", help="Use advanced renderer (游戏化界面)")
     parser.add_argument("--classic", action="store_true", help="Use classic renderer (经典界面)")
+    parser.add_argument("--world-ui", action="store_true", help="Use v4 world simulation UI (世界面板)")
     
     args = parser.parse_args()
     
@@ -49,6 +52,37 @@ def main():
         config["world"]["height"] = args.height
     config["world"]["grid_size"] = config.get("world", {}).get("grid_size", 20)
     
+    if args.world_ui:
+        print("🌐 Initializing EcoWorld v4 world simulation...")
+        world_simulation = build_default_world_simulation()
+        print(f"   Regions: {len(world_simulation.world_map.regions)}")
+        print(f"   World: {world_simulation.world_map.name}")
+
+        if args.headless:
+            print("\n🔄 Running v4 world simulation headless...")
+            for _ in range(20):
+                world_simulation.update()
+            stats = world_simulation.get_statistics()
+            active_region = stats["active_region"]
+            print(
+                f"Tick {stats['world_tick']}: "
+                f"{active_region['name']} prosperity={active_region['health_state'].get('prosperity', 0.0):.2f}"
+            )
+            return
+
+        print("\n🗺️ Launching v4 World UI...")
+        print("   Controls:")
+        print("      Space: Pause/Resume")
+        print("      Left/Right/Tab: Switch focus region")
+        print("      1-6: Jump to region")
+        print("      +/-: Adjust speed")
+        print("      Q/ESC: Quit")
+
+        renderer = WorldRenderer(world_simulation)
+        renderer.speed = max(1, args.speed)
+        renderer.run()
+        return
+
     # 创建生态系统
     print("🌍 Initializing EcoWorld...")
     ecosystem = Ecosystem(config_path=args.config, config=config)

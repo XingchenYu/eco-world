@@ -365,6 +365,41 @@ def test_v4_world_simulation_skeleton():
     print("✅ V4 world simulation test passed")
 
 
+def test_v4_world_overview_summary():
+    """世界总览应暴露区域卡片需要的稳定字段。"""
+    world_sim = build_default_world_simulation()
+    world_sim.update()
+
+    overview = world_sim.get_world_overview()
+
+    assert overview["world_name"] == "Aurelia"
+    assert overview["total_regions"] == 6
+    assert len(overview["regions"]) == 6
+    assert any(region["active"] for region in overview["regions"])
+
+    active_region = next(region for region in overview["regions"] if region["active"])
+    assert active_region["id"] == world_sim.active_region_id
+    assert "species_population" in active_region
+    assert "top_pressures" in active_region
+
+    print("✅ v4 world overview summary test passed")
+
+
+def test_v4_world_region_cycle():
+    """世界 UI 所需的区域切换接口应保持稳定。"""
+    world_sim = build_default_world_simulation()
+    original_id = world_sim.active_region_id
+
+    world_sim.cycle_active_region(1)
+    forward_id = world_sim.active_region_id
+    world_sim.cycle_active_region(-1)
+
+    assert forward_id != original_id
+    assert world_sim.active_region_id == original_id
+
+    print("✅ v4 world region cycle test passed")
+
+
 def test_v4_region_relationship_state_persists():
     """v4 世界更新后应把关系摘要持久写回 Region。"""
     world_sim = build_default_world_simulation()
@@ -4686,6 +4721,8 @@ BASIC_TESTS = [
 WORLD_TESTS = [
     test_v4_world_and_data_skeleton,
     test_v4_world_simulation_skeleton,
+    test_v4_world_overview_summary,
+    test_v4_world_region_cycle,
     test_v4_region_relationship_state_persists,
     test_v4_registry_queries,
     test_v4_region_food_web_summary,

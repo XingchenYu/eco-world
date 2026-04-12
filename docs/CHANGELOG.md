@@ -2,6 +2,27 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha64 (2026-04-12 18:10)
+
+- ✅ 新增第一版 `v4` 世界 UI：
+  - [src/renderer/world_gui.py](/Users/yumini/Projects/eco-world/src/renderer/world_gui.py)
+- ✅ [src/main.py](/Users/yumini/Projects/eco-world/src/main.py) 现在支持：
+  - `--world-ui`
+  - `--world-ui --headless`
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 新增世界层 UI 入口所需接口：
+  - `list_region_ids()`
+  - `cycle_active_region()`
+  - `get_world_overview()`
+- ✅ 第一版世界 UI 已可直接显示：
+  - 六大区域卡片
+  - 当前焦点区域
+  - 健康、资源、压力面板
+  - `social / grassland / carrion / wetland` 主链摘要
+- ✅ 新增世界层稳定测试：
+  - `test_v4_world_overview_summary()`
+  - `test_v4_world_region_cycle()`
+- ✅ 这意味着项目已经不再只有后端主线，开始有第一版真正可看的 `v4` 世界入口。
+
 ### v4.0-alpha63 (2026-04-12 17:20)
 
 - ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现在已把：

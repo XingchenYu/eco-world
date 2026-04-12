@@ -492,6 +492,19 @@ class WorldSimulation:
         self.active_region_id = region_id
         return simulation
 
+    def list_region_ids(self) -> list[str]:
+        """返回稳定的区域顺序。"""
+        return list(self.world_map.regions.keys())
+
+    def cycle_active_region(self, step: int = 1) -> RegionSimulation:
+        """按世界顺序切换当前焦点区域。"""
+        region_ids = self.list_region_ids()
+        if not region_ids:
+            raise ValueError("World map contains no regions")
+        current_index = region_ids.index(self.active_region_id)
+        next_index = (current_index + step) % len(region_ids)
+        return self.set_active_region(region_ids[next_index])
+
     def get_active_region(self) -> Region:
         return self.world_map.get_region(self.active_region_id)
 
@@ -1180,6 +1193,47 @@ class WorldSimulation:
             active_region_id=self.active_region_id,
             loaded_regions=len(self.region_simulations),
         )
+
+    def get_world_overview(self) -> dict:
+        """返回适合世界 UI 的轻量总览。"""
+        regions: list[dict] = []
+        for region_id in self.list_region_ids():
+            region = self.world_map.get_region(region_id)
+            if region is None:
+                continue
+            pressure_items = sorted(
+                region.ecological_pressures.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )[:4]
+            regions.append(
+                {
+                    "id": region.region_id,
+                    "name": region.name,
+                    "climate_zone": region.climate_zone,
+                    "dominant_biomes": list(region.dominant_biomes),
+                    "connector_count": len(region.connectors),
+                    "species_count": region.species_count,
+                    "species_population": sum(region.species_pool.values()),
+                    "biodiversity": float(region.health_state.get("biodiversity", 0.0)),
+                    "resilience": float(region.health_state.get("resilience", 0.0)),
+                    "prosperity": float(region.health_state.get("prosperity", 0.0)),
+                    "collapse_risk": float(region.health_state.get("collapse_risk", 0.0)),
+                    "loaded": region_id in self.region_simulations,
+                    "active": region_id == self.active_region_id,
+                    "top_pressures": pressure_items,
+                }
+            )
+
+        return {
+            "world_name": self.world_map.name,
+            "world_size": self.world_map.size,
+            "tick": self.tick_count,
+            "active_region_id": self.active_region_id,
+            "loaded_regions": len(self.region_simulations),
+            "total_regions": len(self.world_map.regions),
+            "regions": regions,
+        }
 
     def get_statistics(self) -> dict:
         active_region = self.get_active_region()
