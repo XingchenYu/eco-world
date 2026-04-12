@@ -37,6 +37,7 @@ class RegionSimulation(Ecosystem):
         social_state = self.region.relationship_state.get("social_trends", {})
         territory_state = self.region.relationship_state.get("territory", {})
         phase_scores = social_state.get("phase_scores", {})
+        trend_scores = social_state.get("trend_scores", {})
         hotspot_scores = social_state.get("hotspot_scores", {})
         prosperity_scores = social_state.get("prosperity_scores", {})
         cycle_signals = social_state.get("cycle_signals", []) if isinstance(social_state, dict) else []
@@ -51,6 +52,9 @@ class RegionSimulation(Ecosystem):
         aerial_carrion_cycle = float(phase_scores.get("aerial_carrion_cycle", 0.0))
         grassland_prosperity = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
         grassland_collapse = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
+        herd_birth_memory = float(trend_scores.get("herd_birth_memory", 0.0))
+        aerial_birth_memory = float(trend_scores.get("aerial_birth_memory", 0.0))
+        apex_birth_memory = float(trend_scores.get("apex_birth_memory", 0.0))
         lion_hotspot_memory = float(hotspot_scores.get("lion_hotspot_memory", 0.0))
         hyena_hotspot_memory = float(hotspot_scores.get("hyena_hotspot_memory", 0.0))
         shared_hotspot_memory = float(hotspot_scores.get("shared_hotspot_memory", 0.0))
@@ -171,6 +175,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = apex_regional_health_anchor
                 animal.condition_runtime = apex_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.birth_memory_bias = apex_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
@@ -191,6 +196,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = apex_regional_health_anchor
                 animal.condition_runtime = apex_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.birth_memory_bias = apex_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
@@ -210,6 +216,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = herd_regional_health_anchor
                 animal.condition_runtime = herd_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.birth_memory_bias = herd_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
@@ -229,6 +236,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = herd_regional_health_anchor
                 animal.condition_runtime = herd_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.birth_memory_bias = herd_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
@@ -248,6 +256,7 @@ class RegionSimulation(Ecosystem):
                 animal.regional_health_anchor = aerial_regional_health_anchor
                 animal.condition_runtime = aerial_condition_phase_runtime
                 animal.condition_phase_bias = condition_phase_bias
+                animal.birth_memory_bias = aerial_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias

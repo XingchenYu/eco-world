@@ -2,6 +2,22 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha54 (2026-04-12 10:45)
+
+- ✅ [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 现已把 `social_trends.trend_scores` 里的：
+  - `herd_birth_memory`
+  - `aerial_birth_memory`
+  - `apex_birth_memory`
+  回灌到运行中的：
+  - `antelope / zebra / vulture`
+  - `lion / hyena`
+- ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 和 [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py) 现已新增 `birth_memory_bias`，并把它接入：
+  - 当前体况
+  - 繁殖冷却
+  - 繁殖节律
+  - 产仔规模
+- ✅ 这使草原主线里的“近期产仔 -> 社群记忆 -> 下一轮运行体繁殖偏置”形成更直接闭环
+
 ### v4.0-alpha53 (2026-04-12 10:20)
 
 - ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已把运行期产仔事件聚合成：

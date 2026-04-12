@@ -2036,6 +2036,11 @@ def test_region_simulation_applies_social_phase_state():
                 "herd_route_cycle": 0.36,
                 "aerial_carrion_cycle": 0.31,
             },
+            "trend_scores": {
+                "herd_birth_memory": 0.34,
+                "aerial_birth_memory": 0.31,
+                "apex_birth_memory": 0.29,
+            },
             "prosperity_scores": {
                 "grassland_prosperity_phase": 0.41,
                 "grassland_collapse_phase": 0.16,
@@ -2091,6 +2096,7 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.shared_hotspot_memory == 0.31
     assert lion.surface_water_anchor == 0.68
     assert lion.runtime_anchor_prosperity > 0.30
+    assert lion.birth_memory_bias > 0.0
     assert lion.world_pressure_bias > 0.10
     assert lion.world_pressure_window_bias > 0.10
     assert lion.regional_health_anchor > 0.20
@@ -2107,6 +2113,7 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.shared_hotspot_memory == 0.31
     assert hyena.carcass_anchor == 0.57
     assert hyena.runtime_anchor_prosperity > 0.30
+    assert hyena.birth_memory_bias > 0.0
     assert hyena.world_pressure_bias > 0.10
     assert hyena.world_pressure_window_bias > 0.10
     assert hyena.regional_health_anchor > 0.20
@@ -2128,6 +2135,7 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.collapse_phase_bias == 0.16
     assert antelope.surface_water_anchor == 0.68
     assert antelope.runtime_anchor_prosperity > 0.30
+    assert antelope.birth_memory_bias > 0.0
     assert antelope.world_pressure_bias > 0.10
     assert antelope.world_pressure_window_bias > 0.10
     assert antelope.regional_health_anchor > 0.20
@@ -2145,6 +2153,7 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.collapse_phase_bias == 0.16
     assert zebra.surface_water_anchor == 0.68
     assert zebra.runtime_anchor_prosperity > 0.30
+    assert zebra.birth_memory_bias > 0.0
     assert zebra.world_pressure_bias > 0.10
     assert zebra.world_pressure_window_bias > 0.10
     assert zebra.regional_health_anchor > 0.20
@@ -2162,6 +2171,7 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.collapse_phase_bias == 0.16
     assert vulture.carcass_anchor == 0.57
     assert vulture.runtime_anchor_prosperity > 0.30
+    assert vulture.birth_memory_bias > 0.0
     assert vulture.world_pressure_bias > 0.10
     assert vulture.world_pressure_window_bias > 0.10
     assert vulture.regional_health_anchor > 0.20
@@ -2506,6 +2516,31 @@ def test_runtime_world_pressure_window_bias_effect():
     print("✅ Runtime world pressure window bias effect test passed")
 
 
+def test_runtime_birth_memory_bias_effect():
+    """birth_memory_bias 应直接改善 herd 与 carrion 的运行期体况和繁殖冷却。"""
+    antelope = Antelope((10, 10), Gender.FEMALE)
+    zebra = Zebra((12, 10), Gender.FEMALE)
+    vulture = Vulture((14, 10), Gender.FEMALE)
+
+    antelope.birth_memory_bias = 0.34
+    zebra.birth_memory_bias = 0.31
+    vulture.birth_memory_bias = 0.33
+
+    antelope.health = zebra.health = vulture.health = 70
+    antelope.hunger = zebra.hunger = vulture.hunger = 40
+    antelope.mate_cooldown = zebra.mate_cooldown = vulture.mate_cooldown = 5
+
+    antelope._apply_birth_memory_bias()
+    zebra._apply_birth_memory_bias()
+    vulture._apply_birth_memory_bias()
+
+    assert antelope.health > 70 and antelope.hunger < 40 and antelope.mate_cooldown < 5
+    assert zebra.health > 70 and zebra.hunger < 40 and zebra.mate_cooldown < 5
+    assert vulture.health > 70 and vulture.hunger < 40 and vulture.mate_cooldown < 5
+
+    print("✅ Runtime birth memory bias effect test passed")
+
+
 def test_runtime_apex_condition_phase_bias_effect():
     """apex 的 condition_phase_bias 应直接改善当前体况、冷却和繁殖节律。"""
     lion = Lion(position=(20, 20), gender=Gender.FEMALE)
@@ -2600,6 +2635,26 @@ def test_runtime_apex_world_pressure_window_bias_effect():
     assert hyena.reproduction_rate > hyena_base_rate
 
     print("✅ Runtime apex world pressure window bias effect test passed")
+
+
+def test_runtime_apex_birth_memory_bias_effect():
+    """apex 的 birth_memory_bias 应直接改善当前体况、冷却和繁殖节律。"""
+    lion = Lion((10, 10), Gender.FEMALE)
+    hyena = Hyena((12, 10), Gender.FEMALE)
+
+    lion.birth_memory_bias = 0.32
+    hyena.birth_memory_bias = 0.30
+    lion.health = hyena.health = 72
+    lion.hunger = hyena.hunger = 38
+    lion.mate_cooldown = hyena.mate_cooldown = 4
+
+    lion._apply_birth_memory_bias()
+    hyena._apply_birth_memory_bias()
+
+    assert lion.health > 72 and lion.hunger < 38 and lion.mate_cooldown < 4
+    assert hyena.health > 72 and hyena.hunger < 38 and hyena.mate_cooldown < 4
+
+    print("✅ Runtime apex birth memory bias effect test passed")
 
 
 def test_lion_hotspot_memory_center_effect():
@@ -3844,11 +3899,13 @@ RUNTIME_TESTS = [
     test_runtime_condition_phase_bias_effect,
     test_runtime_world_pressure_bias_effect,
     test_runtime_world_pressure_window_bias_effect,
+    test_runtime_birth_memory_bias_effect,
     test_runtime_apex_regional_health_anchor_effect,
     test_runtime_apex_condition_effect,
     test_runtime_apex_condition_phase_bias_effect,
     test_runtime_apex_world_pressure_bias_effect,
     test_runtime_apex_world_pressure_window_bias_effect,
+    test_runtime_apex_birth_memory_bias_effect,
 ]
 
 SPECIES_TESTS = [
