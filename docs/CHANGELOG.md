@@ -24,6 +24,11 @@
   一起统计进 `birth_cycle_window_pressure_support_count`
 - ✅ 这意味着 `pressure memory` 现在不只会作用一轮，还会继续沉淀回：
   - `birth_cycle_window_pressure_memory`
+- ✅ `birth_cycle_window_pressure_memory` 现在也会继续进入：
+  - `herd_route_cycle`
+  - `aerial_carrion_cycle`
+  - `grassland_boom_phase / grassland_bust_phase`
+  - `grassland_prosperity_phase / grassland_collapse_phase`
 
 ### v4.0-alpha62 (2026-04-12 16:55)
 
