@@ -693,6 +693,7 @@ func _build_map_nodes(regions: Array) -> void:
 
 
 func _build_world_bulletin() -> void:
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(320, 0)
 	panel.position = Vector2(24, 20)
@@ -711,6 +712,27 @@ func _build_world_bulletin() -> void:
 	title.text = "世界播报 · 指挥台"
 	_style_primary_title(title, 22)
 	box.add_child(title)
+
+	var focus_card := PanelContainer.new()
+	box.add_child(focus_card)
+
+	var focus_box := VBoxContainer.new()
+	focus_box.add_theme_constant_override("separation", 4)
+	focus_card.add_child(focus_box)
+
+	var focus_tag := Label.new()
+	focus_tag.text = "焦点区域提示"
+	_style_secondary_title(focus_tag, 16)
+	focus_box.add_child(focus_tag)
+
+	var focus_line := Label.new()
+	focus_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	focus_line.text = "%s · %s" % [
+		str(active_region.get("name", "未选择区域")),
+		str(active_region.get("region_role", "生态观测区")),
+	]
+	_style_body(focus_line, 15)
+	focus_box.add_child(focus_line)
 
 	if not bulletin_cache.is_empty():
 		var lead_card := PanelContainer.new()
@@ -753,6 +775,7 @@ func _build_world_bulletin() -> void:
 
 
 func _build_map_legend() -> void:
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(220, 0)
 	panel.position = Vector2(max(24, map_layer.size.x - 250), 20)
@@ -771,6 +794,21 @@ func _build_map_legend() -> void:
 	title.text = "地图图例 · 航线层"
 	_style_primary_title(title, 20)
 	box.add_child(title)
+
+	var focus_row := HBoxContainer.new()
+	focus_row.add_theme_constant_override("separation", 8)
+	box.add_child(focus_row)
+
+	var focus_swatch := ColorRect.new()
+	focus_swatch.color = _active_region_accent()
+	focus_swatch.custom_minimum_size = Vector2(14, 14)
+	focus_row.add_child(focus_swatch)
+
+	var focus_label := Label.new()
+	var biome_text := " / ".join(active_region.get("dominant_biomes", []).slice(0, 2))
+	focus_label.text = "焦点地貌 · %s" % (biome_text if biome_text != "" else str(active_region.get("name", "未选择")))
+	_style_body(focus_label, 15)
+	focus_row.add_child(focus_label)
 
 	for entry_variant in legend_cache.slice(0, 5):
 		var entry: Dictionary = entry_variant
