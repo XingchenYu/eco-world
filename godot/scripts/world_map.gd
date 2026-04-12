@@ -437,6 +437,7 @@ func _build_side_panel() -> void:
 	climate.text = str(active_region.get("region_role", "生态观测区"))
 	climate.add_theme_font_size_override("font_size", 18)
 	side_box.add_child(climate)
+	side_box.add_child(_make_status_strip(active_region))
 	side_box.add_child(_make_tabs())
 
 	match selected_tab:
@@ -472,16 +473,52 @@ func _make_tabs() -> HBoxContainer:
 		button.text = {"overview": "总览", "chains": "生态链", "species": "物种", "story": "播报"}[tab_id]
 		button.toggle_mode = true
 		button.button_pressed = tab_id == selected_tab
+		button.custom_minimum_size = Vector2(84, 40)
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
 		tabs.add_child(button)
 	return tabs
 
 
-func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
+func _make_status_strip(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	panel.add_child(row)
+
+	row.add_child(_make_status_chip("繁荣", "%.2f" % float(active_region.get("health_state", {}).get("prosperity", 0.0))))
+	row.add_child(_make_status_chip("稳定", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0))))
+	row.add_child(_make_status_chip("风险", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0))))
+	return panel
+
+
+func _make_status_chip(title_text: String, value_text: String) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(108, 56)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = title_text
+	title.add_theme_font_size_override("font_size", 14)
+	box.add_child(title)
+
+	var value := Label.new()
+	value.text = value_text
+	value.add_theme_font_size_override("font_size", 22)
+	box.add_child(value)
+	return panel
+
+
+func _wrap_menu_card(content: Control) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.add_child(content)
+	return panel
+
+
+func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	panel.add_child(box)
 
 	var summary := active_region.get("region_summary", {})
 	var summary_title := Label.new()
@@ -501,14 +538,12 @@ func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
 		str(summary.get("species_pool_count", 0)),
 	]
 	box.add_child(stats)
-	return panel
+	return _wrap_menu_card(box)
 
 
 func _make_focus_card(active_region: Dictionary) -> PanelContainer:
-	var panel := PanelContainer.new()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	panel.add_child(box)
 
 	var title := Label.new()
 	title.text = "区域定位"
@@ -525,14 +560,12 @@ func _make_focus_card(active_region: Dictionary) -> PanelContainer:
 	intro.text = str(active_region.get("region_intro", ""))
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(intro)
-	return panel
+	return _wrap_menu_card(box)
 
 
 func _make_intro_section(active_region: Dictionary) -> PanelContainer:
-	var panel := PanelContainer.new()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	panel.add_child(box)
 
 	var title := Label.new()
 	title.text = "区域档案"
@@ -543,7 +576,7 @@ func _make_intro_section(active_region: Dictionary) -> PanelContainer:
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	intro.text = str(active_region.get("region_intro", "暂无区域档案。"))
 	box.add_child(intro)
-	return panel
+	return _wrap_menu_card(box)
 
 
 func _make_species_section(top_species: Array) -> VBoxContainer:
@@ -580,10 +613,8 @@ func _make_species_section(top_species: Array) -> VBoxContainer:
 
 
 func _make_route_section(route_summary: Array) -> PanelContainer:
-	var panel := PanelContainer.new()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	panel.add_child(box)
 
 	var title := Label.new()
 	title.text = "通道情报"
@@ -595,7 +626,7 @@ func _make_route_section(route_summary: Array) -> PanelContainer:
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.text = "• %s" % str(line)
 		box.add_child(label)
-	return panel
+	return _wrap_menu_card(box)
 
 
 func _make_story_section(narrative: Dictionary) -> VBoxContainer:
@@ -616,10 +647,8 @@ func _make_story_section(narrative: Dictionary) -> VBoxContainer:
 
 
 func _make_badge_list(title_text: String, rows: Array) -> PanelContainer:
-	var panel := PanelContainer.new()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	panel.add_child(box)
 
 	var title := Label.new()
 	title.text = title_text
@@ -631,7 +660,7 @@ func _make_badge_list(title_text: String, rows: Array) -> PanelContainer:
 		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		item.text = "◆ %s" % str(line)
 		box.add_child(item)
-	return panel
+	return _wrap_menu_card(box)
 
 
 func _make_section(
@@ -670,7 +699,11 @@ func _make_section(
 			var label := Label.new()
 			label.text = "%s: %.2f" % [str(item["key"]), float(item["value"])]
 			box.add_child(label)
-	return box
+	var panel := PanelContainer.new()
+	panel.add_child(box)
+	var wrapper := VBoxContainer.new()
+	wrapper.add_child(panel)
+	return wrapper
 
 
 func _on_region_pressed(region_id: String) -> void:
