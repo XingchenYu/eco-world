@@ -2,6 +2,20 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha60 (2026-04-12 15:35)
+
+- ✅ [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py) 现已继续收紧 `code-review-graph` 的检查范围：
+  - `src/ecology/social.py`
+  - `src/ecology/territory.py`
+  这两类生态枢纽文件现在支持 diff-aware 归类，不再一改就默认带出 `world + runtime + grassland`
+- ✅ 具体规则是：
+  - 改 `build_region_social_trend_summary(...)` 或 `apply_region_social_trend_feedback(...)` 时，优先只建议 `world`
+  - 改 `build_region_territory_summary(...)` 时，优先建议 `world`
+  - 改 `apply_region_territory_feedback(...)` 时，优先建议 `grassland`
+- ✅ 这轮优化的目标不是缩短单条测试输出，而是减少“本来不该跑的测试文件”：
+  - 典型收益场景是后续继续改 `social.py / territory.py` 的主线迭代
+  - 这样可以少跑 `runtime`，也能减少无关输出占用的 token
+
 ### v4.0-alpha59 (2026-04-12 13:40)
 
 - ✅ 新增 `birth_cycle_bias` 主线闭环：

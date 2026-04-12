@@ -322,6 +322,49 @@ def _classify_sim_diff(path: str) -> Tuple[Set[str], bool]:
     return changed_groups, touches_unknown
 
 
+def _infer_group_from_ecology_def(path: str, name: str) -> str | None:
+    if path == "src/ecology/social.py":
+        if name == "build_region_social_trend_summary":
+            return "world"
+        if name == "apply_region_social_trend_feedback":
+            return "world"
+    if path == "src/ecology/territory.py":
+        if name == "build_region_territory_summary":
+            return "world"
+        if name == "apply_region_territory_feedback":
+            return "grassland"
+    return None
+
+
+def _classify_ecology_diff(path: str) -> Tuple[Set[str], bool]:
+    diff_text = _git_diff_text(path)
+    changed_lines = _parse_changed_new_lines(diff_text)
+    if not changed_lines:
+        return set(), False
+
+    function_ranges = _python_def_ranges(ROOT / path)
+    if not function_ranges:
+        return set(), True
+
+    function_starts = [line for line, _ in function_ranges]
+    changed_groups: Set[str] = set()
+    touches_unknown = False
+
+    for line in changed_lines:
+        idx = bisect.bisect_right(function_starts, line) - 1
+        if idx < 0:
+            touches_unknown = True
+            continue
+        _, func_name = function_ranges[idx]
+        group = _infer_group_from_ecology_def(path, func_name)
+        if group is None:
+            touches_unknown = True
+            continue
+        changed_groups.add(group)
+
+    return changed_groups, touches_unknown
+
+
 def build_plan(changed_files: Sequence[str]) -> dict:
     compile_targets: Set[str] = set()
     test_groups: List[str] = []
@@ -355,8 +398,21 @@ def build_plan(changed_files: Sequence[str]) -> dict:
             "src/ecology/grassland.py",
             "src/ecology/carrion.py",
         )
-        test_groups.extend(["world", "runtime", "grassland"])
-        reasons.append("检测到 social/territory 改动，优先检查 world、runtime、grassland。")
+        ecology_groups: Set[str] = set()
+        touches_unknown = False
+        for ecology_path in ("src/ecology/social.py", "src/ecology/territory.py"):
+            if ecology_path not in changed_files:
+                continue
+            groups, unknown = _classify_ecology_diff(ecology_path)
+            ecology_groups.update(groups)
+            touches_unknown = touches_unknown or unknown
+        if ecology_groups and not touches_unknown:
+            ordered_ecology_groups = [group for group in ("world", "grassland", "runtime") if group in ecology_groups]
+            test_groups.extend(ordered_ecology_groups)
+            reasons.append("检测到 social/territory 改动，且 diff 可归类到具体生态函数，按受影响测试文件增量执行。")
+        else:
+            test_groups.extend(["world", "runtime", "grassland"])
+            reasons.append("检测到 social/territory 枢纽改动，优先检查 world、runtime、grassland。")
 
     if _matches(changed_files, ("src/sim/world_simulation.py", "src/sim/region_simulation.py")):
         _add_compile_targets(
