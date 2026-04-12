@@ -37,6 +37,11 @@
   - `birth_cycle_aerial_support`
   - `birth_cycle_apex_support`
   - `birth_cycle_apex_carrion_support`
+- ✅ `birth_cycle` 现在也正式进入重平衡窗口层：
+  - `birth_cycle_herd_window`：繁殖周期偏置足够高时，直接打开 herd 恢复窗口
+  - `birth_cycle_apex_window`：繁殖周期偏置足够高时，直接打开 apex 恢复窗口
+  - `birth_cycle_aerial_window`：繁殖周期偏置足够高时，直接打开空中清道夫恢复窗口
+  - `birth_cycle_apex_carrion_window`：繁殖周期偏置足够高时，直接打开尸体资源链里的顶层恢复窗口
 - ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 的普通物种 `_give_birth(...)` 现在也正式接入：
   - `birth_cycle_bias`：产仔周期偏置，指“多周期繁殖记忆”下沉到个体后的直接产仔节律倾向
 - ✅ 这意味着 `antelope / zebra / vulture` 的普通产仔路径现在也会直接受 `birth_cycle_bias` 影响：

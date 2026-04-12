@@ -1432,6 +1432,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["zebra"],
             }
         )
+    if scores.get("runtime_herd_birth_cycle_pull", 0.0) >= 0.05 and antelope_count < 21:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "birth_cycle_window",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "birth_cycle_herd_window",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if scores.get("runtime_apex_world_pressure_pull", 0.0) >= 0.05 and lion_count < 8:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(
@@ -1474,6 +1485,17 @@ def apply_region_grassland_chain_rebalancing(
                 "layer_group": "social_layer",
                 "effect": "birth_cycle_apex_support",
                 "new_target_count": species_pool["hyena"],
+            }
+        )
+    if scores.get("runtime_apex_birth_cycle_pull", 0.0) >= 0.05 and lion_count < 8:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "birth_cycle_window",
+                "target_species": "lion",
+                "layer_group": "predator_layer",
+                "effect": "birth_cycle_apex_window",
+                "new_target_count": species_pool["lion"],
             }
         )
     if scores.get("runtime_apex_health_anchor_pull", 0.0) >= 0.06 and lion_count < 8:
