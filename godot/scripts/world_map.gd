@@ -470,6 +470,9 @@ func _build_world_ambience() -> void:
 	var map_size := map_layer.get_rect().size
 	if map_size.x <= 0.0 or map_size.y <= 0.0:
 		map_size = Vector2(1040, 720)
+	var active_rel: Vector2 = REGION_LAYOUT.get(active_region_id, Vector2(0.5, 0.5))
+	var active_pos := Vector2(map_size.x * active_rel.x, map_size.y * active_rel.y)
+	var accent := _active_region_accent()
 
 	var x := 0.0
 	while x < map_size.x:
@@ -498,6 +501,24 @@ func _build_world_ambience() -> void:
 		flow.color = Color(0.70, 0.86, 0.97, 0.14)
 		flow.custom_minimum_size = Vector2(flow.custom_minimum_size.x, 3.0)
 		map_layer.add_child(flow)
+
+	var horizon := ColorRect.new()
+	horizon.color = Color(accent.r, accent.g, accent.b, 0.10)
+	horizon.position = Vector2(0, active_pos.y - 2)
+	horizon.custom_minimum_size = Vector2(map_size.x, 4)
+	map_layer.add_child(horizon)
+
+	var meridian := ColorRect.new()
+	meridian.color = Color(accent.r, accent.g, accent.b, 0.10)
+	meridian.position = Vector2(active_pos.x - 2, 0)
+	meridian.custom_minimum_size = Vector2(4, map_size.y)
+	map_layer.add_child(meridian)
+
+	var aura := ColorRect.new()
+	aura.color = Color(accent.r, accent.g, accent.b, 0.10)
+	aura.position = active_pos - Vector2(118, 52)
+	aura.custom_minimum_size = Vector2(236, 104)
+	map_layer.add_child(aura)
 
 
 func _build_route_lines(regions: Array) -> void:
