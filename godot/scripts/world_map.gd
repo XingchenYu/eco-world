@@ -513,16 +513,17 @@ func _build_map_nodes(regions: Array) -> void:
 		var rel: Vector2 = REGION_LAYOUT.get(region_id, Vector2(0.5, 0.5))
 		var pos := Vector2(map_size.x * rel.x, map_size.y * rel.y)
 		var accent := REGION_COLORS.get(region_id, Color8(110, 140, 170))
+		var is_active := region_id == active_region_id
 
 		var shadow := ColorRect.new()
-		shadow.color = Color(0.03, 0.06, 0.09, 0.45)
+		shadow.color = Color(0.03, 0.06, 0.09, 0.45 if is_active else 0.28)
 		var shadow_base := pos - Vector2(126, 54) + Vector2(8, 8)
 		shadow.position = shadow_base
 		shadow.custom_minimum_size = Vector2(252, 112)
 		map_layer.add_child(shadow)
 
 		var outer_ring := ColorRect.new()
-		outer_ring.color = Color(accent.r, accent.g, accent.b, 0.18)
+		outer_ring.color = Color(accent.r, accent.g, accent.b, 0.18 if is_active else 0.10)
 		outer_ring.position = pos - Vector2(132, 60)
 		outer_ring.custom_minimum_size = Vector2(264, 124)
 		map_layer.add_child(outer_ring)
@@ -531,9 +532,10 @@ func _build_map_nodes(regions: Array) -> void:
 		var shell_base := pos - Vector2(126, 54)
 		shell.position = shell_base
 		shell.custom_minimum_size = Vector2(252, 112)
+		shell.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active else 0.76)
 		map_layer.add_child(shell)
 
-		if region_id == active_region_id:
+		if is_active:
 			var glow := ColorRect.new()
 			glow.color = Color(1.0, 0.92, 0.58, 0.16)
 			glow.position = shell.position - Vector2(14, 12)
@@ -626,6 +628,7 @@ func _build_map_nodes(regions: Array) -> void:
 		badge.text = REGION_ICONS.get(region_id, "区")
 		badge.position = shell.position + Vector2(16, 12)
 		badge.add_theme_font_size_override("font_size", 30)
+		badge.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active else 0.72)
 		map_layer.add_child(badge)
 
 		var plaque := PanelContainer.new()
@@ -636,6 +639,7 @@ func _build_map_nodes(regions: Array) -> void:
 		var plaque_label := Label.new()
 		plaque_label.text = str(region.get("name", region_id))
 		_style_dim(plaque_label, 13)
+		plaque_label.modulate = Color(0.78, 0.82, 0.86, 1.0 if is_active else 0.72)
 		plaque.add_child(plaque_label)
 
 
