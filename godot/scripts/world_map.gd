@@ -628,6 +628,8 @@ func _build_focus_stage(regions: Array) -> void:
 
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var accent := _active_region_accent()
+	var chain_focus: Array = active_region.get("chain_focus", [])
+	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
 	var stage := PanelContainer.new()
 	stage.custom_minimum_size = Vector2(360, 150)
 	stage.position = Vector2(map_size.x * 0.34, map_size.y * 0.38)
@@ -677,6 +679,42 @@ func _build_focus_stage(regions: Array) -> void:
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_dim(footer, 13)
 	root.add_child(footer)
+
+	var sub_stage := PanelContainer.new()
+	sub_stage.custom_minimum_size = Vector2(260, 112)
+	sub_stage.position = stage.position + Vector2(32, 166)
+	map_layer.add_child(sub_stage)
+
+	var sub_box := VBoxContainer.new()
+	sub_box.add_theme_constant_override("separation", 6)
+	sub_stage.add_child(sub_box)
+
+	var sub_ribbon := ColorRect.new()
+	sub_ribbon.color = Color8(104, 171, 144)
+	sub_ribbon.custom_minimum_size = Vector2(0, 8)
+	sub_box.add_child(sub_ribbon)
+
+	var sub_title := Label.new()
+	sub_title.text = "%s · 区域聚焦副舞台" % _region_type_chip(active_region)
+	_style_secondary_title(sub_title, 18)
+	sub_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub_box.add_child(sub_title)
+
+	sub_box.add_child(_make_hero_chip("当前主链", str(chain_focus[0]) if chain_focus.size() > 0 else "等待主链聚焦", Color8(104, 171, 144)))
+	sub_box.add_child(_make_hero_chip("当前警报", str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "当前暂无突出风险", Color8(171, 132, 196)))
+
+	var signal_strip := PanelContainer.new()
+	signal_strip.custom_minimum_size = Vector2(420, 72)
+	signal_strip.position = stage.position + Vector2(-22, 286)
+	map_layer.add_child(signal_strip)
+
+	var signal_row := HBoxContainer.new()
+	signal_row.add_theme_constant_override("separation", 8)
+	signal_strip.add_child(signal_row)
+	signal_row.add_child(_make_hero_chip("繁荣", "%.2f" % float(active_region.get("health_state", {}).get("prosperity", 0.0)), accent))
+	signal_row.add_child(_make_hero_chip("稳定", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0)), Color8(102, 152, 204)))
+	signal_row.add_child(_make_hero_chip("风险", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0)), Color8(171, 132, 196)))
+	signal_row.add_child(_make_hero_chip("种群", str(active_region.get("species_population", 0)), Color8(210, 182, 96)))
 
 
 func _build_route_lines(regions: Array) -> void:
