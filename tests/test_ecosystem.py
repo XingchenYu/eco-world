@@ -1496,6 +1496,25 @@ def test_runtime_birth_signal_aggregation():
     print("✅ Runtime birth signal aggregation test passed")
 
 
+def test_runtime_birth_pressure_event_aggregation():
+    """更高的产仔事件 impact 应继续抬升运行期 birth runtime。"""
+    world_map = build_default_world_map()
+    sim = RegionSimulation(world_map.get_region("temperate_grassland"), build_default_world_registry())
+
+    sim.balance.record_causal_event("antelope产仔", "antelope+2", 0.20, sim.tick_count)
+    sim.balance.record_causal_event("antelope产仔", "antelope+2", 0.30, sim.tick_count)
+    sim.balance.record_causal_event("lion产仔", "lion+2", 0.20, sim.tick_count)
+    sim.balance.record_causal_event("lion产仔", "lion+2", 0.30, sim.tick_count)
+
+    world_sim = WorldSimulation(world_map, build_default_world_registry(), initial_region_id="temperate_grassland")
+    runtime_state = world_sim._build_runtime_territory_state(sim)
+
+    assert runtime_state["herd_birth_runtime"] > 0.50
+    assert runtime_state["apex_birth_runtime"] > 0.60
+
+    print("✅ Runtime birth pressure event aggregation test passed")
+
+
 def test_runtime_birth_memory_signal_aggregation():
     """运行中的 birth_memory_bias 应汇总为 territory runtime 信号。"""
     world_sim = WorldSimulation(build_default_world_map())
@@ -3740,6 +3759,7 @@ def test_antelope_birth_cycle_window_pressure_scaling():
     assert low_count >= before_low
     assert high_count >= low_count
     assert high_cooldown < low_cooldown
+    assert eco_high.balance.causal_chain[-1].impact > eco_low.balance.causal_chain[-1].impact
 
     print("✅ Antelope birth cycle window pressure scaling test passed")
     assert high_cooldown < low_cooldown
@@ -4204,6 +4224,7 @@ def test_lion_birth_cycle_window_pressure_scaling():
     assert low_count >= before_low
     assert high_count >= low_count
     assert high_cooldown < low_cooldown
+    assert eco_high.balance.causal_chain[-1].impact > eco_low.balance.causal_chain[-1].impact
 
     print("✅ Lion birth cycle window pressure scaling test passed")
 
@@ -4716,6 +4737,7 @@ GRASSLAND_TESTS = [
 RUNTIME_TESTS = [
     test_region_simulation_applies_social_phase_state,
     test_runtime_birth_signal_aggregation,
+    test_runtime_birth_pressure_event_aggregation,
     test_runtime_birth_memory_signal_aggregation,
     test_lion_hotspot_memory_center_effect,
     test_hyena_hotspot_memory_center_effect,

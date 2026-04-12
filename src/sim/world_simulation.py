@@ -1053,6 +1053,7 @@ class WorldSimulation:
 
         totals = {"apex": 0, "herd": 0, "aerial": 0}
         events = {"apex": 0, "herd": 0, "aerial": 0}
+        pressure_impacts = {"apex": 0.0, "herd": 0.0, "aerial": 0.0}
         causal_chain = getattr(getattr(simulation, "balance", None), "causal_chain", []) or []
 
         for event in causal_chain[-40:]:
@@ -1075,11 +1076,12 @@ class WorldSimulation:
                 continue
             totals[group] += amount
             events[group] += 1
+            pressure_impacts[group] += max(0.0, float(getattr(event, "impact", 0.0)) - 0.2)
 
         return {
-            "apex_birth_runtime": round(min(1.0, totals["apex"] * 0.12 + events["apex"] * 0.06), 3),
-            "herd_birth_runtime": round(min(1.0, totals["herd"] * 0.10 + events["herd"] * 0.05), 3),
-            "aerial_birth_runtime": round(min(1.0, totals["aerial"] * 0.14 + events["aerial"] * 0.06), 3),
+            "apex_birth_runtime": round(min(1.0, totals["apex"] * 0.12 + events["apex"] * 0.06 + pressure_impacts["apex"] * 0.30), 3),
+            "herd_birth_runtime": round(min(1.0, totals["herd"] * 0.10 + events["herd"] * 0.05 + pressure_impacts["herd"] * 0.30), 3),
+            "aerial_birth_runtime": round(min(1.0, totals["aerial"] * 0.14 + events["aerial"] * 0.06 + pressure_impacts["aerial"] * 0.30), 3),
         }
 
     @staticmethod

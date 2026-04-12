@@ -139,7 +139,7 @@ def _social_group_birth(animal: Animal, ecosystem, social_factor: float, stable_
     ecosystem.balance.record_causal_event(
         cause=f"{animal.species}产仔",
         effect=f"{animal.species}+{litter_size} ({support_label})",
-        impact=0.2 + max(0.0, social_factor - 1.0) * 0.05,
+        impact=0.2 + max(0.0, social_factor - 1.0) * 0.05 + birth_cycle_window_pressure_bias * 0.05,
         tick=ecosystem.tick_count
     )
     ecosystem.log_event(f"{animal.id} gave birth to {litter_size} offspring ({support_label})")

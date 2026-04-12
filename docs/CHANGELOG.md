@@ -40,6 +40,13 @@
   正式接入产仔路径：
   - `litter_size`
   - `mate_cooldown`
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现在会把产仔事件里超出基础值的：
+  - `impact`
+  继续计入：
+  - `herd_birth_runtime`
+  - `aerial_birth_runtime`
+  - `apex_birth_runtime`
+- ✅ 这意味着 `birth_cycle_window_pressure_bias` 现在不只影响“产多少”和“多久恢复”，还会继续抬升世界层看到的运行期产仔强度。
 
 ### v4.0-alpha62 (2026-04-12 16:55)
 

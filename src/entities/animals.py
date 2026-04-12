@@ -620,7 +620,7 @@ class Animal(Creature):
         ecosystem.balance.record_causal_event(
             cause=f"{self.species}产仔",
             effect=f"{self.species}+{litter_size}",
-            impact=0.2,
+            impact=0.2 + birth_cycle_window_pressure_bias * 0.05,
             tick=ecosystem.tick_count
         )
         
