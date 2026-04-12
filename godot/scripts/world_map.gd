@@ -505,6 +505,7 @@ func _render_world() -> void:
 
 	_build_world_backdrop()
 	_build_world_ambience()
+	_build_focus_stage(world_meta.get("regions", []))
 	_build_route_lines(world_meta.get("regions", []))
 	_build_map_nodes(world_meta.get("regions", []))
 	_build_map_command_layer()
@@ -618,6 +619,64 @@ func _build_world_ambience() -> void:
 	aura.position = active_pos - Vector2(118, 52)
 	aura.custom_minimum_size = Vector2(236, 104)
 	map_layer.add_child(aura)
+
+
+func _build_focus_stage(regions: Array) -> void:
+	var map_size := map_layer.get_rect().size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
+
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var accent := _active_region_accent()
+	var stage := PanelContainer.new()
+	stage.custom_minimum_size = Vector2(360, 150)
+	stage.position = Vector2(map_size.x * 0.34, map_size.y * 0.38)
+	map_layer.add_child(stage)
+
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 8)
+	stage.add_child(root)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = accent.lightened(0.06)
+	ribbon.custom_minimum_size = Vector2(0, 10)
+	root.add_child(ribbon)
+
+	var eyebrow := Label.new()
+	eyebrow.text = "%s · 世界核心舞台" % _region_type_chip(active_region)
+	_style_dim(eyebrow, 13)
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	root.add_child(eyebrow)
+
+	var title := Label.new()
+	title.text = str(active_region.get("name", "未选择"))
+	_style_primary_title(title, 28)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.modulate = accent.lightened(0.26)
+	root.add_child(title)
+
+	var role := Label.new()
+	role.text = str(active_region.get("region_role", "生态观测区"))
+	_style_secondary_title(role, 17)
+	role.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	role.modulate = accent.lightened(0.16)
+	root.add_child(role)
+
+	var center_row := HBoxContainer.new()
+	center_row.add_theme_constant_override("separation", 8)
+	root.add_child(center_row)
+	center_row.add_child(_make_hero_chip("主地貌", " / ".join(active_region.get("dominant_biomes", []).slice(0, 2)), accent))
+	center_row.add_child(_make_hero_chip("主链焦点", str(active_region.get("chain_focus", [])[0]) if active_region.get("chain_focus", []).size() > 0 else "等待链路聚焦", Color8(104, 171, 144)))
+	center_row.add_child(_make_hero_chip("区域网络", "%s 条连接" % str(active_region.get("connectors", []).size()), Color8(102, 152, 204)))
+
+	var footer := Label.new()
+	footer.text = "已加载区域 %s · 地图节点 %s" % [
+		str(world_data.get("world", {}).get("loaded_regions", 0)),
+		str(regions.size()),
+	]
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_dim(footer, 13)
+	root.add_child(footer)
 
 
 func _build_route_lines(regions: Array) -> void:
