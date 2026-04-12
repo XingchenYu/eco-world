@@ -970,6 +970,7 @@ func _build_side_panel() -> void:
 	match selected_tab:
 		"overview":
 			side_box.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview"), region_accent, active_region))
+			side_box.add_child(_make_overview_dashboard(active_region, pressure_headlines, chain_focus, route_summary, region_accent))
 			side_box.add_child(_make_focus_card(active_region))
 			side_box.add_child(_make_region_summary_card(active_region))
 			side_box.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
@@ -982,6 +983,7 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_intro_section(active_region))
 		"chains":
 			side_box.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。", _tab_accent_color("chains"), region_accent, active_region))
+			side_box.add_child(_make_chain_command_deck(chains, active_region, region_accent))
 			side_box.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
 			side_box.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
 			side_box.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
@@ -991,9 +993,11 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("捕食压力", chains.get("predation", []), true))
 		"species":
 			side_box.add_child(_make_tab_banner("物种图鉴", "查看%s当前最核心的关键物种与数量。" % _region_type_label(active_region), _tab_accent_color("species"), region_accent, active_region))
+			side_box.add_child(_make_species_codex_header(top_species, active_region, region_accent))
 			side_box.add_child(_make_species_section(top_species, active_region))
 		"story":
 			side_box.add_child(_make_tab_banner("区域播报室", "汇总%s中的领地、趋势、链路和关系层即时叙事。" % _region_type_label(active_region), _tab_accent_color("story"), region_accent, active_region))
+			side_box.add_child(_make_story_command_deck(narrative, active_region, region_accent))
 			side_box.add_child(_make_story_section(narrative, active_region))
 
 func _make_tabs(region_accent: Color) -> HBoxContainer:
@@ -1202,6 +1206,137 @@ func _make_hero_chip(label_text: String, value_text: String, accent: Color) -> P
 	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(value)
 	return panel
+
+
+func _make_overview_dashboard(active_region: Dictionary, pressure_headlines: Array, chain_focus: Array, route_summary: Array, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	var title := Label.new()
+	title.text = "%s · 区域总控板" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 8)
+	box.add_child(body)
+
+	body.add_child(_make_hero_chip("警报", str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "当前暂无异常风险焦点", Color8(171, 132, 196)))
+	body.add_child(_make_hero_chip("主链", str(chain_focus[0]) if chain_focus.size() > 0 else "当前暂无主导链路信号", Color8(104, 171, 144)))
+	body.add_child(_make_hero_chip("通道", str(route_summary[0]) if route_summary.size() > 0 else "当前暂无显著通道情报", region_accent))
+	return _wrap_menu_card(box, Color8(210, 182, 96))
+
+
+func _make_chain_command_deck(chains: Dictionary, active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	var title := Label.new()
+	title.text = "%s · 链路监测总板" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var lead := Label.new()
+	lead.text = "这里先看每条主链当前最强的一条读数，再往下看完整监测卡。"
+	_style_dim(lead, 14)
+	lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(lead)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+
+	row.add_child(_make_hero_chip("社会相位", _lead_chain_line(chains.get("social_phases", [])), Color8(102, 152, 204)))
+	row.add_child(_make_hero_chip("草原主链", _lead_chain_line(chains.get("grassland_chain", [])), Color8(104, 171, 144)))
+	row.add_child(_make_hero_chip("尸体资源", _lead_chain_line(chains.get("carrion_chain", [])), Color8(171, 132, 196)))
+
+	var second_row := HBoxContainer.new()
+	second_row.add_theme_constant_override("separation", 8)
+	box.add_child(second_row)
+	second_row.add_child(_make_hero_chip("领地", _lead_chain_line(chains.get("territory", [])), region_accent))
+	second_row.add_child(_make_hero_chip("竞争", _lead_chain_line(chains.get("competition", [])), Color8(210, 182, 96)))
+	second_row.add_child(_make_hero_chip("捕食", _lead_chain_line(chains.get("predation", [])), Color8(171, 132, 196)))
+	return _wrap_menu_card(box, Color8(104, 171, 144))
+
+
+func _make_species_codex_header(top_species: Array, active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	var title := Label.new()
+	title.text = "%s · 核心图鉴索引" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var lead_row := HBoxContainer.new()
+	lead_row.add_theme_constant_override("separation", 8)
+	box.add_child(lead_row)
+
+	var lead_one := "当前暂无物种数据"
+	var lead_two := "等待更多区域统计"
+	var lead_three := "等待更多区域统计"
+	if top_species.size() > 0:
+		lead_one = _species_entry_label(top_species[0])
+	if top_species.size() > 1:
+		lead_two = _species_entry_label(top_species[1])
+	if top_species.size() > 2:
+		lead_three = _species_entry_label(top_species[2])
+
+	lead_row.add_child(_make_hero_chip("首位", lead_one, region_accent))
+	lead_row.add_child(_make_hero_chip("次位", lead_two, Color8(171, 132, 196)))
+	lead_row.add_child(_make_hero_chip("第三位", lead_three, Color8(102, 152, 204)))
+	return _wrap_menu_card(box, Color8(171, 132, 196))
+
+
+func _make_story_command_deck(narrative: Dictionary, active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	var title := Label.new()
+	title.text = "%s · 播报总控板" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var lead := Label.new()
+	lead.text = "优先看当前区域最活跃的叙事分区，再往下看分栏目播报卡。"
+	_style_dim(lead, 14)
+	lead.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(lead)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+
+	row.add_child(_make_hero_chip("领地", _lead_story_line(narrative.get("territory", [])), Color8(171, 132, 196)))
+	row.add_child(_make_hero_chip("趋势", _lead_story_line(narrative.get("social_trends", [])), Color8(102, 152, 204)))
+	row.add_child(_make_hero_chip("主链", _lead_story_line(narrative.get("grassland_chain", narrative.get("wetland_chain", []))), region_accent))
+	return _wrap_menu_card(box, Color8(102, 152, 204))
+
+
+func _lead_chain_line(rows: Array) -> String:
+	if rows.is_empty():
+		return "当前暂无重点读数"
+	var row := rows[0]
+	if typeof(row) == TYPE_DICTIONARY:
+		if row.has("value"):
+			return "%s %.2f" % [str(row.get("key", "读数")), float(row.get("value", 0.0))]
+		if row.has("strength"):
+			return "%s %.2f" % [str(row.get("target_region_id", "连接")), float(row.get("strength", 0.0))]
+	return str(row)
+
+
+func _lead_story_line(rows: Array) -> String:
+	if rows.is_empty():
+		return "当前暂无播报"
+	return str(rows[0])
+
+
+func _species_entry_label(row_variant: Variant) -> String:
+	var row: Dictionary = row_variant
+	return "%s × %s" % [
+		str(row.get("label", row.get("species_id", ""))),
+		str(row.get("count", 0)),
+	]
 
 
 func _wrap_menu_card(content: Control, accent: Color = Color8(88, 110, 126)) -> PanelContainer:
