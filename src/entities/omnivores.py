@@ -638,6 +638,7 @@ class Lion(Animal):
         self.birth_memory_bias = 0.0
         self.birth_memory_world_pressure_bias = 0.0
         self.birth_cycle_bias = 0.0
+        self.birth_cycle_window_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -683,6 +684,7 @@ class Lion(Animal):
         self._apply_birth_memory_bias()
         self._apply_birth_memory_world_pressure_bias()
         self._apply_birth_cycle_bias()
+        self._apply_birth_cycle_window_pressure_bias()
         self._apply_social_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._pride_timer >= self.pride_interval:
@@ -790,6 +792,16 @@ class Lion(Animal):
         if bias >= 0.24:
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + bias * 0.008
+
+    def _apply_birth_cycle_window_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.birth_cycle_window_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.05)
+        self.hunger = max(0.0, self.hunger - bias * 0.08)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.006
 
     def _apply_social_stability(self, ecosystem):
         lions = [animal for animal in ecosystem.animals if animal.alive and animal.species == "lion"]
@@ -956,6 +968,7 @@ class Hyena(Animal):
         self.birth_memory_bias = 0.0
         self.birth_memory_world_pressure_bias = 0.0
         self.birth_cycle_bias = 0.0
+        self.birth_cycle_window_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1004,6 +1017,7 @@ class Hyena(Animal):
         self._apply_birth_memory_bias()
         self._apply_birth_memory_world_pressure_bias()
         self._apply_birth_cycle_bias()
+        self._apply_birth_cycle_window_pressure_bias()
         self._apply_clan_stability(ecosystem)
         super().execute_behavior(ecosystem)
         if self.alive and self._scavenge_timer >= self.scavenge_interval:
@@ -1111,6 +1125,16 @@ class Hyena(Animal):
         if bias >= 0.24:
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + bias * 0.008
+
+    def _apply_birth_cycle_window_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.birth_cycle_window_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.05)
+        self.hunger = max(0.0, self.hunger - bias * 0.08)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.006
 
     def _apply_clan_stability(self, ecosystem):
         hyenas = [animal for animal in ecosystem.animals if animal.alive and animal.species == "hyena"]

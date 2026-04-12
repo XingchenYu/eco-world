@@ -1141,6 +1141,7 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_birth_memory_world_pressure_runtime": 0.24,
             "herd_birth_cycle_runtime": 0.22,
             "herd_birth_cycle_window_runtime": 0.20,
+            "herd_birth_cycle_window_pressure_runtime": 0.22,
             "herd_regional_health_runtime": 0.52,
             "herd_condition_runtime": 0.46,
             "herd_regional_bias_runtime": 0.46,
@@ -1156,6 +1157,7 @@ def test_v4_social_trend_summary_uses_memory():
             "aerial_birth_memory_world_pressure_runtime": 0.24,
             "aerial_birth_cycle_runtime": 0.22,
             "aerial_birth_cycle_window_runtime": 0.20,
+            "aerial_birth_cycle_window_pressure_runtime": 0.22,
             "aerial_regional_health_runtime": 0.44,
             "aerial_condition_runtime": 0.41,
             "aerial_regional_bias_runtime": 0.42,
@@ -1168,6 +1170,7 @@ def test_v4_social_trend_summary_uses_memory():
             "apex_birth_memory_world_pressure_runtime": 0.24,
             "apex_birth_cycle_runtime": 0.22,
             "apex_birth_cycle_window_runtime": 0.20,
+            "apex_birth_cycle_window_pressure_runtime": 0.20,
             "apex_condition_runtime": 0.39,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1253,6 +1256,9 @@ def test_v4_social_trend_summary_uses_memory():
     assert "world_pressure_window_memory" in summary.cycle_signals
     assert "birth_cycle_window_memory" in summary.cycle_signals
     assert "birth_cycle_window_memory_strength" in summary.cycle_signals
+    assert "herd_birth_cycle_window_pressure_runtime" in summary.cycle_signals
+    assert "aerial_birth_cycle_window_pressure_runtime" in summary.cycle_signals
+    assert "apex_birth_cycle_window_pressure_runtime" in summary.cycle_signals
     assert "herd_world_pressure_window_runtime" in summary.cycle_signals
     assert "aerial_world_pressure_window_runtime" in summary.cycle_signals
     assert "apex_world_pressure_window_runtime" in summary.cycle_signals
@@ -2883,6 +2889,50 @@ def test_runtime_birth_cycle_bias_effect():
     print("✅ Runtime birth cycle bias effect test passed")
 
 
+def test_runtime_birth_cycle_window_pressure_bias_effect():
+    """birth_cycle_window_pressure_bias 应直接改善 herd 与 carrion 的运行期体况。"""
+    antelope = Antelope(position=(20, 20), gender=Gender.FEMALE)
+    zebra = Zebra(position=(22, 20), gender=Gender.FEMALE)
+    vulture = Vulture(position=(24, 20), gender=Gender.FEMALE)
+
+    antelope.birth_cycle_window_pressure_bias = 0.42
+    zebra.birth_cycle_window_pressure_bias = 0.38
+    vulture.birth_cycle_window_pressure_bias = 0.40
+
+    antelope.health = 70.0
+    antelope.hunger = 50.0
+    antelope.mate_cooldown = 4
+    zebra.health = 72.0
+    zebra.hunger = 48.0
+    zebra.mate_cooldown = 4
+    vulture.health = 68.0
+    vulture.hunger = 46.0
+    vulture.mate_cooldown = 4
+
+    antelope_base_rate = antelope.reproduction_rate
+    zebra_base_rate = zebra.reproduction_rate
+    vulture_base_rate = vulture.reproduction_rate
+
+    antelope._apply_birth_cycle_window_pressure_bias()
+    zebra._apply_birth_cycle_window_pressure_bias()
+    vulture._apply_birth_cycle_window_pressure_bias()
+
+    assert antelope.health > 70.0
+    assert antelope.hunger < 50.0
+    assert antelope.mate_cooldown < 4
+    assert antelope.reproduction_rate > antelope_base_rate
+    assert zebra.health > 72.0
+    assert zebra.hunger < 48.0
+    assert zebra.mate_cooldown < 4
+    assert zebra.reproduction_rate > zebra_base_rate
+    assert vulture.health > 68.0
+    assert vulture.hunger < 46.0
+    assert vulture.mate_cooldown < 4
+    assert vulture.reproduction_rate > vulture_base_rate
+
+    print("✅ Runtime birth cycle window pressure bias effect test passed")
+
+
 def test_runtime_apex_condition_phase_bias_effect():
     """apex 的 condition_phase_bias 应直接改善当前体况、冷却和繁殖节律。"""
     lion = Lion(position=(20, 20), gender=Gender.FEMALE)
@@ -3037,6 +3087,38 @@ def test_runtime_apex_birth_cycle_bias_effect():
     assert hyena.health > 72 and hyena.hunger < 38 and hyena.mate_cooldown < 4
 
     print("✅ Runtime apex birth cycle bias effect test passed")
+
+
+def test_runtime_apex_birth_cycle_window_pressure_bias_effect():
+    """birth_cycle_window_pressure_bias 应直接改善 apex 运行期体况。"""
+    lion = Lion(position=(20, 20), gender=Gender.FEMALE)
+    hyena = Hyena(position=(22, 20), gender=Gender.FEMALE)
+
+    lion.birth_cycle_window_pressure_bias = 0.40
+    hyena.birth_cycle_window_pressure_bias = 0.38
+    lion.health = 70.0
+    lion.hunger = 50.0
+    lion.mate_cooldown = 4
+    hyena.health = 72.0
+    hyena.hunger = 48.0
+    hyena.mate_cooldown = 4
+
+    lion_base_rate = lion.reproduction_rate
+    hyena_base_rate = hyena.reproduction_rate
+
+    lion._apply_birth_cycle_window_pressure_bias()
+    hyena._apply_birth_cycle_window_pressure_bias()
+
+    assert lion.health > 70.0
+    assert lion.hunger < 50.0
+    assert lion.mate_cooldown < 4
+    assert lion.reproduction_rate > lion_base_rate
+    assert hyena.health > 72.0
+    assert hyena.hunger < 48.0
+    assert hyena.mate_cooldown < 4
+    assert hyena.reproduction_rate > hyena_base_rate
+
+    print("✅ Runtime apex birth cycle window pressure bias effect test passed")
 
 
 def test_lion_hotspot_memory_center_effect():
@@ -4472,6 +4554,7 @@ RUNTIME_TESTS = [
     test_runtime_birth_memory_bias_effect,
     test_runtime_birth_memory_world_pressure_bias_effect,
     test_runtime_birth_cycle_bias_effect,
+    test_runtime_birth_cycle_window_pressure_bias_effect,
     test_runtime_apex_regional_health_anchor_effect,
     test_runtime_apex_condition_effect,
     test_runtime_apex_condition_phase_bias_effect,
@@ -4480,6 +4563,7 @@ RUNTIME_TESTS = [
     test_runtime_apex_birth_memory_bias_effect,
     test_runtime_apex_birth_memory_world_pressure_bias_effect,
     test_runtime_apex_birth_cycle_bias_effect,
+    test_runtime_apex_birth_cycle_window_pressure_bias_effect,
 ]
 
 SPECIES_TESTS = [

@@ -60,6 +60,7 @@ def build_region_social_trend_summary(
     herd_birth_memory_runtime = float(runtime_signals.get("herd_birth_memory_runtime", 0.0))
     herd_birth_cycle_runtime = float(runtime_signals.get("herd_birth_cycle_runtime", 0.0))
     herd_birth_cycle_window_runtime = float(runtime_signals.get("herd_birth_cycle_window_runtime", 0.0))
+    herd_birth_cycle_window_pressure_runtime = float(runtime_signals.get("herd_birth_cycle_window_pressure_runtime", 0.0))
     herd_surface_water_runtime = float(runtime_signals.get("herd_surface_water_runtime", 0.0))
     herd_regional_health_runtime = float(runtime_signals.get("herd_regional_health_runtime", 0.0))
     herd_condition_runtime = float(runtime_signals.get("herd_condition_runtime", 0.0))
@@ -77,6 +78,7 @@ def build_region_social_trend_summary(
     aerial_birth_memory_runtime = float(runtime_signals.get("aerial_birth_memory_runtime", 0.0))
     aerial_birth_cycle_runtime = float(runtime_signals.get("aerial_birth_cycle_runtime", 0.0))
     aerial_birth_cycle_window_runtime = float(runtime_signals.get("aerial_birth_cycle_window_runtime", 0.0))
+    aerial_birth_cycle_window_pressure_runtime = float(runtime_signals.get("aerial_birth_cycle_window_pressure_runtime", 0.0))
     aerial_carcass_runtime = float(runtime_signals.get("aerial_carcass_runtime", 0.0))
     aerial_regional_health_runtime = float(runtime_signals.get("aerial_regional_health_runtime", 0.0))
     aerial_condition_runtime = float(runtime_signals.get("aerial_condition_runtime", 0.0))
@@ -92,6 +94,7 @@ def build_region_social_trend_summary(
     apex_birth_memory_runtime = float(runtime_signals.get("apex_birth_memory_runtime", 0.0))
     apex_birth_cycle_runtime = float(runtime_signals.get("apex_birth_cycle_runtime", 0.0))
     apex_birth_cycle_window_runtime = float(runtime_signals.get("apex_birth_cycle_window_runtime", 0.0))
+    apex_birth_cycle_window_pressure_runtime = float(runtime_signals.get("apex_birth_cycle_window_pressure_runtime", 0.0))
     apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
     apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
     apex_condition_phase_anchor_runtime = float(runtime_signals.get("apex_condition_phase_anchor_runtime", 0.0))
@@ -230,7 +233,10 @@ def build_region_social_trend_summary(
                 + birth_cycle_window_count * 0.10
                 + herd_birth_cycle_window_runtime * 0.16
                 + aerial_birth_cycle_window_runtime * 0.16
-                + apex_birth_cycle_window_runtime * 0.14,
+                + apex_birth_cycle_window_runtime * 0.14
+                + herd_birth_cycle_window_pressure_runtime * 0.06
+                + aerial_birth_cycle_window_pressure_runtime * 0.06
+                + apex_birth_cycle_window_pressure_runtime * 0.05,
             ),
             3,
         ),
@@ -750,6 +756,8 @@ def build_region_social_trend_summary(
     herd_birth_cycle_window_runtime = float(runtime_signals.get("herd_birth_cycle_window_runtime", 0.0))
     if herd_birth_cycle_window_runtime >= 0.18:
         cycle_signals.append("herd_birth_cycle_window_runtime")
+    if herd_birth_cycle_window_pressure_runtime >= 0.18:
+        cycle_signals.append("herd_birth_cycle_window_pressure_runtime")
     if phase_scores["aerial_carrion_cycle"] >= 0.12:
         cycle_signals.append("aerial_carrion_cycle")
         narrative_trends.append("空中尸体追踪记忆已经积累成更明确的 aerial-carrion 周期。")
@@ -765,6 +773,8 @@ def build_region_social_trend_summary(
     aerial_birth_cycle_window_runtime = float(runtime_signals.get("aerial_birth_cycle_window_runtime", 0.0))
     if aerial_birth_cycle_window_runtime >= 0.18:
         cycle_signals.append("aerial_birth_cycle_window_runtime")
+    if aerial_birth_cycle_window_pressure_runtime >= 0.18:
+        cycle_signals.append("aerial_birth_cycle_window_pressure_runtime")
     if surface_water_anchor >= 0.45:
         cycle_signals.append("surface_water_anchor")
         narrative_trends.append("稳定水源锚点正在持续加固食草群的长期迁移记忆。")
@@ -874,6 +884,8 @@ def build_region_social_trend_summary(
     apex_birth_cycle_window_runtime = float(runtime_signals.get("apex_birth_cycle_window_runtime", 0.0))
     if apex_birth_cycle_window_runtime >= 0.16:
         cycle_signals.append("apex_birth_cycle_window_runtime")
+    if apex_birth_cycle_window_pressure_runtime >= 0.16:
+        cycle_signals.append("apex_birth_cycle_window_pressure_runtime")
     if regional_prosperity >= 0.28:
         cycle_signals.append("regional_prosperity_anchor")
     if regional_stability >= 0.24:

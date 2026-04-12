@@ -552,6 +552,9 @@ class WorldSimulation:
             "apex_birth_cycle_window_runtime": 0.0,
             "herd_birth_cycle_window_runtime": 0.0,
             "aerial_birth_cycle_window_runtime": 0.0,
+            "apex_birth_cycle_window_pressure_runtime": 0.0,
+            "herd_birth_cycle_window_pressure_runtime": 0.0,
+            "aerial_birth_cycle_window_pressure_runtime": 0.0,
         }
         social_state = simulation.region.relationship_state.get("social_trends", {})
         cycle_signals = social_state.get("cycle_signals", []) if isinstance(social_state, dict) else []
@@ -671,6 +674,9 @@ class WorldSimulation:
                 + birth_cycle_window_memory * 0.28
                 + birth_cycle_window_memory_strength * 0.18
                 + state["apex_anchor_prosperity_runtime"] * 0.08,
+            )
+            state["apex_birth_cycle_window_pressure_runtime"] = max(
+                [getattr(animal, "birth_cycle_window_pressure_bias", 0.0) for animal in lions] or [0.0]
             )
         if hyenas:
             state["hyena_clan_cohesion"] = max(getattr(animal, "clan_cohesion", 0.0) for animal in hyenas)
@@ -800,6 +806,10 @@ class WorldSimulation:
                     + state["apex_anchor_prosperity_runtime"] * 0.08,
                 ),
             )
+            state["apex_birth_cycle_window_pressure_runtime"] = max(
+                state["apex_birth_cycle_window_pressure_runtime"],
+                max([getattr(animal, "birth_cycle_window_pressure_bias", 0.0) for animal in hyenas] or [0.0]),
+            )
         if antelopes or zebras:
             herd_hotspots = {self._territory_hotspot(animal.position) for animal in antelopes + zebras}
             state["herd_hotspot_count"] = float(len(herd_hotspots))
@@ -902,6 +912,9 @@ class WorldSimulation:
                 + birth_cycle_window_memory_strength * 0.18
                 + state["herd_anchor_prosperity_runtime"] * 0.08,
             )
+            state["herd_birth_cycle_window_pressure_runtime"] = max(
+                [getattr(animal, "birth_cycle_window_pressure_bias", 0.0) for animal in antelopes + zebras] or [0.0]
+            )
         if vultures:
             vulture_hotspots = {self._territory_hotspot(animal.position) for animal in vultures}
             state["vulture_hotspot_count"] = float(len(vulture_hotspots))
@@ -1003,6 +1016,9 @@ class WorldSimulation:
                 + birth_cycle_window_memory * 0.28
                 + birth_cycle_window_memory_strength * 0.18
                 + state["aerial_anchor_prosperity_runtime"] * 0.08,
+            )
+            state["aerial_birth_cycle_window_pressure_runtime"] = max(
+                [getattr(animal, "birth_cycle_window_pressure_bias", 0.0) for animal in vultures] or [0.0]
             )
         if lion_hotspots and hyena_hotspots:
             state["shared_hotspot_overlap"] = float(len(lion_hotspots & hyena_hotspots))

@@ -1198,6 +1198,7 @@ class Antelope(Animal):
         self.birth_memory_bias = 0.0
         self.birth_memory_world_pressure_bias = 0.0
         self.birth_cycle_bias = 0.0
+        self.birth_cycle_window_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1238,6 +1239,7 @@ class Antelope(Animal):
         self._apply_birth_memory_bias()
         self._apply_birth_memory_world_pressure_bias()
         self._apply_birth_cycle_bias()
+        self._apply_birth_cycle_window_pressure_bias()
         self._follow_herd_channel(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -1318,6 +1320,16 @@ class Antelope(Animal):
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + bias * 0.008
 
+    def _apply_birth_cycle_window_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.birth_cycle_window_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.05)
+        self.hunger = max(0.0, self.hunger - bias * 0.08)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.006
+
     def _follow_herd_channel(self, ecosystem):
         bias = max(
             self.herd_channel_bias,
@@ -1381,6 +1393,7 @@ class Zebra(Animal):
         self.birth_memory_bias = 0.0
         self.birth_memory_world_pressure_bias = 0.0
         self.birth_cycle_bias = 0.0
+        self.birth_cycle_window_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1418,6 +1431,7 @@ class Zebra(Animal):
         self._apply_birth_memory_bias()
         self._apply_birth_memory_world_pressure_bias()
         self._apply_birth_cycle_bias()
+        self._apply_birth_cycle_window_pressure_bias()
         self._follow_herd_channel(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -1497,6 +1511,16 @@ class Zebra(Animal):
         if bias >= 0.24:
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + bias * 0.008
+
+    def _apply_birth_cycle_window_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.birth_cycle_window_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.05)
+        self.hunger = max(0.0, self.hunger - bias * 0.08)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.006
 
     def _follow_herd_channel(self, ecosystem):
         bias = max(
@@ -1929,6 +1953,7 @@ class Vulture(Animal):
         self.birth_memory_bias = 0.0
         self.birth_memory_world_pressure_bias = 0.0
         self.birth_cycle_bias = 0.0
+        self.birth_cycle_window_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1975,6 +2000,7 @@ class Vulture(Animal):
         self._apply_birth_memory_bias()
         self._apply_birth_memory_world_pressure_bias()
         self._apply_birth_cycle_bias()
+        self._apply_birth_cycle_window_pressure_bias()
         self._track_aerial_lanes(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -2054,6 +2080,16 @@ class Vulture(Animal):
         if bias >= 0.24:
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + bias * 0.008
+
+    def _apply_birth_cycle_window_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.birth_cycle_window_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.05)
+        self.hunger = max(0.0, self.hunger - bias * 0.08)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.006
 
     def _track_aerial_lanes(self, ecosystem):
         bias = max(

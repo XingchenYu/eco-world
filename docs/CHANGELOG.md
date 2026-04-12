@@ -2,6 +2,41 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha61 (2026-04-12 16:20)
+
+- ✅ 新增 `birth_cycle_window_pressure_bias` 主线闭环：
+  - [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 现在会把：
+    - `birth_cycle_window_memory_strength`
+    - `world_pressure_bias`
+    - `world_pressure_window_bias`
+    - `runtime_anchor_prosperity`
+    - 区域 `stability / collapse_risk`
+    组合成运行体偏置 `birth_cycle_window_pressure_bias`
+- ✅ 这层新偏置已经下沉到：
+  - [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py)
+    - `antelope / zebra / vulture`
+  - [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py)
+    - `lion / hyena`
+- ✅ `birth_cycle_window_pressure_bias` 现在会直接影响运行体：
+  - `health`
+  - `hunger`
+  - `mate_cooldown`
+  - `reproduction_rate`
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现在会继续聚合：
+  - `herd_birth_cycle_window_pressure_runtime`
+  - `aerial_birth_cycle_window_pressure_runtime`
+  - `apex_birth_cycle_window_pressure_runtime`
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 现在会把这组新 runtime 信号继续写回：
+  - `runtime_signals`
+  - `waterhole_spacing`
+  - `carcass_route_overlap`
+  - `apex_boundary_conflict`
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 现在会把这组新 runtime 压力继续沉淀到：
+  - `birth_cycle_window_memory_strength`
+  - `cycle_signals`
+- ✅ 这条慢反馈主线现在已经补成：
+  - `birth_cycle window -> memory strength -> pressure bias -> runtime territory -> social memory`
+
 ### v4.0-alpha60 (2026-04-12 15:35)
 
 - ✅ [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py) 现已继续收紧 `code-review-graph` 的检查范围：
