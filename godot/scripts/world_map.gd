@@ -66,6 +66,15 @@ func _style_dim(label: Label, size: int = 14) -> void:
 	label.modulate = Color8(170, 180, 188)
 
 
+func _tab_accent_color(tab_id: String) -> Color:
+	return {
+		"overview": Color8(210, 182, 96),
+		"chains": Color8(104, 171, 144),
+		"species": Color8(171, 132, 196),
+		"story": Color8(102, 152, 204),
+	}.get(tab_id, Color8(210, 182, 96))
+
+
 func _ready() -> void:
 	_build_ui()
 	_load_world_data()
@@ -479,7 +488,7 @@ func _build_side_panel() -> void:
 
 	match selected_tab:
 		"overview":
-			side_box.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。"))
+			side_box.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview")))
 			side_box.add_child(_make_focus_card(active_region))
 			side_box.add_child(_make_region_summary_card(active_region))
 			side_box.add_child(_make_badge_list("风险焦点", pressure_headlines))
@@ -491,7 +500,7 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_route_section(route_summary))
 			side_box.add_child(_make_intro_section(active_region))
 		"chains":
-			side_box.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。"))
+			side_box.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。", _tab_accent_color("chains")))
 			side_box.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
 			side_box.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
 			side_box.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
@@ -500,10 +509,10 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("竞争压力", chains.get("competition", []), true))
 			side_box.add_child(_make_section("捕食压力", chains.get("predation", []), true))
 		"species":
-			side_box.add_child(_make_tab_banner("物种图鉴", "查看当前焦点区域最核心的关键物种与数量。"))
+			side_box.add_child(_make_tab_banner("物种图鉴", "查看当前焦点区域最核心的关键物种与数量。", _tab_accent_color("species")))
 			side_box.add_child(_make_species_section(top_species))
 		"story":
-			side_box.add_child(_make_tab_banner("区域播报室", "汇总领地、趋势、链路和关系层的即时叙事。"))
+			side_box.add_child(_make_tab_banner("区域播报室", "汇总领地、趋势、链路和关系层的即时叙事。", _tab_accent_color("story")))
 			side_box.add_child(_make_story_section(narrative))
 
 func _make_tabs() -> HBoxContainer:
@@ -532,11 +541,16 @@ func _make_status_strip(active_region: Dictionary) -> PanelContainer:
 	return panel
 
 
-func _make_tab_banner(title_text: String, description: String) -> PanelContainer:
+func _make_tab_banner(title_text: String, description: String, accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	panel.add_child(box)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = accent
+	ribbon.custom_minimum_size = Vector2(0, 8)
+	box.add_child(ribbon)
 
 	var title := Label.new()
 	title.text = title_text
@@ -570,9 +584,17 @@ func _make_status_chip(title_text: String, value_text: String) -> PanelContainer
 	return panel
 
 
-func _wrap_menu_card(content: Control) -> PanelContainer:
+func _wrap_menu_card(content: Control, accent: Color = Color8(88, 110, 126)) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.add_child(content)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	panel.add_child(box)
+
+	var accent_bar := ColorRect.new()
+	accent_bar.color = accent
+	accent_bar.custom_minimum_size = Vector2(0, 4)
+	box.add_child(accent_bar)
+	box.add_child(content)
 	return panel
 
 
@@ -600,7 +622,7 @@ func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
 	]
 	_style_dim(stats, 15)
 	box.add_child(stats)
-	return _wrap_menu_card(box)
+	return _wrap_menu_card(box, Color8(210, 182, 96))
 
 
 func _make_focus_card(active_region: Dictionary) -> PanelContainer:
@@ -623,7 +645,7 @@ func _make_focus_card(active_region: Dictionary) -> PanelContainer:
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_body(intro, 15)
 	box.add_child(intro)
-	return _wrap_menu_card(box)
+	return _wrap_menu_card(box, Color8(210, 182, 96))
 
 
 func _make_intro_section(active_region: Dictionary) -> PanelContainer:
@@ -640,7 +662,7 @@ func _make_intro_section(active_region: Dictionary) -> PanelContainer:
 	intro.text = str(active_region.get("region_intro", "暂无区域档案。"))
 	_style_body(intro, 15)
 	box.add_child(intro)
-	return _wrap_menu_card(box)
+	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
 func _make_species_section(top_species: Array) -> VBoxContainer:
@@ -691,7 +713,7 @@ func _make_route_section(route_summary: Array) -> PanelContainer:
 		label.text = "• %s" % str(line)
 		_style_body(label, 15)
 		box.add_child(label)
-	return _wrap_menu_card(box)
+	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
 func _make_story_section(narrative: Dictionary) -> VBoxContainer:
@@ -727,7 +749,10 @@ func _make_badge_list(title_text: String, rows: Array) -> PanelContainer:
 		item.text = "◆ %s" % str(line)
 		_style_body(item, 15)
 		box.add_child(item)
-	return _wrap_menu_card(box)
+	var accent := Color8(104, 171, 144)
+	if title_text == "风险焦点":
+		accent = Color8(171, 132, 196)
+	return _wrap_menu_card(box, accent)
 
 
 func _make_section(
@@ -768,10 +793,15 @@ func _make_section(
 			label.text = "%s: %.2f" % [str(item["key"]), float(item["value"])]
 			_style_body(label, 15)
 			box.add_child(label)
-	var panel := PanelContainer.new()
-	panel.add_child(box)
+	var accent := Color8(210, 182, 96)
+	if title_text == "区域连接":
+		accent = Color8(102, 152, 204)
+	elif title_text in ["社会相位", "草原主链", "尸体资源链", "湿地主链"]:
+		accent = Color8(104, 171, 144)
+	elif title_text in ["领地压力", "竞争压力", "捕食压力"]:
+		accent = Color8(171, 132, 196)
 	var wrapper := VBoxContainer.new()
-	wrapper.add_child(panel)
+	wrapper.add_child(_wrap_menu_card(box, accent))
 	return wrapper
 
 
