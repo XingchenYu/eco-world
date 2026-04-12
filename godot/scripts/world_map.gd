@@ -522,11 +522,19 @@ func _build_route_lines(regions: Array) -> void:
 				continue
 			if from_id > to_id:
 				continue
+			var is_active_route := from_id == active_region_id or to_id == active_region_id
 			var line := _make_route_line(
 				Vector2(positions[from_id]),
 				Vector2(positions[to_id]),
 				float(connector.get("strength", 0.0))
 			)
+			line.color = Color(
+				0.94 if is_active_route else 0.74,
+				0.89 if is_active_route else 0.80,
+				0.62 if is_active_route else 0.58,
+				clamp((0.42 if is_active_route else 0.18) + float(connector.get("strength", 0.0)) * (0.30 if is_active_route else 0.16), 0.18, 0.72)
+			)
+			line.custom_minimum_size = Vector2(line.custom_minimum_size.x, 6.0 if is_active_route else 3.0)
 			map_layer.add_child(line)
 
 
