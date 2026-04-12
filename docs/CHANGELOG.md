@@ -2,6 +2,15 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha77 (2026-04-13 00:12)
+
+- ✅ Godot 前端继续收口左侧地图节点质感。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 节点外圈高光
+  - 焦点区域框带
+  - 区域铭牌
+- ✅ 这意味着地图节点现在不再只是信息块，而开始更像真正的区域徽章。
+
 ### v4.0-alpha76 (2026-04-13 00:03)
 
 - ✅ Godot 前端继续收口分页材质感，不再只是统一排版。

@@ -327,12 +327,19 @@ func _build_map_nodes(regions: Array) -> void:
 		var region_id := str(region.get("id", ""))
 		var rel: Vector2 = REGION_LAYOUT.get(region_id, Vector2(0.5, 0.5))
 		var pos := Vector2(map_size.x * rel.x, map_size.y * rel.y)
+		var accent := REGION_COLORS.get(region_id, Color8(110, 140, 170))
 
 		var shadow := ColorRect.new()
 		shadow.color = Color(0.03, 0.06, 0.09, 0.45)
 		shadow.position = pos - Vector2(126, 54) + Vector2(8, 8)
 		shadow.custom_minimum_size = Vector2(252, 112)
 		map_layer.add_child(shadow)
+
+		var outer_ring := ColorRect.new()
+		outer_ring.color = Color(accent.r, accent.g, accent.b, 0.18)
+		outer_ring.position = pos - Vector2(132, 60)
+		outer_ring.custom_minimum_size = Vector2(264, 124)
+		map_layer.add_child(outer_ring)
 
 		var shell := PanelContainer.new()
 		shell.position = pos - Vector2(126, 54)
@@ -346,6 +353,13 @@ func _build_map_nodes(regions: Array) -> void:
 			glow.custom_minimum_size = shell.custom_minimum_size + Vector2(28, 24)
 			map_layer.add_child(glow)
 			map_layer.move_child(glow, map_layer.get_child_count() - 2)
+
+			var focus_frame := ColorRect.new()
+			focus_frame.color = Color(1.0, 0.92, 0.58, 0.28)
+			focus_frame.position = shell.position - Vector2(4, 4)
+			focus_frame.custom_minimum_size = shell.custom_minimum_size + Vector2(8, 8)
+			map_layer.add_child(focus_frame)
+			map_layer.move_child(focus_frame, map_layer.get_child_count() - 2)
 
 		var shell_box := VBoxContainer.new()
 		shell_box.add_theme_constant_override("separation", 4)
@@ -402,6 +416,16 @@ func _build_map_nodes(regions: Array) -> void:
 		badge.position = shell.position + Vector2(16, 12)
 		badge.add_theme_font_size_override("font_size", 30)
 		map_layer.add_child(badge)
+
+		var plaque := PanelContainer.new()
+		plaque.position = shell.position + Vector2(12, 78)
+		plaque.custom_minimum_size = Vector2(116, 22)
+		map_layer.add_child(plaque)
+
+		var plaque_label := Label.new()
+		plaque_label.text = str(region.get("name", region_id))
+		_style_dim(plaque_label, 13)
+		plaque.add_child(plaque_label)
 
 
 func _build_world_bulletin() -> void:
