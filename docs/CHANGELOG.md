@@ -65,6 +65,13 @@
 - ✅ 这意味着 `birth_cycle window pressure` 已不只作用于当前轮反馈，还会继续沉淀成：
   - `birth_cycle_window_memory`
   - `birth_cycle_window_memory_strength`
+- ✅ 现在还进一步拆出了独立长期信号：
+  - `birth_cycle_window_pressure_memory`
+- ✅ [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 与 [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现在会继续读取这层新记忆，并把它回灌到：
+  - `birth_cycle_window_pressure_bias`
+  - `apex/herd/aerial_birth_cycle_window_runtime`
+- ✅ 这条慢反馈主线现在已经进一步推进成：
+  - `pressure support -> pressure memory -> runtime pressure bias -> next runtime territory`
 
 ### v4.0-alpha60 (2026-04-12 15:35)
 

@@ -172,6 +172,17 @@ def build_region_social_trend_summary(
             "birth_cycle_window_pressure_apex_carrion_support",
         }
     )
+    birth_cycle_window_pressure_support_count = sum(
+        1
+        for item in list(grassland_adjustments) + list(carrion_adjustments)
+        if isinstance(item, dict)
+        and item.get("effect") in {
+            "birth_cycle_window_pressure_herd_support",
+            "birth_cycle_window_pressure_apex_support",
+            "birth_cycle_window_pressure_aerial_support",
+            "birth_cycle_window_pressure_apex_carrion_support",
+        }
+    )
 
     def carry(key: str) -> float:
         return float(previous_scores.get(key, 0.0))
@@ -241,6 +252,17 @@ def build_region_social_trend_summary(
                 + herd_birth_cycle_window_pressure_runtime * 0.06
                 + aerial_birth_cycle_window_pressure_runtime * 0.06
                 + apex_birth_cycle_window_pressure_runtime * 0.05,
+            ),
+            3,
+        ),
+        "birth_cycle_window_pressure_memory": round(
+            min(
+                1.0,
+                carry("birth_cycle_window_pressure_memory") * 0.58
+                + birth_cycle_window_pressure_support_count * 0.12
+                + herd_birth_cycle_window_pressure_runtime * 0.12
+                + aerial_birth_cycle_window_pressure_runtime * 0.12
+                + apex_birth_cycle_window_pressure_runtime * 0.10,
             ),
             3,
         ),
@@ -870,6 +892,9 @@ def build_region_social_trend_summary(
     if trend_scores["birth_cycle_window_memory_strength"] >= 0.18:
         cycle_signals.append("birth_cycle_window_memory_strength")
         narrative_trends.append("多周期繁殖窗口的真实生效强度，已经开始持续放大 herd 与 aerial 的长期繁殖周期。")
+    if trend_scores["birth_cycle_window_pressure_memory"] >= 0.16:
+        cycle_signals.append("birth_cycle_window_pressure_memory")
+        narrative_trends.append("繁殖窗口压力支持已经开始沉淀成独立的长期压力记忆，并反向抬升下一轮运行期偏置。")
     if apex_regional_bias_runtime >= 0.30:
         cycle_signals.append("apex_regional_bias_runtime")
     if apex_world_pressure_runtime >= 0.26:

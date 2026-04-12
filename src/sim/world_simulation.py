@@ -570,6 +570,7 @@ class WorldSimulation:
         birth_cycle_window_memory = 1.0 if "birth_cycle_window_memory" in cycle_signals else 0.0
         trend_scores = social_state.get("trend_scores", {}) if isinstance(social_state, dict) else {}
         birth_cycle_window_memory_strength = float(trend_scores.get("birth_cycle_window_memory_strength", 0.0))
+        birth_cycle_window_pressure_memory = float(trend_scores.get("birth_cycle_window_pressure_memory", 0.0))
         birth_signals = self._collect_runtime_birth_signals(simulation)
         state.update(birth_signals)
         regional_health_anchor = max(
@@ -682,6 +683,7 @@ class WorldSimulation:
                 state["apex_birth_cycle_runtime"] * 0.64
                 + birth_cycle_window_memory * 0.28
                 + birth_cycle_window_memory_strength * 0.18
+                + birth_cycle_window_pressure_memory * 0.10
                 + state["apex_anchor_prosperity_runtime"] * 0.08,
             )
             state["apex_birth_cycle_window_pressure_runtime"] = max(
@@ -812,6 +814,7 @@ class WorldSimulation:
                     state["apex_birth_cycle_runtime"] * 0.64
                     + birth_cycle_window_memory * 0.28
                     + birth_cycle_window_memory_strength * 0.18
+                    + birth_cycle_window_pressure_memory * 0.10
                     + state["apex_anchor_prosperity_runtime"] * 0.08,
                 ),
             )
@@ -919,6 +922,7 @@ class WorldSimulation:
                 state["herd_birth_cycle_runtime"] * 0.64
                 + birth_cycle_window_memory * 0.28
                 + birth_cycle_window_memory_strength * 0.18
+                + birth_cycle_window_pressure_memory * 0.10
                 + state["herd_anchor_prosperity_runtime"] * 0.08,
             )
             state["herd_birth_cycle_window_pressure_runtime"] = max(
@@ -1024,6 +1028,7 @@ class WorldSimulation:
                 state["aerial_birth_cycle_runtime"] * 0.64
                 + birth_cycle_window_memory * 0.28
                 + birth_cycle_window_memory_strength * 0.18
+                + birth_cycle_window_pressure_memory * 0.10
                 + state["aerial_anchor_prosperity_runtime"] * 0.08,
             )
             state["aerial_birth_cycle_window_pressure_runtime"] = max(

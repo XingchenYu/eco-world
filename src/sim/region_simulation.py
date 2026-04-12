@@ -146,6 +146,7 @@ class RegionSimulation(Ecosystem):
         world_pressure_window_memory = 1.0 if "world_pressure_window_memory" in cycle_signals else 0.0
         birth_cycle_window_memory = 1.0 if "birth_cycle_window_memory" in cycle_signals else 0.0
         birth_cycle_window_memory_strength = float(trend_scores.get("birth_cycle_window_memory_strength", 0.0))
+        birth_cycle_window_pressure_memory = float(trend_scores.get("birth_cycle_window_pressure_memory", 0.0))
         world_pressure_window_bias = min(
             1.0,
             max(
@@ -238,6 +239,7 @@ class RegionSimulation(Ecosystem):
             max(
                 0.0,
                 birth_cycle_window_memory_strength * 0.30
+                + birth_cycle_window_pressure_memory * 0.18
                 + world_pressure_bias * 0.22
                 + world_pressure_window_bias * 0.20
                 + runtime_anchor_prosperity * 0.10

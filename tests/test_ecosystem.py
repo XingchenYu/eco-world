@@ -1322,7 +1322,9 @@ def test_v4_social_trend_birth_cycle_window_support_memory():
 
     assert "birth_cycle_window_memory" in summary.cycle_signals
     assert "birth_cycle_window_memory_strength" in summary.cycle_signals
+    assert "birth_cycle_window_pressure_memory" in summary.cycle_signals
     assert summary.trend_scores["birth_cycle_window_memory_strength"] > 0.0
+    assert summary.trend_scores["birth_cycle_window_pressure_memory"] > 0.0
 
     print("✅ V4 social trend birth-cycle window support memory test passed")
 
