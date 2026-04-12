@@ -277,9 +277,11 @@ def build_region_carrion_chain_summary(
             add_layer_bias("aerial_scavenge_layer", carcass_anchor * 0.10)
             add_layer_bias("scavenge_layer", carcass_anchor * 0.06)
     if social_trend_summary is not None:
+        trend_scores = getattr(social_trend_summary, "trend_scores", {}) or {}
         prosperity_scores = getattr(social_trend_summary, "prosperity_scores", {}) or {}
         phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
         hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
+        birth_cycle_window_memory_strength = float(trend_scores.get("birth_cycle_window_memory_strength", 0.0))
         grassland_prosperity_phase = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
         grassland_collapse_phase = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
         aerial_carrion_cycle = float(phase_scores.get("aerial_carrion_cycle", 0.0))
@@ -311,6 +313,15 @@ def build_region_carrion_chain_summary(
 
         if aerial_carrion_cycle > 0.0:
             add_score("aerial_carrion_cycle_pressure", aerial_carrion_cycle * 0.22, "长期 aerial-carrion 周期正在把空中清道夫追踪重新拉回稳定尸体通道。")
+        if birth_cycle_window_memory_strength > 0.0:
+            add_score(
+                "birth_cycle_window_memory_strength_pull",
+                min(0.20, birth_cycle_window_memory_strength * 0.18),
+                "繁殖周期窗口的长期强度记忆正在把尸体资源链重新拉回更稳定的空地清道夫通道。",
+            )
+            add_layer_bias("aerial_scavenge_layer", birth_cycle_window_memory_strength * 0.06)
+            add_layer_bias("scavenge_layer", birth_cycle_window_memory_strength * 0.04)
+            add_layer_bias("kill_layer", birth_cycle_window_memory_strength * 0.03)
 
     regional_prosperity = float(region.health_state.get("prosperity", 0.0))
     regional_collapse = float(region.health_state.get("collapse_risk", 0.0))

@@ -51,6 +51,9 @@
   - `aerial_birth_cycle_window_runtime`
   - `apex_birth_cycle_window_runtime`
   - 这组信号会继续进入 `territory` 与 `social_trends.cycle_signals`
+- ✅ `birth_cycle_window_memory_strength` 现在也已直接进入：
+  - `grassland_chain / carrion_chain` 摘要
+  - 也就是“繁殖窗口真实生效强度”不再只停留在 `social/world`，而开始成为两条草原链自己的直接输入
 - ✅ 这组 `birth_cycle_window_runtime` 现已继续进入：
   - `grassland_chain / carrion_chain` 摘要
   - 世界级 `prosperity / collapse / runtime_resource_pressure`

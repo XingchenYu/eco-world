@@ -720,16 +720,24 @@ def test_v4_grassland_chain_summary():
             "herd_birth_memory_runtime": 0.48,
             "herd_birth_memory_world_pressure_runtime": 0.30,
             "herd_birth_cycle_runtime": 0.26,
+            "herd_birth_cycle_window_runtime": 0.24,
             "herd_condition_runtime": 0.46,
             "apex_birth_runtime": 0.24,
             "apex_birth_memory_runtime": 0.48,
             "apex_birth_memory_world_pressure_runtime": 0.28,
             "apex_birth_cycle_runtime": 0.24,
+            "apex_birth_cycle_window_runtime": 0.22,
             "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
     )
-    grassland_chain = build_region_grassland_chain_summary(grassland, registry, territory_summary=territory)
+    social_trends = build_region_social_trend_summary(grassland, territory_summary=territory)
+    grassland_chain = build_region_grassland_chain_summary(
+        grassland,
+        registry,
+        territory_summary=territory,
+        social_trend_summary=social_trends,
+    )
     wetland_chain = build_region_grassland_chain_summary(wetland, registry)
 
     assert "african_elephant" in grassland_chain.key_species
@@ -763,6 +771,7 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["runtime_apex_birth_memory_world_pressure_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_birth_cycle_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_condition_phase_pull"] > 0.0
+    assert grassland_chain.trophic_scores["birth_cycle_window_memory_strength_pull"] > 0.0
     assert grassland_chain.trophic_scores["surface_water_anchor"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
     assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
@@ -1322,16 +1331,24 @@ def test_v4_carrion_chain_summary():
             "aerial_birth_memory_runtime": 0.24,
             "aerial_birth_memory_world_pressure_runtime": 0.22,
             "aerial_birth_cycle_runtime": 0.20,
+            "aerial_birth_cycle_window_runtime": 0.22,
             "aerial_condition_runtime": 0.41,
             "apex_birth_runtime": 0.22,
             "apex_birth_memory_runtime": 0.20,
             "apex_birth_memory_world_pressure_runtime": 0.22,
             "apex_birth_cycle_runtime": 0.20,
+            "apex_birth_cycle_window_runtime": 0.20,
             "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
     )
-    grassland_chain = build_region_carrion_chain_summary(grassland, registry, territory_summary=territory)
+    social_trends = build_region_social_trend_summary(grassland, territory_summary=territory)
+    grassland_chain = build_region_carrion_chain_summary(
+        grassland,
+        registry,
+        territory_summary=territory,
+        social_trend_summary=social_trends,
+    )
     wetland_chain = build_region_carrion_chain_summary(wetland, registry)
 
     assert "lion" in grassland_chain.key_species
@@ -1357,6 +1374,7 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.resource_scores["runtime_apex_birth_memory_world_pressure_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_birth_cycle_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_condition_pull"] > 0.0
+    assert grassland_chain.resource_scores["birth_cycle_window_memory_strength_pull"] > 0.0
     assert grassland_chain.resource_scores["carcass_anchor_pressure"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenge_layer"] > 0.0
