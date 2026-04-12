@@ -184,10 +184,108 @@ func _render_world() -> void:
 	for child in side_box.get_children():
 		child.queue_free()
 
+	_build_world_backdrop()
+	_build_route_lines(world_meta.get("regions", []))
 	_build_map_nodes(world_meta.get("regions", []))
 	_build_world_bulletin()
 	_build_map_legend()
 	_build_side_panel()
+
+
+func _build_world_backdrop() -> void:
+	var map_size := map_layer.get_rect().size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
+
+	var ocean := ColorRect.new()
+	ocean.color = Color8(16, 37, 60, 255)
+	ocean.position = Vector2.ZERO
+	ocean.custom_minimum_size = map_size
+	map_layer.add_child(ocean)
+
+	var west_land := ColorRect.new()
+	west_land.color = Color8(44, 74, 52, 180)
+	west_land.position = Vector2(map_size.x * 0.06, map_size.y * 0.12)
+	west_land.custom_minimum_size = Vector2(map_size.x * 0.47, map_size.y * 0.62)
+	map_layer.add_child(west_land)
+
+	var south_land := ColorRect.new()
+	south_land.color = Color8(48, 86, 70, 168)
+	south_land.position = Vector2(map_size.x * 0.30, map_size.y * 0.42)
+	south_land.custom_minimum_size = Vector2(map_size.x * 0.28, map_size.y * 0.26)
+	map_layer.add_child(south_land)
+
+	var east_shelf := ColorRect.new()
+	east_shelf.color = Color8(41, 73, 92, 165)
+	east_shelf.position = Vector2(map_size.x * 0.66, map_size.y * 0.28)
+	east_shelf.custom_minimum_size = Vector2(map_size.x * 0.23, map_size.y * 0.36)
+	map_layer.add_child(east_shelf)
+
+	var coral_band := ColorRect.new()
+	coral_band.color = Color8(83, 58, 89, 150)
+	coral_band.position = Vector2(map_size.x * 0.72, map_size.y * 0.64)
+	coral_band.custom_minimum_size = Vector2(map_size.x * 0.20, map_size.y * 0.18)
+	map_layer.add_child(coral_band)
+
+	var west_label := Label.new()
+	west_label.text = "西境大陆"
+	west_label.position = Vector2(map_size.x * 0.12, map_size.y * 0.10)
+	west_label.add_theme_font_size_override("font_size", 28)
+	map_layer.add_child(west_label)
+
+	var sea_label := Label.new()
+	sea_label.text = "东岸航海带"
+	sea_label.position = Vector2(map_size.x * 0.70, map_size.y * 0.16)
+	sea_label.add_theme_font_size_override("font_size", 24)
+	map_layer.add_child(sea_label)
+
+	var coral_label := Label.new()
+	coral_label.text = "珊瑚群岛海"
+	coral_label.position = Vector2(map_size.x * 0.73, map_size.y * 0.61)
+	coral_label.add_theme_font_size_override("font_size", 22)
+	map_layer.add_child(coral_label)
+
+
+func _build_route_lines(regions: Array) -> void:
+	var map_size := map_layer.get_rect().size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
+
+	var positions := {}
+	for region_variant in regions:
+		var region: Dictionary = region_variant
+		var region_id := str(region.get("id", ""))
+		var rel: Vector2 = REGION_LAYOUT.get(region_id, Vector2(0.5, 0.5))
+		positions[region_id] = Vector2(map_size.x * rel.x, map_size.y * rel.y)
+
+	for region_variant in regions:
+		var region: Dictionary = region_variant
+		var from_id := str(region.get("id", ""))
+		for connector_variant in region.get("connectors", []):
+			var connector: Dictionary = connector_variant
+			var to_id := str(connector.get("target_region_id", ""))
+			if not positions.has(from_id) or not positions.has(to_id):
+				continue
+			if from_id > to_id:
+				continue
+			var line := _make_route_line(
+				Vector2(positions[from_id]),
+				Vector2(positions[to_id]),
+				float(connector.get("strength", 0.0))
+			)
+			map_layer.add_child(line)
+
+
+func _make_route_line(from_pos: Vector2, to_pos: Vector2, strength: float) -> ColorRect:
+	var delta := to_pos - from_pos
+	var length := max(1.0, delta.length())
+	var angle := delta.angle()
+	var line := ColorRect.new()
+	line.color = Color(0.88, 0.89, 0.70, clamp(0.16 + strength * 0.24, 0.18, 0.42))
+	line.position = from_pos.lerp(to_pos, 0.5) - Vector2(length * 0.5, 2.0)
+	line.custom_minimum_size = Vector2(length, 4.0)
+	line.rotation = angle
+	return line
 
 
 func _build_map_nodes(regions: Array) -> void:
@@ -201,32 +299,79 @@ func _build_map_nodes(regions: Array) -> void:
 		var rel: Vector2 = REGION_LAYOUT.get(region_id, Vector2(0.5, 0.5))
 		var pos := Vector2(map_size.x * rel.x, map_size.y * rel.y)
 
-		var button := Button.new()
-		button.text = "%s  繁荣 %.2f\n风险 %.2f  种群 %s" % [
-			str(region.get("name", region_id)),
-			float(region.get("prosperity", 0.0)),
-			float(region.get("collapse_risk", 0.0)),
-			str(region.get("species_population", 0)),
-		]
-		button.custom_minimum_size = Vector2(236, 104)
-		button.position = pos - button.custom_minimum_size / 2.0
-		button.add_theme_font_size_override("font_size", 18)
-		button.modulate = REGION_COLORS.get(region_id, Color8(110, 140, 170))
-		button.pressed.connect(_on_region_pressed.bind(region_id))
-		map_layer.add_child(button)
+		var shadow := ColorRect.new()
+		shadow.color = Color(0.03, 0.06, 0.09, 0.45)
+		shadow.position = pos - Vector2(126, 54) + Vector2(8, 8)
+		shadow.custom_minimum_size = Vector2(252, 112)
+		map_layer.add_child(shadow)
+
+		var shell := PanelContainer.new()
+		shell.position = pos - Vector2(126, 54)
+		shell.custom_minimum_size = Vector2(252, 112)
+		map_layer.add_child(shell)
 
 		if region_id == active_region_id:
 			var glow := ColorRect.new()
-			glow.color = Color(1.0, 0.94, 0.68, 0.18)
-			glow.position = button.position - Vector2(12, 10)
-			glow.custom_minimum_size = button.custom_minimum_size + Vector2(24, 20)
+			glow.color = Color(1.0, 0.92, 0.58, 0.16)
+			glow.position = shell.position - Vector2(14, 12)
+			glow.custom_minimum_size = shell.custom_minimum_size + Vector2(28, 24)
 			map_layer.add_child(glow)
 			map_layer.move_child(glow, map_layer.get_child_count() - 2)
 
+		var shell_box := VBoxContainer.new()
+		shell_box.add_theme_constant_override("separation", 4)
+		shell.add_child(shell_box)
+
+		var header := HBoxContainer.new()
+		header.add_theme_constant_override("separation", 10)
+		shell_box.add_child(header)
+
+		var icon_panel := PanelContainer.new()
+		icon_panel.custom_minimum_size = Vector2(58, 58)
+		header.add_child(icon_panel)
+
+		var icon := Label.new()
+		icon.text = REGION_ICONS.get(region_id, "区")
+		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		icon.custom_minimum_size = Vector2(58, 58)
+		icon.add_theme_font_size_override("font_size", 30)
+		icon_panel.add_child(icon)
+
+		var text_box := VBoxContainer.new()
+		text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header.add_child(text_box)
+
+		var name := Label.new()
+		name.text = str(region.get("name", region_id))
+		name.add_theme_font_size_override("font_size", 20)
+		text_box.add_child(name)
+
+		var role := Label.new()
+		role.text = "繁荣 %.2f · 风险 %.2f" % [
+			float(region.get("prosperity", 0.0)),
+			float(region.get("collapse_risk", 0.0)),
+		]
+		role.add_theme_font_size_override("font_size", 15)
+		text_box.add_child(role)
+
+		var footer := Label.new()
+		footer.text = "种群 %s · 进入区域情报" % str(region.get("species_population", 0))
+		footer.add_theme_font_size_override("font_size", 15)
+		shell_box.add_child(footer)
+
+		var button := Button.new()
+		button.text = ""
+		button.flat = true
+		button.custom_minimum_size = shell.custom_minimum_size
+		button.position = shell.position
+		button.pressed.connect(_on_region_pressed.bind(region_id))
+		map_layer.add_child(button)
+
 		var badge := Label.new()
 		badge.text = REGION_ICONS.get(region_id, "区")
-		badge.position = button.position + Vector2(10, 8)
-		badge.add_theme_font_size_override("font_size", 28)
+		badge.position = shell.position + Vector2(16, 12)
+		badge.add_theme_font_size_override("font_size", 30)
 		map_layer.add_child(badge)
 
 
