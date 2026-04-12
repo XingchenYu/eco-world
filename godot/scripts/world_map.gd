@@ -965,40 +965,89 @@ func _build_side_panel() -> void:
 	var region_accent := _active_region_accent()
 
 	side_box.add_child(_make_region_hero(active_region, pressure_headlines, chain_focus, region_accent))
-	side_box.add_child(_make_tabs(region_accent))
+	var tab_content := VBoxContainer.new()
+	tab_content.add_theme_constant_override("separation", 14)
 
 	match selected_tab:
 		"overview":
-			side_box.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview"), region_accent, active_region))
-			side_box.add_child(_make_overview_dashboard(active_region, pressure_headlines, chain_focus, route_summary, region_accent))
-			side_box.add_child(_make_focus_card(active_region))
-			side_box.add_child(_make_region_summary_card(active_region))
-			side_box.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
-			side_box.add_child(_make_badge_list("主导生态链", chain_focus, active_region))
-			side_box.add_child(_make_section("健康状态", active_region.get("health_state", {})))
-			side_box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
-			side_box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
-			side_box.add_child(_make_section("区域连接", active_region.get("connectors", []), true, "target_region_id", "strength"))
-			side_box.add_child(_make_route_section(route_summary, active_region))
-			side_box.add_child(_make_intro_section(active_region))
+			tab_content.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview"), region_accent, active_region))
+			tab_content.add_child(_make_overview_dashboard(active_region, pressure_headlines, chain_focus, route_summary, region_accent))
+			tab_content.add_child(_make_focus_card(active_region))
+			tab_content.add_child(_make_region_summary_card(active_region))
+			tab_content.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
+			tab_content.add_child(_make_badge_list("主导生态链", chain_focus, active_region))
+			tab_content.add_child(_make_section("健康状态", active_region.get("health_state", {})))
+			tab_content.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
+			tab_content.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
+			tab_content.add_child(_make_section("区域连接", active_region.get("connectors", []), true, "target_region_id", "strength"))
+			tab_content.add_child(_make_route_section(route_summary, active_region))
+			tab_content.add_child(_make_intro_section(active_region))
 		"chains":
-			side_box.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。", _tab_accent_color("chains"), region_accent, active_region))
-			side_box.add_child(_make_chain_command_deck(chains, active_region, region_accent))
-			side_box.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
-			side_box.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
-			side_box.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
-			side_box.add_child(_make_section("湿地主链", chains.get("wetland_chain", []), true))
-			side_box.add_child(_make_section("领地压力", chains.get("territory", []), true))
-			side_box.add_child(_make_section("竞争压力", chains.get("competition", []), true))
-			side_box.add_child(_make_section("捕食压力", chains.get("predation", []), true))
+			tab_content.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。", _tab_accent_color("chains"), region_accent, active_region))
+			tab_content.add_child(_make_chain_command_deck(chains, active_region, region_accent))
+			tab_content.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
+			tab_content.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
+			tab_content.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
+			tab_content.add_child(_make_section("湿地主链", chains.get("wetland_chain", []), true))
+			tab_content.add_child(_make_section("领地压力", chains.get("territory", []), true))
+			tab_content.add_child(_make_section("竞争压力", chains.get("competition", []), true))
+			tab_content.add_child(_make_section("捕食压力", chains.get("predation", []), true))
 		"species":
-			side_box.add_child(_make_tab_banner("物种图鉴", "查看%s当前最核心的关键物种与数量。" % _region_type_label(active_region), _tab_accent_color("species"), region_accent, active_region))
-			side_box.add_child(_make_species_codex_header(top_species, active_region, region_accent))
-			side_box.add_child(_make_species_section(top_species, active_region))
+			tab_content.add_child(_make_tab_banner("物种图鉴", "查看%s当前最核心的关键物种与数量。" % _region_type_label(active_region), _tab_accent_color("species"), region_accent, active_region))
+			tab_content.add_child(_make_species_codex_header(top_species, active_region, region_accent))
+			tab_content.add_child(_make_species_section(top_species, active_region))
 		"story":
-			side_box.add_child(_make_tab_banner("区域播报室", "汇总%s中的领地、趋势、链路和关系层即时叙事。" % _region_type_label(active_region), _tab_accent_color("story"), region_accent, active_region))
-			side_box.add_child(_make_story_command_deck(narrative, active_region, region_accent))
-			side_box.add_child(_make_story_section(narrative, active_region))
+			tab_content.add_child(_make_tab_banner("区域播报室", "汇总%s中的领地、趋势、链路和关系层即时叙事。" % _region_type_label(active_region), _tab_accent_color("story"), region_accent, active_region))
+			tab_content.add_child(_make_story_command_deck(narrative, active_region, region_accent))
+			tab_content.add_child(_make_story_section(narrative, active_region))
+
+	side_box.add_child(_make_dossier_shell(active_region, region_accent, tab_content))
+
+
+func _make_dossier_shell(active_region: Dictionary, region_accent: Color, content: Control) -> PanelContainer:
+	var shell := PanelContainer.new()
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 12)
+	shell.add_child(root)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = region_accent.lightened(0.04)
+	ribbon.custom_minimum_size = Vector2(0, 10)
+	root.add_child(ribbon)
+
+	var terminal_row := HBoxContainer.new()
+	terminal_row.add_theme_constant_override("separation", 8)
+	root.add_child(terminal_row)
+
+	var terminal_label := Label.new()
+	terminal_label.text = "%s · 区域档案终端" % _region_type_chip(active_region)
+	_style_secondary_title(terminal_label, 18)
+	terminal_label.modulate = region_accent.lightened(0.22)
+	terminal_row.add_child(terminal_label)
+
+	var terminal_status := Label.new()
+	terminal_status.text = "焦点锁定 · %s · %s" % [str(active_region.get("name", "未选择")), _tab_title(selected_tab)]
+	terminal_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	terminal_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_style_dim(terminal_status, 13)
+	terminal_row.add_child(terminal_status)
+
+	root.add_child(_make_tabs(region_accent))
+	root.add_child(content)
+	root.add_child(_make_terminal_footer(active_region, region_accent))
+	return shell
+
+
+func _make_terminal_footer(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	panel.add_child(row)
+
+	row.add_child(_make_hero_chip("当前分页", _tab_title(selected_tab), region_accent))
+	row.add_child(_make_hero_chip("主地貌", " / ".join(active_region.get("dominant_biomes", []).slice(0, 2)), Color8(102, 152, 204)))
+	row.add_child(_make_hero_chip("刷新模式", "自动刷新" if auto_refresh_button != null and auto_refresh_button.button_pressed else "手动刷新", Color8(210, 182, 96)))
+	return panel
 
 func _make_tabs(region_accent: Color) -> HBoxContainer:
 	var tabs := HBoxContainer.new()
