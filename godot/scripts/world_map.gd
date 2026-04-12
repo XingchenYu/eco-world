@@ -253,6 +253,17 @@ func _region_type_label(active_region: Dictionary) -> String:
 	return "复合区域"
 
 
+func _region_type_chip(active_region: Dictionary) -> String:
+	var label := _region_type_label(active_region)
+	return {
+		"海域型区域": "海域徽记",
+		"湿地区域": "湿地徽记",
+		"草原区域": "草原徽记",
+		"森林区域": "森林徽记",
+		"复合区域": "复合徽记",
+	}.get(label, "区域徽记")
+
+
 func _active_region_accent() -> Color:
 	return REGION_COLORS.get(active_region_id, Color8(210, 182, 96))
 
@@ -930,10 +941,10 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("捕食压力", chains.get("predation", []), true))
 		"species":
 			side_box.add_child(_make_tab_banner("物种图鉴", "查看%s当前最核心的关键物种与数量。" % _region_type_label(active_region), _tab_accent_color("species"), region_accent, active_region))
-			side_box.add_child(_make_species_section(top_species))
+			side_box.add_child(_make_species_section(top_species, active_region))
 		"story":
 			side_box.add_child(_make_tab_banner("区域播报室", "汇总%s中的领地、趋势、链路和关系层即时叙事。" % _region_type_label(active_region), _tab_accent_color("story"), region_accent, active_region))
-			side_box.add_child(_make_story_section(narrative))
+			side_box.add_child(_make_story_section(narrative, active_region))
 
 func _make_tabs(region_accent: Color) -> HBoxContainer:
 	var tabs := HBoxContainer.new()
@@ -1104,7 +1115,7 @@ func _make_intro_section(active_region: Dictionary) -> PanelContainer:
 	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
-func _make_species_section(top_species: Array) -> VBoxContainer:
+func _make_species_section(top_species: Array, active_region: Dictionary) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	var title := Label.new()
@@ -1139,7 +1150,7 @@ func _make_species_section(top_species: Array) -> VBoxContainer:
 		header.add_child(count)
 
 		var category := Label.new()
-		category.text = "档案分类 · %s" % _species_category(str(row.get("species_id", "")))
+		category.text = "%s · %s" % [_region_type_chip(active_region), _species_category(str(row.get("species_id", "")))]
 		_style_dim(category, 14)
 		row_box.add_child(category)
 
@@ -1174,7 +1185,7 @@ func _make_route_section(route_summary: Array) -> PanelContainer:
 	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
-func _make_story_section(narrative: Dictionary) -> VBoxContainer:
+func _make_story_section(narrative: Dictionary, active_region: Dictionary) -> VBoxContainer:
 	var story := VBoxContainer.new()
 	story.add_theme_constant_override("separation", 8)
 	var title := Label.new()
@@ -1223,7 +1234,7 @@ func _make_story_section(narrative: Dictionary) -> VBoxContainer:
 		box.add_child(ribbon)
 
 		var section_title := Label.new()
-		section_title.text = _story_title(key)
+		section_title.text = "%s · %s" % [_region_type_chip(active_region), _story_title(key)]
 		_style_secondary_title(section_title, 18)
 		box.add_child(section_title)
 
