@@ -2,6 +2,15 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha83 (2026-04-13 00:57)
+
+- ✅ Godot 前端继续把右侧总览页做成更像属性面板。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 图标前缀
+  - 数值标签
+  - 条带化属性条
+- ✅ 这意味着健康、资源、压力这些区块不再只是文字列表，而开始更像游戏属性页。
+
 ### v4.0-alpha82 (2026-04-13 00:49)
 
 - ✅ Godot 前端继续把右侧状态块做得更直观。

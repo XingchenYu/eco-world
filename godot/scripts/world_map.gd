@@ -75,6 +75,19 @@ func _tab_accent_color(tab_id: String) -> Color:
 	}.get(tab_id, Color8(210, 182, 96))
 
 
+func _metric_icon(metric_key: String) -> String:
+	return {
+		"prosperity": "◎",
+		"stability": "▲",
+		"collapse_risk": "◆",
+		"surface_water": "≈",
+		"carcass_availability": "✦",
+		"resilience": "◌",
+		"predation_pressure": "⚑",
+		"fragmentation": "◫",
+	}.get(metric_key, "•")
+
+
 func _ready() -> void:
 	_build_ui()
 	_load_world_data()
@@ -877,6 +890,14 @@ func _make_section(
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
+	var accent := Color8(210, 182, 96)
+	if title_text == "区域连接":
+		accent = Color8(102, 152, 204)
+	elif title_text in ["社会相位", "草原主链", "尸体资源链", "湿地主链"]:
+		accent = Color8(104, 171, 144)
+	elif title_text in ["领地压力", "竞争压力", "捕食压力"]:
+		accent = Color8(171, 132, 196)
+
 	if is_rows:
 		for row_variant in data:
 			var row: Dictionary = row_variant
@@ -897,17 +918,42 @@ func _make_section(
 			items.append({"key": str(key), "value": float(data[key])})
 		items.sort_custom(func(a, b): return a["value"] > b["value"])
 		for item in items.slice(0, 5):
-			var label := Label.new()
-			label.text = "%s: %.2f" % [str(item["key"]), float(item["value"])]
-			_style_body(label, 15)
-			box.add_child(label)
-	var accent := Color8(210, 182, 96)
-	if title_text == "区域连接":
-		accent = Color8(102, 152, 204)
-	elif title_text in ["社会相位", "草原主链", "尸体资源链", "湿地主链"]:
-		accent = Color8(104, 171, 144)
-	elif title_text in ["领地压力", "竞争压力", "捕食压力"]:
-		accent = Color8(171, 132, 196)
+			var row_card := PanelContainer.new()
+			box.add_child(row_card)
+
+			var row_box := VBoxContainer.new()
+			row_box.add_theme_constant_override("separation", 4)
+			row_card.add_child(row_box)
+
+			var header := HBoxContainer.new()
+			header.add_theme_constant_override("separation", 8)
+			row_box.add_child(header)
+
+			var icon := Label.new()
+			icon.text = _metric_icon(str(item["key"]))
+			_style_secondary_title(icon, 18)
+			header.add_child(icon)
+
+			var name := Label.new()
+			name.text = str(item["key"])
+			name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_style_body(name, 15)
+			header.add_child(name)
+
+			var value := Label.new()
+			value.text = "%.2f" % float(item["value"])
+			_style_secondary_title(value, 16)
+			header.add_child(value)
+
+			var meter_bg := ColorRect.new()
+			meter_bg.color = Color(1.0, 1.0, 1.0, 0.08)
+			meter_bg.custom_minimum_size = Vector2(0, 6)
+			row_box.add_child(meter_bg)
+
+			var meter := ColorRect.new()
+			meter.color = Color(accent.r, accent.g, accent.b, 0.72)
+			meter.custom_minimum_size = Vector2(220.0 * clamp(float(item["value"]), 0.0, 1.0), 6)
+			row_box.add_child(meter)
 	var wrapper := VBoxContainer.new()
 	wrapper.add_child(_wrap_menu_card(box, accent))
 	return wrapper
