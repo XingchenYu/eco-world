@@ -1828,3 +1828,10 @@ src/core/ecosystem.py        [修改] 导入新物种
     - `grassland_boom_phase / grassland_bust_phase`
     - `grassland_prosperity_phase / grassland_collapse_phase`
   - 也就是说，繁殖窗口的真实生效强度现在已经不只影响周期层，还会继续改变长期繁荣/衰退相位
+- 主线继续推进：
+  - `apply_region_social_trend_feedback(...)` 现在也直接读取 `birth_cycle_window_memory_strength`
+  - 已继续影响：
+    - `surface_water`
+    - `carcass_availability`
+    - `resilience`
+  - 也就是说，繁殖窗口的真实生效强度现在已经从长期相位继续落到区域反馈层
