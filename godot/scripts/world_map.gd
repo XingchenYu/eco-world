@@ -632,6 +632,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
 	var route_summary: Array = active_region.get("route_summary", [])
 	var top_species: Array = active_region.get("top_species", [])
+	var header_copy := _region_command_header(active_region)
 	var stage := PanelContainer.new()
 	stage.custom_minimum_size = Vector2(360, 150)
 	stage.position = Vector2(map_size.x * 0.34, map_size.y * 0.38)
@@ -647,7 +648,7 @@ func _build_focus_stage(regions: Array) -> void:
 	root.add_child(ribbon)
 
 	var eyebrow := Label.new()
-	eyebrow.text = "%s · 世界核心舞台" % _region_type_chip(active_region)
+	eyebrow.text = "%s · %s" % [_region_type_chip(active_region), header_copy["eyebrow"]]
 	_style_dim(eyebrow, 13)
 	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(eyebrow)
@@ -660,7 +661,7 @@ func _build_focus_stage(regions: Array) -> void:
 	root.add_child(title)
 
 	var role := Label.new()
-	role.text = str(active_region.get("region_role", "生态观测区"))
+	role.text = str(header_copy["subtitle"])
 	_style_secondary_title(role, 17)
 	role.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	role.modulate = accent.lightened(0.16)
@@ -697,7 +698,7 @@ func _build_focus_stage(regions: Array) -> void:
 	sub_box.add_child(sub_ribbon)
 
 	var sub_title := Label.new()
-	sub_title.text = "%s · 区域聚焦副舞台" % _region_type_chip(active_region)
+	sub_title.text = "%s · %s" % [_region_type_chip(active_region), header_copy["substage"]]
 	_style_secondary_title(sub_title, 18)
 	sub_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub_box.add_child(sub_title)
@@ -768,6 +769,44 @@ func _make_stage_info_panel(title_text: String, rows: Array, accent: Color) -> P
 		_style_body(item, 14)
 		box.add_child(item)
 	return panel
+
+
+func _region_command_header(active_region: Dictionary) -> Dictionary:
+	var region_type := _region_type_label(active_region)
+	if region_type == "草原区域":
+		return {
+			"eyebrow": "草原前线总控台",
+			"subtitle": "草原推进线与捕食压力同步监测",
+			"substage": "草原聚焦副舞台",
+			"dossier": "草原档案终端",
+		}
+	if region_type == "湿地区域":
+		return {
+			"eyebrow": "湿地巡察总控台",
+			"subtitle": "水网节点与岸带生态同步监测",
+			"substage": "湿地聚焦副舞台",
+			"dossier": "湿地档案终端",
+		}
+	if region_type == "海域型区域":
+		return {
+			"eyebrow": "海域航标总控台",
+			"subtitle": "洋流通道与海岸生态同步监测",
+			"substage": "海域聚焦副舞台",
+			"dossier": "海域档案终端",
+		}
+	if region_type == "森林区域":
+		return {
+			"eyebrow": "林地巡航总控台",
+			"subtitle": "林冠层与地表生态同步监测",
+			"substage": "林地聚焦副舞台",
+			"dossier": "林地档案终端",
+		}
+	return {
+		"eyebrow": "世界核心舞台",
+		"subtitle": str(active_region.get("region_role", "生态观测区")),
+		"substage": "区域聚焦副舞台",
+		"dossier": "区域档案终端",
+	}
 
 
 func _build_route_lines(regions: Array) -> void:
@@ -1202,6 +1241,7 @@ func _build_side_panel() -> void:
 
 
 func _make_dossier_shell(active_region: Dictionary, region_accent: Color, content: Control) -> PanelContainer:
+	var header_copy := _region_command_header(active_region)
 	var shell := PanelContainer.new()
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 12)
@@ -1217,7 +1257,7 @@ func _make_dossier_shell(active_region: Dictionary, region_accent: Color, conten
 	root.add_child(terminal_row)
 
 	var terminal_label := Label.new()
-	terminal_label.text = "%s · 区域档案终端" % _region_type_chip(active_region)
+	terminal_label.text = "%s · %s" % [_region_type_chip(active_region), str(header_copy["dossier"])]
 	_style_secondary_title(terminal_label, 18)
 	terminal_label.modulate = region_accent.lightened(0.22)
 	terminal_row.add_child(terminal_label)
