@@ -723,6 +723,9 @@ def build_region_social_trend_summary(
         narrative_trends.append("近期食草群产仔正在把 herd 通道推进成更稳定的延续周期。")
     if herd_birth_cycle_runtime >= 0.16:
         cycle_signals.append("herd_birth_cycle_runtime")
+    herd_birth_cycle_window_runtime = float(runtime_signals.get("herd_birth_cycle_window_runtime", 0.0))
+    if herd_birth_cycle_window_runtime >= 0.18:
+        cycle_signals.append("herd_birth_cycle_window_runtime")
     if phase_scores["aerial_carrion_cycle"] >= 0.12:
         cycle_signals.append("aerial_carrion_cycle")
         narrative_trends.append("空中尸体追踪记忆已经积累成更明确的 aerial-carrion 周期。")
@@ -735,6 +738,9 @@ def build_region_social_trend_summary(
         narrative_trends.append("近期空中清道夫产仔正在延长空中尸体通道的延续节律。")
     if aerial_birth_cycle_runtime >= 0.16:
         cycle_signals.append("aerial_birth_cycle_runtime")
+    aerial_birth_cycle_window_runtime = float(runtime_signals.get("aerial_birth_cycle_window_runtime", 0.0))
+    if aerial_birth_cycle_window_runtime >= 0.18:
+        cycle_signals.append("aerial_birth_cycle_window_runtime")
     if surface_water_anchor >= 0.45:
         cycle_signals.append("surface_water_anchor")
         narrative_trends.append("稳定水源锚点正在持续加固食草群的长期迁移记忆。")
@@ -838,6 +844,9 @@ def build_region_social_trend_summary(
         narrative_trends.append("近期顶层社群产仔正在抬高 apex 社群的长期延续记忆。")
     if apex_birth_cycle_runtime >= 0.16:
         cycle_signals.append("apex_birth_cycle_runtime")
+    apex_birth_cycle_window_runtime = float(runtime_signals.get("apex_birth_cycle_window_runtime", 0.0))
+    if apex_birth_cycle_window_runtime >= 0.16:
+        cycle_signals.append("apex_birth_cycle_window_runtime")
     if regional_prosperity >= 0.28:
         cycle_signals.append("regional_prosperity_anchor")
     if regional_stability >= 0.24:

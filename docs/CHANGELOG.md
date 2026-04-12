@@ -46,6 +46,11 @@
   - `social_trends` 会把窗口效果沉淀成 `birth_cycle_window_memory`
   - `RegionSimulation` 会用这层记忆继续抬升运行体 `birth_cycle_bias`
   - `WorldSimulation` 会把这层记忆直接接入长期 `prosperity / collapse` 压力
+- ✅ `birth_cycle window memory` 现在也已重新汇总成运行期 territory 信号：
+  - `herd_birth_cycle_window_runtime`
+  - `aerial_birth_cycle_window_runtime`
+  - `apex_birth_cycle_window_runtime`
+  - 这组信号会继续进入 `territory` 与 `social_trends.cycle_signals`
 - ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 的普通物种 `_give_birth(...)` 现在也正式接入：
   - `birth_cycle_bias`：产仔周期偏置，指“多周期繁殖记忆”下沉到个体后的直接产仔节律倾向
 - ✅ 这意味着 `antelope / zebra / vulture` 的普通产仔路径现在也会直接受 `birth_cycle_bias` 影响：

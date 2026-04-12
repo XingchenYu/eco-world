@@ -1057,6 +1057,7 @@ def test_v4_social_trend_summary_uses_memory():
     region.record_relationship_state(
         "social_trends",
         {
+            "cycle_signals": ["birth_cycle_window_memory"],
             "trend_scores": {
                 "lion_recovery_bias": 0.4,
                 "lion_decline_bias": 0.1,
@@ -1126,6 +1127,7 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_birth_memory_runtime": 0.28,
             "herd_birth_memory_world_pressure_runtime": 0.24,
             "herd_birth_cycle_runtime": 0.22,
+            "herd_birth_cycle_window_runtime": 0.20,
             "herd_regional_health_runtime": 0.52,
             "herd_condition_runtime": 0.46,
             "herd_regional_bias_runtime": 0.46,
@@ -1140,6 +1142,7 @@ def test_v4_social_trend_summary_uses_memory():
             "aerial_birth_memory_runtime": 0.48,
             "aerial_birth_memory_world_pressure_runtime": 0.24,
             "aerial_birth_cycle_runtime": 0.22,
+            "aerial_birth_cycle_window_runtime": 0.20,
             "aerial_regional_health_runtime": 0.44,
             "aerial_condition_runtime": 0.41,
             "aerial_regional_bias_runtime": 0.42,
@@ -1151,6 +1154,7 @@ def test_v4_social_trend_summary_uses_memory():
             "apex_birth_memory_runtime": 0.48,
             "apex_birth_memory_world_pressure_runtime": 0.24,
             "apex_birth_cycle_runtime": 0.22,
+            "apex_birth_cycle_window_runtime": 0.20,
             "apex_condition_runtime": 0.39,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1191,17 +1195,20 @@ def test_v4_social_trend_summary_uses_memory():
     assert "herd_birth_memory_runtime" in summary.cycle_signals
     assert "herd_birth_memory_world_pressure_runtime" in summary.cycle_signals
     assert "herd_birth_cycle_runtime" in summary.cycle_signals
+    assert "herd_birth_cycle_window_runtime" in summary.cycle_signals
     assert "herd_birth_cycle_runtime" in summary.cycle_signals
     assert "aerial_carrion_cycle" in summary.cycle_signals
     assert "aerial_birth_runtime" in summary.cycle_signals
     assert "aerial_birth_memory_runtime" in summary.cycle_signals
     assert "aerial_birth_memory_world_pressure_runtime" in summary.cycle_signals
     assert "aerial_birth_cycle_runtime" in summary.cycle_signals
+    assert "aerial_birth_cycle_window_runtime" in summary.cycle_signals
     assert "aerial_birth_cycle_runtime" in summary.cycle_signals
     assert "apex_birth_runtime" in summary.cycle_signals
     assert "apex_birth_memory_runtime" in summary.cycle_signals
     assert "apex_birth_memory_world_pressure_runtime" in summary.cycle_signals
     assert "apex_birth_cycle_runtime" in summary.cycle_signals
+    assert "apex_birth_cycle_window_runtime" in summary.cycle_signals
     assert "apex_birth_cycle_runtime" in summary.cycle_signals
     assert summary.trend_scores["herd_birth_memory"] > 0.0
     assert summary.trend_scores["aerial_birth_memory"] > 0.0
@@ -1395,12 +1402,15 @@ def test_runtime_birth_memory_signal_aggregation():
     assert runtime_state["herd_birth_memory_runtime"] > 0.0
     assert runtime_state["herd_birth_memory_world_pressure_runtime"] > 0.0
     assert runtime_state["herd_birth_cycle_runtime"] > 0.0
+    assert runtime_state["herd_birth_cycle_window_runtime"] > 0.0
     assert runtime_state["aerial_birth_memory_runtime"] > 0.0
     assert runtime_state["aerial_birth_memory_world_pressure_runtime"] > 0.0
     assert runtime_state["aerial_birth_cycle_runtime"] > 0.0
+    assert runtime_state["aerial_birth_cycle_window_runtime"] > 0.0
     assert runtime_state["apex_birth_memory_runtime"] > 0.0
     assert runtime_state["apex_birth_memory_world_pressure_runtime"] > 0.0
     assert runtime_state["apex_birth_cycle_runtime"] > 0.0
+    assert runtime_state["apex_birth_cycle_window_runtime"] > 0.0
 
     print("✅ Runtime birth memory signal aggregation test passed")
 
