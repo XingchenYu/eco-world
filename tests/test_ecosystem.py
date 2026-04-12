@@ -1311,6 +1311,8 @@ def test_v4_social_trend_birth_cycle_window_support_memory():
             "adjustments": [
                 {"effect": "birth_cycle_window_herd_support"},
                 {"effect": "birth_cycle_window_apex_support"},
+                {"effect": "birth_cycle_window_pressure_memory_herd_support"},
+                {"effect": "birth_cycle_window_pressure_memory_apex_support"},
             ]
         },
     )
@@ -1322,6 +1324,8 @@ def test_v4_social_trend_birth_cycle_window_support_memory():
                 {"effect": "birth_cycle_window_pressure_aerial_support"},
                 {"effect": "birth_cycle_window_apex_carrion_support"},
                 {"effect": "birth_cycle_window_pressure_apex_carrion_support"},
+                {"effect": "birth_cycle_window_pressure_memory_aerial_support"},
+                {"effect": "birth_cycle_window_pressure_memory_apex_carrion_support"},
             ]
         },
     )

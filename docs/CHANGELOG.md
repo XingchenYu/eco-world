@@ -16,6 +16,14 @@
   - `birth_cycle_window_pressure_memory_apex_carrion_support`
 - ✅ 这条慢反馈主线现在已经进一步推进成：
   - `pressure memory -> chain summaries -> feedback/rebalancing -> next social memory`
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 现在也会把新加入的：
+  - `birth_cycle_window_pressure_memory_herd_support`
+  - `birth_cycle_window_pressure_memory_apex_support`
+  - `birth_cycle_window_pressure_memory_aerial_support`
+  - `birth_cycle_window_pressure_memory_apex_carrion_support`
+  一起统计进 `birth_cycle_window_pressure_support_count`
+- ✅ 这意味着 `pressure memory` 现在不只会作用一轮，还会继续沉淀回：
+  - `birth_cycle_window_pressure_memory`
 
 ### v4.0-alpha62 (2026-04-12 16:55)
 

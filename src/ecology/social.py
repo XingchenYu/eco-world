@@ -181,6 +181,10 @@ def build_region_social_trend_summary(
             "birth_cycle_window_pressure_apex_support",
             "birth_cycle_window_pressure_aerial_support",
             "birth_cycle_window_pressure_apex_carrion_support",
+            "birth_cycle_window_pressure_memory_herd_support",
+            "birth_cycle_window_pressure_memory_apex_support",
+            "birth_cycle_window_pressure_memory_aerial_support",
+            "birth_cycle_window_pressure_memory_apex_carrion_support",
         }
     )
 
