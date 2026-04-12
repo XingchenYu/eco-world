@@ -1789,3 +1789,13 @@ src/core/ecosystem.py        [修改] 导入新物种
     - 世界级长期压力聚合
   - 也就是说，这条慢反馈现在已经形成：
     - `birth_memory -> world pressure -> runtime bias -> territory/social/chains -> next world pressure`
+- 主线继续推进：
+  - `runtime_*_birth_cycle_window_pull` 现在不再只进入摘要和世界级长期压力
+  - 已继续接入：
+    - `grassland_chain / carrion_chain` 的区域反馈
+    - herd / aerial / apex 的低频重平衡
+  - 新增支持效果：
+    - `birth_cycle_window_herd_support`
+    - `birth_cycle_window_apex_support`
+    - `birth_cycle_window_aerial_support`
+    - `birth_cycle_window_apex_carrion_support`
