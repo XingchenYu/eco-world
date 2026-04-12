@@ -634,9 +634,9 @@ func _make_status_strip(active_region: Dictionary) -> PanelContainer:
 	row.add_theme_constant_override("separation", 10)
 	panel.add_child(row)
 
-	row.add_child(_make_status_chip("繁荣", "%.2f" % float(active_region.get("health_state", {}).get("prosperity", 0.0))))
-	row.add_child(_make_status_chip("稳定", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0))))
-	row.add_child(_make_status_chip("风险", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0))))
+	row.add_child(_make_status_chip("繁荣", "◎", "%.2f" % float(active_region.get("health_state", {}).get("prosperity", 0.0))))
+	row.add_child(_make_status_chip("稳定", "▲", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0))))
+	row.add_child(_make_status_chip("风险", "◆", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0))))
 	return panel
 
 
@@ -664,22 +664,31 @@ func _make_tab_banner(title_text: String, description: String, accent: Color) ->
 	return panel
 
 
-func _make_status_chip(title_text: String, value_text: String) -> PanelContainer:
+func _make_status_chip(title_text: String, icon_text: String, value_text: String) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(108, 56)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 2)
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
 	panel.add_child(box)
+
+	var icon := Label.new()
+	icon.text = icon_text
+	_style_secondary_title(icon, 20)
+	box.add_child(icon)
+
+	var text_box := VBoxContainer.new()
+	text_box.add_theme_constant_override("separation", 2)
+	box.add_child(text_box)
 
 	var title := Label.new()
 	title.text = title_text
 	_style_dim(title, 14)
-	box.add_child(title)
+	text_box.add_child(title)
 
 	var value := Label.new()
 	value.text = value_text
 	_style_primary_title(value, 22)
-	box.add_child(value)
+	text_box.add_child(value)
 	return panel
 
 

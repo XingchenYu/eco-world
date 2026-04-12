@@ -2,6 +2,16 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha82 (2026-04-13 00:49)
+
+- ✅ Godot 前端继续把右侧状态块做得更直观。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在把：
+  - 繁荣
+  - 稳定
+  - 风险
+  改成了带图标前缀的状态芯片。
+- ✅ 这意味着右侧总览不再只是数字块，而开始有更接近游戏状态栏的读法。
+
 ### v4.0-alpha81 (2026-04-13 00:42)
 
 - ✅ Godot 前端继续补中央地图的氛围层。
