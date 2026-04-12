@@ -56,6 +56,15 @@
   - `birth_cycle_window_pressure_apex_carrion_support`
 - ✅ 这条慢反馈主线现在已经进一步闭成：
   - `birth_cycle window -> memory strength -> pressure bias -> runtime territory -> chain flows -> feedback + rebalancing -> next world pressures`
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 现在也会把新加入的：
+  - `birth_cycle_window_pressure_herd_support`
+  - `birth_cycle_window_pressure_aerial_support`
+  - `birth_cycle_window_pressure_apex_support`
+  - `birth_cycle_window_pressure_apex_carrion_support`
+  一起统计进 `birth_cycle_window_count`
+- ✅ 这意味着 `birth_cycle window pressure` 已不只作用于当前轮反馈，还会继续沉淀成：
+  - `birth_cycle_window_memory`
+  - `birth_cycle_window_memory_strength`
 
 ### v4.0-alpha60 (2026-04-12 15:35)
 

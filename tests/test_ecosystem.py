@@ -1311,7 +1311,9 @@ def test_v4_social_trend_birth_cycle_window_support_memory():
         {
             "adjustments": [
                 {"effect": "birth_cycle_window_aerial_support"},
+                {"effect": "birth_cycle_window_pressure_aerial_support"},
                 {"effect": "birth_cycle_window_apex_carrion_support"},
+                {"effect": "birth_cycle_window_pressure_apex_carrion_support"},
             ]
         },
     )

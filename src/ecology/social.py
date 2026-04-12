@@ -163,9 +163,13 @@ def build_region_social_trend_summary(
             "birth_cycle_aerial_window",
             "birth_cycle_apex_carrion_window",
             "birth_cycle_window_herd_support",
+            "birth_cycle_window_pressure_herd_support",
             "birth_cycle_window_apex_support",
+            "birth_cycle_window_pressure_apex_support",
             "birth_cycle_window_aerial_support",
+            "birth_cycle_window_pressure_aerial_support",
             "birth_cycle_window_apex_carrion_support",
+            "birth_cycle_window_pressure_apex_carrion_support",
         }
     )
 
