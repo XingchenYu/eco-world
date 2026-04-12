@@ -158,6 +158,28 @@ func _animate_focus_glow(glow: ColorRect, focus_frame: ColorRect) -> void:
 	tween.parallel().tween_property(focus_frame, "modulate:a", 0.38, 0.75)
 
 
+func _animate_region_hover(shell: PanelContainer, outer_ring: ColorRect, shadow: ColorRect, entering: bool) -> void:
+	var tween := create_tween()
+	if entering:
+		tween.tween_property(shell, "scale", Vector2(1.03, 1.03), 0.12)
+		tween.parallel().tween_property(outer_ring, "modulate:a", 0.86, 0.12)
+		tween.parallel().tween_property(shadow, "modulate:a", 0.78, 0.12)
+		tween.parallel().tween_property(shell, "position:y", shell.position.y - 5.0, 0.12)
+	else:
+		tween.tween_property(shell, "scale", Vector2.ONE, 0.14)
+		tween.parallel().tween_property(outer_ring, "modulate:a", 1.0, 0.14)
+		tween.parallel().tween_property(shadow, "modulate:a", 1.0, 0.14)
+		tween.parallel().tween_property(shell, "position:y", floor(shell.position.y / 1.0), 0.14)
+
+
+func _animate_region_press(shell: PanelContainer, pressed: bool) -> void:
+	var tween := create_tween()
+	if pressed:
+		tween.tween_property(shell, "scale", Vector2(0.985, 0.985), 0.07)
+	else:
+		tween.tween_property(shell, "scale", Vector2.ONE, 0.09)
+
+
 func _tab_icon(tab_id: String) -> String:
 	return {
 		"overview": "◎",
@@ -494,7 +516,8 @@ func _build_map_nodes(regions: Array) -> void:
 
 		var shadow := ColorRect.new()
 		shadow.color = Color(0.03, 0.06, 0.09, 0.45)
-		shadow.position = pos - Vector2(126, 54) + Vector2(8, 8)
+		var shadow_base := pos - Vector2(126, 54) + Vector2(8, 8)
+		shadow.position = shadow_base
 		shadow.custom_minimum_size = Vector2(252, 112)
 		map_layer.add_child(shadow)
 
@@ -505,7 +528,8 @@ func _build_map_nodes(regions: Array) -> void:
 		map_layer.add_child(outer_ring)
 
 		var shell := PanelContainer.new()
-		shell.position = pos - Vector2(126, 54)
+		var shell_base := pos - Vector2(126, 54)
+		shell.position = shell_base
 		shell.custom_minimum_size = Vector2(252, 112)
 		map_layer.add_child(shell)
 
@@ -581,6 +605,21 @@ func _build_map_nodes(regions: Array) -> void:
 		button.custom_minimum_size = shell.custom_minimum_size
 		button.position = shell.position
 		button.pressed.connect(_on_region_pressed.bind(region_id))
+		button.mouse_entered.connect(func() -> void:
+			shadow.position = shadow_base + Vector2(12, 11)
+			_animate_region_hover(shell, outer_ring, shadow, true)
+		)
+		button.mouse_exited.connect(func() -> void:
+			shadow.position = shadow_base
+			shell.position = shell_base
+			_animate_region_hover(shell, outer_ring, shadow, false)
+		)
+		button.button_down.connect(func() -> void:
+			_animate_region_press(shell, true)
+		)
+		button.button_up.connect(func() -> void:
+			_animate_region_press(shell, false)
+		)
 		map_layer.add_child(button)
 
 		var badge := Label.new()
