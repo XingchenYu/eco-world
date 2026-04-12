@@ -417,6 +417,7 @@ def test_v4_grassland_runtime_pressure_updates_region_health():
     assert region.ecological_pressures["runtime_herd_birth_cycle_window_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_birth_cycle_window_pressure_pull"] > 0.0
     assert region.ecological_pressures["birth_cycle_window_memory_strength_pull"] > 0.0
+    assert region.ecological_pressures["birth_cycle_window_pressure_memory_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_condition_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_health_pull"] > 0.0
@@ -780,6 +781,7 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["runtime_apex_birth_cycle_window_pressure_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_condition_phase_pull"] > 0.0
     assert grassland_chain.trophic_scores["birth_cycle_window_memory_strength_pull"] > 0.0
+    assert grassland_chain.trophic_scores["birth_cycle_window_pressure_memory_pull"] > 0.0
     assert grassland_chain.trophic_scores["surface_water_anchor"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
     assert grassland_chain.trophic_scores["migration_pressure"] > 0.0
@@ -1109,6 +1111,8 @@ def test_v4_social_trend_summary_uses_memory():
                 {"effect": "world_pressure_apex_window"},
                 {"effect": "birth_cycle_herd_window"},
                 {"effect": "birth_cycle_apex_window"},
+                {"effect": "birth_cycle_window_pressure_herd_support"},
+                {"effect": "birth_cycle_window_pressure_apex_support"},
             ]
         },
     )
@@ -1121,6 +1125,8 @@ def test_v4_social_trend_summary_uses_memory():
                 {"effect": "world_pressure_apex_carrion_window"},
                 {"effect": "birth_cycle_aerial_window"},
                 {"effect": "birth_cycle_apex_carrion_window"},
+                {"effect": "birth_cycle_window_pressure_aerial_support"},
+                {"effect": "birth_cycle_window_pressure_apex_carrion_support"},
             ]
         },
     )
@@ -1237,6 +1243,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.trend_scores["aerial_birth_memory"] > 0.0
     assert summary.trend_scores["apex_birth_memory"] > 0.0
     assert summary.trend_scores["birth_cycle_window_memory_strength"] > 0.0
+    assert summary.trend_scores["birth_cycle_window_pressure_memory"] > 0.0
     assert "surface_water_anchor" in summary.cycle_signals
     assert "carcass_anchor" in summary.cycle_signals
     assert "herd_regional_health_runtime" in summary.cycle_signals
@@ -1263,6 +1270,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert "world_pressure_window_memory" in summary.cycle_signals
     assert "birth_cycle_window_memory" in summary.cycle_signals
     assert "birth_cycle_window_memory_strength" in summary.cycle_signals
+    assert "birth_cycle_window_pressure_memory" in summary.cycle_signals
     assert "herd_birth_cycle_window_pressure_runtime" in summary.cycle_signals
     assert "aerial_birth_cycle_window_pressure_runtime" in summary.cycle_signals
     assert "apex_birth_cycle_window_pressure_runtime" in summary.cycle_signals
@@ -1397,6 +1405,7 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.resource_scores["runtime_apex_birth_cycle_window_pressure_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_condition_pull"] > 0.0
     assert grassland_chain.resource_scores["birth_cycle_window_memory_strength_pull"] > 0.0
+    assert grassland_chain.resource_scores["birth_cycle_window_pressure_memory_pull"] > 0.0
     assert grassland_chain.resource_scores["carcass_anchor_pressure"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
     assert grassland_chain.layer_scores["scavenge_layer"] > 0.0

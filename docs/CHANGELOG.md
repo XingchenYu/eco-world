@@ -2,6 +2,29 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha62 (2026-04-12 16:55)
+
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现在会继续读取：
+  - `birth_cycle_window_pressure_memory`
+- ✅ 两条草原主链已新增：
+  - `birth_cycle_window_pressure_memory_pull`
+- ✅ 这层新 pull 现在已经继续进入：
+  - 草原链与尸体资源链摘要
+  - 世界级长期压力
+  - 区域反馈
+  - 低频重平衡
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现在会把这层新 pull 纳入：
+  - `prosperity_pressure`
+  - `collapse_pressure`
+  - `runtime_resource_pressure`
+- ✅ [tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 已补齐世界层社群趋势测试夹具：
+  - `birth_cycle_window_pressure_herd_support`
+  - `birth_cycle_window_pressure_apex_support`
+  - `birth_cycle_window_pressure_aerial_support`
+  - `birth_cycle_window_pressure_apex_carrion_support`
+- ✅ 这条慢反馈主线现在已经进一步推进成：
+  - `pressure support -> pressure memory -> chain summaries -> feedback/rebalancing -> world pressures`
+
 ### v4.0-alpha61 (2026-04-12 16:20)
 
 - ✅ 新增 `birth_cycle_window_pressure_bias` 主线闭环：

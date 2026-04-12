@@ -322,6 +322,7 @@ def build_region_grassland_chain_summary(
         phase_scores = getattr(social_trend_summary, "phase_scores", {}) or {}
         hotspot_scores = getattr(social_trend_summary, "hotspot_scores", {}) or {}
         birth_cycle_window_memory_strength = float(trend_scores.get("birth_cycle_window_memory_strength", 0.0))
+        birth_cycle_window_pressure_memory = float(trend_scores.get("birth_cycle_window_pressure_memory", 0.0))
         grassland_prosperity_phase = float(prosperity_scores.get("grassland_prosperity_phase", 0.0))
         grassland_collapse_phase = float(prosperity_scores.get("grassland_collapse_phase", 0.0))
         herd_route_cycle = float(phase_scores.get("herd_route_cycle", 0.0))
@@ -362,6 +363,15 @@ def build_region_grassland_chain_summary(
             add_layer_bias("herd_layer", birth_cycle_window_memory_strength * 0.06)
             add_layer_bias("social_layer", birth_cycle_window_memory_strength * 0.04)
             add_layer_bias("predator_layer", birth_cycle_window_memory_strength * 0.03)
+        if birth_cycle_window_pressure_memory > 0.0:
+            add_score(
+                "birth_cycle_window_pressure_memory_pull",
+                min(0.20, birth_cycle_window_pressure_memory * 0.18),
+                "繁殖窗口压力支持沉淀成的独立长期记忆，正在把草原 herd 与顶层层级重新拉回更稳定的恢复通道。",
+            )
+            add_layer_bias("herd_layer", birth_cycle_window_pressure_memory * 0.05)
+            add_layer_bias("social_layer", birth_cycle_window_pressure_memory * 0.04)
+            add_layer_bias("predator_layer", birth_cycle_window_pressure_memory * 0.03)
 
     regional_prosperity = float(region.health_state.get("prosperity", 0.0))
     regional_collapse = float(region.health_state.get("collapse_risk", 0.0))
