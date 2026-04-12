@@ -1001,9 +1001,13 @@ func _make_status_strip(active_region: Dictionary, region_accent: Color) -> Pane
 	row.add_theme_constant_override("separation", 10)
 	panel.add_child(row)
 
-	row.add_child(_make_status_chip("繁荣", "◎", "%.2f" % float(active_region.get("health_state", {}).get("prosperity", 0.0)), region_accent))
-	row.add_child(_make_status_chip("稳定", "▲", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0)), region_accent))
-	row.add_child(_make_status_chip("风险", "◆", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0)), region_accent))
+	var prosperity := float(active_region.get("health_state", {}).get("prosperity", 0.0))
+	var stability := float(active_region.get("health_state", {}).get("stability", 0.0))
+	var collapse_risk := float(active_region.get("health_state", {}).get("collapse_risk", 0.0))
+
+	row.add_child(_make_status_chip("繁荣", "◎", "%.2f" % prosperity, prosperity, region_accent))
+	row.add_child(_make_status_chip("稳定", "▲", "%.2f" % stability, stability, region_accent))
+	row.add_child(_make_status_chip("风险", "◆", "%.2f" % collapse_risk, collapse_risk, region_accent))
 	return panel
 
 
@@ -1032,22 +1036,26 @@ func _make_tab_banner(title_text: String, description: String, accent: Color, re
 	return panel
 
 
-func _make_status_chip(title_text: String, icon_text: String, value_text: String, region_accent: Color) -> PanelContainer:
+func _make_status_chip(title_text: String, icon_text: String, value_text: String, numeric_value: float, region_accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(108, 56)
-	var box := HBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
 	panel.add_child(box)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 8)
+	box.add_child(header)
 
 	var icon := Label.new()
 	icon.text = icon_text
 	_style_secondary_title(icon, 20)
 	icon.modulate = region_accent.lightened(0.22)
-	box.add_child(icon)
+	header.add_child(icon)
 
 	var text_box := VBoxContainer.new()
 	text_box.add_theme_constant_override("separation", 2)
-	box.add_child(text_box)
+	header.add_child(text_box)
 
 	var title := Label.new()
 	title.text = title_text
@@ -1059,6 +1067,16 @@ func _make_status_chip(title_text: String, icon_text: String, value_text: String
 	_style_primary_title(value, 22)
 	value.modulate = region_accent.lightened(0.30)
 	text_box.add_child(value)
+
+	var meter_bg := ColorRect.new()
+	meter_bg.color = Color(1.0, 1.0, 1.0, 0.08)
+	meter_bg.custom_minimum_size = Vector2(0, 5)
+	box.add_child(meter_bg)
+
+	var meter := ColorRect.new()
+	meter.color = Color(region_accent.r, region_accent.g, region_accent.b, 0.78)
+	meter.custom_minimum_size = Vector2(88.0 * clamp(numeric_value, 0.0, 1.0), 5)
+	box.add_child(meter)
 	return panel
 
 
