@@ -2,6 +2,19 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha70 (2026-04-12 22:54)
+
+- ✅ Godot 前端继续补强世界地图菜单层。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `map_legend`
+  - `route_summary`
+  - `top_species.label`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 地图图例浮层
+  - 区域通道情报卡
+  - 核心物种中文名显示
+- ✅ 这意味着 Godot 世界地图界面已经不再只是区域节点和侧栏，而开始有更接近游戏地图菜单的说明层。
+
 ### v4.0-alpha69 (2026-04-12 22:41)
 
 - ✅ Godot 前端继续从“详情菜单”推进到“世界播报 + 区域档案”结构。

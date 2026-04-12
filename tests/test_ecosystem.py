@@ -419,10 +419,13 @@ def test_v4_world_ui_payload():
     assert "top_species" in payload["active_region"]
     assert "region_summary" in payload["active_region"]
     assert "region_intro" in payload["active_region"]
+    assert payload["map_legend"]
     assert "chains" in payload["region_details"]["temperate_grassland"]
     assert "narrative" in payload["region_details"]["temperate_grassland"]
     assert "top_species" in payload["region_details"]["temperate_grassland"]
     assert "region_intro" in payload["region_details"]["temperate_grassland"]
+    assert "route_summary" in payload["region_details"]["temperate_grassland"]
+    assert "label" in payload["region_details"]["temperate_grassland"]["top_species"][0]
     assert payload["ui_meta"]["refresh_mode"] == "manual_or_timer"
     assert "social_phases" in payload["chains"]
     assert "territory" in payload["narrative"]

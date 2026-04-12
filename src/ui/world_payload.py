@@ -6,6 +6,39 @@ from typing import Any
 
 from src.sim.world_simulation import WorldSimulation
 
+SPECIES_LABELS = {
+    "african_elephant": "非洲象",
+    "antelope": "羚羊",
+    "bat_v4": "蝙蝠",
+    "beaver": "河狸",
+    "blackfish": "黑鱼",
+    "catfish": "鲶鱼",
+    "deer": "鹿",
+    "fox": "狐狸",
+    "frog": "青蛙",
+    "giraffe": "长颈鹿",
+    "hippopotamus": "河马",
+    "hyena": "鬣狗",
+    "kingfisher_v4": "翠鸟",
+    "lion": "狮",
+    "minnow": "米诺鱼",
+    "night_moth": "夜蛾",
+    "nile_crocodile": "尼罗鳄",
+    "rabbit": "兔子",
+    "sparrow": "麻雀",
+    "vulture": "秃鹫",
+    "white_rhino": "白犀牛",
+    "wolf": "狼",
+    "zebra": "斑马",
+}
+
+CONNECTION_LABELS = {
+    "air_migration_lane": "迁飞航线",
+    "coastal_exchange": "海岸交换带",
+    "land_corridor": "陆地走廊",
+    "river_network": "河网通道",
+}
+
 
 def _top_mapping_items(mapping: dict[str, Any], limit: int = 4) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
@@ -40,6 +73,10 @@ def _collect_top_species(region_species_pool: dict[str, Any], limit: int = 8) ->
     return entries
 
 
+def _species_label(species_id: str) -> str:
+    return SPECIES_LABELS.get(species_id, species_id)
+
+
 def _build_region_intro(region_name: str, climate_zone: str, dominant_biomes: list[str]) -> str:
     climate_labels = {
         "temperate": "温带",
@@ -52,6 +89,16 @@ def _build_region_intro(region_name: str, climate_zone: str, dominant_biomes: li
         return f"{region_name}属于{climate_text}生态区。"
     biome_text = "、".join(dominant_biomes[:3])
     return f"{region_name}属于{climate_text}生态区，当前主导群系包括{biome_text}。"
+
+
+def _build_route_summary(connectors: list[dict[str, Any]]) -> list[str]:
+    summaries: list[str] = []
+    for connector in connectors[:4]:
+        connection_type = CONNECTION_LABELS.get(connector["connection_type"], connector["connection_type"])
+        summaries.append(
+            f"{connection_type}通向 {connector['target_region_id']}（强度 {float(connector['strength']):.2f}）"
+        )
+    return summaries
 
 
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
@@ -109,8 +156,15 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
             key: round(float(value), 4) for key, value in active_region["ecological_pressures"].items()
         },
         "recent_adjustments": list(active_region["recent_adjustments"][-10:]),
-        "top_species": _collect_top_species(world.get_active_region().species_pool, 8),
+        "top_species": [
+            {
+                **entry,
+                "label": _species_label(str(entry["species_id"])),
+            }
+            for entry in _collect_top_species(world.get_active_region().species_pool, 8)
+        ],
         "connectors": _region_connectors(world, region_id),
+        "route_summary": _build_route_summary(_region_connectors(world, region_id)),
         "chains": {
             "social_phases": _collect_top_list(stats["social_trends"]["phase_scores"], 6),
             "social_trends": _collect_top_list(stats["social_trends"]["trend_scores"], 6),
@@ -194,7 +248,13 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
                 key: round(float(value), 4) for key, value in active_region["ecological_pressures"].items()
             },
             "recent_adjustments": list(active_region["recent_adjustments"][-10:]),
-            "top_species": _collect_top_species(world.get_active_region().species_pool, 8),
+            "top_species": [
+                {
+                    **entry,
+                    "label": _species_label(str(entry["species_id"])),
+                }
+                for entry in _collect_top_species(world.get_active_region().species_pool, 8)
+            ],
         },
         "region_details": region_details,
         "chains": chain_highlights,
@@ -212,6 +272,13 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
             "carrion_chain": list(stats["carrion_chain"]["narrative_chain"][:3]),
             "wetland_chain": list(stats["wetland_chain"]["narrative_chain"][:3]),
         }),
+        "map_legend": [
+            {"label": "森林区", "color": "forest"},
+            {"label": "草原区", "color": "grassland"},
+            {"label": "湿地区", "color": "wetland"},
+            {"label": "海岸区", "color": "coast"},
+            {"label": "珊瑚海", "color": "coral"},
+        ],
         "ui_meta": {
             "active_speed": 1,
             "source": "WorldSimulation.get_statistics",

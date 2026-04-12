@@ -43,6 +43,7 @@ var auto_refresh_button: CheckButton
 var refresh_timer: Timer
 var detail_cache: Dictionary = {}
 var bulletin_cache: Array = []
+var legend_cache: Array = []
 
 
 func _ready() -> void:
@@ -158,6 +159,7 @@ func _load_world_data() -> void:
 	active_region_id = str(world_data.get("world", {}).get("active_region_id", ""))
 	detail_cache = world_data.get("region_details", {})
 	bulletin_cache = world_data.get("world_bulletin", [])
+	legend_cache = world_data.get("map_legend", [])
 	_render_world()
 
 
@@ -184,6 +186,7 @@ func _render_world() -> void:
 
 	_build_map_nodes(world_meta.get("regions", []))
 	_build_world_bulletin()
+	_build_map_legend()
 	_build_side_panel()
 
 
@@ -241,11 +244,34 @@ func _build_world_bulletin() -> void:
 		box.add_child(item)
 
 
+func _build_map_legend() -> void:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(220, 0)
+	panel.position = Vector2(max(24, map_layer.size.x - 250), 20)
+	map_layer.add_child(panel)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = "地图图例"
+	title.add_theme_font_size_override("font_size", 20)
+	box.add_child(title)
+
+	for entry_variant in legend_cache.slice(0, 5):
+		var entry: Dictionary = entry_variant
+		var label := Label.new()
+		label.text = "■ %s" % str(entry.get("label", ""))
+		box.add_child(label)
+
+
 func _build_side_panel() -> void:
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var chains: Dictionary = active_region.get("chains", world_data.get("chains", {}))
 	var narrative: Dictionary = active_region.get("narrative", world_data.get("narrative", {}))
 	var top_species: Array = active_region.get("top_species", [])
+	var route_summary: Array = active_region.get("route_summary", [])
 
 	var title := Label.new()
 	title.text = "%s · 焦点区域" % str(active_region.get("name", "未选择"))
@@ -265,6 +291,7 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
 			side_box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
 			side_box.add_child(_make_section("区域连接", active_region.get("connectors", []), true, "target_region_id", "strength"))
+			side_box.add_child(_make_route_section(route_summary))
 			side_box.add_child(_make_intro_section(active_region))
 		"chains":
 			side_box.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
@@ -347,9 +374,28 @@ func _make_species_section(top_species: Array) -> VBoxContainer:
 	for row_variant in top_species:
 		var row: Dictionary = row_variant
 		var label := Label.new()
-		label.text = "%s × %s" % [str(row.get("species_id", "")), str(row.get("count", 0))]
+		label.text = "%s × %s" % [str(row.get("label", row.get("species_id", ""))), str(row.get("count", 0))]
 		box.add_child(label)
 	return box
+
+
+func _make_route_section(route_summary: Array) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = "通道情报"
+	title.add_theme_font_size_override("font_size", 22)
+	box.add_child(title)
+
+	for line in route_summary:
+		var label := Label.new()
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.text = "• %s" % str(line)
+		box.add_child(label)
+	return panel
 
 
 func _make_story_section(narrative: Dictionary) -> VBoxContainer:
