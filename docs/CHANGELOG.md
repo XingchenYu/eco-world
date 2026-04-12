@@ -2,6 +2,14 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha85 (2026-04-13 01:14)
+
+- ✅ Godot 前端继续把物种图鉴页做成更像图鉴条目。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 物种分类标签
+  - 数量条
+- ✅ 这意味着物种页不再只是“名字 + 数量”，而开始更像真正的图鉴列表。
+
 ### v4.0-alpha84 (2026-04-13 01:05)
 
 - ✅ Godot 前端继续把生态链分页做成更像监测面板。

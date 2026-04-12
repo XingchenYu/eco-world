@@ -88,6 +88,18 @@ func _metric_icon(metric_key: String) -> String:
 	}.get(metric_key, "•")
 
 
+func _species_category(species_id: String) -> String:
+	if species_id in ["lion", "hyena", "vulture", "nile_crocodile", "pike", "catfish", "blackfish"]:
+		return "顶层种"
+	if species_id in ["antelope", "zebra", "deer", "rabbit", "giraffe", "white_rhino", "african_elephant"]:
+		return "草食群"
+	if species_id in ["beaver", "frog", "kingfisher_v4", "duck", "sparrow", "owl", "woodpecker"]:
+		return "岸带种"
+	if species_id in ["small_fish", "minnow", "carp", "shrimp", "plankton", "pufferfish"]:
+		return "水域种"
+	return "区域种"
+
+
 func _ready() -> void:
 	_build_ui()
 	_load_world_data()
@@ -796,25 +808,44 @@ func _make_species_section(top_species: Array) -> VBoxContainer:
 	for row_variant in top_species:
 		var row: Dictionary = row_variant
 		var card := PanelContainer.new()
-		var row_box := HBoxContainer.new()
-		row_box.add_theme_constant_override("separation", 10)
+		var row_box := VBoxContainer.new()
+		row_box.add_theme_constant_override("separation", 4)
 		card.add_child(row_box)
+
+		var header := HBoxContainer.new()
+		header.add_theme_constant_override("separation", 10)
+		row_box.add_child(header)
 
 		var chip := Label.new()
 		chip.text = "◉"
 		_style_secondary_title(chip, 20)
-		row_box.add_child(chip)
+		header.add_child(chip)
 
 		var name := Label.new()
 		name.text = str(row.get("label", row.get("species_id", "")))
 		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_body(name, 18)
-		row_box.add_child(name)
+		header.add_child(name)
 
 		var count := Label.new()
 		count.text = "× %s" % str(row.get("count", 0))
 		_style_secondary_title(count, 18)
-		row_box.add_child(count)
+		header.add_child(count)
+
+		var category := Label.new()
+		category.text = "档案分类 · %s" % _species_category(str(row.get("species_id", "")))
+		_style_dim(category, 14)
+		row_box.add_child(category)
+
+		var meter_bg := ColorRect.new()
+		meter_bg.color = Color(1.0, 1.0, 1.0, 0.08)
+		meter_bg.custom_minimum_size = Vector2(0, 6)
+		row_box.add_child(meter_bg)
+
+		var meter := ColorRect.new()
+		meter.color = Color(171.0 / 255.0, 132.0 / 255.0, 196.0 / 255.0, 0.72)
+		meter.custom_minimum_size = Vector2(220.0 * clamp(float(row.get("count", 0)) / 40.0, 0.05, 1.0), 6)
+		row_box.add_child(meter)
 		box.add_child(card)
 	return box
 
