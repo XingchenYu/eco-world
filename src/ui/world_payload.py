@@ -40,6 +40,47 @@ def _collect_top_species(region_species_pool: dict[str, Any], limit: int = 8) ->
     return entries
 
 
+def _build_region_intro(region_name: str, climate_zone: str, dominant_biomes: list[str]) -> str:
+    climate_labels = {
+        "temperate": "温带",
+        "subtropical": "亚热带",
+        "tropical": "热带",
+        "equatorial": "赤道",
+    }
+    climate_text = climate_labels.get(climate_zone, climate_zone)
+    if not dominant_biomes:
+        return f"{region_name}属于{climate_text}生态区。"
+    biome_text = "、".join(dominant_biomes[:3])
+    return f"{region_name}属于{climate_text}生态区，当前主导群系包括{biome_text}。"
+
+
+def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
+    bulletins: list[str] = []
+    top_pressure_items = sorted(
+        active_region["ecological_pressures"].items(),
+        key=lambda item: float(item[1]),
+        reverse=True,
+    )[:2]
+    for key, value in top_pressure_items:
+        bulletins.append(f"{active_region['name']} 当前主压为 {key}（{float(value):.2f}）。")
+
+    for chain_name, rows in (
+        ("社会相位", chains.get("social_phases", [])),
+        ("草原主链", chains.get("grassland_chain", [])),
+        ("尸体资源链", chains.get("carrion_chain", [])),
+        ("湿地主链", chains.get("wetland_chain", [])),
+    ):
+        if rows:
+            top_row = rows[0]
+            bulletins.append(f"{chain_name} 当前最强项为 {top_row['key']}（{float(top_row['value']):.2f}）。")
+
+    for key in ["territory", "social_trends", "grassland_chain", "carrion_chain", "wetland_chain"]:
+        entries = narrative.get(key, [])
+        if entries:
+            bulletins.append(str(entries[0]))
+    return bulletins[:6]
+
+
 def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict[str, Any]:
     previous_active_region_id = world.active_region_id
     world.set_active_region(region_id)
@@ -51,6 +92,11 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
         "name": active_region["name"],
         "climate_zone": active_region["climate_zone"],
         "dominant_biomes": list(active_region["dominant_biomes"]),
+        "region_intro": _build_region_intro(
+            active_region["name"],
+            active_region["climate_zone"],
+            list(active_region["dominant_biomes"]),
+        ),
         "region_summary": {
             "species_pool_count": int(active_region["species_pool_count"]),
             "biome_count": int(active_region["biome_count"]),
@@ -131,6 +177,11 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
             "name": active_region["name"],
             "climate_zone": active_region["climate_zone"],
             "dominant_biomes": list(active_region["dominant_biomes"]),
+            "region_intro": _build_region_intro(
+                active_region["name"],
+                active_region["climate_zone"],
+                list(active_region["dominant_biomes"]),
+            ),
             "region_summary": {
                 "species_pool_count": int(active_region["species_pool_count"]),
                 "biome_count": int(active_region["biome_count"]),
@@ -154,6 +205,13 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
             "carrion_chain": list(stats["carrion_chain"]["narrative_chain"][:3]),
             "wetland_chain": list(stats["wetland_chain"]["narrative_chain"][:3]),
         },
+        "world_bulletin": _build_world_bulletin(active_region, chain_highlights, {
+            "territory": list(stats["territory"]["narrative_territory"][:3]),
+            "social_trends": list(stats["social_trends"]["narrative_trends"][:4]),
+            "grassland_chain": list(stats["grassland_chain"]["narrative_chain"][:3]),
+            "carrion_chain": list(stats["carrion_chain"]["narrative_chain"][:3]),
+            "wetland_chain": list(stats["wetland_chain"]["narrative_chain"][:3]),
+        }),
         "ui_meta": {
             "active_speed": 1,
             "source": "WorldSimulation.get_statistics",

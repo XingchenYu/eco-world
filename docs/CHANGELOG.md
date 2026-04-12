@@ -2,6 +2,17 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha69 (2026-04-12 22:41)
+
+- ✅ Godot 前端继续从“详情菜单”推进到“世界播报 + 区域档案”结构。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `region_intro`
+  - `world_bulletin`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 地图左上角世界播报浮层
+  - 右侧总览页中的区域档案卡
+- ✅ 这意味着 Godot 路线已经开始有“世界入口菜单”的叙事层，而不只是数据列表和链路摘要。
+
 ### v4.0-alpha68 (2026-04-12 22:29)
 
 - ✅ Godot 前端继续从“可切区骨架”推进到“更完整的区域详情结构”。

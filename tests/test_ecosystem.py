@@ -418,12 +418,15 @@ def test_v4_world_ui_payload():
     assert "health_state" in payload["active_region"]
     assert "top_species" in payload["active_region"]
     assert "region_summary" in payload["active_region"]
+    assert "region_intro" in payload["active_region"]
     assert "chains" in payload["region_details"]["temperate_grassland"]
     assert "narrative" in payload["region_details"]["temperate_grassland"]
     assert "top_species" in payload["region_details"]["temperate_grassland"]
+    assert "region_intro" in payload["region_details"]["temperate_grassland"]
     assert payload["ui_meta"]["refresh_mode"] == "manual_or_timer"
     assert "social_phases" in payload["chains"]
     assert "territory" in payload["narrative"]
+    assert payload["world_bulletin"]
 
     print("✅ v4 world UI payload test passed")
 

@@ -42,6 +42,7 @@ var refresh_button: Button
 var auto_refresh_button: CheckButton
 var refresh_timer: Timer
 var detail_cache: Dictionary = {}
+var bulletin_cache: Array = []
 
 
 func _ready() -> void:
@@ -156,6 +157,7 @@ func _load_world_data() -> void:
 	world_data = parsed
 	active_region_id = str(world_data.get("world", {}).get("active_region_id", ""))
 	detail_cache = world_data.get("region_details", {})
+	bulletin_cache = world_data.get("world_bulletin", [])
 	_render_world()
 
 
@@ -181,6 +183,7 @@ func _render_world() -> void:
 		child.queue_free()
 
 	_build_map_nodes(world_meta.get("regions", []))
+	_build_world_bulletin()
 	_build_side_panel()
 
 
@@ -216,6 +219,28 @@ func _build_map_nodes(regions: Array) -> void:
 		map_layer.add_child(badge)
 
 
+func _build_world_bulletin() -> void:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(320, 0)
+	panel.position = Vector2(24, 20)
+	map_layer.add_child(panel)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = "世界播报"
+	title.add_theme_font_size_override("font_size", 22)
+	box.add_child(title)
+
+	for line in bulletin_cache.slice(0, 4):
+		var item := Label.new()
+		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		item.text = "• %s" % str(line)
+		box.add_child(item)
+
+
 func _build_side_panel() -> void:
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var chains: Dictionary = active_region.get("chains", world_data.get("chains", {}))
@@ -240,6 +265,7 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
 			side_box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
 			side_box.add_child(_make_section("区域连接", active_region.get("connectors", []), true, "target_region_id", "strength"))
+			side_box.add_child(_make_intro_section(active_region))
 		"chains":
 			side_box.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
 			side_box.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
@@ -290,6 +316,24 @@ func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
 		str(summary.get("species_pool_count", 0)),
 	]
 	box.add_child(stats)
+	return panel
+
+
+func _make_intro_section(active_region: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = "区域档案"
+	title.add_theme_font_size_override("font_size", 22)
+	box.add_child(title)
+
+	var intro := Label.new()
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	intro.text = str(active_region.get("region_intro", "暂无区域档案。"))
+	box.add_child(intro)
 	return panel
 
 
