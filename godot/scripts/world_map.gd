@@ -171,6 +171,20 @@ func _animate_focus_glow(glow: ColorRect, focus_frame: ColorRect) -> void:
 	tween.parallel().tween_property(focus_frame, "modulate:a", 0.38, 0.75)
 
 
+func _animate_region_focus_entry(shell: PanelContainer, outer_ring: ColorRect, shadow: ColorRect, shell_base: Vector2, shadow_base: Vector2) -> void:
+	shell.scale = Vector2(0.94, 0.94)
+	shell.position = shell_base + Vector2(0, 12)
+	shell.modulate = Color(1.0, 1.0, 1.0, 0.78)
+	outer_ring.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	shadow.position = shadow_base + Vector2(0, 10)
+	var tween := create_tween()
+	tween.tween_property(shell, "scale", Vector2.ONE, 0.22)
+	tween.parallel().tween_property(shell, "position", shell_base, 0.22)
+	tween.parallel().tween_property(shell, "modulate:a", 1.0, 0.18)
+	tween.parallel().tween_property(outer_ring, "modulate:a", 1.0, 0.18)
+	tween.parallel().tween_property(shadow, "position", shadow_base, 0.22)
+
+
 func _animate_region_hover(shell: PanelContainer, outer_ring: ColorRect, shadow: ColorRect, entering: bool) -> void:
 	var tween := create_tween()
 	if entering:
@@ -575,6 +589,7 @@ func _build_map_nodes(regions: Array) -> void:
 			focus_frame.custom_minimum_size = shell.custom_minimum_size + Vector2(8, 8)
 			map_layer.add_child(focus_frame)
 			map_layer.move_child(focus_frame, map_layer.get_child_count() - 2)
+			_animate_region_focus_entry(shell, outer_ring, shadow, shell_base, shadow_base)
 			_animate_focus_glow(glow, focus_frame)
 
 		var shell_box := VBoxContainer.new()
