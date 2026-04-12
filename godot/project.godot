@@ -1,0 +1,21 @@
+; Engine configuration file.
+; Godot frontend scaffold for EcoWorld v4.
+
+config_version=5
+
+[application]
+
+config/name="EcoWorld Godot Frontend"
+run/main_scene="res://scenes/world_map.tscn"
+config/features=PackedStringArray("4.2")
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=960
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

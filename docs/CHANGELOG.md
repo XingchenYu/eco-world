@@ -2,6 +2,27 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha66 (2026-04-12 21:58)
+
+- ✅ 项目已开始切换到 `Godot` 前端路线，不再继续把 `pygame` 当成长期主界面方案。
+- ✅ 新增 Python -> Godot 数据桥：
+  - [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py)
+- ✅ 新增导出脚本：
+  - [scripts/export_world_state.py](/Users/yumini/Projects/eco-world/scripts/export_world_state.py)
+- ✅ 新增 Godot 工程骨架：
+  - [godot/project.godot](/Users/yumini/Projects/eco-world/godot/project.godot)
+  - [godot/scenes/world_map.tscn](/Users/yumini/Projects/eco-world/godot/scenes/world_map.tscn)
+  - [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd)
+- ✅ 新增中文文档：
+  - [docs/GODOT-FRONTEND.md](/Users/yumini/Projects/eco-world/docs/GODOT-FRONTEND.md)
+- ✅ 新增世界前端载荷测试：
+  - `test_v4_world_ui_payload()`
+- ✅ 当前 Godot 路线已经具备：
+  - 世界状态导出
+  - 世界地图前端骨架
+  - 中文界面入口
+  - 区域节点与右侧情报面板的数据来源
+
 ### v4.0-alpha65 (2026-04-12 18:42)
 
 - ✅ [src/renderer/world_gui.py](/Users/yumini/Projects/eco-world/src/renderer/world_gui.py) 已从“后台式世界面板”重构为“世界地图式主界面”。

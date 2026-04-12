@@ -53,6 +53,7 @@ from src.entities.animals import Antelope, Fox, Gender, Rabbit, Vulture, Zebra
 from src.main import load_config
 from src.sim.region_simulation import RegionSimulation
 from src.sim.world_simulation import WorldSimulation, build_default_world_simulation
+from src.ui.world_payload import build_world_ui_payload
 from src.world.world_map import build_default_world_map
 
 
@@ -398,6 +399,26 @@ def test_v4_world_region_cycle():
     assert world_sim.active_region_id == original_id
 
     print("✅ v4 world region cycle test passed")
+
+
+def test_v4_world_ui_payload():
+    """Godot 前端载荷应包含世界地图和焦点区域核心字段。"""
+    world_sim = build_default_world_simulation()
+    world_sim.set_active_region("temperate_grassland")
+    world_sim.update()
+
+    payload = build_world_ui_payload(world_sim)
+
+    assert payload["schema_version"] == 1
+    assert payload["world"]["name"] == "Aurelia"
+    assert payload["world"]["active_region_id"] == "temperate_grassland"
+    assert len(payload["world"]["regions"]) == 6
+    assert payload["active_region"]["id"] == "temperate_grassland"
+    assert "health_state" in payload["active_region"]
+    assert "social_phases" in payload["chains"]
+    assert "territory" in payload["narrative"]
+
+    print("✅ v4 world UI payload test passed")
 
 
 def test_v4_region_relationship_state_persists():
@@ -4723,6 +4744,7 @@ WORLD_TESTS = [
     test_v4_world_simulation_skeleton,
     test_v4_world_overview_summary,
     test_v4_world_region_cycle,
+    test_v4_world_ui_payload,
     test_v4_region_relationship_state_persists,
     test_v4_registry_queries,
     test_v4_region_food_web_summary,
