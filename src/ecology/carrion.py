@@ -384,6 +384,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_birth_memory_world_pressure_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_birth_cycle_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_birth_cycle_window_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("birth_cycle_window_memory_strength_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_condition_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_condition_phase_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_health_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
@@ -426,6 +427,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("runtime_aerial_birth_memory_world_pressure_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_aerial_birth_cycle_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_aerial_birth_cycle_window_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("birth_cycle_window_memory_strength_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_apex_world_pressure_window_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_apex_birth_cycle_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
@@ -1115,6 +1117,17 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["vulture"],
             }
         )
+    if scores.get("birth_cycle_window_memory_strength_pull", 0.0) >= 0.04 and vulture_count < 13:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "birth_cycle_window_memory_strength",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "birth_cycle_window_memory_aerial_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
     if scores.get("runtime_apex_world_pressure_pull", 0.0) >= 0.05 and lion_count < 9:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(
@@ -1179,6 +1192,17 @@ def apply_region_carrion_chain_rebalancing(
                 "layer_group": "scavenge_layer",
                 "effect": "birth_cycle_window_apex_carrion_support",
                 "new_target_count": species_pool["hyena"],
+            }
+        )
+    if scores.get("birth_cycle_window_memory_strength_pull", 0.0) >= 0.04 and lion_count < 9:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "birth_cycle_window_memory_strength",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "birth_cycle_window_memory_apex_carrion_support",
+                "new_target_count": species_pool["lion"],
             }
         )
     if scores.get("runtime_apex_health_anchor_pull", 0.0) >= 0.06 and lion_count < 9:

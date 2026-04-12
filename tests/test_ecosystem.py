@@ -1529,6 +1529,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
             "trend_scores": {
                 "lion_recovery_bias": 0.45,
                 "hyena_recovery_bias": 0.42,
+                "birth_cycle_window_memory_strength": 0.36,
             },
             "phase_scores": {
                 "lion_expansion_phase": 0.48,
@@ -1662,6 +1663,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "trend_scores": {
                 "lion_recovery_bias": 0.45,
                 "hyena_recovery_bias": 0.42,
+                "birth_cycle_window_memory_strength": 0.34,
             },
             "cycle_signals": ["world_pressure_window_memory"],
             "phase_scores": {
@@ -1722,6 +1724,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
         },
     )
     summary = build_region_grassland_chain_summary(region, registry, territory_summary=territory)
+    summary.trophic_scores["birth_cycle_window_memory_strength_pull"] = 0.06
     social_trends = build_region_social_trend_summary(region, territory_summary=territory)
     adjustments = apply_region_grassland_chain_rebalancing(
         region,
@@ -1761,6 +1764,8 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     assert any(item["effect"] in {"runtime_herd_anchor_prosperity_support", "runtime_apex_anchor_prosperity_support"} for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_herd_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_apex_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_memory_herd_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_memory_apex_support" for item in adjustments)
     assert any(item["effect"] in {"regional_prosperity_support", "regional_stability_support", "regional_collapse_drag"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_herd_release", "bust_phase_herd_drag", "boom_phase_apex_release", "bust_phase_apex_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_herd_gain", "collapse_phase_scavenger_loss"} for item in adjustments)
@@ -2009,6 +2014,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
         },
     )
     summary = build_region_carrion_chain_summary(region, registry, territory_summary=territory)
+    summary.resource_scores["birth_cycle_window_memory_strength_pull"] = 0.06
     social_trends = build_region_social_trend_summary(region, territory_summary=territory)
     adjustments = apply_region_carrion_chain_rebalancing(
         region,
@@ -2047,6 +2053,8 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     assert any(item["effect"] == "runtime_aerial_anchor_prosperity_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_aerial_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_apex_carrion_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_memory_aerial_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_memory_apex_carrion_support" for item in adjustments)
     assert any(item["effect"] in {"regional_prosperity_support", "regional_stability_support", "regional_collapse_drag"} for item in adjustments)
     assert any(item["effect"] in {"boom_phase_scavenger_release", "bust_phase_scavenger_drag"} for item in adjustments)
     assert any(item["effect"] in {"prosperity_phase_scavenger_gain", "collapse_phase_apex_loss"} for item in adjustments)
@@ -2079,6 +2087,7 @@ def test_v4_grassland_birth_memory_rebalancing_support():
     summary.trophic_scores["runtime_apex_birth_memory_world_pressure_pull"] = 0.05
     summary.trophic_scores["runtime_apex_birth_cycle_pull"] = 0.05
     summary.trophic_scores["runtime_apex_birth_cycle_window_pull"] = 0.05
+    summary.trophic_scores["birth_cycle_window_memory_strength_pull"] = 0.06
 
     adjustments = apply_region_grassland_chain_rebalancing(region, summary)
 
@@ -2090,9 +2099,11 @@ def test_v4_grassland_birth_memory_rebalancing_support():
     assert any(item["effect"] == "birth_cycle_herd_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_herd_window" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_herd_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_memory_herd_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_apex_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_apex_window" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_apex_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_memory_apex_support" for item in adjustments)
 
     print("✅ V4 grassland birth memory rebalancing support test passed")
 
@@ -2114,6 +2125,7 @@ def test_v4_carrion_birth_memory_rebalancing_support():
     summary.resource_scores["runtime_apex_birth_memory_world_pressure_pull"] = 0.05
     summary.resource_scores["runtime_apex_birth_cycle_pull"] = 0.05
     summary.resource_scores["runtime_apex_birth_cycle_window_pull"] = 0.05
+    summary.resource_scores["birth_cycle_window_memory_strength_pull"] = 0.06
 
     adjustments = apply_region_carrion_chain_rebalancing(region, summary)
 
@@ -2125,9 +2137,11 @@ def test_v4_carrion_birth_memory_rebalancing_support():
     assert any(item["effect"] == "birth_cycle_aerial_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_aerial_window" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_aerial_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_memory_aerial_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_apex_carrion_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_apex_carrion_window" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_apex_carrion_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_memory_apex_carrion_support" for item in adjustments)
 
     print("✅ V4 carrion birth memory rebalancing support test passed")
 

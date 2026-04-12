@@ -54,6 +54,10 @@
 - ✅ `birth_cycle_window_memory_strength` 现在也已直接进入：
   - `grassland_chain / carrion_chain` 摘要
   - 也就是“繁殖窗口真实生效强度”不再只停留在 `social/world`，而开始成为两条草原链自己的直接输入
+- ✅ 这组 `birth_cycle_window_memory_strength_pull` 现在也已继续进入：
+  - `grassland / carrion` 区域反馈
+  - `grassland / carrion` 低频重平衡
+  - 也就是“繁殖窗口真实生效强度”不再只影响摘要和世界压力，而开始直接影响 herd / aerial / apex 的恢复支持
 - ✅ 这组 `birth_cycle_window_runtime` 现已继续进入：
   - `grassland_chain / carrion_chain` 摘要
   - 世界级 `prosperity / collapse / runtime_resource_pressure`
