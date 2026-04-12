@@ -202,6 +202,15 @@ func _active_region_accent() -> Color:
 	return REGION_COLORS.get(active_region_id, Color8(210, 182, 96))
 
 
+func _blend_ui_accent(base: Color, region: Color) -> Color:
+	return Color(
+		lerp(base.r, region.r, 0.42),
+		lerp(base.g, region.g, 0.42),
+		lerp(base.b, region.b, 0.42),
+		0.96
+	)
+
+
 func _ready() -> void:
 	_build_ui()
 	_load_world_data()
@@ -776,7 +785,7 @@ func _build_side_panel() -> void:
 
 	match selected_tab:
 		"overview":
-			side_box.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview")))
+			side_box.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview"), region_accent))
 			side_box.add_child(_make_focus_card(active_region))
 			side_box.add_child(_make_region_summary_card(active_region))
 			side_box.add_child(_make_badge_list("风险焦点", pressure_headlines))
@@ -788,7 +797,7 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_route_section(route_summary))
 			side_box.add_child(_make_intro_section(active_region))
 		"chains":
-			side_box.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。", _tab_accent_color("chains")))
+			side_box.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。", _tab_accent_color("chains"), region_accent))
 			side_box.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
 			side_box.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
 			side_box.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
@@ -797,10 +806,10 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("竞争压力", chains.get("competition", []), true))
 			side_box.add_child(_make_section("捕食压力", chains.get("predation", []), true))
 		"species":
-			side_box.add_child(_make_tab_banner("物种图鉴", "查看当前焦点区域最核心的关键物种与数量。", _tab_accent_color("species")))
+			side_box.add_child(_make_tab_banner("物种图鉴", "查看当前焦点区域最核心的关键物种与数量。", _tab_accent_color("species"), region_accent))
 			side_box.add_child(_make_species_section(top_species))
 		"story":
-			side_box.add_child(_make_tab_banner("区域播报室", "汇总领地、趋势、链路和关系层的即时叙事。", _tab_accent_color("story")))
+			side_box.add_child(_make_tab_banner("区域播报室", "汇总领地、趋势、链路和关系层的即时叙事。", _tab_accent_color("story"), region_accent))
 			side_box.add_child(_make_story_section(narrative))
 
 func _make_tabs(region_accent: Color) -> HBoxContainer:
@@ -836,20 +845,21 @@ func _make_status_strip(active_region: Dictionary) -> PanelContainer:
 	return panel
 
 
-func _make_tab_banner(title_text: String, description: String, accent: Color) -> PanelContainer:
+func _make_tab_banner(title_text: String, description: String, accent: Color, region_accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
-	ribbon.color = accent
+	ribbon.color = _blend_ui_accent(accent, region_accent)
 	ribbon.custom_minimum_size = Vector2(0, 8)
 	box.add_child(ribbon)
 
 	var title := Label.new()
 	title.text = title_text
 	_style_primary_title(title, 24)
+	title.modulate = region_accent.lightened(0.24)
 	box.add_child(title)
 
 	var body := Label.new()
