@@ -156,6 +156,42 @@ class RegionSimulation(Ecosystem):
                 - regional_collapse_risk * 0.12,
             ),
         )
+        apex_birth_memory_world_pressure_bias = min(
+            1.0,
+            max(
+                0.0,
+                apex_birth_memory * 0.34
+                + world_pressure_bias * 0.26
+                + world_pressure_window_bias * 0.22
+                + condition_phase_bias * 0.10
+                + runtime_anchor_prosperity * 0.08
+                - regional_collapse_risk * 0.10,
+            ),
+        )
+        herd_birth_memory_world_pressure_bias = min(
+            1.0,
+            max(
+                0.0,
+                herd_birth_memory * 0.36
+                + world_pressure_bias * 0.24
+                + world_pressure_window_bias * 0.20
+                + condition_phase_bias * 0.10
+                + runtime_anchor_prosperity * 0.10
+                - regional_collapse_risk * 0.10,
+            ),
+        )
+        aerial_birth_memory_world_pressure_bias = min(
+            1.0,
+            max(
+                0.0,
+                aerial_birth_memory * 0.36
+                + world_pressure_bias * 0.24
+                + world_pressure_window_bias * 0.20
+                + condition_phase_bias * 0.10
+                + runtime_anchor_prosperity * 0.10
+                - regional_collapse_risk * 0.10,
+            ),
+        )
 
         for animal in self.animals:
             if not animal.alive:
@@ -178,6 +214,7 @@ class RegionSimulation(Ecosystem):
                 animal.birth_memory_bias = apex_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
+                animal.birth_memory_world_pressure_bias = apex_birth_memory_world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -199,6 +236,7 @@ class RegionSimulation(Ecosystem):
                 animal.birth_memory_bias = apex_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
+                animal.birth_memory_world_pressure_bias = apex_birth_memory_world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -219,6 +257,7 @@ class RegionSimulation(Ecosystem):
                 animal.birth_memory_bias = herd_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
+                animal.birth_memory_world_pressure_bias = herd_birth_memory_world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -239,6 +278,7 @@ class RegionSimulation(Ecosystem):
                 animal.birth_memory_bias = herd_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
+                animal.birth_memory_world_pressure_bias = herd_birth_memory_world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias
@@ -259,6 +299,7 @@ class RegionSimulation(Ecosystem):
                 animal.birth_memory_bias = aerial_birth_memory
                 animal.world_pressure_bias = world_pressure_bias
                 animal.world_pressure_window_bias = world_pressure_window_bias
+                animal.birth_memory_world_pressure_bias = aerial_birth_memory_world_pressure_bias
                 animal.regional_prosperity_bias = regional_prosperity_bias
                 animal.regional_stability_bias = regional_stability_bias
                 animal.regional_collapse_bias = regional_collapse_bias

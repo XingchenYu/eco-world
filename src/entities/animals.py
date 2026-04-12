@@ -558,6 +558,7 @@ class Animal(Creature):
         world_pressure_bias = max(0.0, min(1.0, getattr(self, "world_pressure_bias", 0.0)))
         world_pressure_window_bias = max(0.0, min(1.0, getattr(self, "world_pressure_window_bias", 0.0)))
         birth_memory_bias = max(0.0, min(1.0, getattr(self, "birth_memory_bias", 0.0)))
+        birth_memory_world_pressure_bias = max(0.0, min(1.0, getattr(self, "birth_memory_world_pressure_bias", 0.0)))
         condition_factor = max(
             0.80,
             min(
@@ -569,6 +570,7 @@ class Animal(Creature):
                 + world_pressure_bias * 0.08
                 + world_pressure_window_bias * 0.07,
                 + birth_memory_bias * 0.08
+                + birth_memory_world_pressure_bias * 0.08
             ),
         )
             
@@ -603,6 +605,7 @@ class Animal(Creature):
                         - world_pressure_bias * 2
                         - world_pressure_window_bias * 2
                         - birth_memory_bias * 2
+                        - birth_memory_world_pressure_bias * 2
                     )
                 ),
             ),
@@ -1190,6 +1193,7 @@ class Antelope(Animal):
         self.world_pressure_bias = 0.0
         self.world_pressure_window_bias = 0.0
         self.birth_memory_bias = 0.0
+        self.birth_memory_world_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1228,6 +1232,7 @@ class Antelope(Animal):
         self._apply_world_pressure_bias()
         self._apply_world_pressure_window_bias()
         self._apply_birth_memory_bias()
+        self._apply_birth_memory_world_pressure_bias()
         self._follow_herd_channel(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -1287,6 +1292,16 @@ class Antelope(Animal):
         if bias >= 0.24:
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + bias * 0.008
+
+    def _apply_birth_memory_world_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.birth_memory_world_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.08)
+        self.hunger = max(0.0, self.hunger - bias * 0.12)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.007
 
     def _follow_herd_channel(self, ecosystem):
         bias = max(
@@ -1349,6 +1364,7 @@ class Zebra(Animal):
         self.world_pressure_bias = 0.0
         self.world_pressure_window_bias = 0.0
         self.birth_memory_bias = 0.0
+        self.birth_memory_world_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1384,6 +1400,7 @@ class Zebra(Animal):
         self._apply_world_pressure_bias()
         self._apply_world_pressure_window_bias()
         self._apply_birth_memory_bias()
+        self._apply_birth_memory_world_pressure_bias()
         self._follow_herd_channel(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -1440,6 +1457,16 @@ class Zebra(Animal):
             return
         self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.09)
         self.hunger = max(0.0, self.hunger - bias * 0.13)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.007
+
+    def _apply_birth_memory_world_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.birth_memory_world_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.08)
+        self.hunger = max(0.0, self.hunger - bias * 0.12)
         if bias >= 0.24:
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + bias * 0.007
@@ -1873,6 +1900,7 @@ class Vulture(Animal):
         self.world_pressure_bias = 0.0
         self.world_pressure_window_bias = 0.0
         self.birth_memory_bias = 0.0
+        self.birth_memory_world_pressure_bias = 0.0
         self.regional_prosperity_bias = 0.0
         self.regional_stability_bias = 0.0
         self.regional_collapse_bias = 0.0
@@ -1917,6 +1945,7 @@ class Vulture(Animal):
         self._apply_world_pressure_bias()
         self._apply_world_pressure_window_bias()
         self._apply_birth_memory_bias()
+        self._apply_birth_memory_world_pressure_bias()
         self._track_aerial_lanes(ecosystem)
 
     def _apply_regional_health_anchor(self):
@@ -1976,6 +2005,16 @@ class Vulture(Animal):
         if bias >= 0.24:
             self.mate_cooldown = max(0, self.mate_cooldown - 1)
         self.reproduction_rate *= 1.0 + bias * 0.008
+
+    def _apply_birth_memory_world_pressure_bias(self):
+        bias = max(0.0, min(1.0, self.birth_memory_world_pressure_bias))
+        if bias <= 0.0:
+            return
+        self.health = min(getattr(self, "max_health", 100), self.health + bias * 0.08)
+        self.hunger = max(0.0, self.hunger - bias * 0.12)
+        if bias >= 0.24:
+            self.mate_cooldown = max(0, self.mate_cooldown - 1)
+        self.reproduction_rate *= 1.0 + bias * 0.007
 
     def _track_aerial_lanes(self, ecosystem):
         bias = max(

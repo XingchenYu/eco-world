@@ -1710,3 +1710,13 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `--emit compile|tests|both`：只输出需要的命令类型
   - `src/entities/animals.py` / `src/entities/omnivores.py` 现已支持更细的 diff-aware 归类，不再默认所有运行体改动都一律跑 `species + runtime`
 - [docs/CODE-REVIEW-GRAPH-CHECKS.md](/Users/yumini/Projects/eco-world/docs/CODE-REVIEW-GRAPH-CHECKS.md) 与 [docs/USAGE.md](/Users/yumini/Projects/eco-world/docs/USAGE.md) 已同步补充中文说明与示例
+- 主线继续推进：
+  - `birth_memory_world_pressure_bias`：产仔记忆与世界级长期压力叠加后的运行期偏置
+  - 已接入：
+    - `lion / hyena / antelope / zebra / vulture`
+    - `territory.runtime_signals`
+    - `social_trends.cycle_signals`
+    - `grassland_chain / carrion_chain` 摘要、反馈与重平衡
+    - 世界级长期压力聚合
+  - 也就是说，这条慢反馈现在已经形成：
+    - `birth_memory -> world pressure -> runtime bias -> territory/social/chains -> next world pressure`

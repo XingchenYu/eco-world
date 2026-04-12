@@ -124,6 +124,7 @@ def build_region_grassland_chain_summary(
         herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
         herd_birth_runtime = float(runtime_signals.get("herd_birth_runtime", 0.0))
         herd_birth_memory_runtime = float(runtime_signals.get("herd_birth_memory_runtime", 0.0))
+        herd_birth_memory_world_pressure_runtime = float(runtime_signals.get("herd_birth_memory_world_pressure_runtime", 0.0))
         herd_condition_runtime = float(runtime_signals.get("herd_condition_runtime", 0.0))
         herd_condition_phase_runtime = float(runtime_signals.get("herd_condition_phase_runtime", 0.0))
         herd_condition_phase_bias_runtime = float(runtime_signals.get("herd_condition_phase_bias_runtime", 0.0))
@@ -134,6 +135,7 @@ def build_region_grassland_chain_summary(
         herd_regional_bias_runtime = float(runtime_signals.get("herd_regional_bias_runtime", 0.0))
         apex_birth_runtime = float(runtime_signals.get("apex_birth_runtime", 0.0))
         apex_birth_memory_runtime = float(runtime_signals.get("apex_birth_memory_runtime", 0.0))
+        apex_birth_memory_world_pressure_runtime = float(runtime_signals.get("apex_birth_memory_world_pressure_runtime", 0.0))
         apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
         apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
         apex_condition_phase_bias_runtime = float(runtime_signals.get("apex_condition_phase_bias_runtime", 0.0))
@@ -174,6 +176,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_birth_memory_pull", min(0.18, herd_birth_memory_runtime * 0.12), "近期产仔沉淀成的 herd 记忆偏置，正在把草原 herd 通道继续拉向更稳定的延续走廊。")
             add_layer_bias("herd_layer", herd_birth_memory_runtime * 0.06)
             add_layer_bias("social_layer", herd_birth_memory_runtime * 0.03)
+        if herd_birth_memory_world_pressure_runtime > 0.0:
+            add_score("runtime_herd_birth_memory_world_pressure_pull", min(0.18, herd_birth_memory_world_pressure_runtime * 0.12), "近期产仔记忆与世界级长期压力叠加后的 herd 运行期偏置，正在继续抬升草原走廊的延续强度。")
+            add_layer_bias("herd_layer", herd_birth_memory_world_pressure_runtime * 0.06)
+            add_layer_bias("social_layer", herd_birth_memory_world_pressure_runtime * 0.03)
         if herd_condition_runtime > 0.0:
             add_score("runtime_herd_condition_pull", min(0.18, herd_condition_runtime * 0.14), "运行中的食草群真实体况正在把 herd 通道重新压回更稳定的草原走廊。")
             add_layer_bias("herd_layer", herd_condition_runtime * 0.06)
@@ -224,6 +230,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_apex_birth_memory_pull", min(0.16, apex_birth_memory_runtime * 0.11), "近期产仔沉淀成的 apex 记忆偏置，正在把草原热点继续压向更稳定的顶层延续核心。")
             add_layer_bias("predator_layer", apex_birth_memory_runtime * 0.05)
             add_layer_bias("social_layer", apex_birth_memory_runtime * 0.03)
+        if apex_birth_memory_world_pressure_runtime > 0.0:
+            add_score("runtime_apex_birth_memory_world_pressure_pull", min(0.16, apex_birth_memory_world_pressure_runtime * 0.11), "近期产仔记忆与世界级长期压力叠加后的 apex 运行期偏置，正在继续抬升顶层热点恢复前线。")
+            add_layer_bias("predator_layer", apex_birth_memory_world_pressure_runtime * 0.05)
+            add_layer_bias("social_layer", apex_birth_memory_world_pressure_runtime * 0.03)
         if apex_condition_runtime > 0.0:
             add_score("runtime_apex_condition_pull", min(0.16, apex_condition_runtime * 0.12), "运行中的顶层捕食者真实体况正在把草原热点重新压向更强的 apex 核心。")
             add_layer_bias("predator_layer", apex_condition_runtime * 0.05)
@@ -372,6 +382,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("runtime_surface_water_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_birth_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_birth_memory_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_birth_memory_world_pressure_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_condition_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_condition_phase_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_health_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
@@ -399,6 +410,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_herd_apex_overlap", 0.0) * 0.12 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_memory_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_phase_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
@@ -418,7 +430,9 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_pressure", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("prosperity_phase_weight", 0.0) * 0.12 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_herd_world_pressure_window_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("runtime_herd_birth_memory_world_pressure_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_apex_world_pressure_window_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "fragmentation", -scores.get("canopy_opening", 0.0) * 0.08, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("group_hunt_instability", 0.0) * 0.08 * collapse_bias, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("hotspot_overlap_pressure", 0.0) * 0.10 * collapse_bias, feedback_scale)
@@ -1382,6 +1396,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["zebra"],
             }
         )
+    if scores.get("runtime_herd_birth_memory_world_pressure_pull", 0.0) >= 0.04 and antelope_count < 21:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "birth_memory_world_pressure",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "birth_memory_world_pressure_herd_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if scores.get("runtime_apex_world_pressure_pull", 0.0) >= 0.05 and lion_count < 8:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(
@@ -1402,6 +1427,17 @@ def apply_region_grassland_chain_rebalancing(
                 "layer_group": "social_layer",
                 "effect": "world_pressure_window_apex_support",
                 "new_target_count": species_pool["hyena"],
+            }
+        )
+    if scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0) >= 0.04 and lion_count < 8:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "birth_memory_world_pressure",
+                "target_species": "lion",
+                "layer_group": "predator_layer",
+                "effect": "birth_memory_world_pressure_apex_support",
+                "new_target_count": species_pool["lion"],
             }
         )
     if scores.get("runtime_apex_health_anchor_pull", 0.0) >= 0.06 and lion_count < 8:

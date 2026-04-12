@@ -94,6 +94,7 @@ def build_region_carrion_chain_summary(
         vulture_overlap = int(runtime_signals.get("vulture_carrion_overlap", 0))
         aerial_birth_runtime = float(runtime_signals.get("aerial_birth_runtime", 0.0))
         aerial_birth_memory_runtime = float(runtime_signals.get("aerial_birth_memory_runtime", 0.0))
+        aerial_birth_memory_world_pressure_runtime = float(runtime_signals.get("aerial_birth_memory_world_pressure_runtime", 0.0))
         aerial_condition_runtime = float(runtime_signals.get("aerial_condition_runtime", 0.0))
         aerial_birth_runtime = float(runtime_signals.get("aerial_birth_runtime", 0.0))
         aerial_condition_phase_runtime = float(runtime_signals.get("aerial_condition_phase_runtime", 0.0))
@@ -102,6 +103,7 @@ def build_region_carrion_chain_summary(
         apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
         apex_birth_runtime = float(runtime_signals.get("apex_birth_runtime", 0.0))
         apex_birth_memory_runtime = float(runtime_signals.get("apex_birth_memory_runtime", 0.0))
+        apex_birth_memory_world_pressure_runtime = float(runtime_signals.get("apex_birth_memory_world_pressure_runtime", 0.0))
         apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
         apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
         apex_regional_bias_runtime = float(runtime_signals.get("apex_regional_bias_runtime", 0.0))
@@ -137,6 +139,10 @@ def build_region_carrion_chain_summary(
             add_score("runtime_aerial_birth_memory_pull", min(0.18, aerial_birth_memory_runtime * 0.12), "近期产仔沉淀成的空中清道夫记忆偏置，正在把尸体追踪继续拉向更稳定的空中通道。")
             add_layer_bias("aerial_scavenge_layer", aerial_birth_memory_runtime * 0.06)
             add_layer_bias("scavenge_layer", aerial_birth_memory_runtime * 0.03)
+        if aerial_birth_memory_world_pressure_runtime > 0.0:
+            add_score("runtime_aerial_birth_memory_world_pressure_pull", min(0.18, aerial_birth_memory_world_pressure_runtime * 0.12), "近期产仔记忆与世界级长期压力叠加后的空中运行期偏置，正在继续抬升秃鹫尸体通道的恢复强度。")
+            add_layer_bias("aerial_scavenge_layer", aerial_birth_memory_world_pressure_runtime * 0.06)
+            add_layer_bias("scavenge_layer", aerial_birth_memory_world_pressure_runtime * 0.03)
         if aerial_condition_runtime > 0.0:
             add_score("runtime_aerial_condition_pull", min(0.18, aerial_condition_runtime * 0.14), "运行中的空中清道夫真实体况正在把尸体追踪重新拉向更稳定的空中通道。")
             add_layer_bias("aerial_scavenge_layer", aerial_condition_runtime * 0.06)
@@ -203,6 +209,10 @@ def build_region_carrion_chain_summary(
             add_score("runtime_apex_birth_memory_pull", min(0.16, apex_birth_memory_runtime * 0.11), "近期产仔沉淀成的顶层记忆偏置，正在把击杀与残食通道继续压向更稳定的 apex 延续前线。")
             add_layer_bias("kill_layer", apex_birth_memory_runtime * 0.05)
             add_layer_bias("scavenge_layer", apex_birth_memory_runtime * 0.03)
+        if apex_birth_memory_world_pressure_runtime > 0.0:
+            add_score("runtime_apex_birth_memory_world_pressure_pull", min(0.16, apex_birth_memory_world_pressure_runtime * 0.11), "近期产仔记忆与世界级长期压力叠加后的 apex 运行期偏置，正在继续抬升击杀走廊恢复前线。")
+            add_layer_bias("kill_layer", apex_birth_memory_world_pressure_runtime * 0.05)
+            add_layer_bias("scavenge_layer", apex_birth_memory_world_pressure_runtime * 0.03)
         if apex_condition_runtime > 0.0:
             add_score("runtime_apex_condition_pull", min(0.16, apex_condition_runtime * 0.12), "运行中的顶层捕食者真实体况正在抬升击杀与残食通道的持续前线。")
             add_layer_bias("kill_layer", apex_condition_runtime * 0.05)
@@ -340,6 +350,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_carcass_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_birth_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_birth_memory_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_birth_memory_world_pressure_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_condition_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_condition_phase_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_health_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
@@ -362,6 +373,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_vulture_overlap", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_memory_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_phase_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
@@ -376,7 +388,9 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.health_state, "resilience", scores.get("hotspot_cycle_carrion", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("prosperity_phase_carrion", 0.0) * 0.10 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_aerial_world_pressure_window_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("runtime_aerial_birth_memory_world_pressure_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "resilience", scores.get("runtime_apex_world_pressure_window_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
+    _adjust(region.health_state, "resilience", scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0) * 0.08 * prosperity_bias, feedback_scale)
     _adjust(region.health_state, "fragmentation", scores.get("collapse_phase_carrion", 0.0) * 0.10 * collapse_bias, feedback_scale)
 
 
@@ -1018,6 +1032,17 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["vulture"],
             }
         )
+    if scores.get("runtime_aerial_birth_memory_world_pressure_pull", 0.0) >= 0.04 and vulture_count < 13:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "birth_memory_world_pressure",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "birth_memory_world_pressure_aerial_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
     if scores.get("runtime_apex_world_pressure_pull", 0.0) >= 0.05 and lion_count < 9:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(
@@ -1038,6 +1063,17 @@ def apply_region_carrion_chain_rebalancing(
                 "layer_group": "scavenge_layer",
                 "effect": "world_pressure_window_apex_carrion_support",
                 "new_target_count": species_pool["hyena"],
+            }
+        )
+    if scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0) >= 0.04 and lion_count < 9:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "birth_memory_world_pressure",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "birth_memory_world_pressure_apex_carrion_support",
+                "new_target_count": species_pool["lion"],
             }
         )
     if scores.get("runtime_apex_health_anchor_pull", 0.0) >= 0.06 and lion_count < 9:

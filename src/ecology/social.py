@@ -104,6 +104,9 @@ def build_region_social_trend_summary(
     herd_world_pressure_window_runtime = float(runtime_signals.get("herd_world_pressure_window_runtime", 0.0))
     aerial_world_pressure_window_runtime = float(runtime_signals.get("aerial_world_pressure_window_runtime", 0.0))
     apex_world_pressure_window_runtime = float(runtime_signals.get("apex_world_pressure_window_runtime", 0.0))
+    herd_birth_memory_world_pressure_runtime = float(runtime_signals.get("herd_birth_memory_world_pressure_runtime", 0.0))
+    aerial_birth_memory_world_pressure_runtime = float(runtime_signals.get("aerial_birth_memory_world_pressure_runtime", 0.0))
+    apex_birth_memory_world_pressure_runtime = float(runtime_signals.get("apex_birth_memory_world_pressure_runtime", 0.0))
 
     overlap = int(runtime_signals.get("shared_hotspot_overlap", 0))
     regional_prosperity = float(region.health_state.get("prosperity", 0.0))
@@ -227,6 +230,7 @@ def build_region_social_trend_summary(
             + herd_route_cycle_runtime * 0.08
             + herd_birth_runtime * 0.07
             + herd_birth_memory_runtime * 0.07
+            + herd_birth_memory_world_pressure_runtime * 0.07
             + herd_surface_water_runtime * 0.06
             + herd_regional_health_runtime * 0.06
             + herd_condition_runtime * 0.05
@@ -255,6 +259,7 @@ def build_region_social_trend_summary(
             + aerial_carrion_cycle_runtime * 0.08
             + aerial_birth_runtime * 0.07
             + aerial_birth_memory_runtime * 0.07
+            + aerial_birth_memory_world_pressure_runtime * 0.07
             + aerial_carcass_runtime * 0.06
             + aerial_regional_health_runtime * 0.06
             + aerial_condition_runtime * 0.05
@@ -287,10 +292,13 @@ def build_region_social_trend_summary(
                     + aerial_carrion_cycle_signal * 0.08
                     + herd_birth_runtime * 0.08
                     + herd_birth_memory_runtime * 0.08
+                    + herd_birth_memory_world_pressure_runtime * 0.07
                     + aerial_birth_runtime * 0.08
                     + aerial_birth_memory_runtime * 0.08
+                    + aerial_birth_memory_world_pressure_runtime * 0.07
                     + apex_birth_runtime * 0.06
                     + apex_birth_memory_runtime * 0.06
+                    + apex_birth_memory_world_pressure_runtime * 0.06
                     + apex_regional_health_runtime * 0.06
                     + apex_condition_runtime * 0.05
                     + apex_condition_phase_runtime * 0.04
@@ -681,6 +689,8 @@ def build_region_social_trend_summary(
         cycle_signals.append("herd_birth_runtime")
     if herd_birth_memory_runtime >= 0.16:
         cycle_signals.append("herd_birth_memory_runtime")
+    if herd_birth_memory_world_pressure_runtime >= 0.16:
+        cycle_signals.append("herd_birth_memory_world_pressure_runtime")
         narrative_trends.append("近期食草群产仔正在把 herd 通道推进成更稳定的延续周期。")
     if phase_scores["aerial_carrion_cycle"] >= 0.12:
         cycle_signals.append("aerial_carrion_cycle")
@@ -689,6 +699,8 @@ def build_region_social_trend_summary(
         cycle_signals.append("aerial_birth_runtime")
     if aerial_birth_memory_runtime >= 0.16:
         cycle_signals.append("aerial_birth_memory_runtime")
+    if aerial_birth_memory_world_pressure_runtime >= 0.16:
+        cycle_signals.append("aerial_birth_memory_world_pressure_runtime")
         narrative_trends.append("近期空中清道夫产仔正在延长空中尸体通道的延续节律。")
     if surface_water_anchor >= 0.45:
         cycle_signals.append("surface_water_anchor")
@@ -785,6 +797,8 @@ def build_region_social_trend_summary(
         cycle_signals.append("apex_birth_runtime")
     if apex_birth_memory_runtime >= 0.16:
         cycle_signals.append("apex_birth_memory_runtime")
+    if apex_birth_memory_world_pressure_runtime >= 0.16:
+        cycle_signals.append("apex_birth_memory_world_pressure_runtime")
         narrative_trends.append("近期顶层社群产仔正在抬高 apex 社群的长期延续记忆。")
     if regional_prosperity >= 0.28:
         cycle_signals.append("regional_prosperity_anchor")
