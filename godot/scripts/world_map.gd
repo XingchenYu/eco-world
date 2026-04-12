@@ -630,6 +630,8 @@ func _build_focus_stage(regions: Array) -> void:
 	var accent := _active_region_accent()
 	var chain_focus: Array = active_region.get("chain_focus", [])
 	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
+	var route_summary: Array = active_region.get("route_summary", [])
+	var top_species: Array = active_region.get("top_species", [])
 	var stage := PanelContainer.new()
 	stage.custom_minimum_size = Vector2(360, 150)
 	stage.position = Vector2(map_size.x * 0.34, map_size.y * 0.38)
@@ -715,6 +717,57 @@ func _build_focus_stage(regions: Array) -> void:
 	signal_row.add_child(_make_hero_chip("稳定", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0)), Color8(102, 152, 204)))
 	signal_row.add_child(_make_hero_chip("风险", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0)), Color8(171, 132, 196)))
 	signal_row.add_child(_make_hero_chip("种群", str(active_region.get("species_population", 0)), Color8(210, 182, 96)))
+
+	var left_panel := _make_stage_info_panel(
+		"前线通道情报",
+		[
+			str(route_summary[0]) if route_summary.size() > 0 else "当前暂无显著通道情报",
+			str(route_summary[1]) if route_summary.size() > 1 else "等待更多通道聚焦",
+			str(route_summary[2]) if route_summary.size() > 2 else "等待更多通道聚焦",
+		],
+		Color8(102, 152, 204)
+	)
+	left_panel.position = stage.position + Vector2(-286, 76)
+	map_layer.add_child(left_panel)
+
+	var right_panel := _make_stage_info_panel(
+		"核心物种快照",
+		[
+			_species_entry_label(top_species[0]) if top_species.size() > 0 else "当前暂无核心物种数据",
+			_species_entry_label(top_species[1]) if top_species.size() > 1 else "等待更多物种聚焦",
+			_species_entry_label(top_species[2]) if top_species.size() > 2 else "等待更多物种聚焦",
+		],
+		Color8(171, 132, 196)
+	)
+	right_panel.position = stage.position + Vector2(382, 76)
+	map_layer.add_child(right_panel)
+
+
+func _make_stage_info_panel(title_text: String, rows: Array, accent: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(240, 132)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = accent.lightened(0.06)
+	ribbon.custom_minimum_size = Vector2(0, 8)
+	box.add_child(ribbon)
+
+	var title := Label.new()
+	title.text = title_text
+	_style_secondary_title(title, 18)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+
+	for line in rows:
+		var item := Label.new()
+		item.text = "• %s" % str(line)
+		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_style_body(item, 14)
+		box.add_child(item)
+	return panel
 
 
 func _build_route_lines(regions: Array) -> void:
