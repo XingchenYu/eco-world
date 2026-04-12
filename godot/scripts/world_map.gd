@@ -507,8 +507,7 @@ func _render_world() -> void:
 	_build_world_ambience()
 	_build_route_lines(world_meta.get("regions", []))
 	_build_map_nodes(world_meta.get("regions", []))
-	_build_world_bulletin()
-	_build_map_legend()
+	_build_map_command_layer()
 	_build_side_panel()
 
 
@@ -813,12 +812,24 @@ func _build_map_nodes(regions: Array) -> void:
 		plaque.add_child(plaque_label)
 
 
-func _build_world_bulletin() -> void:
+func _build_map_command_layer() -> void:
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var bulletin_panel := _make_world_bulletin_panel(active_region)
+	bulletin_panel.position = Vector2(24, 20)
+	map_layer.add_child(bulletin_panel)
+
+	var focus_strip := _make_focus_command_strip(active_region)
+	focus_strip.position = Vector2(max(220, map_layer.size.x * 0.34), 20)
+	map_layer.add_child(focus_strip)
+
+	var legend_panel := _make_map_legend_panel(active_region)
+	legend_panel.position = Vector2(max(24, map_layer.size.x - 250), 20)
+	map_layer.add_child(legend_panel)
+
+
+func _make_world_bulletin_panel(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(320, 0)
-	panel.position = Vector2(24, 20)
-	map_layer.add_child(panel)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
@@ -893,14 +904,49 @@ func _build_world_bulletin() -> void:
 			item.text = "• %s" % str(line)
 			_style_body(item, 15)
 			digest_box.add_child(item)
+	return panel
 
 
-func _build_map_legend() -> void:
-	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+func _make_focus_command_strip(active_region: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(360, 0)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = _active_region_accent().lightened(0.04)
+	ribbon.custom_minimum_size = Vector2(0, 8)
+	box.add_child(ribbon)
+
+	var title := Label.new()
+	title.text = "%s · 世界战情层" % _region_type_chip(active_region)
+	_style_primary_title(title, 20)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	row.add_child(_make_hero_chip("焦点区域", str(active_region.get("name", "未选择")), _active_region_accent()))
+	row.add_child(_make_hero_chip("区域定位", str(active_region.get("region_role", "生态观测区")), Color8(102, 152, 204)))
+	row.add_child(_make_hero_chip("主地貌", " / ".join(active_region.get("dominant_biomes", []).slice(0, 2)), Color8(210, 182, 96)))
+
+	var footer := Label.new()
+	footer.text = "连接 %s · 种群 %s" % [
+		str(active_region.get("connector_count", active_region.get("connectors", []).size())),
+		str(active_region.get("species_population", 0)),
+	]
+	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_dim(footer, 13)
+	box.add_child(footer)
+	return panel
+
+
+func _make_map_legend_panel(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(220, 0)
-	panel.position = Vector2(max(24, map_layer.size.x - 250), 20)
-	map_layer.add_child(panel)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
@@ -952,6 +998,7 @@ func _build_map_legend() -> void:
 		label.text = str(entry.get("label", ""))
 		_style_body(label, 15)
 		row.add_child(label)
+	return panel
 
 
 func _build_side_panel() -> void:
