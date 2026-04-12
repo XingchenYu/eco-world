@@ -241,6 +241,7 @@ func _render_world() -> void:
 		child.queue_free()
 
 	_build_world_backdrop()
+	_build_world_ambience()
 	_build_route_lines(world_meta.get("regions", []))
 	_build_map_nodes(world_meta.get("regions", []))
 	_build_world_bulletin()
@@ -300,6 +301,40 @@ func _build_world_backdrop() -> void:
 	coral_label.position = Vector2(map_size.x * 0.73, map_size.y * 0.61)
 	_style_secondary_title(coral_label, 22)
 	map_layer.add_child(coral_label)
+
+
+func _build_world_ambience() -> void:
+	var map_size := map_layer.get_rect().size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
+
+	var x := 0.0
+	while x < map_size.x:
+		var grid := ColorRect.new()
+		grid.color = Color(1.0, 1.0, 1.0, 0.04)
+		grid.position = Vector2(x, 0)
+		grid.custom_minimum_size = Vector2(1, map_size.y)
+		map_layer.add_child(grid)
+		x += 96.0
+
+	var y := 0.0
+	while y < map_size.y:
+		var grid := ColorRect.new()
+		grid.color = Color(1.0, 1.0, 1.0, 0.035)
+		grid.position = Vector2(0, y)
+		grid.custom_minimum_size = Vector2(map_size.x, 1)
+		map_layer.add_child(grid)
+		y += 88.0
+
+	for current in [
+		{"from": Vector2(map_size.x * 0.63, map_size.y * 0.22), "to": Vector2(map_size.x * 0.82, map_size.y * 0.30)},
+		{"from": Vector2(map_size.x * 0.70, map_size.y * 0.44), "to": Vector2(map_size.x * 0.90, map_size.y * 0.56)},
+		{"from": Vector2(map_size.x * 0.74, map_size.y * 0.66), "to": Vector2(map_size.x * 0.90, map_size.y * 0.78)},
+	]:
+		var flow := _make_route_line(current["from"], current["to"], 0.85)
+		flow.color = Color(0.70, 0.86, 0.97, 0.14)
+		flow.custom_minimum_size = Vector2(flow.custom_minimum_size.x, 3.0)
+		map_layer.add_child(flow)
 
 
 func _build_route_lines(regions: Array) -> void:

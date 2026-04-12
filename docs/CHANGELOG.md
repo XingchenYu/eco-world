@@ -2,6 +2,14 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha81 (2026-04-13 00:42)
+
+- ✅ Godot 前端继续补中央地图的氛围层。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 弱网格
+  - 海流装饰线
+- ✅ 这意味着中央地图不再只是底图和节点，而开始有“世界正在运转”的视觉感。
+
 ### v4.0-alpha80 (2026-04-13 00:34)
 
 - ✅ Godot 前端继续收口顶栏控制区。
