@@ -150,9 +150,24 @@ func _animate_status_flash(accent: Color = Color8(255, 240, 180)) -> void:
 	tween.tween_property(status_label, "modulate", Color8(170, 180, 188), 0.28)
 
 
+func _animate_status_strip_flash(accent: Color) -> void:
+	if side_box == null:
+		return
+	for child in side_box.get_children():
+		if child is PanelContainer and child.has_meta("status_strip"):
+			var panel := child as PanelContainer
+			panel.modulate = accent.lightened(0.16)
+			panel.scale = Vector2(1.015, 1.015)
+			var tween := create_tween()
+			tween.tween_property(panel, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.26)
+			tween.parallel().tween_property(panel, "scale", Vector2.ONE, 0.26)
+			break
+
+
 func _animate_region_transition(accent: Color) -> void:
 	_animate_side_panel_refresh()
 	_animate_status_flash(accent)
+	_animate_status_strip_flash(accent)
 	if title_label != null:
 		title_label.modulate = accent.lightened(0.38)
 		var title_tween := create_tween()
@@ -997,6 +1012,7 @@ func _make_tabs(region_accent: Color) -> HBoxContainer:
 
 func _make_status_strip(active_region: Dictionary, region_accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
+	panel.set_meta("status_strip", true)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	panel.add_child(row)
