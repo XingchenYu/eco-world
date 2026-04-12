@@ -47,6 +47,12 @@
   - `aerial_birth_runtime`
   - `apex_birth_runtime`
 - ✅ 这意味着 `birth_cycle_window_pressure_bias` 现在不只影响“产多少”和“多久恢复”，还会继续抬升世界层看到的运行期产仔强度。
+- ✅ [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 现在会把：
+  - `birth_cycle_window_pressure_memory`
+  继续抬升到：
+  - `apex_birth_memory_world_pressure_bias`
+  - `herd_birth_memory_world_pressure_bias`
+  - `aerial_birth_memory_world_pressure_bias`
 
 ### v4.0-alpha62 (2026-04-12 16:55)
 

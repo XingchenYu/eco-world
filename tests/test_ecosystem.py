@@ -2422,6 +2422,7 @@ def test_region_simulation_applies_social_phase_state():
                 "herd_birth_memory": 0.34,
                 "aerial_birth_memory": 0.31,
                 "apex_birth_memory": 0.29,
+                "birth_cycle_window_pressure_memory": 0.28,
             },
             "prosperity_scores": {
                 "grassland_prosperity_phase": 0.41,
@@ -2479,7 +2480,7 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.surface_water_anchor == 0.68
     assert lion.runtime_anchor_prosperity > 0.30
     assert lion.birth_memory_bias > 0.0
-    assert lion.birth_memory_world_pressure_bias > 0.10
+    assert lion.birth_memory_world_pressure_bias > 0.12
     assert lion.birth_cycle_bias > 0.10
     assert lion.world_pressure_bias > 0.10
     assert lion.world_pressure_window_bias > 0.10
@@ -2498,7 +2499,7 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.carcass_anchor == 0.57
     assert hyena.runtime_anchor_prosperity > 0.30
     assert hyena.birth_memory_bias > 0.0
-    assert hyena.birth_memory_world_pressure_bias > 0.10
+    assert hyena.birth_memory_world_pressure_bias > 0.12
     assert hyena.birth_cycle_bias > 0.10
     assert hyena.world_pressure_bias > 0.10
     assert hyena.world_pressure_window_bias > 0.10
@@ -2522,7 +2523,7 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.surface_water_anchor == 0.68
     assert antelope.runtime_anchor_prosperity > 0.30
     assert antelope.birth_memory_bias > 0.0
-    assert antelope.birth_memory_world_pressure_bias > 0.10
+    assert antelope.birth_memory_world_pressure_bias > 0.12
     assert antelope.birth_cycle_bias > 0.10
     assert antelope.world_pressure_bias > 0.10
     assert antelope.world_pressure_window_bias > 0.10
@@ -2542,7 +2543,7 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.surface_water_anchor == 0.68
     assert zebra.runtime_anchor_prosperity > 0.30
     assert zebra.birth_memory_bias > 0.0
-    assert zebra.birth_memory_world_pressure_bias > 0.10
+    assert zebra.birth_memory_world_pressure_bias > 0.12
     assert zebra.birth_cycle_bias > 0.10
     assert zebra.world_pressure_bias > 0.10
     assert zebra.world_pressure_window_bias > 0.10
@@ -2562,7 +2563,7 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.carcass_anchor == 0.57
     assert vulture.runtime_anchor_prosperity > 0.30
     assert vulture.birth_memory_bias > 0.0
-    assert vulture.birth_memory_world_pressure_bias > 0.10
+    assert vulture.birth_memory_world_pressure_bias > 0.12
     assert vulture.birth_cycle_bias > 0.10
     assert vulture.world_pressure_bias > 0.10
     assert vulture.world_pressure_window_bias > 0.10

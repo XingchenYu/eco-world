@@ -166,6 +166,7 @@ class RegionSimulation(Ecosystem):
                 apex_birth_memory * 0.34
                 + world_pressure_bias * 0.26
                 + world_pressure_window_bias * 0.22
+                + birth_cycle_window_pressure_memory * 0.12
                 + condition_phase_bias * 0.10
                 + runtime_anchor_prosperity * 0.08
                 - regional_collapse_risk * 0.10,
@@ -178,6 +179,7 @@ class RegionSimulation(Ecosystem):
                 herd_birth_memory * 0.36
                 + world_pressure_bias * 0.24
                 + world_pressure_window_bias * 0.20
+                + birth_cycle_window_pressure_memory * 0.12
                 + condition_phase_bias * 0.10
                 + runtime_anchor_prosperity * 0.10
                 - regional_collapse_risk * 0.10,
@@ -190,6 +192,7 @@ class RegionSimulation(Ecosystem):
                 aerial_birth_memory * 0.36
                 + world_pressure_bias * 0.24
                 + world_pressure_window_bias * 0.20
+                + birth_cycle_window_pressure_memory * 0.12
                 + condition_phase_bias * 0.10
                 + runtime_anchor_prosperity * 0.10
                 - regional_collapse_risk * 0.10,
