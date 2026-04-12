@@ -164,6 +164,21 @@ func _animate_status_strip_flash(accent: Color) -> void:
 			break
 
 
+func _animate_status_strip_page_flash(region_accent: Color, tab_accent: Color) -> void:
+	if side_box == null:
+		return
+	var flash := _blend_ui_accent(tab_accent, region_accent)
+	for child in side_box.get_children():
+		if child is PanelContainer and child.has_meta("status_strip"):
+			var panel := child as PanelContainer
+			panel.modulate = flash.lightened(0.08)
+			panel.scale = Vector2(1.008, 1.008)
+			var tween := create_tween()
+			tween.tween_property(panel, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.18)
+			tween.parallel().tween_property(panel, "scale", Vector2.ONE, 0.18)
+			break
+
+
 func _animate_region_transition(accent: Color) -> void:
 	_animate_side_panel_refresh()
 	_animate_status_flash(accent)
@@ -182,7 +197,7 @@ func _animate_page_transition(region_accent: Color, tab_accent: Color) -> void:
 	_animate_tab_transition()
 	_animate_side_panel_refresh()
 	_animate_status_flash(_blend_ui_accent(tab_accent, region_accent))
-	_animate_status_strip_flash(_blend_ui_accent(tab_accent, region_accent))
+	_animate_status_strip_page_flash(region_accent, tab_accent)
 	if subtitle_label != null:
 		subtitle_label.modulate = _blend_ui_accent(tab_accent, region_accent).lightened(0.12)
 		var subtitle_tween := create_tween()
