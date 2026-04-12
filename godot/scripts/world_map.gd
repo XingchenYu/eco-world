@@ -150,6 +150,19 @@ func _animate_status_flash(accent: Color = Color8(255, 240, 180)) -> void:
 	tween.tween_property(status_label, "modulate", Color8(170, 180, 188), 0.28)
 
 
+func _animate_region_transition(accent: Color) -> void:
+	_animate_side_panel_refresh()
+	_animate_status_flash(accent)
+	if title_label != null:
+		title_label.modulate = accent.lightened(0.38)
+		var title_tween := create_tween()
+		title_tween.tween_property(title_label, "modulate", Color8(245, 237, 215), 0.32)
+	if subtitle_label != null:
+		subtitle_label.modulate = accent.lightened(0.24)
+		var subtitle_tween := create_tween()
+		subtitle_tween.tween_property(subtitle_label, "modulate", Color8(223, 215, 182), 0.36)
+
+
 func _animate_focus_glow(glow: ColorRect, focus_frame: ColorRect) -> void:
 	var tween := create_tween().set_loops()
 	tween.tween_property(glow, "modulate:a", 0.92, 0.75)
@@ -1256,8 +1269,7 @@ func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
-	_animate_side_panel_refresh()
-	_animate_status_flash(_active_region_accent())
+	_animate_region_transition(_active_region_accent())
 
 
 func _on_tab_pressed(tab_id: String) -> void:
@@ -1267,8 +1279,7 @@ func _on_tab_pressed(tab_id: String) -> void:
 		child.queue_free()
 	_build_side_panel()
 	_animate_tab_transition()
-	_animate_side_panel_refresh()
-	_animate_status_flash(_active_region_accent())
+	_animate_region_transition(_active_region_accent())
 
 
 func _on_auto_refresh_toggled(enabled: bool) -> void:
