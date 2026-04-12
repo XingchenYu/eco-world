@@ -414,7 +414,10 @@ def test_v4_world_ui_payload():
     assert payload["world"]["active_region_id"] == "temperate_grassland"
     assert len(payload["world"]["regions"]) == 6
     assert payload["active_region"]["id"] == "temperate_grassland"
+    assert "temperate_grassland" in payload["region_details"]
     assert "health_state" in payload["active_region"]
+    assert "chains" in payload["region_details"]["temperate_grassland"]
+    assert "narrative" in payload["region_details"]["temperate_grassland"]
     assert "social_phases" in payload["chains"]
     assert "territory" in payload["narrative"]
 

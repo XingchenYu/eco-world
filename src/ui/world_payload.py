@@ -29,20 +29,70 @@ def _region_connectors(world: WorldSimulation, region_id: str) -> list[dict[str,
     ]
 
 
+def _collect_top_list(mapping: dict[str, Any], limit: int = 6) -> list[dict[str, Any]]:
+    return _top_mapping_items(mapping, limit)
+
+
+def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict[str, Any]:
+    previous_active_region_id = world.active_region_id
+    world.set_active_region(region_id)
+    stats = world.get_statistics()
+    active_region = stats["active_region"]
+
+    payload = {
+        "id": active_region["id"],
+        "name": active_region["name"],
+        "climate_zone": active_region["climate_zone"],
+        "dominant_biomes": list(active_region["dominant_biomes"]),
+        "health_state": {key: round(float(value), 4) for key, value in active_region["health_state"].items()},
+        "resource_state": {key: round(float(value), 4) for key, value in active_region["resource_state"].items()},
+        "hazard_state": {key: round(float(value), 4) for key, value in active_region["hazard_state"].items()},
+        "ecological_pressures": {
+            key: round(float(value), 4) for key, value in active_region["ecological_pressures"].items()
+        },
+        "recent_adjustments": list(active_region["recent_adjustments"][-10:]),
+        "connectors": _region_connectors(world, region_id),
+        "chains": {
+            "social_phases": _collect_top_list(stats["social_trends"]["phase_scores"], 6),
+            "social_trends": _collect_top_list(stats["social_trends"]["trend_scores"], 6),
+            "grassland_chain": _collect_top_list(stats["grassland_chain"]["trophic_scores"], 6),
+            "carrion_chain": _collect_top_list(stats["carrion_chain"]["resource_scores"], 6),
+            "wetland_chain": _collect_top_list(stats["wetland_chain"]["trophic_scores"], 6),
+            "territory": _collect_top_list(stats["territory"]["pressure_scores"], 6),
+            "competition": _collect_top_list(stats["competition"]["pressure_scores"], 6),
+            "predation": _collect_top_list(stats["predation"]["pressure_scores"], 6),
+        },
+        "narrative": {
+            "territory": list(stats["territory"]["narrative_territory"][:3]),
+            "social_trends": list(stats["social_trends"]["narrative_trends"][:4]),
+            "grassland_chain": list(stats["grassland_chain"]["narrative_chain"][:3]),
+            "carrion_chain": list(stats["carrion_chain"]["narrative_chain"][:3]),
+            "wetland_chain": list(stats["wetland_chain"]["narrative_chain"][:3]),
+            "symbiosis": list(stats["symbiosis"]["narrative_symbiosis"][:3]),
+            "predation": list(stats["predation"]["narrative_predation"][:3]),
+        },
+    }
+    world.set_active_region(previous_active_region_id)
+    return payload
+
+
 def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
     """构建给 Godot 世界界面使用的紧凑 JSON。"""
     overview = world.get_world_overview()
     stats = world.get_statistics()
     active_region = stats["active_region"]
+    region_details: dict[str, Any] = {}
 
     regions = []
     for region in overview["regions"]:
+        region_id = region["id"]
         regions.append(
             {
                 **region,
-                "connectors": _region_connectors(world, region["id"]),
+                "connectors": _region_connectors(world, region_id),
             }
         )
+        region_details[region_id] = _build_region_detail_payload(world, region_id)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
@@ -76,6 +126,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
             },
             "recent_adjustments": list(active_region["recent_adjustments"][-10:]),
         },
+        "region_details": region_details,
         "chains": chain_highlights,
         "narrative": {
             "territory": list(stats["territory"]["narrative_territory"][:3]),

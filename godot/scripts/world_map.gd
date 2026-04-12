@@ -10,6 +10,24 @@ const REGION_LAYOUT := {
 	"coral_sea": Vector2(0.85, 0.76),
 }
 
+const REGION_COLORS := {
+	"temperate_forest": Color8(78, 137, 96),
+	"temperate_grassland": Color8(198, 173, 96),
+	"wetland_lake": Color8(92, 154, 162),
+	"rainforest_river": Color8(65, 146, 118),
+	"coastal_shelf": Color8(80, 141, 191),
+	"coral_sea": Color8(203, 132, 177),
+}
+
+const REGION_ICONS := {
+	"temperate_forest": "森",
+	"temperate_grassland": "原",
+	"wetland_lake": "泽",
+	"rainforest_river": "雨",
+	"coastal_shelf": "海",
+	"coral_sea": "礁",
+}
+
 var world_data: Dictionary = {}
 var active_region_id := ""
 var title_label: Label
@@ -17,6 +35,11 @@ var subtitle_label: Label
 var status_label: Label
 var map_layer: Control
 var side_panel: PanelContainer
+var side_scroll: ScrollContainer
+var side_box: VBoxContainer
+var selected_tab := "overview"
+var refresh_button: Button
+var detail_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -57,6 +80,12 @@ func _build_ui() -> void:
 	subtitle_label.add_theme_font_size_override("font_size", 18)
 	header_box.add_child(subtitle_label)
 
+	refresh_button = Button.new()
+	refresh_button.text = "重新读取世界数据"
+	refresh_button.custom_minimum_size = Vector2(180, 38)
+	refresh_button.pressed.connect(_load_world_data)
+	header_box.add_child(refresh_button)
+
 	var content := HBoxContainer.new()
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 18)
@@ -77,6 +106,14 @@ func _build_ui() -> void:
 	side_panel.custom_minimum_size = Vector2(390, 0)
 	side_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(side_panel)
+
+	side_scroll = ScrollContainer.new()
+	side_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	side_panel.add_child(side_scroll)
+
+	side_box = VBoxContainer.new()
+	side_box.add_theme_constant_override("separation", 14)
+	side_scroll.add_child(side_box)
 
 	var footer_panel := PanelContainer.new()
 	footer_panel.custom_minimum_size = Vector2(0, 46)
@@ -105,6 +142,7 @@ func _load_world_data() -> void:
 
 	world_data = parsed
 	active_region_id = str(world_data.get("world", {}).get("active_region_id", ""))
+	detail_cache = world_data.get("region_details", {})
 	_render_world()
 
 
@@ -126,11 +164,11 @@ func _render_world() -> void:
 
 	for child in map_layer.get_children():
 		child.queue_free()
-	for child in side_panel.get_children():
+	for child in side_box.get_children():
 		child.queue_free()
 
 	_build_map_nodes(world_meta.get("regions", []))
-	_build_side_panel(world_data.get("active_region", {}), world_data.get("chains", {}), world_data.get("narrative", {}))
+	_build_side_panel()
 
 
 func _build_map_nodes(regions: Array) -> void:
@@ -145,60 +183,94 @@ func _build_map_nodes(regions: Array) -> void:
 		var pos := Vector2(map_size.x * rel.x, map_size.y * rel.y)
 
 		var button := Button.new()
-		button.text = "%s\n繁荣 %.2f / 风险 %.2f" % [
+		button.text = "%s  繁荣 %.2f\n风险 %.2f  种群 %s" % [
 			str(region.get("name", region_id)),
 			float(region.get("prosperity", 0.0)),
 			float(region.get("collapse_risk", 0.0)),
+			str(region.get("species_population", 0)),
 		]
-		button.custom_minimum_size = Vector2(220, 96)
+		button.custom_minimum_size = Vector2(236, 104)
 		button.position = pos - button.custom_minimum_size / 2.0
+		button.add_theme_font_size_override("font_size", 18)
+		button.modulate = REGION_COLORS.get(region_id, Color8(110, 140, 170))
 		button.pressed.connect(_on_region_pressed.bind(region_id))
 		map_layer.add_child(button)
 
+		var badge := Label.new()
+		badge.text = REGION_ICONS.get(region_id, "区")
+		badge.position = button.position + Vector2(10, 8)
+		badge.add_theme_font_size_override("font_size", 28)
+		map_layer.add_child(badge)
 
-func _build_side_panel(active_region: Dictionary, chains: Dictionary, narrative: Dictionary) -> void:
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	side_panel.add_child(scroll)
 
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
-	scroll.add_child(box)
+func _build_side_panel() -> void:
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var chains: Dictionary = active_region.get("chains", world_data.get("chains", {}))
+	var narrative: Dictionary = active_region.get("narrative", world_data.get("narrative", {}))
 
 	var title := Label.new()
 	title.text = "%s · 焦点区域" % str(active_region.get("name", "未选择"))
 	title.add_theme_font_size_override("font_size", 28)
-	box.add_child(title)
+	side_box.add_child(title)
 
 	var climate := Label.new()
 	climate.text = "气候带：%s" % str(active_region.get("climate_zone", "未知"))
 	climate.add_theme_font_size_override("font_size", 18)
-	box.add_child(climate)
+	side_box.add_child(climate)
+	side_box.add_child(_make_tabs())
 
-	box.add_child(_make_section("健康状态", active_region.get("health_state", {})))
-	box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
-	box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
-	box.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
-	box.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
-	box.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
+	match selected_tab:
+		"overview":
+			side_box.add_child(_make_section("健康状态", active_region.get("health_state", {})))
+			side_box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
+			side_box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
+			side_box.add_child(_make_section("区域连接", active_region.get("connectors", []), true, "target_region_id", "strength"))
+		"chains":
+			side_box.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
+			side_box.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
+			side_box.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
+			side_box.add_child(_make_section("湿地主链", chains.get("wetland_chain", []), true))
+			side_box.add_child(_make_section("领地压力", chains.get("territory", []), true))
+		"story":
+			side_box.add_child(_make_story_section(narrative))
 
+func _make_tabs() -> HBoxContainer:
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 8)
+	for tab_id in ["overview", "chains", "story"]:
+		var button := Button.new()
+		button.text = {"overview": "总览", "chains": "生态链", "story": "播报"}[tab_id]
+		button.toggle_mode = true
+		button.button_pressed = tab_id == selected_tab
+		button.pressed.connect(_on_tab_pressed.bind(tab_id))
+		tabs.add_child(button)
+	return tabs
+
+
+func _make_story_section(narrative: Dictionary) -> VBoxContainer:
 	var story := VBoxContainer.new()
-	var story_title := Label.new()
-	story_title.text = "区域播报"
-	story_title.add_theme_font_size_override("font_size", 22)
-	story.add_child(story_title)
+	story.add_theme_constant_override("separation", 8)
+	var title := Label.new()
+	title.text = "区域播报"
+	title.add_theme_font_size_override("font_size", 22)
+	story.add_child(title)
 
-	for key in ["territory", "social_trends", "grassland_chain", "carrion_chain", "wetland_chain"]:
+	for key in ["territory", "social_trends", "grassland_chain", "carrion_chain", "wetland_chain", "symbiosis", "predation"]:
 		for line in narrative.get(key, []):
 			var item := Label.new()
 			item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			item.text = "• %s" % str(line)
 			story.add_child(item)
+	return story
 
-	box.add_child(story)
 
-
-func _make_section(title_text: String, data: Variant, is_rows: bool = false) -> VBoxContainer:
+func _make_section(
+	title_text: String,
+	data: Variant,
+	is_rows: bool = false,
+	key_field: String = "key",
+	value_field: String = "value"
+) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	var title := Label.new()
@@ -210,7 +282,14 @@ func _make_section(title_text: String, data: Variant, is_rows: bool = false) -> 
 		for row_variant in data:
 			var row: Dictionary = row_variant
 			var label := Label.new()
-			label.text = "%s: %.2f" % [str(row.get("key", "")), float(row.get("value", 0.0))]
+			if row.has(value_field):
+				label.text = "%s: %.2f" % [str(row.get(key_field, "")), float(row.get(value_field, 0.0))]
+			else:
+				label.text = "%s → %s (%.2f)" % [
+					str(row.get("target_region_id", "")),
+					str(row.get("connection_type", "")),
+					float(row.get("strength", 0.0)),
+				]
 			box.add_child(label)
 	else:
 		var items: Array = []
@@ -226,4 +305,14 @@ func _make_section(title_text: String, data: Variant, is_rows: bool = false) -> 
 
 func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
-	status_label.text = "当前只是前端骨架。切换区域后，请重新导出 JSON 以同步 Python 世界状态。"
+	status_label.text = "已切换焦点区域：%s" % region_id
+	for child in side_box.get_children():
+		child.queue_free()
+	_build_side_panel()
+
+
+func _on_tab_pressed(tab_id: String) -> void:
+	selected_tab = tab_id
+	for child in side_box.get_children():
+		child.queue_free()
+	_build_side_panel()

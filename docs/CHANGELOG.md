@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha67 (2026-04-12 22:16)
+
+- ✅ Godot 前端已从“单焦点静态骨架”推进到“可切区前端结构”。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在会一次导出：
+  - 全区域详情 `region_details`
+  - 每个区域自己的健康、资源、压力、连接、生态链和叙事摘要
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在已支持：
+  - 点击区域即时切换右侧详情
+  - `总览 / 生态链 / 播报` 三个中文分页
+  - 前端内“重新读取世界数据”按钮
+- ✅ 这意味着 Godot 路线已经不再只是能读一个 JSON 的壳，而是开始具备真正前端交互结构。
+
 ### v4.0-alpha66 (2026-04-12 21:58)
 
 - ✅ 项目已开始切换到 `Godot` 前端路线，不再继续把 `pygame` 当成长期主界面方案。
