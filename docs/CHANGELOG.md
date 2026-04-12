@@ -2,6 +2,24 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha53 (2026-04-12 10:20)
+
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已把运行期产仔事件聚合成：
+  - `herd_birth_runtime`
+  - `aerial_birth_runtime`
+  - `apex_birth_runtime`
+- ✅ 这些新的 runtime 产仔信号现已继续接入：
+  - [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py)
+  - [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py)
+  - [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py)
+  - [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py)
+  - 世界级长期压力聚合
+- ✅ 这使草原主线里“产仔与群体延续”的 runtime 信号，不再只停留在个体繁殖层，而开始继续影响：
+  - grassland/carrion 摘要
+  - 区域反馈
+  - 低频重平衡
+  - 长期 `prosperity / collapse` 判定
+
 ### v4.0-alpha52 (2026-04-11 10:35)
 
 - ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 的通用产仔路径 `_give_birth(...)` 现已把：

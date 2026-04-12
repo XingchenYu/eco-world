@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Dict, Optional
 
 from src.data import WorldRegistry, build_default_world_registry
@@ -45,6 +46,8 @@ class WorldTickSummary:
 
 class WorldSimulation:
     """管理多个区域模拟的世界容器。"""
+
+    _BIRTH_EFFECT_RE = re.compile(r"([a-z_]+)\+(\d+)")
 
     def __init__(
         self,
@@ -127,6 +130,7 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("prosperity_phase_weight", 0.0))
             + float(carrion_chain.resource_scores.get("prosperity_phase_carrion", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_surface_water_pull", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_herd_birth_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_condition_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_condition_phase_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_condition_phase_bias_pull", 0.0))
@@ -138,6 +142,7 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("runtime_herd_resource_anchor_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_anchor_prosperity_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_carcass_pull", 0.0))
+            + float(carrion_chain.resource_scores.get("runtime_aerial_birth_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_regional_bias_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_resource_anchor_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_anchor_prosperity_pull", 0.0))
@@ -146,6 +151,7 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("runtime_apex_condition_phase_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_condition_phase_bias_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_pull", 0.0)) * 0.8
+            + float(grassland_chain.trophic_scores.get("runtime_apex_birth_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_world_pressure_window_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.7
@@ -156,6 +162,7 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_aerial_condition_phase_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_condition_phase_bias_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_health_pull", 0.0))
+            + float(carrion_chain.resource_scores.get("runtime_aerial_birth_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_health_anchor_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_world_pressure_window_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_condition_anchor_pull", 0.0))
@@ -164,6 +171,7 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_phase_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_phase_bias_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_health_pull", 0.0)) * 0.8
+            + float(carrion_chain.resource_scores.get("runtime_apex_birth_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_world_pressure_window_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.7
@@ -181,6 +189,7 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("runtime_apex_condition_phase_pull", 0.0)) * 0.20
             + float(grassland_chain.trophic_scores.get("runtime_apex_condition_phase_bias_pull", 0.0)) * 0.18
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_pull", 0.0)) * 0.35
+            + float(grassland_chain.trophic_scores.get("runtime_apex_birth_pull", 0.0)) * 0.22
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.20
             + float(grassland_chain.trophic_scores.get("runtime_apex_world_pressure_window_pull", 0.0)) * 0.18
             + float(grassland_chain.trophic_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.18
@@ -190,6 +199,7 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_phase_pull", 0.0)) * 0.22
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_phase_bias_pull", 0.0)) * 0.20
             + float(carrion_chain.resource_scores.get("runtime_apex_health_pull", 0.0)) * 0.4
+            + float(carrion_chain.resource_scores.get("runtime_apex_birth_pull", 0.0)) * 0.22
             + float(carrion_chain.resource_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.22
             + float(carrion_chain.resource_scores.get("runtime_apex_world_pressure_window_pull", 0.0)) * 0.18
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.20
@@ -482,7 +492,12 @@ class WorldSimulation:
             "apex_world_pressure_window_runtime": 0.0,
             "herd_world_pressure_window_runtime": 0.0,
             "aerial_world_pressure_window_runtime": 0.0,
+            "apex_birth_runtime": 0.0,
+            "herd_birth_runtime": 0.0,
+            "aerial_birth_runtime": 0.0,
         }
+        birth_signals = self._collect_runtime_birth_signals(simulation)
+        state.update(birth_signals)
         regional_health_anchor = max(
             0.0,
             float(simulation.region.health_state.get("prosperity", 0.0))
@@ -864,6 +879,40 @@ class WorldSimulation:
         if vulture_hotspots and (lion_hotspots or hyena_hotspots):
             state["vulture_carrion_overlap"] = float(len(vulture_hotspots & (lion_hotspots | hyena_hotspots)))
         return state
+
+    def _collect_runtime_birth_signals(self, simulation: RegionSimulation) -> Dict[str, float]:
+        """从最近的因果链中提取草原主线的运行期产仔信号。"""
+
+        totals = {"apex": 0, "herd": 0, "aerial": 0}
+        events = {"apex": 0, "herd": 0, "aerial": 0}
+        causal_chain = getattr(getattr(simulation, "balance", None), "causal_chain", []) or []
+
+        for event in causal_chain[-40:]:
+            cause = getattr(event, "cause", "")
+            effect = getattr(event, "effect", "")
+            if not cause.endswith("产仔"):
+                continue
+            match = self._BIRTH_EFFECT_RE.match(effect)
+            if not match:
+                continue
+            species, amount_raw = match.groups()
+            amount = int(amount_raw)
+            if species in {"lion", "hyena"}:
+                group = "apex"
+            elif species in {"antelope", "zebra"}:
+                group = "herd"
+            elif species == "vulture":
+                group = "aerial"
+            else:
+                continue
+            totals[group] += amount
+            events[group] += 1
+
+        return {
+            "apex_birth_runtime": round(min(1.0, totals["apex"] * 0.12 + events["apex"] * 0.06), 3),
+            "herd_birth_runtime": round(min(1.0, totals["herd"] * 0.10 + events["herd"] * 0.05), 3),
+            "aerial_birth_runtime": round(min(1.0, totals["aerial"] * 0.14 + events["aerial"] * 0.06), 3),
+        }
 
     @staticmethod
     def _territory_hotspot(position: tuple[int, int]) -> tuple[int, int]:
