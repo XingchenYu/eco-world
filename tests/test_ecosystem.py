@@ -412,16 +412,19 @@ def test_v4_grassland_runtime_pressure_updates_region_health():
     assert region.ecological_pressures["runtime_herd_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_birth_memory_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_birth_memory_world_pressure_pull"] > 0.0
+    assert region.ecological_pressures["runtime_herd_birth_cycle_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_condition_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_birth_memory_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_birth_memory_world_pressure_pull"] > 0.0
+    assert region.ecological_pressures["runtime_aerial_birth_cycle_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_condition_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_birth_memory_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_birth_memory_world_pressure_pull"] > 0.0
+    assert region.ecological_pressures["runtime_apex_birth_cycle_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_condition_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_regional_bias_pull"] > 0.0
@@ -712,10 +715,12 @@ def test_v4_grassland_chain_summary():
             "herd_birth_runtime": 0.28,
             "herd_birth_memory_runtime": 0.48,
             "herd_birth_memory_world_pressure_runtime": 0.30,
+            "herd_birth_cycle_runtime": 0.26,
             "herd_condition_runtime": 0.46,
             "apex_birth_runtime": 0.24,
             "apex_birth_memory_runtime": 0.48,
             "apex_birth_memory_world_pressure_runtime": 0.28,
+            "apex_birth_cycle_runtime": 0.24,
             "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
@@ -745,12 +750,14 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["runtime_herd_birth_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_herd_birth_memory_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_herd_birth_memory_world_pressure_pull"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_herd_birth_cycle_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_herd_condition_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_herd_condition_phase_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_condition_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_birth_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_birth_memory_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_birth_memory_world_pressure_pull"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_apex_birth_cycle_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_condition_phase_pull"] > 0.0
     assert grassland_chain.trophic_scores["surface_water_anchor"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
@@ -1113,6 +1120,7 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_birth_runtime": 0.30,
             "herd_birth_memory_runtime": 0.28,
             "herd_birth_memory_world_pressure_runtime": 0.24,
+            "herd_birth_cycle_runtime": 0.22,
             "herd_regional_health_runtime": 0.52,
             "herd_condition_runtime": 0.46,
             "herd_regional_bias_runtime": 0.46,
@@ -1126,6 +1134,7 @@ def test_v4_social_trend_summary_uses_memory():
             "aerial_birth_runtime": 0.26,
             "aerial_birth_memory_runtime": 0.48,
             "aerial_birth_memory_world_pressure_runtime": 0.24,
+            "aerial_birth_cycle_runtime": 0.22,
             "aerial_regional_health_runtime": 0.44,
             "aerial_condition_runtime": 0.41,
             "aerial_regional_bias_runtime": 0.42,
@@ -1136,6 +1145,7 @@ def test_v4_social_trend_summary_uses_memory():
             "apex_birth_runtime": 0.22,
             "apex_birth_memory_runtime": 0.48,
             "apex_birth_memory_world_pressure_runtime": 0.24,
+            "apex_birth_cycle_runtime": 0.22,
             "apex_condition_runtime": 0.39,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1175,13 +1185,19 @@ def test_v4_social_trend_summary_uses_memory():
     assert "herd_birth_runtime" in summary.cycle_signals
     assert "herd_birth_memory_runtime" in summary.cycle_signals
     assert "herd_birth_memory_world_pressure_runtime" in summary.cycle_signals
+    assert "herd_birth_cycle_runtime" in summary.cycle_signals
+    assert "herd_birth_cycle_runtime" in summary.cycle_signals
     assert "aerial_carrion_cycle" in summary.cycle_signals
     assert "aerial_birth_runtime" in summary.cycle_signals
     assert "aerial_birth_memory_runtime" in summary.cycle_signals
     assert "aerial_birth_memory_world_pressure_runtime" in summary.cycle_signals
+    assert "aerial_birth_cycle_runtime" in summary.cycle_signals
+    assert "aerial_birth_cycle_runtime" in summary.cycle_signals
     assert "apex_birth_runtime" in summary.cycle_signals
     assert "apex_birth_memory_runtime" in summary.cycle_signals
     assert "apex_birth_memory_world_pressure_runtime" in summary.cycle_signals
+    assert "apex_birth_cycle_runtime" in summary.cycle_signals
+    assert "apex_birth_cycle_runtime" in summary.cycle_signals
     assert summary.trend_scores["herd_birth_memory"] > 0.0
     assert summary.trend_scores["aerial_birth_memory"] > 0.0
     assert summary.trend_scores["apex_birth_memory"] > 0.0
@@ -1255,10 +1271,12 @@ def test_v4_carrion_chain_summary():
             "aerial_birth_runtime": 0.26,
             "aerial_birth_memory_runtime": 0.24,
             "aerial_birth_memory_world_pressure_runtime": 0.22,
+            "aerial_birth_cycle_runtime": 0.20,
             "aerial_condition_runtime": 0.41,
             "apex_birth_runtime": 0.22,
             "apex_birth_memory_runtime": 0.20,
             "apex_birth_memory_world_pressure_runtime": 0.22,
+            "apex_birth_cycle_runtime": 0.20,
             "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
@@ -1282,10 +1300,12 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.resource_scores["runtime_aerial_birth_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_aerial_birth_memory_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_aerial_birth_memory_world_pressure_pull"] > 0.0
+    assert grassland_chain.resource_scores["runtime_aerial_birth_cycle_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_aerial_condition_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_birth_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_birth_memory_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_birth_memory_world_pressure_pull"] > 0.0
+    assert grassland_chain.resource_scores["runtime_apex_birth_cycle_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_condition_pull"] > 0.0
     assert grassland_chain.resource_scores["carcass_anchor_pressure"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
@@ -1353,21 +1373,28 @@ def test_runtime_birth_memory_signal_aggregation():
 
     antelope.birth_memory_bias = 0.34
     antelope.birth_memory_world_pressure_bias = 0.27
+    antelope.birth_cycle_bias = 0.25
     zebra.birth_memory_bias = 0.30
     zebra.birth_memory_world_pressure_bias = 0.24
+    zebra.birth_cycle_bias = 0.22
     lion.birth_memory_bias = 0.28
     lion.birth_memory_world_pressure_bias = 0.22
+    lion.birth_cycle_bias = 0.21
     vulture.birth_memory_bias = 0.26
     vulture.birth_memory_world_pressure_bias = 0.21
+    vulture.birth_cycle_bias = 0.20
 
     runtime_state = world_sim._build_runtime_territory_state(sim)
 
     assert runtime_state["herd_birth_memory_runtime"] > 0.0
     assert runtime_state["herd_birth_memory_world_pressure_runtime"] > 0.0
+    assert runtime_state["herd_birth_cycle_runtime"] > 0.0
     assert runtime_state["aerial_birth_memory_runtime"] > 0.0
     assert runtime_state["aerial_birth_memory_world_pressure_runtime"] > 0.0
+    assert runtime_state["aerial_birth_cycle_runtime"] > 0.0
     assert runtime_state["apex_birth_memory_runtime"] > 0.0
     assert runtime_state["apex_birth_memory_world_pressure_runtime"] > 0.0
+    assert runtime_state["apex_birth_cycle_runtime"] > 0.0
 
     print("✅ Runtime birth memory signal aggregation test passed")
 
@@ -2233,6 +2260,7 @@ def test_region_simulation_applies_social_phase_state():
     assert lion.runtime_anchor_prosperity > 0.30
     assert lion.birth_memory_bias > 0.0
     assert lion.birth_memory_world_pressure_bias > 0.10
+    assert lion.birth_cycle_bias > 0.10
     assert lion.world_pressure_bias > 0.10
     assert lion.world_pressure_window_bias > 0.10
     assert lion.regional_health_anchor > 0.20
@@ -2251,6 +2279,7 @@ def test_region_simulation_applies_social_phase_state():
     assert hyena.runtime_anchor_prosperity > 0.30
     assert hyena.birth_memory_bias > 0.0
     assert hyena.birth_memory_world_pressure_bias > 0.10
+    assert hyena.birth_cycle_bias > 0.10
     assert hyena.world_pressure_bias > 0.10
     assert hyena.world_pressure_window_bias > 0.10
     assert hyena.regional_health_anchor > 0.20
@@ -2274,6 +2303,7 @@ def test_region_simulation_applies_social_phase_state():
     assert antelope.runtime_anchor_prosperity > 0.30
     assert antelope.birth_memory_bias > 0.0
     assert antelope.birth_memory_world_pressure_bias > 0.10
+    assert antelope.birth_cycle_bias > 0.10
     assert antelope.world_pressure_bias > 0.10
     assert antelope.world_pressure_window_bias > 0.10
     assert antelope.regional_health_anchor > 0.20
@@ -2293,6 +2323,7 @@ def test_region_simulation_applies_social_phase_state():
     assert zebra.runtime_anchor_prosperity > 0.30
     assert zebra.birth_memory_bias > 0.0
     assert zebra.birth_memory_world_pressure_bias > 0.10
+    assert zebra.birth_cycle_bias > 0.10
     assert zebra.world_pressure_bias > 0.10
     assert zebra.world_pressure_window_bias > 0.10
     assert zebra.regional_health_anchor > 0.20
@@ -2312,6 +2343,7 @@ def test_region_simulation_applies_social_phase_state():
     assert vulture.runtime_anchor_prosperity > 0.30
     assert vulture.birth_memory_bias > 0.0
     assert vulture.birth_memory_world_pressure_bias > 0.10
+    assert vulture.birth_cycle_bias > 0.10
     assert vulture.world_pressure_bias > 0.10
     assert vulture.world_pressure_window_bias > 0.10
     assert vulture.regional_health_anchor > 0.20
@@ -2325,10 +2357,13 @@ def test_region_simulation_applies_social_phase_state():
     runtime_state = WorldSimulation()._build_runtime_territory_state(sim)
     assert runtime_state["herd_world_pressure_window_runtime"] > 0.10
     assert runtime_state["herd_birth_memory_world_pressure_runtime"] > 0.10
+    assert runtime_state["herd_birth_cycle_runtime"] > 0.10
     assert runtime_state["aerial_world_pressure_window_runtime"] > 0.10
     assert runtime_state["aerial_birth_memory_world_pressure_runtime"] > 0.10
+    assert runtime_state["aerial_birth_cycle_runtime"] > 0.10
     assert runtime_state["apex_world_pressure_window_runtime"] > 0.10
     assert runtime_state["apex_birth_memory_world_pressure_runtime"] > 0.10
+    assert runtime_state["apex_birth_cycle_runtime"] > 0.10
 
     print("✅ Region simulation social phase injection test passed")
 
@@ -2709,6 +2744,31 @@ def test_runtime_birth_memory_world_pressure_bias_effect():
     print("✅ Runtime birth memory world pressure bias effect test passed")
 
 
+def test_runtime_birth_cycle_bias_effect():
+    """birth_cycle_bias 应直接改善 herd 与 carrion 的运行期体况和繁殖冷却。"""
+    antelope = Antelope((10, 10), Gender.FEMALE)
+    zebra = Zebra((12, 10), Gender.FEMALE)
+    vulture = Vulture((14, 10), Gender.FEMALE)
+
+    antelope.birth_cycle_bias = 0.34
+    zebra.birth_cycle_bias = 0.31
+    vulture.birth_cycle_bias = 0.33
+
+    antelope.health = zebra.health = vulture.health = 70
+    antelope.hunger = zebra.hunger = vulture.hunger = 40
+    antelope.mate_cooldown = zebra.mate_cooldown = vulture.mate_cooldown = 5
+
+    antelope._apply_birth_cycle_bias()
+    zebra._apply_birth_cycle_bias()
+    vulture._apply_birth_cycle_bias()
+
+    assert antelope.health > 70 and antelope.hunger < 40 and antelope.mate_cooldown < 5
+    assert zebra.health > 70 and zebra.hunger < 40 and zebra.mate_cooldown < 5
+    assert vulture.health > 70 and vulture.hunger < 40 and vulture.mate_cooldown < 5
+
+    print("✅ Runtime birth cycle bias effect test passed")
+
+
 def test_runtime_apex_condition_phase_bias_effect():
     """apex 的 condition_phase_bias 应直接改善当前体况、冷却和繁殖节律。"""
     lion = Lion(position=(20, 20), gender=Gender.FEMALE)
@@ -2843,6 +2903,26 @@ def test_runtime_apex_birth_memory_world_pressure_bias_effect():
     assert hyena.health > 72 and hyena.hunger < 38 and hyena.mate_cooldown < 4
 
     print("✅ Runtime apex birth memory world pressure bias effect test passed")
+
+
+def test_runtime_apex_birth_cycle_bias_effect():
+    """apex 的 birth_cycle_bias 应直接改善当前体况、冷却和繁殖节律。"""
+    lion = Lion((10, 10), Gender.FEMALE)
+    hyena = Hyena((12, 10), Gender.FEMALE)
+
+    lion.birth_cycle_bias = 0.32
+    hyena.birth_cycle_bias = 0.30
+    lion.health = hyena.health = 72
+    lion.hunger = hyena.hunger = 38
+    lion.mate_cooldown = hyena.mate_cooldown = 4
+
+    lion._apply_birth_cycle_bias()
+    hyena._apply_birth_cycle_bias()
+
+    assert lion.health > 72 and lion.hunger < 38 and lion.mate_cooldown < 4
+    assert hyena.health > 72 and hyena.hunger < 38 and hyena.mate_cooldown < 4
+
+    print("✅ Runtime apex birth cycle bias effect test passed")
 
 
 def test_lion_hotspot_memory_center_effect():
@@ -4092,6 +4172,7 @@ RUNTIME_TESTS = [
     test_runtime_world_pressure_window_bias_effect,
     test_runtime_birth_memory_bias_effect,
     test_runtime_birth_memory_world_pressure_bias_effect,
+    test_runtime_birth_cycle_bias_effect,
     test_runtime_apex_regional_health_anchor_effect,
     test_runtime_apex_condition_effect,
     test_runtime_apex_condition_phase_bias_effect,
@@ -4099,6 +4180,7 @@ RUNTIME_TESTS = [
     test_runtime_apex_world_pressure_window_bias_effect,
     test_runtime_apex_birth_memory_bias_effect,
     test_runtime_apex_birth_memory_world_pressure_bias_effect,
+    test_runtime_apex_birth_cycle_bias_effect,
 ]
 
 SPECIES_TESTS = [

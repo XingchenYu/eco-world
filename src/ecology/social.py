@@ -58,6 +58,7 @@ def build_region_social_trend_summary(
     herd_route_cycle_runtime = float(runtime_signals.get("herd_route_cycle_runtime", 0.0))
     herd_birth_runtime = float(runtime_signals.get("herd_birth_runtime", 0.0))
     herd_birth_memory_runtime = float(runtime_signals.get("herd_birth_memory_runtime", 0.0))
+    herd_birth_cycle_runtime = float(runtime_signals.get("herd_birth_cycle_runtime", 0.0))
     herd_surface_water_runtime = float(runtime_signals.get("herd_surface_water_runtime", 0.0))
     herd_regional_health_runtime = float(runtime_signals.get("herd_regional_health_runtime", 0.0))
     herd_condition_runtime = float(runtime_signals.get("herd_condition_runtime", 0.0))
@@ -73,6 +74,7 @@ def build_region_social_trend_summary(
     aerial_carrion_cycle_runtime = float(runtime_signals.get("aerial_carrion_cycle_runtime", 0.0))
     aerial_birth_runtime = float(runtime_signals.get("aerial_birth_runtime", 0.0))
     aerial_birth_memory_runtime = float(runtime_signals.get("aerial_birth_memory_runtime", 0.0))
+    aerial_birth_cycle_runtime = float(runtime_signals.get("aerial_birth_cycle_runtime", 0.0))
     aerial_carcass_runtime = float(runtime_signals.get("aerial_carcass_runtime", 0.0))
     aerial_regional_health_runtime = float(runtime_signals.get("aerial_regional_health_runtime", 0.0))
     aerial_condition_runtime = float(runtime_signals.get("aerial_condition_runtime", 0.0))
@@ -86,6 +88,7 @@ def build_region_social_trend_summary(
     apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
     apex_birth_runtime = float(runtime_signals.get("apex_birth_runtime", 0.0))
     apex_birth_memory_runtime = float(runtime_signals.get("apex_birth_memory_runtime", 0.0))
+    apex_birth_cycle_runtime = float(runtime_signals.get("apex_birth_cycle_runtime", 0.0))
     apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
     apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
     apex_condition_phase_anchor_runtime = float(runtime_signals.get("apex_condition_phase_anchor_runtime", 0.0))
@@ -199,6 +202,9 @@ def build_region_social_trend_summary(
         "apex_birth_memory": round(min(1.0, carry("apex_birth_memory") * 0.56 + apex_birth_runtime * 0.34 + apex_birth_memory_runtime * 0.18), 3),
         "herd_birth_memory": round(min(1.0, carry("herd_birth_memory") * 0.56 + herd_birth_runtime * 0.36 + herd_birth_memory_runtime * 0.20), 3),
         "aerial_birth_memory": round(min(1.0, carry("aerial_birth_memory") * 0.56 + aerial_birth_runtime * 0.38 + aerial_birth_memory_runtime * 0.20), 3),
+        "apex_birth_cycle_memory": round(min(1.0, carry("apex_birth_cycle_memory") * 0.56 + apex_birth_cycle_runtime * 0.40 + apex_birth_memory_runtime * 0.16), 3),
+        "herd_birth_cycle_memory": round(min(1.0, carry("herd_birth_cycle_memory") * 0.56 + herd_birth_cycle_runtime * 0.42 + herd_birth_memory_runtime * 0.16), 3),
+        "aerial_birth_cycle_memory": round(min(1.0, carry("aerial_birth_cycle_memory") * 0.56 + aerial_birth_cycle_runtime * 0.42 + aerial_birth_memory_runtime * 0.16), 3),
     }
 
     phase_scores = {
@@ -231,6 +237,7 @@ def build_region_social_trend_summary(
             + herd_birth_runtime * 0.07
             + herd_birth_memory_runtime * 0.07
             + herd_birth_memory_world_pressure_runtime * 0.07
+            + herd_birth_cycle_runtime * 0.07
             + herd_surface_water_runtime * 0.06
             + herd_regional_health_runtime * 0.06
             + herd_condition_runtime * 0.05
@@ -260,6 +267,7 @@ def build_region_social_trend_summary(
             + aerial_birth_runtime * 0.07
             + aerial_birth_memory_runtime * 0.07
             + aerial_birth_memory_world_pressure_runtime * 0.07
+            + aerial_birth_cycle_runtime * 0.07
             + aerial_carcass_runtime * 0.06
             + aerial_regional_health_runtime * 0.06
             + aerial_condition_runtime * 0.05
@@ -293,12 +301,15 @@ def build_region_social_trend_summary(
                     + herd_birth_runtime * 0.08
                     + herd_birth_memory_runtime * 0.08
                     + herd_birth_memory_world_pressure_runtime * 0.07
+                    + herd_birth_cycle_runtime * 0.07
                     + aerial_birth_runtime * 0.08
                     + aerial_birth_memory_runtime * 0.08
                     + aerial_birth_memory_world_pressure_runtime * 0.07
+                    + aerial_birth_cycle_runtime * 0.07
                     + apex_birth_runtime * 0.06
                     + apex_birth_memory_runtime * 0.06
                     + apex_birth_memory_world_pressure_runtime * 0.06
+                    + apex_birth_cycle_runtime * 0.06
                     + apex_regional_health_runtime * 0.06
                     + apex_condition_runtime * 0.05
                     + apex_condition_phase_runtime * 0.04
@@ -372,10 +383,13 @@ def build_region_social_trend_summary(
                     + aerial_carrion_cycle_signal * 0.08
                     + herd_birth_runtime * 0.08
                     + herd_birth_memory_runtime * 0.08
+                    + herd_birth_cycle_runtime * 0.07
                     + aerial_birth_runtime * 0.08
                     + aerial_birth_memory_runtime * 0.08
+                    + aerial_birth_cycle_runtime * 0.07
                     + apex_birth_runtime * 0.06
                     + apex_birth_memory_runtime * 0.06
+                    + apex_birth_cycle_runtime * 0.05
                     + apex_regional_health_runtime * 0.05
                     + apex_regional_health_anchor_runtime * 0.03
                     + apex_condition_anchor_runtime * 0.03
@@ -692,6 +706,8 @@ def build_region_social_trend_summary(
     if herd_birth_memory_world_pressure_runtime >= 0.16:
         cycle_signals.append("herd_birth_memory_world_pressure_runtime")
         narrative_trends.append("近期食草群产仔正在把 herd 通道推进成更稳定的延续周期。")
+    if herd_birth_cycle_runtime >= 0.16:
+        cycle_signals.append("herd_birth_cycle_runtime")
     if phase_scores["aerial_carrion_cycle"] >= 0.12:
         cycle_signals.append("aerial_carrion_cycle")
         narrative_trends.append("空中尸体追踪记忆已经积累成更明确的 aerial-carrion 周期。")
@@ -702,6 +718,8 @@ def build_region_social_trend_summary(
     if aerial_birth_memory_world_pressure_runtime >= 0.16:
         cycle_signals.append("aerial_birth_memory_world_pressure_runtime")
         narrative_trends.append("近期空中清道夫产仔正在延长空中尸体通道的延续节律。")
+    if aerial_birth_cycle_runtime >= 0.16:
+        cycle_signals.append("aerial_birth_cycle_runtime")
     if surface_water_anchor >= 0.45:
         cycle_signals.append("surface_water_anchor")
         narrative_trends.append("稳定水源锚点正在持续加固食草群的长期迁移记忆。")
@@ -800,6 +818,8 @@ def build_region_social_trend_summary(
     if apex_birth_memory_world_pressure_runtime >= 0.16:
         cycle_signals.append("apex_birth_memory_world_pressure_runtime")
         narrative_trends.append("近期顶层社群产仔正在抬高 apex 社群的长期延续记忆。")
+    if apex_birth_cycle_runtime >= 0.16:
+        cycle_signals.append("apex_birth_cycle_runtime")
     if regional_prosperity >= 0.28:
         cycle_signals.append("regional_prosperity_anchor")
     if regional_stability >= 0.24:

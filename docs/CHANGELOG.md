@@ -2,6 +2,46 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha59 (2026-04-12 13:40)
+
+- ✅ 新增 `birth_cycle_bias` 主线闭环：
+  - `RegionSimulation` 会把多周期繁殖节律注入：
+    - `lion / hyena / antelope / zebra / vulture`
+  - 运行体现在新增：
+    - `birth_cycle_bias`：产仔周期偏置，指“慢反馈繁殖记忆”下沉到个体后的直接繁殖节律倾向
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现在会聚合：
+  - `herd_birth_cycle_runtime`
+  - `aerial_birth_cycle_runtime`
+  - `apex_birth_cycle_runtime`
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 现在会把这组 runtime 信号写回：
+  - `runtime_signals`
+  - `waterhole_spacing`
+  - `carcass_route_overlap`
+  - `apex_boundary_conflict`
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 现在会把这组新信号继续沉淀成：
+  - `apex_birth_cycle_memory`
+  - `herd_birth_cycle_memory`
+  - `aerial_birth_cycle_memory`
+  - 对应 `cycle_signals`
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已新增：
+  - `runtime_herd_birth_cycle_pull`
+  - `runtime_aerial_birth_cycle_pull`
+  - `runtime_apex_birth_cycle_pull`
+- ✅ 这组新 pull 现在已经进入：
+  - 摘要
+  - 区域反馈
+  - 低频重平衡
+  - 世界级长期压力
+- ✅ 对应新增 support：
+  - `birth_cycle_herd_support`
+  - `birth_cycle_aerial_support`
+  - `birth_cycle_apex_support`
+  - `birth_cycle_apex_carrion_support`
+- ✅ 测试已补齐：
+  - `runtime`：新增 herd/aerial/apex 的 `birth_cycle_bias` 运行期体况测试
+  - `world`：新增 `birth_cycle` world pressure 回路断言
+  - `grassland`：新增 `birth_cycle pull` 摘要与反馈断言
+
 ### v4.0-alpha55 (2026-04-12 11:10)
 
 - ✅ 新增独立测试文件入口：

@@ -133,6 +133,7 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("runtime_herd_birth_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_birth_memory_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_birth_memory_world_pressure_pull", 0.0))
+            + float(grassland_chain.trophic_scores.get("runtime_herd_birth_cycle_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_condition_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_condition_phase_pull", 0.0))
             + float(grassland_chain.trophic_scores.get("runtime_herd_condition_phase_bias_pull", 0.0))
@@ -157,6 +158,7 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("runtime_apex_birth_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_birth_memory_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0)) * 0.7
+            + float(grassland_chain.trophic_scores.get("runtime_apex_birth_cycle_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_world_pressure_window_pull", 0.0)) * 0.7
             + float(grassland_chain.trophic_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.7
@@ -170,6 +172,7 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_aerial_birth_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_birth_memory_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_birth_memory_world_pressure_pull", 0.0))
+            + float(carrion_chain.resource_scores.get("runtime_aerial_birth_cycle_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_health_anchor_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_world_pressure_window_pull", 0.0))
             + float(carrion_chain.resource_scores.get("runtime_aerial_condition_anchor_pull", 0.0))
@@ -181,6 +184,7 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_apex_birth_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_birth_memory_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0)) * 0.7
+            + float(carrion_chain.resource_scores.get("runtime_apex_birth_cycle_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_world_pressure_window_pull", 0.0)) * 0.7
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.7
@@ -201,6 +205,7 @@ class WorldSimulation:
             + float(grassland_chain.trophic_scores.get("runtime_apex_birth_pull", 0.0)) * 0.22
             + float(grassland_chain.trophic_scores.get("runtime_apex_birth_memory_pull", 0.0)) * 0.20
             + float(grassland_chain.trophic_scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0)) * 0.18
+            + float(grassland_chain.trophic_scores.get("runtime_apex_birth_cycle_pull", 0.0)) * 0.18
             + float(grassland_chain.trophic_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.20
             + float(grassland_chain.trophic_scores.get("runtime_apex_world_pressure_window_pull", 0.0)) * 0.18
             + float(grassland_chain.trophic_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.18
@@ -213,6 +218,7 @@ class WorldSimulation:
             + float(carrion_chain.resource_scores.get("runtime_apex_birth_pull", 0.0)) * 0.22
             + float(carrion_chain.resource_scores.get("runtime_apex_birth_memory_pull", 0.0)) * 0.20
             + float(carrion_chain.resource_scores.get("runtime_apex_birth_memory_world_pressure_pull", 0.0)) * 0.18
+            + float(carrion_chain.resource_scores.get("runtime_apex_birth_cycle_pull", 0.0)) * 0.18
             + float(carrion_chain.resource_scores.get("runtime_apex_health_anchor_pull", 0.0)) * 0.22
             + float(carrion_chain.resource_scores.get("runtime_apex_world_pressure_window_pull", 0.0)) * 0.18
             + float(carrion_chain.resource_scores.get("runtime_apex_condition_anchor_pull", 0.0)) * 0.20
@@ -235,21 +241,21 @@ class WorldSimulation:
             + float(territory.runtime_signals.get("herd_regional_health_anchor_runtime", 0.0))
             + float(territory.runtime_signals.get("herd_world_pressure_window_runtime", 0.0))
             + float(territory.runtime_signals.get("herd_birth_memory_world_pressure_runtime", 0.0))
-            + float(territory.runtime_signals.get("herd_birth_memory_world_pressure_runtime", 0.0))
+            + float(territory.runtime_signals.get("herd_birth_cycle_runtime", 0.0))
             + float(territory.runtime_signals.get("herd_condition_anchor_runtime", 0.0))
             + float(territory.runtime_signals.get("herd_regional_bias_runtime", 0.0))
             + float(territory.runtime_signals.get("aerial_regional_health_runtime", 0.0))
             + float(territory.runtime_signals.get("aerial_regional_health_anchor_runtime", 0.0))
             + float(territory.runtime_signals.get("aerial_world_pressure_window_runtime", 0.0))
             + float(territory.runtime_signals.get("aerial_birth_memory_world_pressure_runtime", 0.0))
-            + float(territory.runtime_signals.get("aerial_birth_memory_world_pressure_runtime", 0.0))
+            + float(territory.runtime_signals.get("aerial_birth_cycle_runtime", 0.0))
             + float(territory.runtime_signals.get("aerial_condition_anchor_runtime", 0.0))
             + float(territory.runtime_signals.get("aerial_regional_bias_runtime", 0.0))
             + float(territory.runtime_signals.get("apex_regional_health_runtime", 0.0)) * 0.8
             + float(territory.runtime_signals.get("apex_regional_health_anchor_runtime", 0.0)) * 0.8
             + float(territory.runtime_signals.get("apex_world_pressure_window_runtime", 0.0)) * 0.8
             + float(territory.runtime_signals.get("apex_birth_memory_world_pressure_runtime", 0.0)) * 0.8
-            + float(territory.runtime_signals.get("apex_birth_memory_world_pressure_runtime", 0.0)) * 0.8
+            + float(territory.runtime_signals.get("apex_birth_cycle_runtime", 0.0)) * 0.8
             + float(territory.runtime_signals.get("apex_condition_anchor_runtime", 0.0)) * 0.8
             + float(territory.runtime_signals.get("apex_regional_bias_runtime", 0.0)) * 0.8
             + (0.16 if "condition_phase_window_memory" in social_trends.cycle_signals else 0.0)
@@ -520,6 +526,9 @@ class WorldSimulation:
             "apex_birth_memory_world_pressure_runtime": 0.0,
             "herd_birth_memory_world_pressure_runtime": 0.0,
             "aerial_birth_memory_world_pressure_runtime": 0.0,
+            "apex_birth_cycle_runtime": 0.0,
+            "herd_birth_cycle_runtime": 0.0,
+            "aerial_birth_cycle_runtime": 0.0,
         }
         birth_signals = self._collect_runtime_birth_signals(simulation)
         state.update(birth_signals)
@@ -624,6 +633,9 @@ class WorldSimulation:
             )
             state["apex_birth_memory_world_pressure_runtime"] = max(
                 [getattr(animal, "birth_memory_world_pressure_bias", 0.0) for animal in lions] or [0.0]
+            )
+            state["apex_birth_cycle_runtime"] = max(
+                [getattr(animal, "birth_cycle_bias", 0.0) for animal in lions] or [0.0]
             )
         if hyenas:
             state["hyena_clan_cohesion"] = max(getattr(animal, "clan_cohesion", 0.0) for animal in hyenas)
@@ -739,6 +751,10 @@ class WorldSimulation:
                 state["apex_birth_memory_world_pressure_runtime"],
                 max([getattr(animal, "birth_memory_world_pressure_bias", 0.0) for animal in hyenas] or [0.0]),
             )
+            state["apex_birth_cycle_runtime"] = max(
+                state["apex_birth_cycle_runtime"],
+                max([getattr(animal, "birth_cycle_bias", 0.0) for animal in hyenas] or [0.0]),
+            )
         if antelopes or zebras:
             herd_hotspots = {self._territory_hotspot(animal.position) for animal in antelopes + zebras}
             state["herd_hotspot_count"] = float(len(herd_hotspots))
@@ -831,6 +847,9 @@ class WorldSimulation:
             state["herd_birth_memory_world_pressure_runtime"] = max(
                 [getattr(animal, "birth_memory_world_pressure_bias", 0.0) for animal in antelopes + zebras] or [0.0]
             )
+            state["herd_birth_cycle_runtime"] = max(
+                [getattr(animal, "birth_cycle_bias", 0.0) for animal in antelopes + zebras] or [0.0]
+            )
         if vultures:
             vulture_hotspots = {self._territory_hotspot(animal.position) for animal in vultures}
             state["vulture_hotspot_count"] = float(len(vulture_hotspots))
@@ -922,6 +941,9 @@ class WorldSimulation:
             )
             state["aerial_birth_memory_world_pressure_runtime"] = max(
                 [getattr(animal, "birth_memory_world_pressure_bias", 0.0) for animal in vultures] or [0.0]
+            )
+            state["aerial_birth_cycle_runtime"] = max(
+                [getattr(animal, "birth_cycle_bias", 0.0) for animal in vultures] or [0.0]
             )
         if lion_hotspots and hyena_hotspots:
             state["shared_hotspot_overlap"] = float(len(lion_hotspots & hyena_hotspots))
