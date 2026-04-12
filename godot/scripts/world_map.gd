@@ -901,17 +901,52 @@ func _make_section(
 	if is_rows:
 		for row_variant in data:
 			var row: Dictionary = row_variant
-			var label := Label.new()
+			var row_card := PanelContainer.new()
+			box.add_child(row_card)
+
+			var row_box := VBoxContainer.new()
+			row_box.add_theme_constant_override("separation", 4)
+			row_card.add_child(row_box)
+
+			var header := HBoxContainer.new()
+			header.add_theme_constant_override("separation", 8)
+			row_box.add_child(header)
+
+			var icon := Label.new()
+			icon.text = "◈"
+			_style_secondary_title(icon, 18)
+			header.add_child(icon)
+
+			var name := Label.new()
+			name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			if row.has(value_field):
-				label.text = "%s: %.2f" % [str(row.get(key_field, "")), float(row.get(value_field, 0.0))]
+				name.text = str(row.get(key_field, ""))
 			else:
-				label.text = "%s → %s (%.2f)" % [
+				name.text = "%s → %s" % [
 					str(row.get("target_region_id", "")),
 					str(row.get("connection_type", "")),
-					float(row.get("strength", 0.0)),
 				]
-			_style_body(label, 15)
-			box.add_child(label)
+			_style_body(name, 15)
+			header.add_child(name)
+
+			var value := Label.new()
+			if row.has(value_field):
+				value.text = "%.2f" % float(row.get(value_field, 0.0))
+			else:
+				value.text = "%.2f" % float(row.get("strength", 0.0))
+			_style_secondary_title(value, 16)
+			header.add_child(value)
+
+			var meter_bg := ColorRect.new()
+			meter_bg.color = Color(1.0, 1.0, 1.0, 0.08)
+			meter_bg.custom_minimum_size = Vector2(0, 6)
+			row_box.add_child(meter_bg)
+
+			var raw_value := float(row.get(value_field, row.get("strength", 0.0)))
+			var meter := ColorRect.new()
+			meter.color = Color(accent.r, accent.g, accent.b, 0.72)
+			meter.custom_minimum_size = Vector2(220.0 * clamp(raw_value, 0.0, 1.0), 6)
+			row_box.add_child(meter)
 	else:
 		var items: Array = []
 		for key in data.keys():
