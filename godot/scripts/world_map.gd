@@ -207,6 +207,16 @@ func _animate_region_press(shell: PanelContainer, pressed: bool) -> void:
 		tween.tween_property(shell, "scale", Vector2.ONE, 0.09)
 
 
+func _animate_tab_hover(button: Button, hover_color: Color, rest_color: Color, entering: bool) -> void:
+	var tween := create_tween()
+	if entering:
+		tween.tween_property(button, "modulate", hover_color, 0.10)
+		tween.parallel().tween_property(button, "scale", Vector2(1.02, 1.02), 0.10)
+	else:
+		tween.tween_property(button, "modulate", rest_color, 0.12)
+		tween.parallel().tween_property(button, "scale", Vector2.ONE, 0.12)
+
+
 func _tab_icon(tab_id: String) -> String:
 	return {
 		"overview": "◎",
@@ -961,7 +971,15 @@ func _make_tabs(region_accent: Color) -> HBoxContainer:
 		button.button_pressed = is_active
 		button.custom_minimum_size = Vector2(112, 40)
 		var tab_color := _tab_accent_color(tab_id)
-		button.modulate = region_accent.lightened(0.12) if is_active else tab_color.darkened(0.12)
+		var rest_color := region_accent.lightened(0.12) if is_active else tab_color.darkened(0.12)
+		var hover_color := region_accent.lightened(0.24) if is_active else tab_color.lightened(0.12)
+		button.modulate = rest_color
+		button.mouse_entered.connect(func() -> void:
+			_animate_tab_hover(button, hover_color, rest_color, true)
+		)
+		button.mouse_exited.connect(func() -> void:
+			_animate_tab_hover(button, hover_color, rest_color, false)
+		)
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
 		tabs.add_child(button)
 	return tabs
