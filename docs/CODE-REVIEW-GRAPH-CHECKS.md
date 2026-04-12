@@ -25,9 +25,9 @@
 - 少读
 - 精读
 
-## 当前可用的测试组
+## 当前可用的测试组与测试文件
 
-[tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 现在支持按组运行：
+[tests/test_ecosystem.py](/Users/yumini/Projects/eco-world/tests/test_ecosystem.py) 仍然保留总入口；同时最常用的检查已经拆成独立测试文件：
 
 - `basic`：基础环境、植物、动物、配置和基础生成测试
 - `world`：世界骨架、注册表、关系状态、汇总层测试
@@ -36,6 +36,15 @@
 - `runtime`：运行期注入、热点记忆、长期偏置、窗口偏置测试
 - `species`：关键物种运行体与个体行为测试
 - `all`：全量回归
+
+对应独立文件：
+
+- `basic` -> [tests/test_basic.py](/Users/yumini/Projects/eco-world/tests/test_basic.py)
+- `world` -> [tests/test_world.py](/Users/yumini/Projects/eco-world/tests/test_world.py)
+- `wetland` -> [tests/test_wetland.py](/Users/yumini/Projects/eco-world/tests/test_wetland.py)
+- `grassland` -> [tests/test_grassland.py](/Users/yumini/Projects/eco-world/tests/test_grassland.py)
+- `runtime` -> [tests/test_runtime.py](/Users/yumini/Projects/eco-world/tests/test_runtime.py)
+- `species` -> [tests/test_species.py](/Users/yumini/Projects/eco-world/tests/test_species.py)
 
 仓库里还新增了一个辅助脚本：
 
@@ -61,25 +70,28 @@
   - 如果改动落在 `src/entities/animals.py` 的 `_give_birth(...)` 这类函数里，会优先推荐 `species`
   - 如果改动落在运行期偏置、周期、漂移、稳定度相关函数里，会优先推荐 `runtime`
   - 不再默认所有运行体改动都一律 `species + runtime`
+- `sim` 层现在也支持更细粒度的 diff 归类：
+  - 如果改动落在 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的 `apply_relationship_runtime_state(...)` 这类运行期注入函数里，会优先推荐 `runtime`
+  - 如果改动落在 [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 的统计、压力聚合、更新主循环里，才会继续推荐 `world` 或 `grassland`
 
 ## 常用命令
 
 只跑草原主线：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py grassland
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_grassland.py
 ```
 
 只跑运行期注入与长期偏置：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py runtime
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_runtime.py
 ```
 
 只跑世界骨架与汇总层：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py world
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_world.py
 ```
 
 全量回归：
@@ -174,7 +186,7 @@ PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/ecology/grassla
 优先测试：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py grassland
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_grassland.py
 ```
 
 ### 2. 改 [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 或 [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py)
@@ -188,9 +200,9 @@ PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/ecology/social.
 优先测试：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py world
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py runtime
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py grassland
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_world.py
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_runtime.py
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_grassland.py
 ```
 
 ### 3. 改 [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 或 [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py)
@@ -204,9 +216,9 @@ PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/sim/world_simul
 优先测试：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py world
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py runtime
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py grassland
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_world.py
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_runtime.py
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_grassland.py
 ```
 
 ### 4. 改运行体 [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 或 [src/entities/omnivores.py](/Users/yumini/Projects/eco-world/src/entities/omnivores.py)
@@ -220,8 +232,8 @@ PYTHONPYCACHEPREFIX=/tmp/eco-world-pyc python3 -m py_compile src/entities/animal
 优先测试：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py species
-PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py runtime
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_species.py
+PYTHONDONTWRITEBYTECODE=1 python3 tests/test_runtime.py
 ```
 
 ## 什么时候必须跑全量回归

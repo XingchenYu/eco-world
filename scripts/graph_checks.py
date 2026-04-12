@@ -15,6 +15,14 @@ from typing import Dict, Iterable, List, Sequence, Set, Tuple
 ROOT = Path(__file__).resolve().parents[1]
 DOC_PREFIXES = ("docs/",)
 DOC_FILES = {"README.md", ".mcp.json", ".code-review-graphignore"}
+TEST_FILE_BY_GROUP = {
+    "basic": "tests/test_basic.py",
+    "world": "tests/test_world.py",
+    "wetland": "tests/test_wetland.py",
+    "grassland": "tests/test_grassland.py",
+    "runtime": "tests/test_runtime.py",
+    "species": "tests/test_species.py",
+}
 
 
 def _is_doc_only(paths: Sequence[str]) -> bool:
@@ -269,6 +277,51 @@ def _classify_entity_diff(path: str) -> Tuple[Set[str], bool]:
     return changed_groups, touches_unknown
 
 
+def _infer_group_from_sim_def(path: str, name: str) -> str | None:
+    if path == "src/sim/region_simulation.py":
+        if name == "apply_relationship_runtime_state":
+            return "runtime"
+        if any(token in name for token in ("runtime", "relationship")):
+            return "runtime"
+        if any(token in name for token in ("region_config", "_build_region_config")):
+            return "world"
+    if path == "src/sim/world_simulation.py":
+        if any(token in name for token in ("_build_runtime_territory_state", "_collect_runtime_birth_signals")):
+            return "runtime"
+        if any(token in name for token in ("_build_combined_pressures", "get_statistics", "update")):
+            return "world"
+    return None
+
+
+def _classify_sim_diff(path: str) -> Tuple[Set[str], bool]:
+    diff_text = _git_diff_text(path)
+    changed_lines = _parse_changed_new_lines(diff_text)
+    if not changed_lines:
+        return set(), False
+
+    function_ranges = _python_def_ranges(ROOT / path)
+    if not function_ranges:
+        return set(), True
+
+    function_starts = [line for line, _ in function_ranges]
+    changed_groups: Set[str] = set()
+    touches_unknown = False
+
+    for line in changed_lines:
+        idx = bisect.bisect_right(function_starts, line) - 1
+        if idx < 0:
+            touches_unknown = True
+            continue
+        _, func_name = function_ranges[idx]
+        group = _infer_group_from_sim_def(path, func_name)
+        if group is None:
+            touches_unknown = True
+            continue
+        changed_groups.add(group)
+
+    return changed_groups, touches_unknown
+
+
 def build_plan(changed_files: Sequence[str]) -> dict:
     compile_targets: Set[str] = set()
     test_groups: List[str] = []
@@ -315,8 +368,21 @@ def build_plan(changed_files: Sequence[str]) -> dict:
             "src/ecology/grassland.py",
             "src/ecology/carrion.py",
         )
-        test_groups.extend(["world", "runtime", "grassland"])
-        reasons.append("检测到 sim 枢纽改动，优先检查 world、runtime、grassland。")
+        sim_groups: Set[str] = set()
+        touches_unknown = False
+        for sim_path in ("src/sim/world_simulation.py", "src/sim/region_simulation.py"):
+            if sim_path not in changed_files:
+                continue
+            groups, unknown = _classify_sim_diff(sim_path)
+            sim_groups.update(groups)
+            touches_unknown = touches_unknown or unknown
+        if sim_groups and not touches_unknown:
+            ordered_sim_groups = [group for group in ("world", "runtime", "grassland") if group in sim_groups]
+            test_groups.extend(ordered_sim_groups)
+            reasons.append("检测到 sim 改动，且 diff 可归类到具体函数，按受影响的 world/runtime/grassland 文件执行。")
+        else:
+            test_groups.extend(["world", "runtime", "grassland"])
+            reasons.append("检测到 sim 枢纽改动，优先检查 world、runtime、grassland。")
 
     if _matches(changed_files, ("src/entities/animals.py", "src/entities/omnivores.py")):
         _add_compile_targets(
@@ -431,9 +497,13 @@ def _format_profile_commands(profile: dict, emit: str = "both") -> str:
     if emit in {"both", "tests"}:
         if profile["test_groups"]:
             for group in profile["test_groups"]:
-                lines.append(
-                    f"PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
-                )
+                test_file = TEST_FILE_BY_GROUP.get(group)
+                if test_file:
+                    lines.append(f"PYTHONDONTWRITEBYTECODE=1 python3 {test_file}")
+                else:
+                    lines.append(
+                        f"PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
+                    )
         else:
             lines.append("skip tests / 可跳过测试")
     return "\n".join(lines)
@@ -487,9 +557,13 @@ def format_plan(
     lines.append("")
     lines.append("Test groups / 建议测试组:")
     for group in plan["test_groups"]:
-        lines.append(
-            f"- {group}: PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
-        )
+        test_file = TEST_FILE_BY_GROUP.get(group)
+        if test_file:
+            lines.append(f"- {group}: PYTHONDONTWRITEBYTECODE=1 python3 {test_file}")
+        else:
+            lines.append(
+                f"- {group}: PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ecosystem.py {group}"
+            )
     lines.append("")
     lines.append("Profiles / 三档检查方案:")
     for name in ("smoke", "targeted", "full"):

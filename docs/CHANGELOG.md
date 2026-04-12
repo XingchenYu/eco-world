@@ -2,6 +2,24 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha55 (2026-04-12 11:10)
+
+- ✅ 新增独立测试文件入口：
+  - [tests/test_basic.py](/Users/yumini/Projects/eco-world/tests/test_basic.py)
+  - [tests/test_world.py](/Users/yumini/Projects/eco-world/tests/test_world.py)
+  - [tests/test_wetland.py](/Users/yumini/Projects/eco-world/tests/test_wetland.py)
+  - [tests/test_grassland.py](/Users/yumini/Projects/eco-world/tests/test_grassland.py)
+  - [tests/test_runtime.py](/Users/yumini/Projects/eco-world/tests/test_runtime.py)
+  - [tests/test_species.py](/Users/yumini/Projects/eco-world/tests/test_species.py)
+- ✅ [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py) 现在会优先输出独立测试文件命令，而不是只输出 `tests/test_ecosystem.py <group>`
+- ✅ 这使 graph 从“选测试组”进一步推进到“直选测试文件”，后续：
+  - 命令更短
+  - 输出更少
+  - 无关测试组更不容易被顺手跑到
+- ✅ [scripts/graph_checks.py](/Users/yumini/Projects/eco-world/scripts/graph_checks.py) 现已继续支持 `sim` 层的 diff-aware 归类：
+  - [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行期注入改动不再默认顺手带出 `world + grassland`
+  - 现在会尽量收窄成真正需要的 `runtime` 或 `world`
+
 ### v4.0-alpha54 (2026-04-12 10:45)
 
 - ✅ [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 现已把 `social_trends.trend_scores` 里的：
