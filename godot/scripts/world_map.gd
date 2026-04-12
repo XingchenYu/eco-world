@@ -964,18 +964,7 @@ func _build_side_panel() -> void:
 	var chain_focus: Array = active_region.get("chain_focus", [])
 	var region_accent := _active_region_accent()
 
-	var title := Label.new()
-	title.text = "%s · 焦点区域" % str(active_region.get("name", "未选择"))
-	_style_primary_title(title, 28)
-	title.modulate = region_accent.lightened(0.35)
-	side_box.add_child(title)
-
-	var climate := Label.new()
-	climate.text = str(active_region.get("region_role", "生态观测区"))
-	_style_secondary_title(climate, 18)
-	climate.modulate = region_accent.lightened(0.18)
-	side_box.add_child(climate)
-	side_box.add_child(_make_status_strip(active_region, region_accent))
+	side_box.add_child(_make_region_hero(active_region, pressure_headlines, chain_focus, region_accent))
 	side_box.add_child(_make_tabs(region_accent))
 
 	match selected_tab:
@@ -1119,6 +1108,99 @@ func _make_status_chip(title_text: String, icon_text: String, value_text: String
 	meter.color = Color(region_accent.r, region_accent.g, region_accent.b, 0.78)
 	meter.custom_minimum_size = Vector2(88.0 * clamp(numeric_value, 0.0, 1.0), 5)
 	box.add_child(meter)
+	return panel
+
+
+func _make_region_hero(active_region: Dictionary, pressure_headlines: Array, chain_focus: Array, region_accent: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 8)
+	panel.add_child(root)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = region_accent.lightened(0.08)
+	ribbon.custom_minimum_size = Vector2(0, 10)
+	root.add_child(ribbon)
+
+	var top_row := HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", 12)
+	root.add_child(top_row)
+
+	var emblem := PanelContainer.new()
+	emblem.custom_minimum_size = Vector2(72, 72)
+	top_row.add_child(emblem)
+
+	var emblem_label := Label.new()
+	emblem_label.text = REGION_ICONS.get(str(active_region.get("id", active_region_id)), "区")
+	emblem_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	emblem_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	emblem_label.custom_minimum_size = Vector2(72, 72)
+	emblem_label.add_theme_font_size_override("font_size", 34)
+	emblem_label.modulate = region_accent.lightened(0.34)
+	emblem.add_child(emblem_label)
+
+	var text_col := VBoxContainer.new()
+	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_col.add_theme_constant_override("separation", 4)
+	top_row.add_child(text_col)
+
+	var eyebrow := Label.new()
+	eyebrow.text = "%s · 焦点区域" % _region_type_chip(active_region)
+	_style_dim(eyebrow, 14)
+	text_col.add_child(eyebrow)
+
+	var title := Label.new()
+	title.text = str(active_region.get("name", "未选择"))
+	_style_primary_title(title, 30)
+	title.modulate = region_accent.lightened(0.35)
+	text_col.add_child(title)
+
+	var role := Label.new()
+	role.text = str(active_region.get("region_role", "生态观测区"))
+	_style_secondary_title(role, 18)
+	role.modulate = region_accent.lightened(0.18)
+	role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text_col.add_child(role)
+
+	var intro := Label.new()
+	intro.text = str(active_region.get("region_intro", ""))
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_dim(intro, 14)
+	text_col.add_child(intro)
+
+	root.add_child(_make_status_strip(active_region, region_accent))
+
+	var badge_row := HBoxContainer.new()
+	badge_row.add_theme_constant_override("separation", 8)
+	root.add_child(badge_row)
+
+	for line in pressure_headlines.slice(0, 1):
+		badge_row.add_child(_make_hero_chip("风险", str(line), Color8(171, 132, 196)))
+	for line in chain_focus.slice(0, 1):
+		badge_row.add_child(_make_hero_chip("主链", str(line), Color8(104, 171, 144)))
+	for biome in active_region.get("dominant_biomes", []).slice(0, 1):
+		badge_row.add_child(_make_hero_chip("地貌", str(biome), region_accent))
+
+	return panel
+
+
+func _make_hero_chip(label_text: String, value_text: String, accent: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	panel.add_child(box)
+
+	var label := Label.new()
+	label.text = label_text
+	_style_dim(label, 12)
+	box.add_child(label)
+
+	var value := Label.new()
+	value.text = value_text
+	_style_secondary_title(value, 15)
+	value.modulate = accent.lightened(0.20)
+	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(value)
 	return panel
 
 
