@@ -33,6 +33,13 @@ def _collect_top_list(mapping: dict[str, Any], limit: int = 6) -> list[dict[str,
     return _top_mapping_items(mapping, limit)
 
 
+def _collect_top_species(region_species_pool: dict[str, Any], limit: int = 8) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for species_id, count in sorted(region_species_pool.items(), key=lambda item: int(item[1]), reverse=True)[:limit]:
+        entries.append({"species_id": species_id, "count": int(count)})
+    return entries
+
+
 def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict[str, Any]:
     previous_active_region_id = world.active_region_id
     world.set_active_region(region_id)
@@ -44,6 +51,11 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
         "name": active_region["name"],
         "climate_zone": active_region["climate_zone"],
         "dominant_biomes": list(active_region["dominant_biomes"]),
+        "region_summary": {
+            "species_pool_count": int(active_region["species_pool_count"]),
+            "biome_count": int(active_region["biome_count"]),
+            "habitat_count": int(active_region["habitat_count"]),
+        },
         "health_state": {key: round(float(value), 4) for key, value in active_region["health_state"].items()},
         "resource_state": {key: round(float(value), 4) for key, value in active_region["resource_state"].items()},
         "hazard_state": {key: round(float(value), 4) for key, value in active_region["hazard_state"].items()},
@@ -51,6 +63,7 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
             key: round(float(value), 4) for key, value in active_region["ecological_pressures"].items()
         },
         "recent_adjustments": list(active_region["recent_adjustments"][-10:]),
+        "top_species": _collect_top_species(world.get_active_region().species_pool, 8),
         "connectors": _region_connectors(world, region_id),
         "chains": {
             "social_phases": _collect_top_list(stats["social_trends"]["phase_scores"], 6),
@@ -118,6 +131,11 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
             "name": active_region["name"],
             "climate_zone": active_region["climate_zone"],
             "dominant_biomes": list(active_region["dominant_biomes"]),
+            "region_summary": {
+                "species_pool_count": int(active_region["species_pool_count"]),
+                "biome_count": int(active_region["biome_count"]),
+                "habitat_count": int(active_region["habitat_count"]),
+            },
             "health_state": {key: round(float(value), 4) for key, value in active_region["health_state"].items()},
             "resource_state": {key: round(float(value), 4) for key, value in active_region["resource_state"].items()},
             "hazard_state": {key: round(float(value), 4) for key, value in active_region["hazard_state"].items()},
@@ -125,6 +143,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
                 key: round(float(value), 4) for key, value in active_region["ecological_pressures"].items()
             },
             "recent_adjustments": list(active_region["recent_adjustments"][-10:]),
+            "top_species": _collect_top_species(world.get_active_region().species_pool, 8),
         },
         "region_details": region_details,
         "chains": chain_highlights,
@@ -139,5 +158,6 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
             "active_speed": 1,
             "source": "WorldSimulation.get_statistics",
             "language": "zh-CN",
+            "refresh_mode": "manual_or_timer",
         },
     }

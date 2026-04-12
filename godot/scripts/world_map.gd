@@ -39,6 +39,8 @@ var side_scroll: ScrollContainer
 var side_box: VBoxContainer
 var selected_tab := "overview"
 var refresh_button: Button
+var auto_refresh_button: CheckButton
+var refresh_timer: Timer
 var detail_cache: Dictionary = {}
 
 
@@ -86,6 +88,11 @@ func _build_ui() -> void:
 	refresh_button.pressed.connect(_load_world_data)
 	header_box.add_child(refresh_button)
 
+	auto_refresh_button = CheckButton.new()
+	auto_refresh_button.text = "自动刷新"
+	auto_refresh_button.toggled.connect(_on_auto_refresh_toggled)
+	header_box.add_child(auto_refresh_button)
+
 	var content := HBoxContainer.new()
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 18)
@@ -123,6 +130,12 @@ func _build_ui() -> void:
 	status_label.text = "先运行 Python 导出脚本生成 world_state.json"
 	status_label.add_theme_font_size_override("font_size", 16)
 	footer_panel.add_child(status_label)
+
+	refresh_timer = Timer.new()
+	refresh_timer.wait_time = 2.0
+	refresh_timer.one_shot = false
+	refresh_timer.timeout.connect(_load_world_data)
+	add_child(refresh_timer)
 
 
 func _load_world_data() -> void:
@@ -207,6 +220,7 @@ func _build_side_panel() -> void:
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var chains: Dictionary = active_region.get("chains", world_data.get("chains", {}))
 	var narrative: Dictionary = active_region.get("narrative", world_data.get("narrative", {}))
+	var top_species: Array = active_region.get("top_species", [])
 
 	var title := Label.new()
 	title.text = "%s · 焦点区域" % str(active_region.get("name", "未选择"))
@@ -221,6 +235,7 @@ func _build_side_panel() -> void:
 
 	match selected_tab:
 		"overview":
+			side_box.add_child(_make_region_summary_card(active_region))
 			side_box.add_child(_make_section("健康状态", active_region.get("health_state", {})))
 			side_box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
 			side_box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
@@ -231,20 +246,66 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
 			side_box.add_child(_make_section("湿地主链", chains.get("wetland_chain", []), true))
 			side_box.add_child(_make_section("领地压力", chains.get("territory", []), true))
+			side_box.add_child(_make_section("竞争压力", chains.get("competition", []), true))
+			side_box.add_child(_make_section("捕食压力", chains.get("predation", []), true))
+		"species":
+			side_box.add_child(_make_species_section(top_species))
 		"story":
 			side_box.add_child(_make_story_section(narrative))
 
 func _make_tabs() -> HBoxContainer:
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 8)
-	for tab_id in ["overview", "chains", "story"]:
+	for tab_id in ["overview", "chains", "species", "story"]:
 		var button := Button.new()
-		button.text = {"overview": "总览", "chains": "生态链", "story": "播报"}[tab_id]
+		button.text = {"overview": "总览", "chains": "生态链", "species": "物种", "story": "播报"}[tab_id]
 		button.toggle_mode = true
 		button.button_pressed = tab_id == selected_tab
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
 		tabs.add_child(button)
 	return tabs
+
+
+func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var summary := active_region.get("region_summary", {})
+	var summary_title := Label.new()
+	summary_title.text = "区域概况"
+	summary_title.add_theme_font_size_override("font_size", 22)
+	box.add_child(summary_title)
+
+	var biomes := Label.new()
+	biomes.text = "群系：%s" % " / ".join(active_region.get("dominant_biomes", []))
+	biomes.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(biomes)
+
+	var stats := Label.new()
+	stats.text = "群系块 %s · 栖息地 %s · 物种池 %s" % [
+		str(summary.get("biome_count", 0)),
+		str(summary.get("habitat_count", 0)),
+		str(summary.get("species_pool_count", 0)),
+	]
+	box.add_child(stats)
+	return panel
+
+
+func _make_species_section(top_species: Array) -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var title := Label.new()
+	title.text = "核心物种"
+	title.add_theme_font_size_override("font_size", 22)
+	box.add_child(title)
+	for row_variant in top_species:
+		var row: Dictionary = row_variant
+		var label := Label.new()
+		label.text = "%s × %s" % [str(row.get("species_id", "")), str(row.get("count", 0))]
+		box.add_child(label)
+	return box
 
 
 func _make_story_section(narrative: Dictionary) -> VBoxContainer:
@@ -316,3 +377,12 @@ func _on_tab_pressed(tab_id: String) -> void:
 	for child in side_box.get_children():
 		child.queue_free()
 	_build_side_panel()
+
+
+func _on_auto_refresh_toggled(enabled: bool) -> void:
+	if enabled:
+		refresh_timer.start()
+		status_label.text = "自动刷新已开启，每 2 秒重新读取一次世界状态。"
+	else:
+		refresh_timer.stop()
+		status_label.text = "自动刷新已关闭。"

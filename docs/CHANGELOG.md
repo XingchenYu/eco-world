@@ -2,6 +2,20 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha68 (2026-04-12 22:29)
+
+- ✅ Godot 前端继续从“可切区骨架”推进到“更完整的区域详情结构”。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `top_species`
+  - `region_summary`
+  - `ui_meta.refresh_mode`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `核心物种` 中文分页
+  - 区域概况卡
+  - 自动刷新开关
+  - 更完整的竞争/捕食信息区
+- ✅ 这意味着 Godot 路线已经不再只是地图 + 简单侧栏，而开始具备更接近游戏菜单的详情层。
+
 ### v4.0-alpha67 (2026-04-12 22:16)
 
 - ✅ Godot 前端已从“单焦点静态骨架”推进到“可切区前端结构”。
