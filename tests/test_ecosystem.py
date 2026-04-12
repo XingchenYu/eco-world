@@ -3332,6 +3332,98 @@ def test_vulture_world_pressure_window_birth_scaling():
     print("✅ Vulture world pressure window birth scaling test passed")
 
 
+def test_antelope_birth_cycle_scaling():
+    """羚羊 birth_cycle_bias 应继续改善产后冷却和 herd 延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("antelope", pos_high, source="manual")
+    antelope_high = eco_high.animals[-1]
+    antelope_high.gender = Gender.FEMALE
+    antelope_high.pregnant = True
+    antelope_high.condition_runtime = 0.4
+    antelope_high.birth_cycle_bias = 0.8
+    antelope_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("antelope")
+
+    random.seed(86)
+    antelope_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("antelope")
+    high_cooldown = antelope_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("antelope", pos_low, source="manual")
+    antelope_low = eco_low.animals[-1]
+    antelope_low.gender = Gender.FEMALE
+    antelope_low.pregnant = True
+    antelope_low.condition_runtime = 0.4
+    antelope_low.birth_cycle_bias = 0.0
+    antelope_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("antelope")
+
+    random.seed(86)
+    antelope_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("antelope")
+    low_cooldown = antelope_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Antelope birth cycle scaling test passed")
+
+
+def test_vulture_birth_cycle_scaling():
+    """秃鹫 birth_cycle_bias 应继续改善产后冷却和 aerial 延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("vulture", pos_high, source="manual")
+    vulture_high = eco_high.animals[-1]
+    vulture_high.gender = Gender.FEMALE
+    vulture_high.pregnant = True
+    vulture_high.condition_runtime = 0.4
+    vulture_high.birth_cycle_bias = 0.8
+    vulture_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("vulture")
+
+    random.seed(87)
+    vulture_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("vulture")
+    high_cooldown = vulture_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("vulture", pos_low, source="manual")
+    vulture_low = eco_low.animals[-1]
+    vulture_low.gender = Gender.FEMALE
+    vulture_low.pregnant = True
+    vulture_low.condition_runtime = 0.4
+    vulture_low.birth_cycle_bias = 0.0
+    vulture_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("vulture")
+
+    random.seed(87)
+    vulture_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("vulture")
+    low_cooldown = vulture_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Vulture birth cycle scaling test passed")
+
+
 def test_lion_registration_and_spawn():
     """狮应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -3701,6 +3793,52 @@ def test_lion_world_pressure_window_birth_scaling():
     print("✅ Lion world pressure window birth scaling test passed")
 
 
+def test_lion_birth_cycle_scaling():
+    """狮群 birth_cycle_bias 应继续改善产后冷却和群体延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("lion", pos_high, source="manual")
+    lion_high = eco_high.animals[-1]
+    lion_high.gender = Gender.FEMALE
+    lion_high.pregnant = True
+    lion_high.pride_stability = 0.6
+    lion_high.birth_cycle_bias = 0.8
+    lion_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("lion")
+
+    random.seed(56)
+    lion_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("lion")
+    high_cooldown = lion_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("lion", pos_low, source="manual")
+    lion_low = eco_low.animals[-1]
+    lion_low.gender = Gender.FEMALE
+    lion_low.pregnant = True
+    lion_low.pride_stability = 0.6
+    lion_low.birth_cycle_bias = 0.0
+    lion_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("lion")
+
+    random.seed(56)
+    lion_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("lion")
+    low_cooldown = lion_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Lion birth cycle scaling test passed")
+
+
 def test_hyena_registration_and_spawn():
     """鬣狗应完成注册，并能在陆地生成。"""
     eco = Ecosystem()
@@ -4050,6 +4188,52 @@ def test_hyena_world_pressure_window_birth_scaling():
     print("✅ Hyena world pressure window birth scaling test passed")
 
 
+def test_hyena_birth_cycle_scaling():
+    """鬣狗 birth_cycle_bias 应继续改善产后冷却和 clan 延续。"""
+    eco_high = Ecosystem()
+    pos_high = eco_high._random_land_position()
+    assert pos_high is not None
+    eco_high.spawn_animal("hyena", pos_high, source="manual")
+    hyena_high = eco_high.animals[-1]
+    hyena_high.gender = Gender.FEMALE
+    hyena_high.pregnant = True
+    hyena_high.clan_stability = 0.6
+    hyena_high.birth_cycle_bias = 0.8
+    hyena_high.breeding_patch_threshold = lambda: 0.0
+    before_high = eco_high.get_species_count("hyena")
+
+    random.seed(37)
+    hyena_high._give_birth(eco_high)
+
+    high_count = eco_high.get_species_count("hyena")
+    high_cooldown = hyena_high.mate_cooldown
+
+    eco_low = Ecosystem()
+    pos_low = eco_low._random_land_position()
+    assert pos_low is not None
+    eco_low.spawn_animal("hyena", pos_low, source="manual")
+    hyena_low = eco_low.animals[-1]
+    hyena_low.gender = Gender.FEMALE
+    hyena_low.pregnant = True
+    hyena_low.clan_stability = 0.6
+    hyena_low.birth_cycle_bias = 0.0
+    hyena_low.breeding_patch_threshold = lambda: 0.0
+    before_low = eco_low.get_species_count("hyena")
+
+    random.seed(37)
+    hyena_low._give_birth(eco_low)
+
+    low_count = eco_low.get_species_count("hyena")
+    low_cooldown = hyena_low.mate_cooldown
+
+    assert high_count >= before_high
+    assert low_count >= before_low
+    assert high_count >= low_count
+    assert high_cooldown < low_cooldown
+
+    print("✅ Hyena birth cycle scaling test passed")
+
+
 def test_hyena_cycle_phase_effect():
     """鬣狗周期相位应轻量影响当前个体状态。"""
     hyena = Hyena((10, 10), Gender.FEMALE)
@@ -4204,6 +4388,7 @@ SPECIES_TESTS = [
     test_lion_condition_phase_birth_scaling,
     test_lion_world_pressure_birth_scaling,
     test_lion_world_pressure_window_birth_scaling,
+    test_lion_birth_cycle_scaling,
     test_hyena_registration_and_spawn,
     test_hyena_scavenging_effect,
     test_hyena_den_cluster_effect,
@@ -4215,8 +4400,11 @@ SPECIES_TESTS = [
     test_hyena_condition_phase_birth_scaling,
     test_hyena_world_pressure_birth_scaling,
     test_hyena_world_pressure_window_birth_scaling,
+    test_hyena_birth_cycle_scaling,
     test_hyena_cycle_phase_effect,
     test_vulture_registration_and_spawn,
+    test_antelope_birth_cycle_scaling,
+    test_vulture_birth_cycle_scaling,
 ]
 
 TEST_GROUPS = {

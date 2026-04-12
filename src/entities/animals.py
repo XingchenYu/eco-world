@@ -559,6 +559,7 @@ class Animal(Creature):
         world_pressure_window_bias = max(0.0, min(1.0, getattr(self, "world_pressure_window_bias", 0.0)))
         birth_memory_bias = max(0.0, min(1.0, getattr(self, "birth_memory_bias", 0.0)))
         birth_memory_world_pressure_bias = max(0.0, min(1.0, getattr(self, "birth_memory_world_pressure_bias", 0.0)))
+        birth_cycle_bias = max(0.0, min(1.0, getattr(self, "birth_cycle_bias", 0.0)))
         condition_factor = max(
             0.80,
             min(
@@ -568,9 +569,10 @@ class Animal(Creature):
                 + condition_phase_bias * 0.16
                 + regional_health_anchor * 0.10
                 + world_pressure_bias * 0.08
-                + world_pressure_window_bias * 0.07,
+                + world_pressure_window_bias * 0.07
                 + birth_memory_bias * 0.08
                 + birth_memory_world_pressure_bias * 0.08
+                + birth_cycle_bias * 0.08
             ),
         )
             
@@ -606,6 +608,7 @@ class Animal(Creature):
                         - world_pressure_window_bias * 2
                         - birth_memory_bias * 2
                         - birth_memory_world_pressure_bias * 2
+                        - birth_cycle_bias * 2
                     )
                 ),
             ),

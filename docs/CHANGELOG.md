@@ -37,6 +37,17 @@
   - `birth_cycle_aerial_support`
   - `birth_cycle_apex_support`
   - `birth_cycle_apex_carrion_support`
+- ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 的普通物种 `_give_birth(...)` 现在也正式接入：
+  - `birth_cycle_bias`：产仔周期偏置，指“多周期繁殖记忆”下沉到个体后的直接产仔节律倾向
+- ✅ 这意味着 `antelope / zebra / vulture` 的普通产仔路径现在也会直接受 `birth_cycle_bias` 影响：
+  - `litter_size`：每胎数量
+  - `mate_cooldown`：产后冷却
+- ✅ 对应新增物种级产仔缩放测试：
+  - `test_antelope_birth_cycle_scaling()`
+  - `test_vulture_birth_cycle_scaling()`
+  - `test_lion_birth_cycle_scaling()`
+  - `test_hyena_birth_cycle_scaling()`
+- ✅ `SPECIES_TESTS` 入口已同步挂载，不再出现“测试函数已写但 species 组没跑到”的漏检
 - ✅ 测试已补齐：
   - `runtime`：新增 herd/aerial/apex 的 `birth_cycle_bias` 运行期体况测试
   - `world`：新增 `birth_cycle` world pressure 回路断言
