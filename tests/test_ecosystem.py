@@ -1216,6 +1216,7 @@ def test_v4_social_trend_summary_uses_memory():
     assert summary.trend_scores["herd_birth_memory"] > 0.0
     assert summary.trend_scores["aerial_birth_memory"] > 0.0
     assert summary.trend_scores["apex_birth_memory"] > 0.0
+    assert summary.trend_scores["birth_cycle_window_memory_strength"] > 0.0
     assert "surface_water_anchor" in summary.cycle_signals
     assert "carcass_anchor" in summary.cycle_signals
     assert "herd_regional_health_runtime" in summary.cycle_signals
@@ -1294,6 +1295,7 @@ def test_v4_social_trend_birth_cycle_window_support_memory():
     summary = build_region_social_trend_summary(region)
 
     assert "birth_cycle_window_memory" in summary.cycle_signals
+    assert summary.trend_scores["birth_cycle_window_memory_strength"] > 0.0
 
     print("✅ V4 social trend birth-cycle window support memory test passed")
 

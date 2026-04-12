@@ -59,6 +59,7 @@ def build_region_social_trend_summary(
     herd_birth_runtime = float(runtime_signals.get("herd_birth_runtime", 0.0))
     herd_birth_memory_runtime = float(runtime_signals.get("herd_birth_memory_runtime", 0.0))
     herd_birth_cycle_runtime = float(runtime_signals.get("herd_birth_cycle_runtime", 0.0))
+    herd_birth_cycle_window_runtime = float(runtime_signals.get("herd_birth_cycle_window_runtime", 0.0))
     herd_surface_water_runtime = float(runtime_signals.get("herd_surface_water_runtime", 0.0))
     herd_regional_health_runtime = float(runtime_signals.get("herd_regional_health_runtime", 0.0))
     herd_condition_runtime = float(runtime_signals.get("herd_condition_runtime", 0.0))
@@ -75,6 +76,7 @@ def build_region_social_trend_summary(
     aerial_birth_runtime = float(runtime_signals.get("aerial_birth_runtime", 0.0))
     aerial_birth_memory_runtime = float(runtime_signals.get("aerial_birth_memory_runtime", 0.0))
     aerial_birth_cycle_runtime = float(runtime_signals.get("aerial_birth_cycle_runtime", 0.0))
+    aerial_birth_cycle_window_runtime = float(runtime_signals.get("aerial_birth_cycle_window_runtime", 0.0))
     aerial_carcass_runtime = float(runtime_signals.get("aerial_carcass_runtime", 0.0))
     aerial_regional_health_runtime = float(runtime_signals.get("aerial_regional_health_runtime", 0.0))
     aerial_condition_runtime = float(runtime_signals.get("aerial_condition_runtime", 0.0))
@@ -89,6 +91,7 @@ def build_region_social_trend_summary(
     apex_birth_runtime = float(runtime_signals.get("apex_birth_runtime", 0.0))
     apex_birth_memory_runtime = float(runtime_signals.get("apex_birth_memory_runtime", 0.0))
     apex_birth_cycle_runtime = float(runtime_signals.get("apex_birth_cycle_runtime", 0.0))
+    apex_birth_cycle_window_runtime = float(runtime_signals.get("apex_birth_cycle_window_runtime", 0.0))
     apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
     apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
     apex_condition_phase_anchor_runtime = float(runtime_signals.get("apex_condition_phase_anchor_runtime", 0.0))
@@ -220,6 +223,17 @@ def build_region_social_trend_summary(
         "apex_birth_cycle_memory": round(min(1.0, carry("apex_birth_cycle_memory") * 0.56 + apex_birth_cycle_runtime * 0.40 + apex_birth_memory_runtime * 0.16), 3),
         "herd_birth_cycle_memory": round(min(1.0, carry("herd_birth_cycle_memory") * 0.56 + herd_birth_cycle_runtime * 0.42 + herd_birth_memory_runtime * 0.16 + birth_cycle_window_count * 0.05), 3),
         "aerial_birth_cycle_memory": round(min(1.0, carry("aerial_birth_cycle_memory") * 0.56 + aerial_birth_cycle_runtime * 0.42 + aerial_birth_memory_runtime * 0.16 + birth_cycle_window_count * 0.05), 3),
+        "birth_cycle_window_memory_strength": round(
+            min(
+                1.0,
+                carry("birth_cycle_window_memory_strength") * 0.58
+                + birth_cycle_window_count * 0.10
+                + herd_birth_cycle_window_runtime * 0.16
+                + aerial_birth_cycle_window_runtime * 0.16
+                + apex_birth_cycle_window_runtime * 0.14,
+            ),
+            3,
+        ),
     }
 
     phase_scores = {

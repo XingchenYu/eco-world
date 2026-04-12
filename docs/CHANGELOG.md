@@ -1808,3 +1808,8 @@ src/core/ecosystem.py        [修改] 导入新物种
     - `birth_cycle_window_apex_carrion_support`
     继续沉淀成 `birth_cycle_window_memory`
   - 也就是说，长期记忆现在会记“窗口打开过”，也会记“窗口真的生效过”
+- 主线继续推进：
+  - `birth_cycle_window_memory` 现在不只是布尔信号
+  - 已新增 `birth_cycle_window_memory_strength`
+  - 它会按窗口与 support 的真实生效强度，继续抬升运行体的 `birth_cycle_bias`
+  - 也就是说，慢反馈繁殖窗口现在不再只是“发生过/没发生过”，而是开始按强度回灌 herd / apex / aerial 的真实繁殖节律
