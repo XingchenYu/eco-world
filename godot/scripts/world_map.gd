@@ -922,8 +922,8 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview"), region_accent, active_region))
 			side_box.add_child(_make_focus_card(active_region))
 			side_box.add_child(_make_region_summary_card(active_region))
-			side_box.add_child(_make_badge_list("风险焦点", pressure_headlines))
-			side_box.add_child(_make_badge_list("主导生态链", chain_focus))
+			side_box.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
+			side_box.add_child(_make_badge_list("主导生态链", chain_focus, active_region))
 			side_box.add_child(_make_section("健康状态", active_region.get("health_state", {})))
 			side_box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
 			side_box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
@@ -1247,12 +1247,12 @@ func _make_story_section(narrative: Dictionary, active_region: Dictionary) -> VB
 	return story
 
 
-func _make_badge_list(title_text: String, rows: Array) -> PanelContainer:
+func _make_badge_list(title_text: String, rows: Array, active_region: Dictionary) -> PanelContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 
 	var title := Label.new()
-	title.text = title_text
+	title.text = "%s · %s" % [_region_type_chip(active_region), title_text]
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
