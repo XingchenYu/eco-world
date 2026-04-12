@@ -198,6 +198,10 @@ func _tab_title(tab_id: String) -> String:
 	}.get(tab_id, "分页")
 
 
+func _active_region_accent() -> Color:
+	return REGION_COLORS.get(active_region_id, Color8(210, 182, 96))
+
+
 func _ready() -> void:
 	_build_ui()
 	_load_world_data()
@@ -754,18 +758,21 @@ func _build_side_panel() -> void:
 	var route_summary: Array = active_region.get("route_summary", [])
 	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
 	var chain_focus: Array = active_region.get("chain_focus", [])
+	var region_accent := _active_region_accent()
 
 	var title := Label.new()
 	title.text = "%s · 焦点区域" % str(active_region.get("name", "未选择"))
 	_style_primary_title(title, 28)
+	title.modulate = region_accent.lightened(0.35)
 	side_box.add_child(title)
 
 	var climate := Label.new()
 	climate.text = str(active_region.get("region_role", "生态观测区"))
 	_style_secondary_title(climate, 18)
+	climate.modulate = region_accent.lightened(0.18)
 	side_box.add_child(climate)
 	side_box.add_child(_make_status_strip(active_region))
-	side_box.add_child(_make_tabs())
+	side_box.add_child(_make_tabs(region_accent))
 
 	match selected_tab:
 		"overview":
@@ -796,7 +803,7 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_tab_banner("区域播报室", "汇总领地、趋势、链路和关系层的即时叙事。", _tab_accent_color("story")))
 			side_box.add_child(_make_story_section(narrative))
 
-func _make_tabs() -> HBoxContainer:
+func _make_tabs(region_accent: Color) -> HBoxContainer:
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 8)
 	for tab_id in ["overview", "chains", "species", "story"]:
@@ -810,7 +817,8 @@ func _make_tabs() -> HBoxContainer:
 		button.toggle_mode = true
 		button.button_pressed = is_active
 		button.custom_minimum_size = Vector2(112, 40)
-		button.modulate = _tab_accent_color(tab_id) if is_active else Color8(214, 218, 222)
+		var tab_color := _tab_accent_color(tab_id)
+		button.modulate = region_accent.lightened(0.12) if is_active else tab_color.darkened(0.12)
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
 		tabs.add_child(button)
 	return tabs
