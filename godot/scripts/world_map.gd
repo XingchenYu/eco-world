@@ -88,6 +88,30 @@ func _metric_icon(metric_key: String) -> String:
 	}.get(metric_key, "•")
 
 
+func _story_accent(key: String) -> Color:
+	return {
+		"territory": Color8(171, 132, 196),
+		"social_trends": Color8(102, 152, 204),
+		"grassland_chain": Color8(104, 171, 144),
+		"carrion_chain": Color8(171, 132, 196),
+		"wetland_chain": Color8(102, 152, 204),
+		"symbiosis": Color8(210, 182, 96),
+		"predation": Color8(171, 132, 196),
+	}.get(key, Color8(104, 171, 144))
+
+
+func _story_title(key: String) -> String:
+	return {
+		"territory": "领地播报",
+		"social_trends": "趋势播报",
+		"grassland_chain": "草原主链播报",
+		"carrion_chain": "尸体资源链播报",
+		"wetland_chain": "湿地主链播报",
+		"symbiosis": "共生播报",
+		"predation": "捕食播报",
+	}.get(key, "区域播报")
+
+
 func _species_category(species_id: String) -> String:
 	if species_id in ["lion", "hyena", "vulture", "nile_crocodile", "pike", "catfish", "blackfish"]:
 		return "顶层种"
@@ -877,12 +901,33 @@ func _make_story_section(narrative: Dictionary) -> VBoxContainer:
 	story.add_child(title)
 
 	for key in ["territory", "social_trends", "grassland_chain", "carrion_chain", "wetland_chain", "symbiosis", "predation"]:
-		for line in narrative.get(key, []):
+		var rows: Array = narrative.get(key, [])
+		if rows.is_empty():
+			continue
+
+		var card := PanelContainer.new()
+		story.add_child(card)
+
+		var box := VBoxContainer.new()
+		box.add_theme_constant_override("separation", 4)
+		card.add_child(box)
+
+		var ribbon := ColorRect.new()
+		ribbon.color = _story_accent(key)
+		ribbon.custom_minimum_size = Vector2(0, 6)
+		box.add_child(ribbon)
+
+		var section_title := Label.new()
+		section_title.text = _story_title(key)
+		_style_secondary_title(section_title, 18)
+		box.add_child(section_title)
+
+		for line in rows:
 			var item := Label.new()
 			item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			item.text = "• %s" % str(line)
 			_style_body(item, 15)
-			story.add_child(item)
+			box.add_child(item)
 	return story
 
 
