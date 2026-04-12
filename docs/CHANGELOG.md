@@ -2,6 +2,15 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha80 (2026-04-13 00:34)
+
+- ✅ Godot 前端继续收口顶栏控制区。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 顶栏色带
+  - 标题区与控制区分栏
+  - 更像菜单按钮的刷新入口
+- ✅ 这意味着顶部标题和控制条不再像默认控件堆叠，而开始更像游戏界面顶栏。
+
 ### v4.0-alpha79 (2026-04-13 00:28)
 
 - ✅ Godot 前端继续收口底部 HUD 层。

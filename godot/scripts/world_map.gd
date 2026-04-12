@@ -96,33 +96,51 @@ func _build_ui() -> void:
 	root_margin.add_child(root_vbox)
 
 	var header_panel := PanelContainer.new()
-	header_panel.custom_minimum_size = Vector2(0, 90)
+	header_panel.custom_minimum_size = Vector2(0, 112)
 	root_vbox.add_child(header_panel)
 
 	var header_box := VBoxContainer.new()
 	header_box.add_theme_constant_override("separation", 4)
 	header_panel.add_child(header_box)
 
+	var header_ribbon := ColorRect.new()
+	header_ribbon.color = Color8(210, 182, 96)
+	header_ribbon.custom_minimum_size = Vector2(0, 8)
+	header_box.add_child(header_ribbon)
+
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 16)
+	header_box.add_child(title_row)
+
+	var title_col := VBoxContainer.new()
+	title_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_col.add_theme_constant_override("separation", 4)
+	title_row.add_child(title_col)
+
 	title_label = Label.new()
 	title_label.text = "阿瑞利亚生态世界"
 	_style_primary_title(title_label, 34)
-	header_box.add_child(title_label)
+	title_col.add_child(title_label)
 
 	subtitle_label = Label.new()
-	subtitle_label.text = "Godot 世界地图界面"
+	subtitle_label.text = "世界地图总控台"
 	_style_secondary_title(subtitle_label, 18)
-	header_box.add_child(subtitle_label)
+	title_col.add_child(subtitle_label)
+
+	var control_row := HBoxContainer.new()
+	control_row.add_theme_constant_override("separation", 10)
+	title_row.add_child(control_row)
 
 	refresh_button = Button.new()
-	refresh_button.text = "重新读取世界数据"
-	refresh_button.custom_minimum_size = Vector2(180, 38)
+	refresh_button.text = "刷新世界"
+	refresh_button.custom_minimum_size = Vector2(138, 38)
 	refresh_button.pressed.connect(_load_world_data)
-	header_box.add_child(refresh_button)
+	control_row.add_child(refresh_button)
 
 	auto_refresh_button = CheckButton.new()
 	auto_refresh_button.text = "自动刷新"
 	auto_refresh_button.toggled.connect(_on_auto_refresh_toggled)
-	header_box.add_child(auto_refresh_button)
+	control_row.add_child(auto_refresh_button)
 
 	var content := HBoxContainer.new()
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
