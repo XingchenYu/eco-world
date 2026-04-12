@@ -331,6 +331,13 @@ def build_region_territory_summary(
             pressure_scores.get("waterhole_spacing", 0.0) + min(0.10, herd_birth_runtime * 0.08),
             2,
         )
+    herd_birth_memory_runtime = float(runtime_state.get("herd_birth_memory_runtime", 0.0))
+    if herd_birth_memory_runtime > 0.0:
+        runtime_signals["herd_birth_memory_runtime"] = round(herd_birth_memory_runtime, 3)
+        pressure_scores["waterhole_spacing"] = round(
+            pressure_scores.get("waterhole_spacing", 0.0) + min(0.08, herd_birth_memory_runtime * 0.06),
+            2,
+        )
     if herd_surface_water_runtime > 0.0:
         runtime_signals["herd_surface_water_runtime"] = round(herd_surface_water_runtime, 3)
         pressure_scores["waterhole_spacing"] = round(
@@ -413,6 +420,13 @@ def build_region_territory_summary(
         runtime_signals["aerial_birth_runtime"] = round(aerial_birth_runtime, 3)
         pressure_scores["carcass_route_overlap"] = round(
             pressure_scores.get("carcass_route_overlap", 0.0) + min(0.10, aerial_birth_runtime * 0.08),
+            2,
+        )
+    aerial_birth_memory_runtime = float(runtime_state.get("aerial_birth_memory_runtime", 0.0))
+    if aerial_birth_memory_runtime > 0.0:
+        runtime_signals["aerial_birth_memory_runtime"] = round(aerial_birth_memory_runtime, 3)
+        pressure_scores["carcass_route_overlap"] = round(
+            pressure_scores.get("carcass_route_overlap", 0.0) + min(0.08, aerial_birth_memory_runtime * 0.06),
             2,
         )
     if aerial_carcass_runtime > 0.0:
@@ -571,6 +585,13 @@ def build_region_territory_summary(
         runtime_signals["apex_birth_runtime"] = round(apex_birth_runtime, 3)
         pressure_scores["apex_boundary_conflict"] = round(
             pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.10, apex_birth_runtime * 0.08),
+            2,
+        )
+    apex_birth_memory_runtime = float(runtime_state.get("apex_birth_memory_runtime", 0.0))
+    if apex_birth_memory_runtime > 0.0:
+        runtime_signals["apex_birth_memory_runtime"] = round(apex_birth_memory_runtime, 3)
+        pressure_scores["apex_boundary_conflict"] = round(
+            pressure_scores.get("apex_boundary_conflict", 0.0) + min(0.08, apex_birth_memory_runtime * 0.06),
             2,
         )
     if apex_world_pressure_window_runtime > 0.0:

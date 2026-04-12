@@ -20,6 +20,24 @@
   - [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 的运行期注入改动不再默认顺手带出 `world + grassland`
   - 现在会尽量收窄成真正需要的 `runtime` 或 `world`
 
+### v4.0-alpha56 (2026-04-12 11:55)
+
+- ✅ [src/sim/world_simulation.py](/Users/yumini/Projects/eco-world/src/sim/world_simulation.py) 现已把运行中的 `birth_memory_bias` 聚合成：
+  - `herd_birth_memory_runtime`
+  - `aerial_birth_memory_runtime`
+  - `apex_birth_memory_runtime`
+- ✅ [src/ecology/territory.py](/Users/yumini/Projects/eco-world/src/ecology/territory.py) 现在会把这组更慢的繁殖记忆信号写入 `runtime_signals`
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 现在会把这组信号继续沉淀到：
+  - `herd_birth_memory`
+  - `aerial_birth_memory`
+  - `apex_birth_memory`
+  - 以及对应 `cycle_signals`
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现已新增：
+  - `runtime_herd_birth_memory_pull`
+  - `runtime_aerial_birth_memory_pull`
+  - `runtime_apex_birth_memory_pull`
+- ✅ 这使草原主线从“近期产仔事件”继续推进到“近期产仔记忆偏置”的慢反馈闭环
+
 ### v4.0-alpha54 (2026-04-12 10:45)
 
 - ✅ [src/sim/region_simulation.py](/Users/yumini/Projects/eco-world/src/sim/region_simulation.py) 现已把 `social_trends.trend_scores` 里的：

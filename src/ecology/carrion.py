@@ -93,6 +93,7 @@ def build_region_carrion_chain_summary(
         vulture_hotspots = int(runtime_signals.get("vulture_hotspot_count", 0))
         vulture_overlap = int(runtime_signals.get("vulture_carrion_overlap", 0))
         aerial_birth_runtime = float(runtime_signals.get("aerial_birth_runtime", 0.0))
+        aerial_birth_memory_runtime = float(runtime_signals.get("aerial_birth_memory_runtime", 0.0))
         aerial_condition_runtime = float(runtime_signals.get("aerial_condition_runtime", 0.0))
         aerial_birth_runtime = float(runtime_signals.get("aerial_birth_runtime", 0.0))
         aerial_condition_phase_runtime = float(runtime_signals.get("aerial_condition_phase_runtime", 0.0))
@@ -100,6 +101,7 @@ def build_region_carrion_chain_summary(
         aerial_regional_bias_runtime = float(runtime_signals.get("aerial_regional_bias_runtime", 0.0))
         apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
         apex_birth_runtime = float(runtime_signals.get("apex_birth_runtime", 0.0))
+        apex_birth_memory_runtime = float(runtime_signals.get("apex_birth_memory_runtime", 0.0))
         apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
         apex_regional_health_runtime = float(runtime_signals.get("apex_regional_health_runtime", 0.0))
         apex_regional_bias_runtime = float(runtime_signals.get("apex_regional_bias_runtime", 0.0))
@@ -131,6 +133,10 @@ def build_region_carrion_chain_summary(
             add_score("runtime_aerial_birth_pull", min(0.20, aerial_birth_runtime * 0.15), "近期空中清道夫产仔正在把尸体通道继续拉向更稳定的空中追踪网络。")
             add_layer_bias("aerial_scavenge_layer", aerial_birth_runtime * 0.07)
             add_layer_bias("scavenge_layer", aerial_birth_runtime * 0.04)
+        if aerial_birth_memory_runtime > 0.0:
+            add_score("runtime_aerial_birth_memory_pull", min(0.18, aerial_birth_memory_runtime * 0.12), "近期产仔沉淀成的空中清道夫记忆偏置，正在把尸体追踪继续拉向更稳定的空中通道。")
+            add_layer_bias("aerial_scavenge_layer", aerial_birth_memory_runtime * 0.06)
+            add_layer_bias("scavenge_layer", aerial_birth_memory_runtime * 0.03)
         if aerial_condition_runtime > 0.0:
             add_score("runtime_aerial_condition_pull", min(0.18, aerial_condition_runtime * 0.14), "运行中的空中清道夫真实体况正在把尸体追踪重新拉向更稳定的空中通道。")
             add_layer_bias("aerial_scavenge_layer", aerial_condition_runtime * 0.06)
@@ -193,6 +199,10 @@ def build_region_carrion_chain_summary(
             add_score("runtime_apex_birth_pull", min(0.18, apex_birth_runtime * 0.12), "近期顶层社群产仔正在把击杀与残食通道继续压回更稳定的 apex 延续前线。")
             add_layer_bias("kill_layer", apex_birth_runtime * 0.06)
             add_layer_bias("scavenge_layer", apex_birth_runtime * 0.03)
+        if apex_birth_memory_runtime > 0.0:
+            add_score("runtime_apex_birth_memory_pull", min(0.16, apex_birth_memory_runtime * 0.11), "近期产仔沉淀成的顶层记忆偏置，正在把击杀与残食通道继续压向更稳定的 apex 延续前线。")
+            add_layer_bias("kill_layer", apex_birth_memory_runtime * 0.05)
+            add_layer_bias("scavenge_layer", apex_birth_memory_runtime * 0.03)
         if apex_condition_runtime > 0.0:
             add_score("runtime_apex_condition_pull", min(0.16, apex_condition_runtime * 0.12), "运行中的顶层捕食者真实体况正在抬升击杀与残食通道的持续前线。")
             add_layer_bias("kill_layer", apex_condition_runtime * 0.05)

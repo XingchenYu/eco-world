@@ -704,8 +704,10 @@ def test_v4_grassland_chain_summary():
             "hyena_hotspot_count": 2.0,
             "herd_surface_water_runtime": 0.6,
             "herd_birth_runtime": 0.28,
+            "herd_birth_memory_runtime": 0.26,
             "herd_condition_runtime": 0.46,
             "apex_birth_runtime": 0.24,
+            "apex_birth_memory_runtime": 0.22,
             "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
@@ -733,10 +735,12 @@ def test_v4_grassland_chain_summary():
     assert grassland_chain.trophic_scores["carcass_channeling"] > 0.0
     assert grassland_chain.trophic_scores["runtime_surface_water_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_herd_birth_pull"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_herd_birth_memory_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_herd_condition_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_herd_condition_phase_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_condition_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_birth_pull"] > 0.0
+    assert grassland_chain.trophic_scores["runtime_apex_birth_memory_pull"] > 0.0
     assert grassland_chain.trophic_scores["runtime_apex_condition_phase_pull"] > 0.0
     assert grassland_chain.trophic_scores["surface_water_anchor"] > 0.0
     assert grassland_chain.trophic_scores["herd_grazing"] > 0.0
@@ -1097,6 +1101,7 @@ def test_v4_social_trend_summary_uses_memory():
             "herd_route_cycle_runtime": 0.34,
             "herd_surface_water_runtime": 0.6,
             "herd_birth_runtime": 0.30,
+            "herd_birth_memory_runtime": 0.28,
             "herd_regional_health_runtime": 0.52,
             "herd_condition_runtime": 0.46,
             "herd_regional_bias_runtime": 0.46,
@@ -1108,6 +1113,7 @@ def test_v4_social_trend_summary_uses_memory():
             "aerial_carrion_cycle_runtime": 0.28,
             "aerial_carcass_runtime": 0.5,
             "aerial_birth_runtime": 0.26,
+            "aerial_birth_memory_runtime": 0.24,
             "aerial_regional_health_runtime": 0.44,
             "aerial_condition_runtime": 0.41,
             "aerial_regional_bias_runtime": 0.42,
@@ -1116,6 +1122,7 @@ def test_v4_social_trend_summary_uses_memory():
             "carcass_anchor": 0.5,
             "apex_regional_health_runtime": 0.48,
             "apex_birth_runtime": 0.22,
+            "apex_birth_memory_runtime": 0.20,
             "apex_condition_runtime": 0.39,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1153,9 +1160,12 @@ def test_v4_social_trend_summary_uses_memory():
     assert "vulture_hotspot_memory" in summary.cycle_signals
     assert "herd_route_cycle" in summary.cycle_signals
     assert "herd_birth_runtime" in summary.cycle_signals
+    assert "herd_birth_memory_runtime" in summary.cycle_signals
     assert "aerial_carrion_cycle" in summary.cycle_signals
     assert "aerial_birth_runtime" in summary.cycle_signals
+    assert "aerial_birth_memory_runtime" in summary.cycle_signals
     assert "apex_birth_runtime" in summary.cycle_signals
+    assert "apex_birth_memory_runtime" in summary.cycle_signals
     assert summary.trend_scores["herd_birth_memory"] > 0.0
     assert summary.trend_scores["aerial_birth_memory"] > 0.0
     assert summary.trend_scores["apex_birth_memory"] > 0.0
@@ -1227,8 +1237,10 @@ def test_v4_carrion_chain_summary():
             "hyena_hotspot_count": 2.0,
             "aerial_carcass_runtime": 0.5,
             "aerial_birth_runtime": 0.26,
+            "aerial_birth_memory_runtime": 0.24,
             "aerial_condition_runtime": 0.41,
             "apex_birth_runtime": 0.22,
+            "apex_birth_memory_runtime": 0.20,
             "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
@@ -1250,8 +1262,10 @@ def test_v4_carrion_chain_summary():
     assert grassland_chain.resource_scores["scavenger_lane_pressure"] > 0.0
     assert grassland_chain.resource_scores["runtime_carcass_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_aerial_birth_pull"] > 0.0
+    assert grassland_chain.resource_scores["runtime_aerial_birth_memory_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_aerial_condition_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_birth_pull"] > 0.0
+    assert grassland_chain.resource_scores["runtime_apex_birth_memory_pull"] > 0.0
     assert grassland_chain.resource_scores["runtime_apex_condition_pull"] > 0.0
     assert grassland_chain.resource_scores["carcass_anchor_pressure"] > 0.0
     assert grassland_chain.layer_scores["kill_layer"] > 0.0
@@ -1304,6 +1318,31 @@ def test_runtime_birth_signal_aggregation():
     assert runtime_state["apex_birth_runtime"] > 0.0
 
     print("✅ Runtime birth signal aggregation test passed")
+
+
+def test_runtime_birth_memory_signal_aggregation():
+    """运行中的 birth_memory_bias 应汇总为 territory runtime 信号。"""
+    world_sim = WorldSimulation(build_default_world_map())
+    sim = world_sim.get_active_simulation()
+
+    antelope = Antelope(position=(20, 20), gender=Gender.FEMALE)
+    zebra = Zebra(position=(22, 20), gender=Gender.FEMALE)
+    lion = Lion(position=(24, 20), gender=Gender.FEMALE)
+    vulture = Vulture(position=(26, 20), gender=Gender.FEMALE)
+    sim.animals.extend([antelope, zebra, lion, vulture])
+
+    antelope.birth_memory_bias = 0.34
+    zebra.birth_memory_bias = 0.30
+    lion.birth_memory_bias = 0.28
+    vulture.birth_memory_bias = 0.26
+
+    runtime_state = world_sim._build_runtime_territory_state(sim)
+
+    assert runtime_state["herd_birth_memory_runtime"] > 0.0
+    assert runtime_state["aerial_birth_memory_runtime"] > 0.0
+    assert runtime_state["apex_birth_memory_runtime"] > 0.0
+
+    print("✅ Runtime birth memory signal aggregation test passed")
 
 
 def test_v4_wetland_chain_feedback_updates_region_state():
@@ -3891,6 +3930,7 @@ GRASSLAND_TESTS = [
 RUNTIME_TESTS = [
     test_region_simulation_applies_social_phase_state,
     test_runtime_birth_signal_aggregation,
+    test_runtime_birth_memory_signal_aggregation,
     test_lion_hotspot_memory_center_effect,
     test_hyena_hotspot_memory_center_effect,
     test_runtime_regional_health_bias,

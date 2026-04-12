@@ -123,6 +123,7 @@ def build_region_grassland_chain_summary(
         herd_hotspots = int(runtime_signals.get("herd_hotspot_count", 0))
         herd_apex_overlap = int(runtime_signals.get("herd_apex_overlap", 0))
         herd_birth_runtime = float(runtime_signals.get("herd_birth_runtime", 0.0))
+        herd_birth_memory_runtime = float(runtime_signals.get("herd_birth_memory_runtime", 0.0))
         herd_condition_runtime = float(runtime_signals.get("herd_condition_runtime", 0.0))
         herd_condition_phase_runtime = float(runtime_signals.get("herd_condition_phase_runtime", 0.0))
         herd_condition_phase_bias_runtime = float(runtime_signals.get("herd_condition_phase_bias_runtime", 0.0))
@@ -132,6 +133,7 @@ def build_region_grassland_chain_summary(
         herd_world_pressure_window_runtime = float(runtime_signals.get("herd_world_pressure_window_runtime", 0.0))
         herd_regional_bias_runtime = float(runtime_signals.get("herd_regional_bias_runtime", 0.0))
         apex_birth_runtime = float(runtime_signals.get("apex_birth_runtime", 0.0))
+        apex_birth_memory_runtime = float(runtime_signals.get("apex_birth_memory_runtime", 0.0))
         apex_condition_runtime = float(runtime_signals.get("apex_condition_runtime", 0.0))
         apex_condition_phase_runtime = float(runtime_signals.get("apex_condition_phase_runtime", 0.0))
         apex_condition_phase_bias_runtime = float(runtime_signals.get("apex_condition_phase_bias_runtime", 0.0))
@@ -168,6 +170,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_herd_birth_pull", min(0.20, herd_birth_runtime * 0.14), "近期食草群产仔正在把草原 herd 通道继续压向更稳定的延续走廊。")
             add_layer_bias("herd_layer", herd_birth_runtime * 0.07)
             add_layer_bias("social_layer", herd_birth_runtime * 0.04)
+        if herd_birth_memory_runtime > 0.0:
+            add_score("runtime_herd_birth_memory_pull", min(0.18, herd_birth_memory_runtime * 0.12), "近期产仔沉淀成的 herd 记忆偏置，正在把草原 herd 通道继续拉向更稳定的延续走廊。")
+            add_layer_bias("herd_layer", herd_birth_memory_runtime * 0.06)
+            add_layer_bias("social_layer", herd_birth_memory_runtime * 0.03)
         if herd_condition_runtime > 0.0:
             add_score("runtime_herd_condition_pull", min(0.18, herd_condition_runtime * 0.14), "运行中的食草群真实体况正在把 herd 通道重新压回更稳定的草原走廊。")
             add_layer_bias("herd_layer", herd_condition_runtime * 0.06)
@@ -214,6 +220,10 @@ def build_region_grassland_chain_summary(
             add_score("runtime_apex_birth_pull", min(0.18, apex_birth_runtime * 0.12), "近期顶层社群产仔正在把草原热点继续压向更稳定的 apex 延续核心。")
             add_layer_bias("predator_layer", apex_birth_runtime * 0.06)
             add_layer_bias("social_layer", apex_birth_runtime * 0.03)
+        if apex_birth_memory_runtime > 0.0:
+            add_score("runtime_apex_birth_memory_pull", min(0.16, apex_birth_memory_runtime * 0.11), "近期产仔沉淀成的 apex 记忆偏置，正在把草原热点继续压向更稳定的顶层延续核心。")
+            add_layer_bias("predator_layer", apex_birth_memory_runtime * 0.05)
+            add_layer_bias("social_layer", apex_birth_memory_runtime * 0.03)
         if apex_condition_runtime > 0.0:
             add_score("runtime_apex_condition_pull", min(0.16, apex_condition_runtime * 0.12), "运行中的顶层捕食者真实体况正在把草原热点重新压向更强的 apex 核心。")
             add_layer_bias("predator_layer", apex_condition_runtime * 0.05)
