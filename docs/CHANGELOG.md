@@ -2,6 +2,16 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha78 (2026-04-13 00:20)
+
+- ✅ Godot 前端继续收口 HUD 浮层，让地图左上和右上不再像普通面板。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 世界播报色带
+  - 图例色带
+  - 浮层标题条
+  - 播报卡片化显示
+- ✅ 这意味着世界播报和地图图例已经开始有更像游戏 HUD 的气质，而不是单纯说明框。
+
 ### v4.0-alpha77 (2026-04-13 00:12)
 
 - ✅ Godot 前端继续收口左侧地图节点质感。

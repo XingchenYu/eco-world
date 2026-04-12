@@ -438,17 +438,25 @@ func _build_world_bulletin() -> void:
 	box.add_theme_constant_override("separation", 6)
 	panel.add_child(box)
 
+	var ribbon := ColorRect.new()
+	ribbon.color = Color8(102, 152, 204)
+	ribbon.custom_minimum_size = Vector2(0, 8)
+	box.add_child(ribbon)
+
 	var title := Label.new()
-	title.text = "世界播报"
+	title.text = "世界播报 · 指挥台"
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
 	for line in bulletin_cache.slice(0, 4):
+		var card := PanelContainer.new()
+		box.add_child(card)
+
 		var item := Label.new()
 		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		item.text = "• %s" % str(line)
 		_style_body(item, 15)
-		box.add_child(item)
+		card.add_child(item)
 
 
 func _build_map_legend() -> void:
@@ -461,8 +469,13 @@ func _build_map_legend() -> void:
 	box.add_theme_constant_override("separation", 4)
 	panel.add_child(box)
 
+	var ribbon := ColorRect.new()
+	ribbon.color = Color8(210, 182, 96)
+	ribbon.custom_minimum_size = Vector2(0, 8)
+	box.add_child(ribbon)
+
 	var title := Label.new()
-	title.text = "地图图例"
+	title.text = "地图图例 · 航线层"
 	_style_primary_title(title, 20)
 	box.add_child(title)
 
