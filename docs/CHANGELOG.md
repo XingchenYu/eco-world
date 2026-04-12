@@ -46,6 +46,16 @@
   - `runtime_resource_pressure`
 - ✅ 这条慢反馈主线现在已经继续推进成：
   - `birth_cycle window -> memory strength -> pressure bias -> runtime territory -> chain summaries -> world pressures`
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现在也已继续把这组新 pressure pull 落到：
+  - 区域反馈
+  - 低频重平衡
+- ✅ 对应新增 support：
+  - `birth_cycle_window_pressure_herd_support`
+  - `birth_cycle_window_pressure_aerial_support`
+  - `birth_cycle_window_pressure_apex_support`
+  - `birth_cycle_window_pressure_apex_carrion_support`
+- ✅ 这条慢反馈主线现在已经进一步闭成：
+  - `birth_cycle window -> memory strength -> pressure bias -> runtime territory -> chain flows -> feedback + rebalancing -> next world pressures`
 
 ### v4.0-alpha60 (2026-04-12 15:35)
 

@@ -2100,10 +2100,12 @@ def test_v4_grassland_birth_memory_rebalancing_support():
     summary.trophic_scores["runtime_herd_birth_memory_world_pressure_pull"] = 0.06
     summary.trophic_scores["runtime_herd_birth_cycle_pull"] = 0.06
     summary.trophic_scores["runtime_herd_birth_cycle_window_pull"] = 0.06
+    summary.trophic_scores["runtime_herd_birth_cycle_window_pressure_pull"] = 0.06
     summary.trophic_scores["runtime_apex_birth_memory_pull"] = 0.05
     summary.trophic_scores["runtime_apex_birth_memory_world_pressure_pull"] = 0.05
     summary.trophic_scores["runtime_apex_birth_cycle_pull"] = 0.05
     summary.trophic_scores["runtime_apex_birth_cycle_window_pull"] = 0.05
+    summary.trophic_scores["runtime_apex_birth_cycle_window_pressure_pull"] = 0.05
     summary.trophic_scores["birth_cycle_window_memory_strength_pull"] = 0.06
 
     adjustments = apply_region_grassland_chain_rebalancing(region, summary)
@@ -2116,10 +2118,12 @@ def test_v4_grassland_birth_memory_rebalancing_support():
     assert any(item["effect"] == "birth_cycle_herd_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_herd_window" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_herd_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_pressure_herd_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_memory_herd_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_apex_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_apex_window" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_apex_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_pressure_apex_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_memory_apex_support" for item in adjustments)
 
     print("✅ V4 grassland birth memory rebalancing support test passed")
@@ -2138,10 +2142,12 @@ def test_v4_carrion_birth_memory_rebalancing_support():
     summary.resource_scores["runtime_aerial_birth_memory_world_pressure_pull"] = 0.06
     summary.resource_scores["runtime_aerial_birth_cycle_pull"] = 0.06
     summary.resource_scores["runtime_aerial_birth_cycle_window_pull"] = 0.06
+    summary.resource_scores["runtime_aerial_birth_cycle_window_pressure_pull"] = 0.06
     summary.resource_scores["runtime_apex_birth_memory_pull"] = 0.05
     summary.resource_scores["runtime_apex_birth_memory_world_pressure_pull"] = 0.05
     summary.resource_scores["runtime_apex_birth_cycle_pull"] = 0.05
     summary.resource_scores["runtime_apex_birth_cycle_window_pull"] = 0.05
+    summary.resource_scores["runtime_apex_birth_cycle_window_pressure_pull"] = 0.05
     summary.resource_scores["birth_cycle_window_memory_strength_pull"] = 0.06
 
     adjustments = apply_region_carrion_chain_rebalancing(region, summary)
@@ -2154,10 +2160,12 @@ def test_v4_carrion_birth_memory_rebalancing_support():
     assert any(item["effect"] == "birth_cycle_aerial_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_aerial_window" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_aerial_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_pressure_aerial_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_memory_aerial_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_apex_carrion_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_apex_carrion_window" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_apex_carrion_support" for item in adjustments)
+    assert any(item["effect"] == "birth_cycle_window_pressure_apex_carrion_support" for item in adjustments)
     assert any(item["effect"] == "birth_cycle_window_memory_apex_carrion_support" for item in adjustments)
 
     print("✅ V4 carrion birth memory rebalancing support test passed")
