@@ -283,6 +283,7 @@ def build_region_social_trend_summary(
             + condition_phase_window_count * 0.03
             + world_pressure_window_count * 0.03
             + birth_cycle_window_count * 0.03
+            + trend_scores["birth_cycle_window_memory_strength"] * 0.08
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.08,
         ),
     )
@@ -314,6 +315,7 @@ def build_region_social_trend_summary(
             + condition_phase_window_count * 0.03
             + world_pressure_window_count * 0.03
             + birth_cycle_window_count * 0.03
+            + trend_scores["birth_cycle_window_memory_strength"] * 0.08
             - (carry_hotspot("shared_hotspot_memory") * 0.66 + shared_hotspot_persistence * 0.20 + overlap * 0.08 - shared_hotspot_shift * 0.06) * 0.06,
         ),
     )
@@ -847,6 +849,9 @@ def build_region_social_trend_summary(
     if birth_cycle_window_count > 0:
         cycle_signals.append("birth_cycle_window_memory")
         narrative_trends.append("多周期繁殖窗口正在把 herd、apex 与 aerial 的恢复机会沉淀成新的慢反馈繁殖记忆。")
+    if trend_scores["birth_cycle_window_memory_strength"] >= 0.18:
+        cycle_signals.append("birth_cycle_window_memory_strength")
+        narrative_trends.append("多周期繁殖窗口的真实生效强度，已经开始持续放大 herd 与 aerial 的长期繁殖周期。")
     if apex_regional_bias_runtime >= 0.30:
         cycle_signals.append("apex_regional_bias_runtime")
     if apex_world_pressure_runtime >= 0.26:

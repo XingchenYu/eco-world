@@ -1817,3 +1817,9 @@ src/core/ecosystem.py        [修改] 导入新物种
   - `world_simulation` 里的长期压力聚合与 `runtime_territory_state`
     现在也开始按 `birth_cycle_window_memory_strength` 计入，而不再只看布尔型 `birth_cycle_window_memory`
   - 也就是说，世界层和运行期 territory 聚合现在都会识别“窗口生效得有多强”，而不只是“窗口是否存在”
+- 主线继续推进：
+  - `social_trends` 的周期层现在也开始读取 `birth_cycle_window_memory_strength`
+  - 它会继续抬升：
+    - `herd_route_cycle`
+    - `aerial_carrion_cycle`
+  - 并且当强度足够时，会显式写入 `cycle_signals`
