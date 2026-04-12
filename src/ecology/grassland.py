@@ -371,6 +371,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_corridors", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_surface_water_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_birth_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
+    _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_birth_memory_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_condition_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_condition_phase_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
     _adjust(region.resource_state, "surface_water", scores.get("runtime_herd_health_pull", 0.0) * 0.10 * herd_bias, feedback_scale)
@@ -397,6 +398,7 @@ def apply_region_grassland_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("dominant_apex_layout", 0.0) * 0.14 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_herd_apex_overlap", 0.0) * 0.12 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_memory_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_phase_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_pull", 0.0) * 0.10 * predator_bias, feedback_scale)
@@ -968,6 +970,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["antelope"],
             }
         )
+    if scores.get("runtime_herd_birth_memory_pull", 0.0) >= 0.05 and antelope_count < 19:
+        species_pool["antelope"] = species_pool.get("antelope", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_birth_memory",
+                "target_species": "antelope",
+                "layer_group": "herd_layer",
+                "effect": "runtime_herd_birth_memory_support",
+                "new_target_count": species_pool["antelope"],
+            }
+        )
     if scores.get("runtime_herd_condition_pull", 0.0) >= 0.06 and antelope_count < 19:
         species_pool["antelope"] = species_pool.get("antelope", 0) + 1
         adjustments.append(
@@ -1097,6 +1110,17 @@ def apply_region_grassland_chain_rebalancing(
                 "target_species": "zebra",
                 "layer_group": "herd_layer",
                 "effect": "runtime_herd_birth_support",
+                "new_target_count": species_pool["zebra"],
+            }
+        )
+    if scores.get("runtime_herd_birth_memory_pull", 0.0) >= 0.05 and zebra_count < 17:
+        species_pool["zebra"] = species_pool.get("zebra", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_birth_memory",
+                "target_species": "zebra",
+                "layer_group": "herd_layer",
+                "effect": "runtime_herd_birth_memory_support",
                 "new_target_count": species_pool["zebra"],
             }
         )
@@ -1232,6 +1256,17 @@ def apply_region_grassland_chain_rebalancing(
                 "new_target_count": species_pool["lion"],
             }
         )
+    if scores.get("runtime_apex_birth_memory_pull", 0.0) >= 0.05 and lion_count < 8:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_birth_memory",
+                "target_species": "lion",
+                "layer_group": "predator_layer",
+                "effect": "runtime_apex_birth_memory_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
     if scores.get("runtime_apex_condition_pull", 0.0) >= 0.06 and lion_count < 8:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(
@@ -1284,6 +1319,17 @@ def apply_region_grassland_chain_rebalancing(
                 "target_species": "hyena",
                 "layer_group": "social_layer",
                 "effect": "runtime_apex_birth_support",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if scores.get("runtime_apex_birth_memory_pull", 0.0) >= 0.05 and hyena_count < 8:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_birth_memory",
+                "target_species": "hyena",
+                "layer_group": "social_layer",
+                "effect": "runtime_apex_birth_memory_support",
                 "new_target_count": species_pool["hyena"],
             }
         )

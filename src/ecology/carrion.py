@@ -339,6 +339,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_lanes", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_carcass_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_birth_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
+    _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_birth_memory_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_condition_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_condition_phase_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
     _adjust(region.resource_state, "carcass_availability", scores.get("runtime_aerial_health_pull", 0.0) * 0.10 * aerial_bias, feedback_scale)
@@ -360,6 +361,7 @@ def apply_region_carrion_chain_feedback(
     _adjust(region.hazard_state, "predation_pressure", scores.get("dominant_aerial_tracking", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_vulture_overlap", 0.0) * 0.12 * collapse_bias * aerial_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
+    _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_birth_memory_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_condition_phase_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
     _adjust(region.hazard_state, "predation_pressure", scores.get("runtime_apex_health_pull", 0.0) * 0.10 * collapse_bias * kill_bias, feedback_scale)
@@ -753,6 +755,17 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["vulture"],
             }
         )
+    if scores.get("runtime_aerial_birth_memory_pull", 0.0) >= 0.05 and vulture_count < 11:
+        species_pool["vulture"] = species_pool.get("vulture", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_birth_memory",
+                "target_species": "vulture",
+                "layer_group": "aerial_scavenge_layer",
+                "effect": "runtime_aerial_birth_memory_support",
+                "new_target_count": species_pool["vulture"],
+            }
+        )
     if scores.get("runtime_aerial_condition_pull", 0.0) >= 0.06 and vulture_count < 11:
         species_pool["vulture"] = species_pool.get("vulture", 0) + 1
         adjustments.append(
@@ -901,6 +914,17 @@ def apply_region_carrion_chain_rebalancing(
                 "new_target_count": species_pool["lion"],
             }
         )
+    if scores.get("runtime_apex_birth_memory_pull", 0.0) >= 0.05 and lion_count < 8:
+        species_pool["lion"] = species_pool.get("lion", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_birth_memory",
+                "target_species": "lion",
+                "layer_group": "kill_layer",
+                "effect": "runtime_apex_birth_memory_support",
+                "new_target_count": species_pool["lion"],
+            }
+        )
     if scores.get("runtime_apex_condition_pull", 0.0) >= 0.06 and lion_count < 8:
         species_pool["lion"] = species_pool.get("lion", 0) + 1
         adjustments.append(
@@ -942,6 +966,17 @@ def apply_region_carrion_chain_rebalancing(
                 "target_species": "hyena",
                 "layer_group": "scavenge_layer",
                 "effect": "runtime_apex_birth_support",
+                "new_target_count": species_pool["hyena"],
+            }
+        )
+    if scores.get("runtime_apex_birth_memory_pull", 0.0) >= 0.05 and hyena_count < 8:
+        species_pool["hyena"] = species_pool.get("hyena", 0) + 1
+        adjustments.append(
+            {
+                "source_species": "runtime_birth_memory",
+                "target_species": "hyena",
+                "layer_group": "scavenge_layer",
+                "effect": "runtime_apex_birth_memory_support",
                 "new_target_count": species_pool["hyena"],
             }
         )

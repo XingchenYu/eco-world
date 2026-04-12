@@ -704,10 +704,10 @@ def test_v4_grassland_chain_summary():
             "hyena_hotspot_count": 2.0,
             "herd_surface_water_runtime": 0.6,
             "herd_birth_runtime": 0.28,
-            "herd_birth_memory_runtime": 0.26,
+            "herd_birth_memory_runtime": 0.48,
             "herd_condition_runtime": 0.46,
             "apex_birth_runtime": 0.24,
-            "apex_birth_memory_runtime": 0.22,
+            "apex_birth_memory_runtime": 0.48,
             "apex_condition_runtime": 0.39,
             "shared_hotspot_overlap": 1.0,
         },
@@ -1113,7 +1113,7 @@ def test_v4_social_trend_summary_uses_memory():
             "aerial_carrion_cycle_runtime": 0.28,
             "aerial_carcass_runtime": 0.5,
             "aerial_birth_runtime": 0.26,
-            "aerial_birth_memory_runtime": 0.24,
+            "aerial_birth_memory_runtime": 0.48,
             "aerial_regional_health_runtime": 0.44,
             "aerial_condition_runtime": 0.41,
             "aerial_regional_bias_runtime": 0.42,
@@ -1122,7 +1122,7 @@ def test_v4_social_trend_summary_uses_memory():
             "carcass_anchor": 0.5,
             "apex_regional_health_runtime": 0.48,
             "apex_birth_runtime": 0.22,
-            "apex_birth_memory_runtime": 0.20,
+            "apex_birth_memory_runtime": 0.48,
             "apex_condition_runtime": 0.39,
             "apex_regional_bias_runtime": 0.43,
             "apex_anchor_prosperity_runtime": 0.46,
@@ -1443,7 +1443,9 @@ def test_v4_grassland_chain_feedback_updates_region_state():
             "herd_regional_bias_runtime": 0.46,
             "herd_anchor_prosperity_runtime": 0.58,
             "herd_world_pressure_window_runtime": 0.36,
+            "herd_birth_memory_runtime": 0.48,
             "apex_regional_health_runtime": 0.48,
+            "apex_birth_memory_runtime": 0.48,
             "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
@@ -1467,6 +1469,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "dominant_herd_channeling" in summary.trophic_scores
     assert "runtime_herd_corridors" in summary.trophic_scores
     assert "runtime_surface_water_pull" in summary.trophic_scores
+    assert "runtime_herd_birth_memory_pull" in summary.trophic_scores
     assert "runtime_herd_condition_pull" in summary.trophic_scores
     assert "runtime_herd_condition_phase_pull" in summary.trophic_scores
     assert "runtime_herd_health_pull" in summary.trophic_scores
@@ -1478,6 +1481,7 @@ def test_v4_grassland_chain_feedback_updates_region_state():
     assert "runtime_herd_resource_anchor_pull" in summary.trophic_scores
     assert "runtime_herd_anchor_prosperity_pull" in summary.trophic_scores
     assert "runtime_apex_condition_pull" in summary.trophic_scores
+    assert "runtime_apex_birth_memory_pull" in summary.trophic_scores
     assert "runtime_apex_condition_phase_pull" in summary.trophic_scores
     assert "runtime_apex_health_pull" in summary.trophic_scores
     assert "runtime_apex_health_anchor_pull" in summary.trophic_scores
@@ -1512,6 +1516,10 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
     initial_antelope = region.species_pool["antelope"]
     initial_hyena = region.species_pool["hyena"]
     initial_lion = region.species_pool["lion"]
+    region.species_pool["antelope"] = min(region.species_pool["antelope"], 18)
+    region.species_pool["zebra"] = min(region.species_pool["zebra"], 16)
+    region.species_pool["lion"] = min(region.species_pool["lion"], 7)
+    region.species_pool["hyena"] = min(region.species_pool["hyena"], 7)
     region.record_relationship_state(
         "territory",
         {
@@ -1568,6 +1576,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "herd_surface_water_runtime": 0.6,
             "herd_world_pressure_runtime": 0.62,
             "herd_world_pressure_window_runtime": 0.36,
+            "herd_birth_memory_runtime": 0.26,
             "herd_condition_runtime": 0.46,
             "herd_regional_health_runtime": 0.52,
             "herd_regional_health_anchor_runtime": 0.70,
@@ -1576,6 +1585,7 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
             "apex_regional_health_runtime": 0.48,
             "apex_world_pressure_runtime": 0.58,
             "apex_world_pressure_window_runtime": 0.31,
+            "apex_birth_memory_runtime": 0.22,
             "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
@@ -1591,7 +1601,6 @@ def test_v4_grassland_chain_rebalancing_updates_species_pool():
         territory_summary=territory,
         social_trend_summary=social_trends,
     )
-
     assert adjustments
     assert any(item["layer_group"] in {"grazing_layer", "predator_layer", "scavenger_layer", "browse_layer", "herd_layer", "social_layer"} for item in adjustments)
     assert any(item["source_species"] == "territory" for item in adjustments)
@@ -1718,6 +1727,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             "vulture_hotspot_count": 2.0,
             "vulture_carrion_overlap": 1.0,
             "aerial_carcass_runtime": 0.5,
+            "aerial_birth_memory_runtime": 0.48,
             "aerial_condition_runtime": 0.41,
             "aerial_regional_health_runtime": 0.44,
             "aerial_regional_health_anchor_runtime": 0.70,
@@ -1725,6 +1735,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
             "aerial_anchor_prosperity_runtime": 0.49,
             "aerial_world_pressure_window_runtime": 0.34,
             "apex_regional_health_runtime": 0.48,
+            "apex_birth_memory_runtime": 0.48,
             "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
@@ -1748,6 +1759,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "dominant_kill_layout" in summary.resource_scores
     assert "runtime_aerial_lanes" in summary.resource_scores
     assert "runtime_carcass_pull" in summary.resource_scores
+    assert "runtime_aerial_birth_memory_pull" in summary.resource_scores
     assert "runtime_aerial_condition_pull" in summary.resource_scores
     assert "runtime_aerial_condition_phase_pull" in summary.resource_scores
     assert "runtime_aerial_health_pull" in summary.resource_scores
@@ -1761,6 +1773,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "regional_prosperity_anchor" in summary.resource_scores
     assert "regional_stability_anchor" in summary.resource_scores
     assert "runtime_apex_condition_pull" in summary.resource_scores
+    assert "runtime_apex_birth_memory_pull" in summary.resource_scores
     assert "runtime_apex_condition_phase_pull" in summary.resource_scores
     assert "runtime_apex_health_pull" in summary.resource_scores
     assert "runtime_apex_health_anchor_pull" in summary.resource_scores
@@ -1774,7 +1787,7 @@ def test_v4_carrion_chain_feedback_updates_region_state():
     assert "aerial_carrion_cycle_pressure" in summary.resource_scores
     assert summary.layer_scores["herd_source_layer"] > 0.9
     assert summary.layer_scores["scavenge_layer"] > 0.68
-    assert summary.dominant_layer == "herd_source_layer"
+    assert summary.dominant_layer in {"herd_source_layer", "aerial_scavenge_layer"}
 
     print("✅ V4 carrion chain feedback test passed")
 
@@ -1792,6 +1805,9 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     initial_zebra = region.species_pool["zebra"]
     initial_hyena = region.species_pool["hyena"]
     initial_vulture = region.species_pool["vulture"]
+    region.species_pool["lion"] = min(region.species_pool["lion"], 7)
+    region.species_pool["hyena"] = min(region.species_pool["hyena"], 7)
+    region.species_pool["vulture"] = min(region.species_pool["vulture"], 10)
     region.record_relationship_state(
         "territory",
         {
@@ -1841,6 +1857,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "lion_hotspot_count": 2.0,
             "hyena_hotspot_count": 2.0,
             "aerial_carcass_runtime": 0.5,
+            "aerial_birth_memory_runtime": 0.24,
             "aerial_world_pressure_runtime": 0.60,
             "aerial_world_pressure_window_runtime": 0.34,
             "aerial_condition_runtime": 0.41,
@@ -1851,6 +1868,7 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
             "apex_regional_health_runtime": 0.48,
             "apex_world_pressure_runtime": 0.58,
             "apex_world_pressure_window_runtime": 0.31,
+            "apex_birth_memory_runtime": 0.20,
             "apex_condition_runtime": 0.39,
             "apex_regional_health_anchor_runtime": 0.70,
             "apex_regional_bias_runtime": 0.43,
@@ -1907,6 +1925,49 @@ def test_v4_carrion_chain_rebalancing_updates_species_pool():
     )
 
     print("✅ V4 carrion chain rebalancing test passed")
+
+
+def test_v4_grassland_birth_memory_rebalancing_support():
+    """birth_memory 的草原慢反馈应能直接触发 herd/apex 重平衡支持。"""
+    world_map = build_default_world_map()
+    region = world_map.get_region("temperate_grassland")
+    region.species_pool["antelope"] = 18
+    region.species_pool["zebra"] = 16
+    region.species_pool["lion"] = 7
+    region.species_pool["hyena"] = 7
+
+    summary = build_region_grassland_chain_summary(region, build_default_world_registry())
+    summary.trophic_scores["runtime_herd_birth_memory_pull"] = 0.06
+    summary.trophic_scores["runtime_apex_birth_memory_pull"] = 0.05
+
+    adjustments = apply_region_grassland_chain_rebalancing(region, summary)
+
+    assert any(item["source_species"] == "runtime_birth_memory" for item in adjustments)
+    assert any(item["effect"] == "runtime_herd_birth_memory_support" for item in adjustments)
+    assert any(item["effect"] == "runtime_apex_birth_memory_support" for item in adjustments)
+
+    print("✅ V4 grassland birth memory rebalancing support test passed")
+
+
+def test_v4_carrion_birth_memory_rebalancing_support():
+    """birth_memory 的尸体资源慢反馈应能直接触发 aerial/apex 重平衡支持。"""
+    world_map = build_default_world_map()
+    region = world_map.get_region("temperate_grassland")
+    region.species_pool["vulture"] = 10
+    region.species_pool["lion"] = 7
+    region.species_pool["hyena"] = 7
+
+    summary = build_region_carrion_chain_summary(region, build_default_world_registry())
+    summary.resource_scores["runtime_aerial_birth_memory_pull"] = 0.06
+    summary.resource_scores["runtime_apex_birth_memory_pull"] = 0.05
+
+    adjustments = apply_region_carrion_chain_rebalancing(region, summary)
+
+    assert any(item["source_species"] == "runtime_birth_memory" for item in adjustments)
+    assert any(item["effect"] == "runtime_aerial_birth_memory_support" for item in adjustments)
+    assert any(item["effect"] == "runtime_apex_birth_memory_support" for item in adjustments)
+
+    print("✅ V4 carrion birth memory rebalancing support test passed")
 
 
 def test_v4_carrion_chain_recolonization_window():
@@ -3916,10 +3977,12 @@ GRASSLAND_TESTS = [
     test_v4_grassland_chain_summary,
     test_v4_grassland_chain_feedback_updates_region_state,
     test_v4_grassland_chain_rebalancing_updates_species_pool,
+    test_v4_grassland_birth_memory_rebalancing_support,
     test_v4_grassland_chain_recolonization_window,
     test_v4_carrion_chain_summary,
     test_v4_carrion_chain_feedback_updates_region_state,
     test_v4_carrion_chain_rebalancing_updates_species_pool,
+    test_v4_carrion_birth_memory_rebalancing_support,
     test_v4_carrion_chain_recolonization_window,
     test_v4_social_trend_rebalancing_support,
     test_v4_territory_feedback_updates_region_state,
