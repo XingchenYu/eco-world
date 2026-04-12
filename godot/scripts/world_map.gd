@@ -124,6 +124,24 @@ func _species_category(species_id: String) -> String:
 	return "区域种"
 
 
+func _tab_icon(tab_id: String) -> String:
+	return {
+		"overview": "◎",
+		"chains": "≈",
+		"species": "◉",
+		"story": "✦",
+	}.get(tab_id, "•")
+
+
+func _tab_title(tab_id: String) -> String:
+	return {
+		"overview": "总览",
+		"chains": "生态链",
+		"species": "物种",
+		"story": "播报",
+	}.get(tab_id, "分页")
+
+
 func _ready() -> void:
 	_build_ui()
 	_load_world_data()
@@ -509,8 +527,16 @@ func _build_map_nodes(regions: Array) -> void:
 		_style_body(role, 15)
 		text_box.add_child(role)
 
+		var state_chip := Label.new()
+		state_chip.text = "当前焦点" if region_id == active_region_id else "可进入"
+		_style_dim(state_chip, 13)
+		text_box.add_child(state_chip)
+
 		var footer := Label.new()
-		footer.text = "种群 %s · 进入区域情报" % str(region.get("species_population", 0))
+		footer.text = "种群 %s · %s" % [
+			str(region.get("species_population", 0)),
+			"已锁定情报" if region_id == active_region_id else "点击进入区域情报",
+		]
 		_style_dim(footer, 15)
 		shell_box.add_child(footer)
 
@@ -697,10 +723,16 @@ func _make_tabs() -> HBoxContainer:
 	tabs.add_theme_constant_override("separation", 8)
 	for tab_id in ["overview", "chains", "species", "story"]:
 		var button := Button.new()
-		button.text = {"overview": "总览", "chains": "生态链", "species": "物种", "story": "播报"}[tab_id]
+		var is_active := tab_id == selected_tab
+		button.text = "%s %s%s" % [
+			_tab_icon(tab_id),
+			_tab_title(tab_id),
+			" · 当前" if is_active else "",
+		]
 		button.toggle_mode = true
-		button.button_pressed = tab_id == selected_tab
-		button.custom_minimum_size = Vector2(84, 40)
+		button.button_pressed = is_active
+		button.custom_minimum_size = Vector2(112, 40)
+		button.modulate = _tab_accent_color(tab_id) if is_active else Color8(214, 218, 222)
 		button.pressed.connect(_on_tab_pressed.bind(tab_id))
 		tabs.add_child(button)
 	return tabs
@@ -1124,7 +1156,7 @@ func _make_section(
 
 func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
-	status_label.text = "系统栏 · 已切换焦点区域：%s" % region_id
+	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	for child in side_box.get_children():
 		child.queue_free()
 	_build_side_panel()
@@ -1132,6 +1164,7 @@ func _on_region_pressed(region_id: String) -> void:
 
 func _on_tab_pressed(tab_id: String) -> void:
 	selected_tab = tab_id
+	status_label.text = "系统栏 · 已切换功能分页：%s" % _tab_title(tab_id)
 	for child in side_box.get_children():
 		child.queue_free()
 	_build_side_panel()
