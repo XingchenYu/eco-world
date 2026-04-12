@@ -51,6 +51,10 @@
   - `aerial_birth_cycle_window_runtime`
   - `apex_birth_cycle_window_runtime`
   - 这组信号会继续进入 `territory` 与 `social_trends.cycle_signals`
+- ✅ 这组 `birth_cycle_window_runtime` 现已继续进入：
+  - `grassland_chain / carrion_chain` 摘要
+  - 世界级 `prosperity / collapse / runtime_resource_pressure`
+  - 这样多周期繁殖窗口已经不只影响社群记忆，也开始直接抬升区域链路压力
 - ✅ [src/entities/animals.py](/Users/yumini/Projects/eco-world/src/entities/animals.py) 的普通物种 `_give_birth(...)` 现在也正式接入：
   - `birth_cycle_bias`：产仔周期偏置，指“多周期繁殖记忆”下沉到个体后的直接产仔节律倾向
 - ✅ 这意味着 `antelope / zebra / vulture` 的普通产仔路径现在也会直接受 `birth_cycle_bias` 影响：

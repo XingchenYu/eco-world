@@ -414,18 +414,21 @@ def test_v4_grassland_runtime_pressure_updates_region_health():
     assert region.ecological_pressures["runtime_herd_birth_memory_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_birth_memory_world_pressure_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_birth_cycle_pull"] > 0.0
+    assert region.ecological_pressures["runtime_herd_birth_cycle_window_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_condition_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_birth_memory_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_birth_memory_world_pressure_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_birth_cycle_pull"] > 0.0
+    assert region.ecological_pressures["runtime_aerial_birth_cycle_window_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_aerial_condition_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_health_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_birth_memory_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_birth_memory_world_pressure_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_birth_cycle_pull"] > 0.0
+    assert region.ecological_pressures["runtime_apex_birth_cycle_window_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_health_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_apex_condition_anchor_pull"] > 0.0
     assert region.ecological_pressures["runtime_herd_regional_bias_pull"] > 0.0
