@@ -178,6 +178,17 @@ func _animate_region_transition(accent: Color) -> void:
 		subtitle_tween.tween_property(subtitle_label, "modulate", Color8(223, 215, 182), 0.36)
 
 
+func _animate_page_transition(region_accent: Color, tab_accent: Color) -> void:
+	_animate_tab_transition()
+	_animate_side_panel_refresh()
+	_animate_status_flash(_blend_ui_accent(tab_accent, region_accent))
+	_animate_status_strip_flash(_blend_ui_accent(tab_accent, region_accent))
+	if subtitle_label != null:
+		subtitle_label.modulate = _blend_ui_accent(tab_accent, region_accent).lightened(0.12)
+		var subtitle_tween := create_tween()
+		subtitle_tween.tween_property(subtitle_label, "modulate", Color8(223, 215, 182), 0.24)
+
+
 func _animate_focus_glow(glow: ColorRect, focus_frame: ColorRect) -> void:
 	var tween := create_tween().set_loops()
 	tween.tween_property(glow, "modulate:a", 0.92, 0.75)
@@ -1476,8 +1487,7 @@ func _on_tab_pressed(tab_id: String) -> void:
 	for child in side_box.get_children():
 		child.queue_free()
 	_build_side_panel()
-	_animate_tab_transition()
-	_animate_region_transition(_active_region_accent())
+	_animate_page_transition(_active_region_accent(), _tab_accent_color(tab_id))
 
 
 func _on_auto_refresh_toggled(enabled: bool) -> void:
