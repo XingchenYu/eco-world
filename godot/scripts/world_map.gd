@@ -1353,7 +1353,7 @@ func _make_section(
 					str(row.get("target_region_id", "")),
 					str(row.get("connection_type", "")),
 				]
-			_style_body(name, 15)
+			_style_secondary_title(name, 16)
 			header.add_child(name)
 
 			var value := Label.new()
@@ -1361,8 +1361,15 @@ func _make_section(
 				value.text = "%.2f" % float(row.get(value_field, 0.0))
 			else:
 				value.text = "%.2f" % float(row.get("strength", 0.0))
-			_style_secondary_title(value, 16)
+			_style_primary_title(value, 18)
+			value.modulate = accent.lightened(0.28)
 			header.add_child(value)
+
+			if not row.has(value_field):
+				var meta := Label.new()
+				meta.text = "连接类型 · %s" % str(row.get("connection_type", ""))
+				_style_dim(meta, 13)
+				row_box.add_child(meta)
 
 			var meter_bg := ColorRect.new()
 			meter_bg.color = Color(1.0, 1.0, 1.0, 0.08)
@@ -1399,12 +1406,13 @@ func _make_section(
 			var name := Label.new()
 			name.text = str(item["key"])
 			name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			_style_body(name, 15)
+			_style_secondary_title(name, 16)
 			header.add_child(name)
 
 			var value := Label.new()
 			value.text = "%.2f" % float(item["value"])
-			_style_secondary_title(value, 16)
+			_style_primary_title(value, 18)
+			value.modulate = accent.lightened(0.28)
 			header.add_child(value)
 
 			var meter_bg := ColorRect.new()
