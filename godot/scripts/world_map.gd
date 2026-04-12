@@ -177,7 +177,7 @@ func _render_world() -> void:
 		str(world_meta.get("loaded_regions", 0)),
 		str(world_meta.get("total_regions", 0)),
 	]
-	status_label.text = "Godot 世界地图前端骨架 · 中文界面 · 读取 Python 导出的世界状态"
+	status_label.text = "Godot 世界地图前端 · 中文界面 · 读取 Python 导出的世界状态"
 
 	for child in map_layer.get_children():
 		child.queue_free()
@@ -214,6 +214,14 @@ func _build_map_nodes(regions: Array) -> void:
 		button.modulate = REGION_COLORS.get(region_id, Color8(110, 140, 170))
 		button.pressed.connect(_on_region_pressed.bind(region_id))
 		map_layer.add_child(button)
+
+		if region_id == active_region_id:
+			var glow := ColorRect.new()
+			glow.color = Color(1.0, 0.94, 0.68, 0.18)
+			glow.position = button.position - Vector2(12, 10)
+			glow.custom_minimum_size = button.custom_minimum_size + Vector2(24, 20)
+			map_layer.add_child(glow)
+			map_layer.move_child(glow, map_layer.get_child_count() - 2)
 
 		var badge := Label.new()
 		badge.text = REGION_ICONS.get(region_id, "区")
@@ -272,6 +280,8 @@ func _build_side_panel() -> void:
 	var narrative: Dictionary = active_region.get("narrative", world_data.get("narrative", {}))
 	var top_species: Array = active_region.get("top_species", [])
 	var route_summary: Array = active_region.get("route_summary", [])
+	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
+	var chain_focus: Array = active_region.get("chain_focus", [])
 
 	var title := Label.new()
 	title.text = "%s · 焦点区域" % str(active_region.get("name", "未选择"))
@@ -279,14 +289,17 @@ func _build_side_panel() -> void:
 	side_box.add_child(title)
 
 	var climate := Label.new()
-	climate.text = "气候带：%s" % str(active_region.get("climate_zone", "未知"))
+	climate.text = str(active_region.get("region_role", "生态观测区"))
 	climate.add_theme_font_size_override("font_size", 18)
 	side_box.add_child(climate)
 	side_box.add_child(_make_tabs())
 
 	match selected_tab:
 		"overview":
+			side_box.add_child(_make_focus_card(active_region))
 			side_box.add_child(_make_region_summary_card(active_region))
+			side_box.add_child(_make_badge_list("风险焦点", pressure_headlines))
+			side_box.add_child(_make_badge_list("主导生态链", chain_focus))
 			side_box.add_child(_make_section("健康状态", active_region.get("health_state", {})))
 			side_box.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
 			side_box.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
@@ -346,6 +359,30 @@ func _make_region_summary_card(active_region: Dictionary) -> PanelContainer:
 	return panel
 
 
+func _make_focus_card(active_region: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = "区域定位"
+	title.add_theme_font_size_override("font_size", 22)
+	box.add_child(title)
+
+	var role := Label.new()
+	role.text = str(active_region.get("region_role", "生态观测区"))
+	role.add_theme_font_size_override("font_size", 18)
+	role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(role)
+
+	var intro := Label.new()
+	intro.text = str(active_region.get("region_intro", ""))
+	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(intro)
+	return panel
+
+
 func _make_intro_section(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var box := VBoxContainer.new()
@@ -373,9 +410,27 @@ func _make_species_section(top_species: Array) -> VBoxContainer:
 	box.add_child(title)
 	for row_variant in top_species:
 		var row: Dictionary = row_variant
-		var label := Label.new()
-		label.text = "%s × %s" % [str(row.get("label", row.get("species_id", ""))), str(row.get("count", 0))]
-		box.add_child(label)
+		var card := PanelContainer.new()
+		var row_box := HBoxContainer.new()
+		row_box.add_theme_constant_override("separation", 10)
+		card.add_child(row_box)
+
+		var chip := Label.new()
+		chip.text = "◉"
+		chip.add_theme_font_size_override("font_size", 20)
+		row_box.add_child(chip)
+
+		var name := Label.new()
+		name.text = str(row.get("label", row.get("species_id", "")))
+		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name.add_theme_font_size_override("font_size", 18)
+		row_box.add_child(name)
+
+		var count := Label.new()
+		count.text = "× %s" % str(row.get("count", 0))
+		count.add_theme_font_size_override("font_size", 18)
+		row_box.add_child(count)
+		box.add_child(card)
 	return box
 
 
@@ -413,6 +468,25 @@ func _make_story_section(narrative: Dictionary) -> VBoxContainer:
 			item.text = "• %s" % str(line)
 			story.add_child(item)
 	return story
+
+
+func _make_badge_list(title_text: String, rows: Array) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = title_text
+	title.add_theme_font_size_override("font_size", 22)
+	box.add_child(title)
+
+	for line in rows:
+		var item := Label.new()
+		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		item.text = "◆ %s" % str(line)
+		box.add_child(item)
+	return panel
 
 
 func _make_section(

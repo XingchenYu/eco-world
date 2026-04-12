@@ -8,27 +8,45 @@ from src.sim.world_simulation import WorldSimulation
 
 SPECIES_LABELS = {
     "african_elephant": "非洲象",
+    "algae": "藻类",
     "antelope": "羚羊",
     "bat_v4": "蝙蝠",
     "beaver": "河狸",
     "blackfish": "黑鱼",
+    "boar": "野猪",
+    "carp": "鲤鱼",
     "catfish": "鲶鱼",
+    "crab": "蟹",
     "deer": "鹿",
+    "duck": "野鸭",
+    "eagle": "鹰",
     "fox": "狐狸",
     "frog": "青蛙",
     "giraffe": "长颈鹿",
     "hippopotamus": "河马",
     "hyena": "鬣狗",
+    "insect": "昆虫",
     "kingfisher_v4": "翠鸟",
     "lion": "狮",
+    "mouse": "鼠",
     "minnow": "米诺鱼",
     "night_moth": "夜蛾",
     "nile_crocodile": "尼罗鳄",
+    "owl": "猫头鹰",
+    "pike": "狗鱼",
+    "plankton": "浮游生物",
+    "pufferfish": "河豚",
     "rabbit": "兔子",
+    "seaweed": "海草",
+    "seal": "海豹",
+    "shrimp": "虾",
+    "small_fish": "小鱼群",
     "sparrow": "麻雀",
     "vulture": "秃鹫",
     "white_rhino": "白犀牛",
+    "wild_boar": "野猪",
     "wolf": "狼",
+    "woodpecker": "啄木鸟",
     "zebra": "斑马",
 }
 
@@ -37,6 +55,21 @@ CONNECTION_LABELS = {
     "coastal_exchange": "海岸交换带",
     "land_corridor": "陆地走廊",
     "river_network": "河网通道",
+}
+
+BIOME_LABELS = {
+    "coast": "近海岸带",
+    "coral_reef": "珊瑚礁",
+    "estuary": "河口带",
+    "floodplain": "泛洪平原",
+    "grassland": "草原",
+    "lake_shore": "湖滨带",
+    "mixed_forest": "混交林",
+    "seagrass": "海草床",
+    "shrubland": "灌丛带",
+    "temperate_forest": "温带森林",
+    "tropical_rainforest": "热带雨林",
+    "wetland": "湿地",
 }
 
 
@@ -74,7 +107,46 @@ def _collect_top_species(region_species_pool: dict[str, Any], limit: int = 8) ->
 
 
 def _species_label(species_id: str) -> str:
-    return SPECIES_LABELS.get(species_id, species_id)
+    if species_id in SPECIES_LABELS:
+        return SPECIES_LABELS[species_id]
+    return species_id.replace("_", " ").title()
+
+
+def _build_region_role(region_id: str, climate_zone: str, dominant_biomes: list[str]) -> str:
+    role_map = {
+        "temperate_forest": "林地观测区",
+        "temperate_grassland": "草原迁徙区",
+        "wetland_lake": "湿地缓冲区",
+        "rainforest_river": "雨林河运区",
+        "coastal_shelf": "近海交换区",
+        "coral_sea": "珊瑚航路区",
+    }
+    climate_text = {
+        "temperate": "温带",
+        "subtropical": "亚热带",
+        "tropical": "热带",
+        "equatorial": "赤道",
+    }.get(climate_zone, climate_zone)
+    if dominant_biomes:
+        biome_text = " / ".join(BIOME_LABELS.get(biome, biome) for biome in dominant_biomes[:2])
+        return f"{role_map.get(region_id, '生态观测区')} · {climate_text} · {biome_text}"
+    return f"{role_map.get(region_id, '生态观测区')} · {climate_text}"
+
+
+def _build_chain_focus(chains: dict[str, list[dict[str, Any]]]) -> list[str]:
+    focus_rows = [
+        ("社会相位", chains.get("social_phases", [])),
+        ("草原主链", chains.get("grassland_chain", [])),
+        ("尸体资源链", chains.get("carrion_chain", [])),
+        ("湿地主链", chains.get("wetland_chain", [])),
+    ]
+    focus: list[str] = []
+    for title, rows in focus_rows:
+        if not rows:
+            continue
+        row = rows[0]
+        focus.append(f"{title}主导项：{row['key']}（{float(row['value']):.2f}）")
+    return focus[:4]
 
 
 def _build_region_intro(region_name: str, climate_zone: str, dominant_biomes: list[str]) -> str:
@@ -134,11 +206,33 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
     stats = world.get_statistics()
     active_region = stats["active_region"]
 
+    chains = {
+        "social_phases": _collect_top_list(stats["social_trends"]["phase_scores"], 6),
+        "social_trends": _collect_top_list(stats["social_trends"]["trend_scores"], 6),
+        "grassland_chain": _collect_top_list(stats["grassland_chain"]["trophic_scores"], 6),
+        "carrion_chain": _collect_top_list(stats["carrion_chain"]["resource_scores"], 6),
+        "wetland_chain": _collect_top_list(stats["wetland_chain"]["trophic_scores"], 6),
+        "territory": _collect_top_list(stats["territory"]["pressure_scores"], 6),
+        "competition": _collect_top_list(stats["competition"]["pressure_scores"], 6),
+        "predation": _collect_top_list(stats["predation"]["pressure_scores"], 6),
+    }
+
+    top_pressure_items = sorted(
+        active_region["ecological_pressures"].items(),
+        key=lambda item: float(item[1]),
+        reverse=True,
+    )[:3]
+
     payload = {
         "id": active_region["id"],
         "name": active_region["name"],
         "climate_zone": active_region["climate_zone"],
         "dominant_biomes": list(active_region["dominant_biomes"]),
+        "region_role": _build_region_role(
+            active_region["id"],
+            active_region["climate_zone"],
+            list(active_region["dominant_biomes"]),
+        ),
         "region_intro": _build_region_intro(
             active_region["name"],
             active_region["climate_zone"],
@@ -165,16 +259,11 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
         ],
         "connectors": _region_connectors(world, region_id),
         "route_summary": _build_route_summary(_region_connectors(world, region_id)),
-        "chains": {
-            "social_phases": _collect_top_list(stats["social_trends"]["phase_scores"], 6),
-            "social_trends": _collect_top_list(stats["social_trends"]["trend_scores"], 6),
-            "grassland_chain": _collect_top_list(stats["grassland_chain"]["trophic_scores"], 6),
-            "carrion_chain": _collect_top_list(stats["carrion_chain"]["resource_scores"], 6),
-            "wetland_chain": _collect_top_list(stats["wetland_chain"]["trophic_scores"], 6),
-            "territory": _collect_top_list(stats["territory"]["pressure_scores"], 6),
-            "competition": _collect_top_list(stats["competition"]["pressure_scores"], 6),
-            "predation": _collect_top_list(stats["predation"]["pressure_scores"], 6),
-        },
+        "pressure_headlines": [
+            f"{key}（{float(value):.2f}）" for key, value in top_pressure_items
+        ],
+        "chain_focus": _build_chain_focus(chains),
+        "chains": chains,
         "narrative": {
             "territory": list(stats["territory"]["narrative_territory"][:3]),
             "social_trends": list(stats["social_trends"]["narrative_trends"][:4]),
@@ -231,6 +320,11 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
             "name": active_region["name"],
             "climate_zone": active_region["climate_zone"],
             "dominant_biomes": list(active_region["dominant_biomes"]),
+            "region_role": _build_region_role(
+                active_region["id"],
+                active_region["climate_zone"],
+                list(active_region["dominant_biomes"]),
+            ),
             "region_intro": _build_region_intro(
                 active_region["name"],
                 active_region["climate_zone"],

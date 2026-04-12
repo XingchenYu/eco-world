@@ -2,6 +2,21 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha71 (2026-04-12 23:15)
+
+- ✅ Godot 前端继续从“信息页”推进到更像游戏菜单的分层卡片结构。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `region_role`
+  - `pressure_headlines`
+  - `chain_focus`
+- ✅ Godot 导出层的核心物种中文标签继续补齐，减少前端出现原始英文物种 ID。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 区域定位卡
+  - 风险焦点卡
+  - 主导生态链卡
+  - 更像菜单卡片的核心物种列表
+- ✅ 这意味着 Godot 世界界面现在不再只是“地图 + 详情文字列”，而开始具备更明确的 JRPG 式区域情报层次。
+
 ### v4.0-alpha70 (2026-04-12 22:54)
 
 - ✅ Godot 前端继续补强世界地图菜单层。
