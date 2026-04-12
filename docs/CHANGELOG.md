@@ -2,6 +2,21 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha63 (2026-04-12 17:20)
+
+- ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现在已把：
+  - `birth_cycle_window_pressure_memory_pull`
+  继续落到：
+  - 区域反馈
+  - 低频重平衡
+- ✅ 对应新增 support：
+  - `birth_cycle_window_pressure_memory_herd_support`
+  - `birth_cycle_window_pressure_memory_apex_support`
+  - `birth_cycle_window_pressure_memory_aerial_support`
+  - `birth_cycle_window_pressure_memory_apex_carrion_support`
+- ✅ 这条慢反馈主线现在已经进一步推进成：
+  - `pressure memory -> chain summaries -> feedback/rebalancing -> next social memory`
+
 ### v4.0-alpha62 (2026-04-12 16:55)
 
 - ✅ [src/ecology/grassland.py](/Users/yumini/Projects/eco-world/src/ecology/grassland.py) 与 [src/ecology/carrion.py](/Users/yumini/Projects/eco-world/src/ecology/carrion.py) 现在会继续读取：
