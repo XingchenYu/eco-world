@@ -142,10 +142,10 @@ func _animate_tab_transition() -> void:
 	tween.parallel().tween_property(side_scroll, "position:x", 0.0, 0.22)
 
 
-func _animate_status_flash() -> void:
+func _animate_status_flash(accent: Color = Color8(255, 240, 180)) -> void:
 	if status_label == null:
 		return
-	status_label.modulate = Color8(255, 240, 180)
+	status_label.modulate = accent.lightened(0.28)
 	var tween := create_tween()
 	tween.tween_property(status_label, "modulate", Color8(170, 180, 188), 0.28)
 
@@ -780,7 +780,7 @@ func _build_side_panel() -> void:
 	_style_secondary_title(climate, 18)
 	climate.modulate = region_accent.lightened(0.18)
 	side_box.add_child(climate)
-	side_box.add_child(_make_status_strip(active_region))
+	side_box.add_child(_make_status_strip(active_region, region_accent))
 	side_box.add_child(_make_tabs(region_accent))
 
 	match selected_tab:
@@ -833,15 +833,15 @@ func _make_tabs(region_accent: Color) -> HBoxContainer:
 	return tabs
 
 
-func _make_status_strip(active_region: Dictionary) -> PanelContainer:
+func _make_status_strip(active_region: Dictionary, region_accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	panel.add_child(row)
 
-	row.add_child(_make_status_chip("繁荣", "◎", "%.2f" % float(active_region.get("health_state", {}).get("prosperity", 0.0))))
-	row.add_child(_make_status_chip("稳定", "▲", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0))))
-	row.add_child(_make_status_chip("风险", "◆", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0))))
+	row.add_child(_make_status_chip("繁荣", "◎", "%.2f" % float(active_region.get("health_state", {}).get("prosperity", 0.0)), region_accent))
+	row.add_child(_make_status_chip("稳定", "▲", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0)), region_accent))
+	row.add_child(_make_status_chip("风险", "◆", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0)), region_accent))
 	return panel
 
 
@@ -870,7 +870,7 @@ func _make_tab_banner(title_text: String, description: String, accent: Color, re
 	return panel
 
 
-func _make_status_chip(title_text: String, icon_text: String, value_text: String) -> PanelContainer:
+func _make_status_chip(title_text: String, icon_text: String, value_text: String, region_accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(108, 56)
 	var box := HBoxContainer.new()
@@ -880,6 +880,7 @@ func _make_status_chip(title_text: String, icon_text: String, value_text: String
 	var icon := Label.new()
 	icon.text = icon_text
 	_style_secondary_title(icon, 20)
+	icon.modulate = region_accent.lightened(0.22)
 	box.add_child(icon)
 
 	var text_box := VBoxContainer.new()
@@ -894,6 +895,7 @@ func _make_status_chip(title_text: String, icon_text: String, value_text: String
 	var value := Label.new()
 	value.text = value_text
 	_style_primary_title(value, 22)
+	value.modulate = region_accent.lightened(0.30)
 	text_box.add_child(value)
 	return panel
 
@@ -1255,7 +1257,7 @@ func _on_region_pressed(region_id: String) -> void:
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
 	_animate_side_panel_refresh()
-	_animate_status_flash()
+	_animate_status_flash(_active_region_accent())
 
 
 func _on_tab_pressed(tab_id: String) -> void:
@@ -1266,7 +1268,7 @@ func _on_tab_pressed(tab_id: String) -> void:
 	_build_side_panel()
 	_animate_tab_transition()
 	_animate_side_panel_refresh()
-	_animate_status_flash()
+	_animate_status_flash(_active_region_accent())
 
 
 func _on_auto_refresh_toggled(enabled: bool) -> void:
