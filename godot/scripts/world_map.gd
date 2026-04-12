@@ -239,6 +239,20 @@ func _region_type_icon(active_region: Dictionary) -> String:
 	return "◈"
 
 
+func _region_type_label(active_region: Dictionary) -> String:
+	var biomes: Array = active_region.get("dominant_biomes", [])
+	var joined := " ".join(biomes)
+	if "coral" in joined or "coast" in joined or "ocean" in joined:
+		return "海域型区域"
+	if "wetland" in joined or "lake" in joined or "river" in joined:
+		return "湿地区域"
+	if "grassland" in joined or "shrubland" in joined:
+		return "草原区域"
+	if "forest" in joined or "rainforest" in joined:
+		return "森林区域"
+	return "复合区域"
+
+
 func _active_region_accent() -> Color:
 	return REGION_COLORS.get(active_region_id, Color8(210, 182, 96))
 
@@ -915,10 +929,10 @@ func _build_side_panel() -> void:
 			side_box.add_child(_make_section("竞争压力", chains.get("competition", []), true))
 			side_box.add_child(_make_section("捕食压力", chains.get("predation", []), true))
 		"species":
-			side_box.add_child(_make_tab_banner("物种图鉴", "查看当前焦点区域最核心的关键物种与数量。", _tab_accent_color("species"), region_accent, active_region))
+			side_box.add_child(_make_tab_banner("物种图鉴", "查看%s当前最核心的关键物种与数量。" % _region_type_label(active_region), _tab_accent_color("species"), region_accent, active_region))
 			side_box.add_child(_make_species_section(top_species))
 		"story":
-			side_box.add_child(_make_tab_banner("区域播报室", "汇总领地、趋势、链路和关系层的即时叙事。", _tab_accent_color("story"), region_accent, active_region))
+			side_box.add_child(_make_tab_banner("区域播报室", "汇总%s中的领地、趋势、链路和关系层即时叙事。" % _region_type_label(active_region), _tab_accent_color("story"), region_accent, active_region))
 			side_box.add_child(_make_story_section(narrative))
 
 func _make_tabs(region_accent: Color) -> HBoxContainer:
