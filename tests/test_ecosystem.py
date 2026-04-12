@@ -1268,6 +1268,36 @@ def test_v4_social_trend_summary_uses_memory():
     print("✅ V4 social trend summary test passed")
 
 
+def test_v4_social_trend_birth_cycle_window_support_memory():
+    """birth_cycle_window 的 support 效果也应沉淀成社群长期记忆。"""
+    world_map = build_default_world_map()
+    region = world_map.get_region("temperate_grassland")
+    region.record_relationship_state(
+        "grassland_rebalancing",
+        {
+            "adjustments": [
+                {"effect": "birth_cycle_window_herd_support"},
+                {"effect": "birth_cycle_window_apex_support"},
+            ]
+        },
+    )
+    region.record_relationship_state(
+        "carrion_rebalancing",
+        {
+            "adjustments": [
+                {"effect": "birth_cycle_window_aerial_support"},
+                {"effect": "birth_cycle_window_apex_carrion_support"},
+            ]
+        },
+    )
+
+    summary = build_region_social_trend_summary(region)
+
+    assert "birth_cycle_window_memory" in summary.cycle_signals
+
+    print("✅ V4 social trend birth-cycle window support memory test passed")
+
+
 def test_v4_carrion_chain_summary():
     """v4 尸体资源链摘要应识别草原尸体资源闭环。"""
     world_map = build_default_world_map()
@@ -4357,6 +4387,7 @@ WORLD_TESTS = [
     test_v4_territory_summary_uses_regional_social_anchors,
     test_v4_territory_summary_uses_hotspot_memory,
     test_v4_social_trend_summary_uses_memory,
+    test_v4_social_trend_birth_cycle_window_support_memory,
     test_region_simulation_uses_region_defaults,
 ]
 

@@ -1799,3 +1799,12 @@ src/core/ecosystem.py        [修改] 导入新物种
     - `birth_cycle_window_apex_support`
     - `birth_cycle_window_aerial_support`
     - `birth_cycle_window_apex_carrion_support`
+- 主线继续推进：
+  - `social_trends` 现在不只统计 `birth_cycle_*_window`
+  - 也会把已经生效的：
+    - `birth_cycle_window_herd_support`
+    - `birth_cycle_window_apex_support`
+    - `birth_cycle_window_aerial_support`
+    - `birth_cycle_window_apex_carrion_support`
+    继续沉淀成 `birth_cycle_window_memory`
+  - 也就是说，长期记忆现在会记“窗口打开过”，也会记“窗口真的生效过”
