@@ -559,15 +559,44 @@ func _build_world_bulletin() -> void:
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
-	for line in bulletin_cache.slice(0, 4):
-		var card := PanelContainer.new()
-		box.add_child(card)
+	if not bulletin_cache.is_empty():
+		var lead_card := PanelContainer.new()
+		box.add_child(lead_card)
 
-		var item := Label.new()
-		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		item.text = "• %s" % str(line)
-		_style_body(item, 15)
-		card.add_child(item)
+		var lead_box := VBoxContainer.new()
+		lead_box.add_theme_constant_override("separation", 4)
+		lead_card.add_child(lead_box)
+
+		var lead_tag := Label.new()
+		lead_tag.text = "主主播报"
+		_style_secondary_title(lead_tag, 16)
+		lead_box.add_child(lead_tag)
+
+		var lead_item := Label.new()
+		lead_item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lead_item.text = str(bulletin_cache[0])
+		_style_body(lead_item, 16)
+		lead_box.add_child(lead_item)
+
+	if bulletin_cache.size() > 1:
+		var digest_card := PanelContainer.new()
+		box.add_child(digest_card)
+
+		var digest_box := VBoxContainer.new()
+		digest_box.add_theme_constant_override("separation", 4)
+		digest_card.add_child(digest_box)
+
+		var digest_tag := Label.new()
+		digest_tag.text = "动态简报"
+		_style_secondary_title(digest_tag, 16)
+		digest_box.add_child(digest_tag)
+
+		for line in bulletin_cache.slice(1, 4):
+			var item := Label.new()
+			item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			item.text = "• %s" % str(line)
+			_style_body(item, 15)
+			digest_box.add_child(item)
 
 
 func _build_map_legend() -> void:
@@ -899,6 +928,29 @@ func _make_story_section(narrative: Dictionary) -> VBoxContainer:
 	title.text = "区域播报"
 	_style_primary_title(title, 22)
 	story.add_child(title)
+
+	var system_card := PanelContainer.new()
+	story.add_child(system_card)
+
+	var system_box := VBoxContainer.new()
+	system_box.add_theme_constant_override("separation", 4)
+	system_card.add_child(system_box)
+
+	var system_tag := Label.new()
+	system_tag.text = "系统级播报"
+	_style_secondary_title(system_tag, 18)
+	system_box.add_child(system_tag)
+
+	var system_body := Label.new()
+	system_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	system_body.text = "左上角世界播报负责汇总跨区域动态，这里则专注当前焦点区域的局部情报。"
+	_style_dim(system_body, 15)
+	system_box.add_child(system_body)
+
+	var region_tag := Label.new()
+	region_tag.text = "区域级播报"
+	_style_secondary_title(region_tag, 18)
+	story.add_child(region_tag)
 
 	for key in ["territory", "social_trends", "grassland_chain", "carrion_chain", "wetland_chain", "symbiosis", "predation"]:
 		var rows: Array = narrative.get(key, [])
