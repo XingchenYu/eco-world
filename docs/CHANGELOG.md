@@ -2,6 +2,14 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha79 (2026-04-13 00:28)
+
+- ✅ Godot 前端继续收口底部 HUD 层。
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 底部系统栏色带
+  - 更统一的状态栏前缀
+- ✅ 这意味着地图左上播报、右上图例、右侧菜单、底部状态条现在开始更像同一套游戏 HUD。
+
 ### v4.0-alpha78 (2026-04-13 00:20)
 
 - ✅ Godot 前端继续收口 HUD 浮层，让地图左上和右上不再像普通面板。

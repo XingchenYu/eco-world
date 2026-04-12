@@ -157,10 +157,19 @@ func _build_ui() -> void:
 	footer_panel.custom_minimum_size = Vector2(0, 46)
 	root_vbox.add_child(footer_panel)
 
+	var footer_box := VBoxContainer.new()
+	footer_box.add_theme_constant_override("separation", 4)
+	footer_panel.add_child(footer_box)
+
+	var footer_ribbon := ColorRect.new()
+	footer_ribbon.color = Color8(210, 182, 96)
+	footer_ribbon.custom_minimum_size = Vector2(0, 6)
+	footer_box.add_child(footer_ribbon)
+
 	status_label = Label.new()
-	status_label.text = "先运行 Python 导出脚本生成 world_state.json"
+	status_label.text = "系统栏 · 先运行 Python 导出脚本生成 world_state.json"
 	_style_dim(status_label, 16)
-	footer_panel.add_child(status_label)
+	footer_box.add_child(status_label)
 
 	refresh_timer = Timer.new()
 	refresh_timer.wait_time = 2.0
@@ -206,7 +215,7 @@ func _render_world() -> void:
 		str(world_meta.get("loaded_regions", 0)),
 		str(world_meta.get("total_regions", 0)),
 	]
-	status_label.text = "Godot 世界地图前端 · 中文界面 · 读取 Python 导出的世界状态"
+	status_label.text = "系统栏 · Godot 世界地图前端 · 中文界面 · 读取 Python 导出的世界状态"
 
 	for child in map_layer.get_children():
 		child.queue_free()
@@ -844,7 +853,7 @@ func _make_section(
 
 func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
-	status_label.text = "已切换焦点区域：%s" % region_id
+	status_label.text = "系统栏 · 已切换焦点区域：%s" % region_id
 	for child in side_box.get_children():
 		child.queue_free()
 	_build_side_panel()
@@ -860,7 +869,7 @@ func _on_tab_pressed(tab_id: String) -> void:
 func _on_auto_refresh_toggled(enabled: bool) -> void:
 	if enabled:
 		refresh_timer.start()
-		status_label.text = "自动刷新已开启，每 2 秒重新读取一次世界状态。"
+		status_label.text = "系统栏 · 自动刷新已开启，每 2 秒重新读取一次世界状态。"
 	else:
 		refresh_timer.stop()
-		status_label.text = "自动刷新已关闭。"
+		status_label.text = "系统栏 · 自动刷新已关闭。"
