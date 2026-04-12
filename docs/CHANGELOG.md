@@ -29,6 +29,12 @@
   - `aerial_carrion_cycle`
   - `grassland_boom_phase / grassland_bust_phase`
   - `grassland_prosperity_phase / grassland_collapse_phase`
+- ✅ [src/ecology/social.py](/Users/yumini/Projects/eco-world/src/ecology/social.py) 现在也会把：
+  - `birth_cycle_window_pressure_memory`
+  直接回灌到区域：
+  - `surface_water`
+  - `carcass_availability`
+  - `resilience`
 
 ### v4.0-alpha62 (2026-04-12 16:55)
 

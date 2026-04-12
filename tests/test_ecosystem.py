@@ -1341,6 +1341,39 @@ def test_v4_social_trend_birth_cycle_window_support_memory():
     print("✅ V4 social trend birth-cycle window support memory test passed")
 
 
+def test_v4_social_trend_pressure_memory_feedback():
+    """birth_cycle_window_pressure_memory 应直接回灌区域资源与韧性。"""
+    world_map = build_default_world_map()
+    region = world_map.get_region("temperate_grassland")
+    region.record_relationship_state(
+        "social_trends",
+        {
+            "trend_scores": {
+                "birth_cycle_window_pressure_memory": 0.36,
+            },
+            "phase_scores": {},
+            "boom_bust_scores": {},
+            "prosperity_scores": {},
+            "hotspot_scores": {},
+            "cycle_signals": ["birth_cycle_window_pressure_memory"],
+        },
+    )
+
+    summary = build_region_social_trend_summary(region)
+    before_surface_water = region.resource_state["surface_water"]
+    before_carcass = region.resource_state["carcass_availability"]
+    before_resilience = region.health_state["resilience"]
+
+    apply_region_social_trend_feedback(region, summary, feedback_scale=0.05)
+
+    assert summary.trend_scores["birth_cycle_window_pressure_memory"] > 0.0
+    assert region.resource_state["surface_water"] > before_surface_water
+    assert region.resource_state["carcass_availability"] > before_carcass
+    assert region.health_state["resilience"] > before_resilience
+
+    print("✅ V4 social trend pressure memory feedback test passed")
+
+
 def test_v4_carrion_chain_summary():
     """v4 尸体资源链摘要应识别草原尸体资源闭环。"""
     world_map = build_default_world_map()
@@ -4555,6 +4588,7 @@ WORLD_TESTS = [
     test_v4_territory_summary_uses_hotspot_memory,
     test_v4_social_trend_summary_uses_memory,
     test_v4_social_trend_birth_cycle_window_support_memory,
+    test_v4_social_trend_pressure_memory_feedback,
     test_region_simulation_uses_region_defaults,
 ]
 
