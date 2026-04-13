@@ -633,6 +633,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var route_summary: Array = active_region.get("route_summary", [])
 	var top_species: Array = active_region.get("top_species", [])
 	var header_copy := _region_command_header(active_region)
+	var stage_profile := _focus_stage_profile(active_region)
 	var stage := PanelContainer.new()
 	stage.custom_minimum_size = Vector2(360, 150)
 	stage.position = Vector2(map_size.x * 0.34, map_size.y * 0.38)
@@ -648,7 +649,7 @@ func _build_focus_stage(regions: Array) -> void:
 	root.add_child(ribbon)
 
 	var eyebrow := Label.new()
-	eyebrow.text = "%s · %s" % [_region_type_chip(active_region), header_copy["eyebrow"]]
+	eyebrow.text = "%s · %s · %s" % [_region_type_chip(active_region), header_copy["eyebrow"], str(stage_profile["mode"])]
 	_style_dim(eyebrow, 13)
 	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(eyebrow)
@@ -670,9 +671,9 @@ func _build_focus_stage(regions: Array) -> void:
 	var center_row := HBoxContainer.new()
 	center_row.add_theme_constant_override("separation", 8)
 	root.add_child(center_row)
-	center_row.add_child(_make_hero_chip("主地貌", " / ".join(active_region.get("dominant_biomes", []).slice(0, 2)), accent))
-	center_row.add_child(_make_hero_chip("主链焦点", str(active_region.get("chain_focus", [])[0]) if active_region.get("chain_focus", []).size() > 0 else "等待链路聚焦", Color8(104, 171, 144)))
-	center_row.add_child(_make_hero_chip("区域网络", "%s 条连接" % str(active_region.get("connectors", []).size()), Color8(102, 152, 204)))
+	for item_variant in stage_profile["hero_rows"]:
+		var item: Dictionary = item_variant
+		center_row.add_child(_make_hero_chip(str(item["label"]), str(item["value"]), item["color"]))
 
 	var footer := Label.new()
 	footer.text = "已加载区域 %s · 地图节点 %s" % [
@@ -698,13 +699,13 @@ func _build_focus_stage(regions: Array) -> void:
 	sub_box.add_child(sub_ribbon)
 
 	var sub_title := Label.new()
-	sub_title.text = "%s · %s" % [_region_type_chip(active_region), header_copy["substage"]]
+	sub_title.text = "%s · %s" % [_region_type_chip(active_region), str(stage_profile["substage_title"])]
 	_style_secondary_title(sub_title, 18)
 	sub_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub_box.add_child(sub_title)
 
-	sub_box.add_child(_make_hero_chip("当前主链", str(chain_focus[0]) if chain_focus.size() > 0 else "等待主链聚焦", Color8(104, 171, 144)))
-	sub_box.add_child(_make_hero_chip("当前警报", str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "当前暂无突出风险", Color8(171, 132, 196)))
+	sub_box.add_child(_make_hero_chip(str(stage_profile["sub_primary"]["label"]), str(stage_profile["sub_primary"]["value"]), stage_profile["sub_primary"]["color"]))
+	sub_box.add_child(_make_hero_chip(str(stage_profile["sub_secondary"]["label"]), str(stage_profile["sub_secondary"]["value"]), stage_profile["sub_secondary"]["color"]))
 
 	var signal_strip := PanelContainer.new()
 	signal_strip.custom_minimum_size = Vector2(420, 72)
@@ -714,30 +715,21 @@ func _build_focus_stage(regions: Array) -> void:
 	var signal_row := HBoxContainer.new()
 	signal_row.add_theme_constant_override("separation", 8)
 	signal_strip.add_child(signal_row)
-	signal_row.add_child(_make_hero_chip("繁荣", "%.2f" % float(active_region.get("health_state", {}).get("prosperity", 0.0)), accent))
-	signal_row.add_child(_make_hero_chip("稳定", "%.2f" % float(active_region.get("health_state", {}).get("stability", 0.0)), Color8(102, 152, 204)))
-	signal_row.add_child(_make_hero_chip("风险", "%.2f" % float(active_region.get("health_state", {}).get("collapse_risk", 0.0)), Color8(171, 132, 196)))
-	signal_row.add_child(_make_hero_chip("种群", str(active_region.get("species_population", 0)), Color8(210, 182, 96)))
+	for item_variant in stage_profile["strip_rows"]:
+		var item: Dictionary = item_variant
+		signal_row.add_child(_make_hero_chip(str(item["label"]), str(item["value"]), item["color"]))
 
 	var left_panel := _make_stage_info_panel(
-		"前线通道情报",
-		[
-			str(route_summary[0]) if route_summary.size() > 0 else "当前暂无显著通道情报",
-			str(route_summary[1]) if route_summary.size() > 1 else "等待更多通道聚焦",
-			str(route_summary[2]) if route_summary.size() > 2 else "等待更多通道聚焦",
-		],
+		str(stage_profile["left_title"]),
+		stage_profile["left_rows"],
 		Color8(102, 152, 204)
 	)
 	left_panel.position = stage.position + Vector2(-286, 76)
 	map_layer.add_child(left_panel)
 
 	var right_panel := _make_stage_info_panel(
-		"核心物种快照",
-		[
-			_species_entry_label(top_species[0]) if top_species.size() > 0 else "当前暂无核心物种数据",
-			_species_entry_label(top_species[1]) if top_species.size() > 1 else "等待更多物种聚焦",
-			_species_entry_label(top_species[2]) if top_species.size() > 2 else "等待更多物种聚焦",
-		],
+		str(stage_profile["right_title"]),
+		stage_profile["right_rows"],
 		Color8(171, 132, 196)
 	)
 	right_panel.position = stage.position + Vector2(382, 76)
@@ -807,6 +799,131 @@ func _region_command_header(active_region: Dictionary) -> Dictionary:
 		"substage": "区域聚焦副舞台",
 		"dossier": "区域档案终端",
 	}
+
+
+func _focus_stage_profile(active_region: Dictionary) -> Dictionary:
+	var health := active_region.get("health_state", {})
+	var chain_focus: Array = active_region.get("chain_focus", [])
+	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
+	var route_summary: Array = active_region.get("route_summary", [])
+	var top_species: Array = active_region.get("top_species", [])
+	var chains: Dictionary = active_region.get("chains", {})
+	var narrative: Dictionary = active_region.get("narrative", {})
+	var biome_text := " / ".join(active_region.get("dominant_biomes", []).slice(0, 2))
+	var base_profile := {
+		"mode": "总览主视区",
+		"substage_title": "总览聚焦副舞台",
+		"sub_primary": {"label": "当前主链", "value": str(chain_focus[0]) if chain_focus.size() > 0 else "等待主链聚焦", "color": Color8(104, 171, 144)},
+		"sub_secondary": {"label": "当前警报", "value": str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "当前暂无突出风险", "color": Color8(171, 132, 196)},
+		"hero_rows": [
+			{"label": "主地貌", "value": biome_text, "color": _active_region_accent()},
+			{"label": "主链焦点", "value": str(chain_focus[0]) if chain_focus.size() > 0 else "等待链路聚焦", "color": Color8(104, 171, 144)},
+			{"label": "区域网络", "value": "%s 条连接" % str(active_region.get("connectors", []).size()), "color": Color8(102, 152, 204)},
+		],
+		"strip_rows": [
+			{"label": "繁荣", "value": "%.2f" % float(health.get("prosperity", 0.0)), "color": _active_region_accent()},
+			{"label": "稳定", "value": "%.2f" % float(health.get("stability", 0.0)), "color": Color8(102, 152, 204)},
+			{"label": "风险", "value": "%.2f" % float(health.get("collapse_risk", 0.0)), "color": Color8(171, 132, 196)},
+			{"label": "种群", "value": str(active_region.get("species_population", 0)), "color": Color8(210, 182, 96)},
+		],
+		"left_title": "前线通道情报",
+		"left_rows": [
+			str(route_summary[0]) if route_summary.size() > 0 else "当前暂无显著通道情报",
+			str(route_summary[1]) if route_summary.size() > 1 else "等待更多通道聚焦",
+			str(route_summary[2]) if route_summary.size() > 2 else "等待更多通道聚焦",
+		],
+		"right_title": "核心物种快照",
+		"right_rows": [
+			_species_entry_label(top_species[0]) if top_species.size() > 0 else "当前暂无核心物种数据",
+			_species_entry_label(top_species[1]) if top_species.size() > 1 else "等待更多物种聚焦",
+			_species_entry_label(top_species[2]) if top_species.size() > 2 else "等待更多物种聚焦",
+		],
+	}
+	if selected_tab == "chains":
+		base_profile["mode"] = "生态链主视区"
+		base_profile["substage_title"] = "生态链聚焦副舞台"
+		base_profile["sub_primary"] = {"label": "社会相位", "value": _lead_chain_line(chains.get("social_phases", [])), "color": Color8(102, 152, 204)}
+		base_profile["sub_secondary"] = {"label": "草原主链", "value": _lead_chain_line(chains.get("grassland_chain", [])), "color": Color8(104, 171, 144)}
+		base_profile["hero_rows"] = [
+			{"label": "尸体资源", "value": _lead_chain_line(chains.get("carrion_chain", [])), "color": Color8(171, 132, 196)},
+			{"label": "湿地主链", "value": _lead_chain_line(chains.get("wetland_chain", [])), "color": Color8(102, 152, 204)},
+			{"label": "捕食压力", "value": _lead_chain_line(chains.get("predation", [])), "color": Color8(171, 132, 196)},
+		]
+		base_profile["strip_rows"] = [
+			{"label": "领地", "value": _lead_chain_line(chains.get("territory", [])), "color": _active_region_accent()},
+			{"label": "竞争", "value": _lead_chain_line(chains.get("competition", [])), "color": Color8(210, 182, 96)},
+			{"label": "草原", "value": _lead_chain_line(chains.get("grassland_chain", [])), "color": Color8(104, 171, 144)},
+			{"label": "尸体", "value": _lead_chain_line(chains.get("carrion_chain", [])), "color": Color8(171, 132, 196)},
+		]
+		base_profile["left_title"] = "主链监测窗"
+		base_profile["left_rows"] = [
+			_lead_chain_line(chains.get("social_phases", [])),
+			_lead_chain_line(chains.get("grassland_chain", [])),
+			_lead_chain_line(chains.get("carrion_chain", [])),
+		]
+		base_profile["right_title"] = "关系压力窗"
+		base_profile["right_rows"] = [
+			_lead_chain_line(chains.get("territory", [])),
+			_lead_chain_line(chains.get("competition", [])),
+			_lead_chain_line(chains.get("predation", [])),
+		]
+	elif selected_tab == "species":
+		base_profile["mode"] = "物种图鉴主视区"
+		base_profile["substage_title"] = "图鉴聚焦副舞台"
+		base_profile["sub_primary"] = {"label": "领衔物种", "value": _species_entry_label(top_species[0]) if top_species.size() > 0 else "当前暂无核心物种数据", "color": Color8(171, 132, 196)}
+		base_profile["sub_secondary"] = {"label": "次位物种", "value": _species_entry_label(top_species[1]) if top_species.size() > 1 else "等待更多物种聚焦", "color": Color8(102, 152, 204)}
+		base_profile["hero_rows"] = [
+			{"label": "区域类型", "value": _region_type_label(active_region), "color": _active_region_accent()},
+			{"label": "核心种", "value": str(top_species.size()), "color": Color8(171, 132, 196)},
+			{"label": "总种群", "value": str(active_region.get("species_population", 0)), "color": Color8(210, 182, 96)},
+		]
+		base_profile["strip_rows"] = [
+			{"label": "首位", "value": _species_entry_label(top_species[0]) if top_species.size() > 0 else "暂无", "color": Color8(171, 132, 196)},
+			{"label": "次位", "value": _species_entry_label(top_species[1]) if top_species.size() > 1 else "暂无", "color": Color8(102, 152, 204)},
+			{"label": "第三位", "value": _species_entry_label(top_species[2]) if top_species.size() > 2 else "暂无", "color": Color8(104, 171, 144)},
+			{"label": "地貌", "value": biome_text, "color": _active_region_accent()},
+		]
+		base_profile["left_title"] = "草食/区域种"
+		base_profile["left_rows"] = [
+			_species_entry_label(top_species[0]) if top_species.size() > 0 else "等待更多物种聚焦",
+			_species_entry_label(top_species[1]) if top_species.size() > 1 else "等待更多物种聚焦",
+			_species_entry_label(top_species[2]) if top_species.size() > 2 else "等待更多物种聚焦",
+		]
+		base_profile["right_title"] = "图鉴前哨"
+		base_profile["right_rows"] = [
+			"%s · %s" % [_region_type_chip(active_region), _species_category(str(top_species[0].get("species_id", "")))] if top_species.size() > 0 else "等待更多分类标签",
+			"%s · %s" % [_region_type_chip(active_region), _species_category(str(top_species[1].get("species_id", "")))] if top_species.size() > 1 else "等待更多分类标签",
+			"%s · %s" % [_region_type_chip(active_region), _species_category(str(top_species[2].get("species_id", "")))] if top_species.size() > 2 else "等待更多分类标签",
+		]
+	elif selected_tab == "story":
+		base_profile["mode"] = "区域播报主视区"
+		base_profile["substage_title"] = "播报聚焦副舞台"
+		base_profile["sub_primary"] = {"label": "领地主播报", "value": _lead_story_line(narrative.get("territory", [])), "color": Color8(171, 132, 196)}
+		base_profile["sub_secondary"] = {"label": "趋势播报", "value": _lead_story_line(narrative.get("social_trends", [])), "color": Color8(102, 152, 204)}
+		base_profile["hero_rows"] = [
+			{"label": "主链播报", "value": _lead_story_line(narrative.get("grassland_chain", narrative.get("wetland_chain", []))), "color": Color8(104, 171, 144)},
+			{"label": "捕食播报", "value": _lead_story_line(narrative.get("predation", [])), "color": Color8(171, 132, 196)},
+			{"label": "区域档案", "value": _region_type_label(active_region), "color": _active_region_accent()},
+		]
+		base_profile["strip_rows"] = [
+			{"label": "领地", "value": _lead_story_line(narrative.get("territory", [])), "color": Color8(171, 132, 196)},
+			{"label": "趋势", "value": _lead_story_line(narrative.get("social_trends", [])), "color": Color8(102, 152, 204)},
+			{"label": "主链", "value": _lead_story_line(narrative.get("grassland_chain", narrative.get("wetland_chain", []))), "color": Color8(104, 171, 144)},
+			{"label": "共生", "value": _lead_story_line(narrative.get("symbiosis", [])), "color": Color8(210, 182, 96)},
+		]
+		base_profile["left_title"] = "区域播报前线"
+		base_profile["left_rows"] = [
+			_lead_story_line(narrative.get("territory", [])),
+			_lead_story_line(narrative.get("social_trends", [])),
+			_lead_story_line(narrative.get("predation", [])),
+		]
+		base_profile["right_title"] = "链路播报摘要"
+		base_profile["right_rows"] = [
+			_lead_story_line(narrative.get("grassland_chain", [])),
+			_lead_story_line(narrative.get("carrion_chain", [])),
+			_lead_story_line(narrative.get("wetland_chain", [])),
+		]
+	return base_profile
 
 
 func _build_route_lines(regions: Array) -> void:
