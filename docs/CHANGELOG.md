@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha138 (2026-04-15 00:22)
+
+- ✅ Godot 前端这轮把 `推进路线确认层` 继续推进成了 `推进路线执行层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_execution_plans`
+  - 每条执行路线的 `execution_mode / ready_band / pressure_band`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `推进路线执行终端`
+  - 主视区显式显示 `当前执行 / 就绪带 / 压力带`
+  - 右侧总览并排显示 `当前执行 / 备用推进 / 回退路线`
+- ✅ 这意味着当前战区已经不只是确认一条推进路线，而开始形成三层执行视图。
+
 ### v4.0-alpha137 (2026-04-15 00:14)
 
 - ✅ Godot 前端这轮把 `落点锁定视图` 继续推进成了 `推进路线确认层`。

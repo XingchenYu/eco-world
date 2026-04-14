@@ -506,6 +506,65 @@ def _build_frontier_route_profiles(
     return profiles[:3]
 
 
+def _build_frontier_execution_plans(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    profiles: list[dict[str, Any]] = list(region_detail.get("frontier_route_profiles", []))
+    plans: list[dict[str, Any]] = []
+
+    for index, profile in enumerate(profiles):
+        target_region_id = str(profile.get("target_region_id", ""))
+        if not target_region_id:
+            continue
+        target_detail = region_details.get(target_region_id, {})
+        target_name = str(profile.get("route_name", target_region_id))
+        prosperity = float(profile.get("target_prosperity", 0.0))
+        risk = float(profile.get("target_risk", 0.0))
+        branch_count = int(profile.get("landing_count", 1))
+        confirmation_band = str(profile.get("confirmation_band", "主走廊确认"))
+
+        execution_mode = "当前执行"
+        if index == 1:
+            execution_mode = "备用推进"
+        elif index >= 2:
+            execution_mode = "回退路线"
+
+        readiness = max(0.1, min(1.0, prosperity * 0.58 + (1.0 - risk) * 0.42))
+        pressure = max(0.1, min(1.0, risk * 0.72 + branch_count * 0.08))
+
+        plans.append(
+            {
+                "target_region_id": target_region_id,
+                "execution_mode": execution_mode,
+                "route_name": target_name,
+                "confirmation_band": confirmation_band,
+                "primary_stage_title": str(profile.get("primary_stage_title", "等待主走廊")),
+                "secondary_stage_title": str(profile.get("secondary_stage_title", "等待二阶段")),
+                "ready_band": "高就绪" if readiness >= 0.72 else "稳态就绪" if readiness >= 0.48 else "低就绪",
+                "pressure_band": "高压回退" if pressure >= 0.72 else "中压推进" if pressure >= 0.48 else "低压推进",
+                "readiness": round(readiness, 4),
+                "pressure": round(pressure, 4),
+                "landing_name": str(target_detail.get("name", target_region_id)),
+                "landing_role": str(target_detail.get("region_role", "生态观测区")),
+                "summary": (
+                    f"{execution_mode} 当前指向 {str(target_detail.get('name', target_region_id))}，"
+                    f"{confirmation_band} 下维持 {str(profile.get('primary_stage_title', '主走廊'))}，"
+                    f"就绪度 {readiness:.2f}，压力 {pressure:.2f}。"
+                ),
+                "badges": [
+                    f"确认：{confirmation_band}",
+                    f"就绪带：{'高' if readiness >= 0.72 else '稳' if readiness >= 0.48 else '低'}",
+                    f"压力带：{'高' if pressure >= 0.72 else '中' if pressure >= 0.48 else '低'}",
+                    f"落点：{str(target_detail.get('name', target_region_id))}",
+                ],
+            }
+        )
+
+    return plans[:3]
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -635,6 +694,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_operations"] = _build_frontier_operations(region_id, region_details)
         region_detail["frontier_campaigns"] = _build_frontier_campaigns(region_id, region_details)
         region_detail["frontier_route_profiles"] = _build_frontier_route_profiles(region_id, region_details)
+        region_detail["frontier_execution_plans"] = _build_frontier_execution_plans(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
