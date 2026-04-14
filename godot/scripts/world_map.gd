@@ -717,6 +717,17 @@ func _active_formation_profile(active_region: Dictionary) -> Dictionary:
 	return profiles[0]
 
 
+func _active_formation_preset(active_region: Dictionary) -> Dictionary:
+	var presets: Array = active_region.get("frontier_formation_presets", [])
+	if presets.is_empty():
+		return {}
+	for preset_variant in presets:
+		var preset: Dictionary = preset_variant
+		if str(preset.get("preset_key", "")) == selected_formation_key:
+			return preset
+	return presets[0]
+
+
 func _active_schedule_route(active_region: Dictionary) -> Dictionary:
 	var active_formation := _active_formation_profile(active_region)
 	if active_formation.is_empty():
@@ -985,6 +996,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_execution_plan := _active_execution_plan(active_region)
 	var active_schedule_profile := _active_schedule_profile(active_region)
 	var active_formation_profile := _active_formation_profile(active_region)
+	var active_formation_preset := _active_formation_preset(active_region)
 	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
@@ -1063,8 +1075,17 @@ func _build_focus_stage(regions: Array) -> void:
 	schedule_row.add_child(_make_hero_chip("调度落点", str(active_schedule_route.get("landing_name", "待命")), Color8(102, 152, 204)))
 	schedule_row.add_child(_make_hero_chip("调度就绪", str(active_schedule_route.get("ready_band", "待命")), Color8(171, 132, 196)))
 
+	var preset_row := HBoxContainer.new()
+	preset_row.add_theme_constant_override("separation", 8)
+	root.add_child(preset_row)
+	preset_row.add_child(_make_hero_chip("当前预案", str(active_formation_preset.get("preset_name", "等待预案")), Color8(210, 182, 96)))
+	var route_order: Array = active_formation_preset.get("route_order", [])
+	preset_row.add_child(_make_hero_chip("序列一", str(route_order[0]) if route_order.size() > 0 else "待命", Color8(104, 171, 144)))
+	preset_row.add_child(_make_hero_chip("序列二", str(route_order[1]) if route_order.size() > 1 else "待命", Color8(102, 152, 204)))
+	preset_row.add_child(_make_hero_chip("序列三", str(route_order[2]) if route_order.size() > 2 else "待命", Color8(171, 132, 196)))
+
 	var footer := Label.new()
-	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 调度带 %s · 筛选 %s" % [
+	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 调度带 %s · 筛选 %s" % [
 		str(world_data.get("world", {}).get("loaded_regions", 0)),
 		str(regions.size()),
 		str(active_campaign.get("campaign_band", "等待战区模式")),
@@ -1072,6 +1093,7 @@ func _build_focus_stage(regions: Array) -> void:
 		str(active_route_profile.get("confirmation_band", "待命")),
 		str(active_execution_plan.get("execution_mode", "待命")),
 		str(active_formation_profile.get("formation_name", "待命")),
+		str(active_formation_preset.get("preset_name", "待命")),
 		str(active_schedule_profile.get("dispatch_band", "待命")),
 		_campaign_filter_label(),
 	]
@@ -2442,6 +2464,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_campaign_route_confirmation_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_execution_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_schedule_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_formation_preset_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
@@ -3047,6 +3070,7 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	box.add_theme_constant_override("separation", 8)
 	var active_schedule := _active_schedule_profile(active_region)
 	var active_formation := _active_formation_profile(active_region)
+	var active_preset := _active_formation_preset(active_region)
 	var active_route := _active_schedule_route(active_region)
 	var primary_route: Dictionary = active_schedule.get("primary_route", {})
 	var support_route: Dictionary = active_schedule.get("support_route", {})
@@ -3118,6 +3142,52 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 		badge_row.add_child(_make_hero_chip("调度信号", str(badge_variant), Color8(210, 182, 96)))
 
 	return _wrap_menu_card(box, Color8(210, 182, 96))
+
+
+func _make_campaign_formation_preset_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var active_preset := _active_formation_preset(active_region)
+	var presets: Array = active_region.get("frontier_formation_presets", [])
+
+	var title := Label.new()
+	title.text = "%s · 编成预案终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	box.add_child(body)
+
+	body.add_child(_make_feature_panel(
+		str(active_preset.get("formation_band", "等待预案")),
+		str(active_preset.get("preset_name", "等待当前预案")),
+		str(active_preset.get("summary", "当前暂无编成预案摘要。")),
+		region_accent
+	))
+
+	var order_box := VBoxContainer.new()
+	order_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	order_box.add_theme_constant_override("separation", 8)
+	body.add_child(order_box)
+	var route_order: Array = active_preset.get("route_order", [])
+	order_box.add_child(_make_hero_chip("序列一", str(route_order[0]) if route_order.size() > 0 else "待命", Color8(104, 171, 144)))
+	order_box.add_child(_make_hero_chip("序列二", str(route_order[1]) if route_order.size() > 1 else "待命", Color8(102, 152, 204)))
+	order_box.add_child(_make_hero_chip("序列三", str(route_order[2]) if route_order.size() > 2 else "待命", Color8(171, 132, 196)))
+
+	var preset_row := HBoxContainer.new()
+	preset_row.add_theme_constant_override("separation", 8)
+	box.add_child(preset_row)
+	for preset_variant in presets.slice(0, 3):
+		var preset: Dictionary = preset_variant
+		var is_active := str(preset.get("preset_key", "")) == selected_formation_key
+		preset_row.add_child(_make_hero_chip(
+			"%s%s" % ["当前 · " if is_active else "", str(preset.get("preset_name", "预案"))],
+			str(preset.get("formation_band", "编成")),
+			region_accent if is_active else Color8(210, 182, 96)
+		))
+
+	return _wrap_menu_card(box, Color8(104, 171, 144))
 
 
 func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:

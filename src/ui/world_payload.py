@@ -680,6 +680,44 @@ def _build_frontier_formation_profiles(
     return formations
 
 
+def _build_frontier_formation_presets(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    formations: list[dict[str, Any]] = list(region_detail.get("frontier_formation_profiles", []))
+    presets: list[dict[str, Any]] = []
+    for formation in formations:
+        active_route = dict(formation.get("active_route", {}))
+        support_route = dict(formation.get("support_route", {}))
+        fallback_route = dict(formation.get("fallback_route", {}))
+        presets.append(
+            {
+                "preset_key": str(formation.get("formation_key", "")),
+                "preset_name": f"{str(formation.get('formation_name', '编成'))}预案",
+                "formation_band": str(formation.get("formation_band", "战区编成")),
+                "route_order": [
+                    str(active_route.get("landing_name", "待命")),
+                    str(support_route.get("landing_name", "待命")),
+                    str(fallback_route.get("landing_name", "待命")),
+                ],
+                "summary": (
+                    f"{str(formation.get('formation_name', '编成'))} 当前按 "
+                    f"{str(active_route.get('landing_name', '待命'))} → "
+                    f"{str(support_route.get('landing_name', '待命'))} → "
+                    f"{str(fallback_route.get('landing_name', '待命'))} 编排。"
+                ),
+                "badges": [
+                    f"主序列：{str(active_route.get('landing_name', '待命'))}",
+                    f"支序列：{str(support_route.get('landing_name', '待命'))}",
+                    f"回退序列：{str(fallback_route.get('landing_name', '待命'))}",
+                    f"带型：{str(formation.get('formation_band', '战区编成'))}",
+                ],
+            }
+        )
+    return presets
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -812,6 +850,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_execution_plans"] = _build_frontier_execution_plans(region_id, region_details)
         region_detail["frontier_schedule_profiles"] = _build_frontier_schedule_profiles(region_id, region_details)
         region_detail["frontier_formation_profiles"] = _build_frontier_formation_profiles(region_id, region_details)
+        region_detail["frontier_formation_presets"] = _build_frontier_formation_presets(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),

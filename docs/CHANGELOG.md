@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha142 (2026-04-15 00:55)
+
+- ✅ Godot 前端这轮把 `编成切换层` 继续推进成了 `编成预案层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_formation_presets`
+  - 每套预案的 `preset_key / preset_name / route_order`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `编成预案终端`
+  - 主视区显式显示 `当前预案 / 序列一 / 序列二 / 序列三`
+  - 右侧总览显式收口三套编成预案
+- ✅ 这意味着当前 Godot 世界入口已经不只是切换编成，而开始同时展示整套战区预案。
+
 ### v4.0-alpha141 (2026-04-15 00:47)
 
 - ✅ Godot 前端这轮把 `路线切换层` 继续推进成了 `编成切换层`。
