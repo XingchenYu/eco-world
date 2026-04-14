@@ -2,6 +2,20 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha129 (2026-04-14 12:49)
+
+- ✅ Godot 前端这轮把 `前线行动方案` 继续推进成了 `战区推进模式`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_campaigns`
+  - 每条 campaign 的 `campaign_name / campaign_band`
+  - 优先级、双跳路线标题和战区摘要
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 地图上沿 `战区推进模式` 条
+  - 可切换的 campaign 卡
+  - 切换 campaign 时自动同步前线目标与当前分支
+  - 中心主舞台、前线转运带、右侧总览同步当前战区模式
+- ✅ 这意味着世界地图现在不只是“锁一条前线”，而开始具备多套战区推进编成的切换能力。
+
 ### v4.0-alpha128 (2026-04-14 12:37)
 
 - ✅ Godot 前端这轮不再只显示前线网络，而是把这层推进成了 `前线行动方案`。

@@ -375,6 +375,53 @@ def _build_frontier_operations(
     return operations[:4]
 
 
+def _frontier_campaign_band(posture: str, threat_band: str, opportunity_band: str) -> str:
+    if posture == "高压突进":
+        return "赤线推进令"
+    if posture == "网络扩张":
+        return "多线扩张令"
+    if opportunity_band == "扩张窗口":
+        return "丰度扩张令"
+    if threat_band == "稳态战区":
+        return "稳态侦察令"
+    return "前线巡察令"
+
+
+def _build_frontier_campaigns(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    operations: list[dict[str, Any]] = list(region_detail.get("frontier_operations", []))
+    campaigns: list[dict[str, Any]] = []
+
+    for index, operation in enumerate(operations):
+        route_stages = list(operation.get("route_stages", []))
+        target_name = str(operation.get("target_name", operation.get("target_region_id", "")))
+        posture = str(operation.get("posture", "前线侦察"))
+        threat_band = str(operation.get("threat_band", "稳态战区"))
+        opportunity_band = str(operation.get("opportunity_band", "侦察窗口"))
+        campaign_band = _frontier_campaign_band(posture, threat_band, opportunity_band)
+        campaigns.append(
+            {
+                "target_region_id": str(operation.get("target_region_id", "")),
+                "campaign_name": f"{target_name} · {campaign_band}",
+                "campaign_band": campaign_band,
+                "posture": posture,
+                "threat_band": threat_band,
+                "opportunity_band": opportunity_band,
+                "priority": index + 1,
+                "route_titles": [str(stage.get("title", "")) for stage in route_stages[:2]],
+                "summary": (
+                    f"{campaign_band} 当前以 {target_name} 为主目标，"
+                    f"执行姿态为{posture}，战区判断为{threat_band}。"
+                ),
+            }
+        )
+
+    return campaigns[:3]
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -502,6 +549,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_links"] = _build_frontier_links(region_id, region_details)
         region_detail["frontier_network"] = _build_frontier_network(region_id, region_details)
         region_detail["frontier_operations"] = _build_frontier_operations(region_id, region_details)
+        region_detail["frontier_campaigns"] = _build_frontier_campaigns(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
