@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha141 (2026-04-15 00:47)
+
+- ✅ Godot 前端这轮把 `路线切换层` 继续推进成了 `编成切换层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_formation_profiles`
+  - 每套编成的 `formation_key / formation_name / formation_band`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `突进编成 / 均衡编成 / 稳态编成` 切换按钮
+  - 主视区显式显示当前编成
+  - 切换编成后同步重排当前战区、调度路线与锁定落点
+- ✅ 这意味着当前 Godot 世界入口已经不只是切换路线，而开始能切整套战区编成。
+
 ### v4.0-alpha140 (2026-04-15 00:38)
 
 - ✅ Godot 前端这轮把 `推进路线调度层` 继续推进成了 `路线切换层`。

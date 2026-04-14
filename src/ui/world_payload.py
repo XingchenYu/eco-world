@@ -626,6 +626,60 @@ def _build_frontier_schedule_profiles(
     return [schedule]
 
 
+def _build_frontier_formation_profiles(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    schedule_profiles: list[dict[str, Any]] = list(region_detail.get("frontier_schedule_profiles", []))
+    if not schedule_profiles:
+        return []
+
+    schedule = schedule_profiles[0]
+    primary = dict(schedule.get("primary_route", {}))
+    support = dict(schedule.get("support_route", {}))
+    fallback = dict(schedule.get("fallback_route", {}))
+
+    formations = [
+        {
+            "formation_key": "assault",
+            "formation_name": "突进编成",
+            "formation_band": "高压突进",
+            "active_route": primary,
+            "support_route": support,
+            "fallback_route": fallback,
+            "summary": f"突进编成当前以 {primary.get('landing_name', '前线目标')} 为主执行，快速压向前线核心。",
+        },
+        {
+            "formation_key": "balanced",
+            "formation_name": "均衡编成",
+            "formation_band": "稳态推进",
+            "active_route": support,
+            "support_route": primary,
+            "fallback_route": fallback,
+            "summary": f"均衡编成当前以 {support.get('landing_name', '辅执行目标')} 为中轴，保持主辅路线轮换。",
+        },
+        {
+            "formation_key": "safe",
+            "formation_name": "稳态编成",
+            "formation_band": "回退预备",
+            "active_route": fallback,
+            "support_route": support,
+            "fallback_route": primary,
+            "summary": f"稳态编成当前以 {fallback.get('landing_name', '回退目标')} 为安全轴，优先保留退场空间。",
+        },
+    ]
+
+    for formation in formations:
+        formation["badges"] = [
+            f"当前：{formation['formation_name']}",
+            f"主轴：{formation['active_route'].get('landing_name', '待命')}",
+            f"支援：{formation['support_route'].get('landing_name', '待命')}",
+            f"预备：{formation['fallback_route'].get('landing_name', '待命')}",
+        ]
+    return formations
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -757,6 +811,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_route_profiles"] = _build_frontier_route_profiles(region_id, region_details)
         region_detail["frontier_execution_plans"] = _build_frontier_execution_plans(region_id, region_details)
         region_detail["frontier_schedule_profiles"] = _build_frontier_schedule_profiles(region_id, region_details)
+        region_detail["frontier_formation_profiles"] = _build_frontier_formation_profiles(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),

@@ -43,6 +43,7 @@ var selected_campaign_stage_index := 0
 var selected_campaign_filter := "balanced"
 var selected_campaign_landing_target_id := ""
 var selected_schedule_route_key := "primary_route"
+var selected_formation_key := "assault"
 var selected_frontier_target_id := ""
 var selected_branch_target_id := ""
 var refresh_button: Button
@@ -704,15 +705,32 @@ func _active_schedule_profile(active_region: Dictionary) -> Dictionary:
 	return profiles[0]
 
 
-func _active_schedule_route(active_region: Dictionary) -> Dictionary:
-	var active_schedule := _active_schedule_profile(active_region)
-	if active_schedule.is_empty():
+func _active_formation_profile(active_region: Dictionary) -> Dictionary:
+	var profiles: Array = active_region.get("frontier_formation_profiles", [])
+	if profiles.is_empty():
 		return {}
-	var route := active_schedule.get(selected_schedule_route_key, {})
+	for profile_variant in profiles:
+		var profile: Dictionary = profile_variant
+		if str(profile.get("formation_key", "")) == selected_formation_key:
+			return profile
+	selected_formation_key = "assault"
+	return profiles[0]
+
+
+func _active_schedule_route(active_region: Dictionary) -> Dictionary:
+	var active_formation := _active_formation_profile(active_region)
+	if active_formation.is_empty():
+		return {}
+	var route := active_formation.get("active_route", {})
+	if selected_schedule_route_key != "primary_route":
+		route = active_formation.get(
+			"support_route" if selected_schedule_route_key == "support_route" else "fallback_route",
+			route
+		)
 	if route is Dictionary and not route.is_empty():
 		return route
 	selected_schedule_route_key = "primary_route"
-	return active_schedule.get("primary_route", {})
+	return active_formation.get("active_route", {})
 
 
 func _active_campaign_stage(active_region: Dictionary) -> Dictionary:
@@ -966,6 +984,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_route_profile := _active_route_profile(active_region)
 	var active_execution_plan := _active_execution_plan(active_region)
 	var active_schedule_profile := _active_schedule_profile(active_region)
+	var active_formation_profile := _active_formation_profile(active_region)
 	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
@@ -1038,19 +1057,21 @@ func _build_focus_stage(regions: Array) -> void:
 	var schedule_row := HBoxContainer.new()
 	schedule_row.add_theme_constant_override("separation", 8)
 	root.add_child(schedule_row)
-	schedule_row.add_child(_make_hero_chip("调度带", str(active_schedule_profile.get("dispatch_band", "等待调度")), Color8(210, 182, 96)))
+	schedule_row.add_child(_make_hero_chip("编成", str(active_formation_profile.get("formation_name", "等待编成")), Color8(210, 182, 96)))
+	schedule_row.add_child(_make_hero_chip("调度带", str(active_schedule_profile.get("dispatch_band", "等待调度")), Color8(104, 171, 144)))
 	schedule_row.add_child(_make_hero_chip("当前调度", str(active_schedule_route.get("label", "主执行")), Color8(104, 171, 144)))
 	schedule_row.add_child(_make_hero_chip("调度落点", str(active_schedule_route.get("landing_name", "待命")), Color8(102, 152, 204)))
 	schedule_row.add_child(_make_hero_chip("调度就绪", str(active_schedule_route.get("ready_band", "待命")), Color8(171, 132, 196)))
 
 	var footer := Label.new()
-	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 调度带 %s · 筛选 %s" % [
+	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 调度带 %s · 筛选 %s" % [
 		str(world_data.get("world", {}).get("loaded_regions", 0)),
 		str(regions.size()),
 		str(active_campaign.get("campaign_band", "等待战区模式")),
 		str(stage_profile["stage_mode"]),
 		str(active_route_profile.get("confirmation_band", "待命")),
 		str(active_execution_plan.get("execution_mode", "待命")),
+		str(active_formation_profile.get("formation_name", "待命")),
 		str(active_schedule_profile.get("dispatch_band", "待命")),
 		_campaign_filter_label(),
 	]
@@ -3025,10 +3046,12 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	var active_schedule := _active_schedule_profile(active_region)
+	var active_formation := _active_formation_profile(active_region)
 	var active_route := _active_schedule_route(active_region)
 	var primary_route: Dictionary = active_schedule.get("primary_route", {})
 	var support_route: Dictionary = active_schedule.get("support_route", {})
 	var fallback_route: Dictionary = active_schedule.get("fallback_route", {})
+	var formations: Array = active_region.get("frontier_formation_profiles", [])
 
 	var title := Label.new()
 	title.text = "%s · 推进路线调度终端" % _region_type_chip(active_region)
@@ -3040,9 +3063,9 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	box.add_child(body)
 
 	body.add_child(_make_feature_panel(
-		str(active_schedule.get("dispatch_band", "等待调度")),
-		str(active_schedule.get("schedule_name", "等待当前调度方案")),
-		str(active_schedule.get("summary", "当前暂无推进路线调度摘要。")),
+		str(active_formation.get("formation_band", active_schedule.get("dispatch_band", "等待调度"))),
+		str(active_formation.get("formation_name", active_schedule.get("schedule_name", "等待当前调度方案"))),
+		str(active_formation.get("summary", active_schedule.get("summary", "当前暂无推进路线调度摘要。"))),
 		region_accent
 	))
 
@@ -3053,6 +3076,23 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	stack.add_child(_make_hero_chip("当前调度", str(active_route.get("label", "待命")), Color8(104, 171, 144)))
 	stack.add_child(_make_hero_chip("调度落点", str(active_route.get("landing_name", "待命")), Color8(102, 152, 204)))
 	stack.add_child(_make_hero_chip("调度就绪", str(active_route.get("ready_band", "待命")), Color8(171, 132, 196)))
+
+	var formation_row := HBoxContainer.new()
+	formation_row.add_theme_constant_override("separation", 8)
+	box.add_child(formation_row)
+	for formation_variant in formations.slice(0, 3):
+		var formation: Dictionary = formation_variant
+		var formation_key := str(formation.get("formation_key", ""))
+		var is_active_formation := formation_key == selected_formation_key
+		var formation_button := Button.new()
+		formation_button.text = "%s%s" % [
+			"当前 · " if is_active_formation else "",
+			str(formation.get("formation_name", "编成")),
+		]
+		formation_button.toggle_mode = true
+		formation_button.button_pressed = is_active_formation
+		formation_button.pressed.connect(_on_formation_selected.bind(formation_key))
+		formation_row.add_child(formation_button)
 
 	var route_row := HBoxContainer.new()
 	route_row.add_theme_constant_override("separation", 8)
@@ -3706,6 +3746,7 @@ func _on_region_pressed(region_id: String) -> void:
 	selected_campaign_stage_index = 0
 	selected_campaign_landing_target_id = ""
 	selected_schedule_route_key = "primary_route"
+	selected_formation_key = "assault"
 	selected_frontier_target_id = ""
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
@@ -3735,6 +3776,7 @@ func _on_frontier_campaign_selected(region_id: String) -> void:
 	selected_campaign_stage_index = 0
 	selected_campaign_landing_target_id = ""
 	selected_schedule_route_key = "primary_route"
+	selected_formation_key = "assault"
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	_sync_campaign_landing(active_region)
 	_sync_branch_focus(active_region)
@@ -3748,6 +3790,7 @@ func _on_campaign_stage_selected(stage_index: int) -> void:
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	selected_campaign_landing_target_id = ""
 	selected_schedule_route_key = "primary_route"
+	selected_formation_key = "assault"
 	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换推进阶段：%s · 当前分页：%s" % [str(stage_index + 1), _tab_title(selected_tab)]
 	_render_world()
@@ -3758,6 +3801,7 @@ func _on_campaign_filter_selected(filter_key: String) -> void:
 	selected_campaign_filter = filter_key
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	selected_schedule_route_key = "primary_route"
+	selected_formation_key = "assault"
 	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换战区筛选：%s · 当前分页：%s" % [_campaign_filter_label(), _tab_title(selected_tab)]
 	_render_world()
@@ -3769,6 +3813,21 @@ func _on_campaign_landing_selected(region_id: String) -> void:
 	status_label.text = "系统栏 · 已锁定推进落点：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(171, 132, 196))
+
+
+func _on_formation_selected(formation_key: String) -> void:
+	selected_formation_key = formation_key
+	selected_schedule_route_key = "primary_route"
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var active_route := _active_schedule_route(active_region)
+	var target_region_id := str(active_route.get("target_region_id", ""))
+	if target_region_id != "":
+		selected_campaign_target_id = target_region_id
+		selected_frontier_target_id = target_region_id
+		selected_campaign_landing_target_id = target_region_id
+	status_label.text = "系统栏 · 已切换战区编成：%s · 当前分页：%s" % [formation_key, _tab_title(selected_tab)]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(104, 171, 144))
 
 
 func _on_schedule_route_selected(route_key: String) -> void:
