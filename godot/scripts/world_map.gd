@@ -518,6 +518,7 @@ func _render_world() -> void:
 	_build_world_ambience()
 	_build_focus_stage(world_meta.get("regions", []))
 	_build_route_lines(world_meta.get("regions", []))
+	_build_frontier_network_overlay(world_meta.get("regions", []))
 	_build_map_nodes(world_meta.get("regions", []))
 	_build_map_command_layer()
 	_build_side_panel()
@@ -676,6 +677,16 @@ func _build_world_ambience() -> void:
 	aura.position = active_pos - Vector2(118, 52)
 	aura.custom_minimum_size = Vector2(236, 104)
 	map_layer.add_child(aura)
+
+
+func _region_positions(regions: Array, map_size: Vector2) -> Dictionary:
+	var positions := {}
+	for region_variant in regions:
+		var region: Dictionary = region_variant
+		var region_id := str(region.get("id", ""))
+		var rel: Vector2 = REGION_LAYOUT.get(region_id, Vector2(0.5, 0.5))
+		positions[region_id] = Vector2(map_size.x * rel.x, map_size.y * rel.y)
+	return positions
 
 
 func _build_focus_stage(regions: Array) -> void:
@@ -1004,12 +1015,7 @@ func _build_route_lines(regions: Array) -> void:
 	if map_size.x <= 0.0 or map_size.y <= 0.0:
 		map_size = Vector2(1040, 720)
 
-	var positions := {}
-	for region_variant in regions:
-		var region: Dictionary = region_variant
-		var region_id := str(region.get("id", ""))
-		var rel: Vector2 = REGION_LAYOUT.get(region_id, Vector2(0.5, 0.5))
-		positions[region_id] = Vector2(map_size.x * rel.x, map_size.y * rel.y)
+	var positions := _region_positions(regions, map_size)
 
 	for region_variant in regions:
 		var region: Dictionary = region_variant
@@ -1035,6 +1041,103 @@ func _build_route_lines(regions: Array) -> void:
 			)
 			line.custom_minimum_size = Vector2(line.custom_minimum_size.x, 6.0 if is_active_route else 3.0)
 			map_layer.add_child(line)
+
+
+func _build_frontier_network_overlay(regions: Array) -> void:
+	var map_size := map_layer.get_rect().size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
+	var positions := _region_positions(regions, map_size)
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var active_frontier := _active_frontier_link(active_region)
+	var active_network := _active_frontier_network(active_region)
+	if active_frontier.is_empty():
+		return
+
+	var active_pos: Vector2 = positions.get(active_region_id, Vector2(map_size.x * 0.5, map_size.y * 0.5))
+	var target_id := str(active_frontier.get("target_region_id", ""))
+	if not positions.has(target_id):
+		return
+	var target_pos: Vector2 = positions[target_id]
+	var target_accent := REGION_COLORS.get(target_id, _active_region_accent())
+
+	var corridor := _make_route_line(active_pos, target_pos, max(0.35, float(active_frontier.get("strength", 0.0))))
+	corridor.color = Color(target_accent.r, target_accent.g, target_accent.b, 0.42)
+	corridor.custom_minimum_size = Vector2(corridor.custom_minimum_size.x, 8.0)
+	map_layer.add_child(corridor)
+
+	var target_ring := ColorRect.new()
+	target_ring.color = Color(target_accent.r, target_accent.g, target_accent.b, 0.18)
+	target_ring.position = target_pos - Vector2(62, 28)
+	target_ring.custom_minimum_size = Vector2(124, 56)
+	map_layer.add_child(target_ring)
+
+	var target_banner := PanelContainer.new()
+	target_banner.position = target_pos - Vector2(70, 88)
+	target_banner.custom_minimum_size = Vector2(160, 64)
+	map_layer.add_child(target_banner)
+
+	var banner_box := VBoxContainer.new()
+	banner_box.add_theme_constant_override("separation", 4)
+	target_banner.add_child(banner_box)
+
+	var banner_ribbon := ColorRect.new()
+	banner_ribbon.color = target_accent.lightened(0.08)
+	banner_ribbon.custom_minimum_size = Vector2(0, 6)
+	banner_box.add_child(banner_ribbon)
+
+	var banner_title := Label.new()
+	banner_title.text = "前线目标 · %s" % str(active_frontier.get("target_name", target_id))
+	_style_secondary_title(banner_title, 17)
+	banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner_box.add_child(banner_title)
+
+	var banner_body := Label.new()
+	banner_body.text = "%s · 分支 %s" % [
+		str(active_frontier.get("connection_label", "区域通道")),
+		str(active_network.get("branch_count", 0)),
+	]
+	banner_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_dim(banner_body, 13)
+	banner_box.add_child(banner_body)
+
+	for branch_variant in active_network.get("branches", []):
+		var branch: Dictionary = branch_variant
+		var branch_id := str(branch.get("target_region_id", ""))
+		if not positions.has(branch_id):
+			continue
+		var branch_pos: Vector2 = positions[branch_id]
+		var branch_accent := REGION_COLORS.get(branch_id, Color8(102, 152, 204))
+
+		var branch_line := _make_route_line(target_pos, branch_pos, max(0.25, float(branch.get("strength", 0.0))))
+		branch_line.color = Color(branch_accent.r, branch_accent.g, branch_accent.b, 0.28)
+		branch_line.custom_minimum_size = Vector2(branch_line.custom_minimum_size.x, 5.0)
+		map_layer.add_child(branch_line)
+
+		var branch_badge := PanelContainer.new()
+		branch_badge.position = branch_pos - Vector2(56, 92)
+		branch_badge.custom_minimum_size = Vector2(128, 48)
+		map_layer.add_child(branch_badge)
+
+		var branch_box := VBoxContainer.new()
+		branch_box.add_theme_constant_override("separation", 2)
+		branch_badge.add_child(branch_box)
+
+		var branch_title := Label.new()
+		branch_title.text = "分支 · %s" % str(branch.get("target_name", branch_id))
+		_style_body(branch_title, 14)
+		branch_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		branch_title.modulate = branch_accent.lightened(0.24)
+		branch_box.add_child(branch_title)
+
+		var branch_body := Label.new()
+		branch_body.text = "%s %.2f" % [
+			str(branch.get("connection_label", "区域通道")),
+			float(branch.get("strength", 0.0)),
+		]
+		branch_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_dim(branch_body, 12)
+		branch_box.add_child(branch_body)
 
 
 func _make_route_line(from_pos: Vector2, to_pos: Vector2, strength: float) -> ColorRect:
