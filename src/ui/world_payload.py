@@ -565,6 +565,64 @@ def _build_frontier_execution_plans(
     return plans[:3]
 
 
+def _build_frontier_schedule_profiles(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    execution_plans: list[dict[str, Any]] = list(region_detail.get("frontier_execution_plans", []))
+    if not execution_plans:
+        return []
+
+    primary = execution_plans[0]
+    support = execution_plans[1] if len(execution_plans) > 1 else execution_plans[0]
+    fallback = execution_plans[2] if len(execution_plans) > 2 else execution_plans[-1]
+
+    readiness = float(primary.get("readiness", 0.0))
+    pressure = float(primary.get("pressure", 0.0))
+    dispatch_band = "高压调度"
+    if pressure < 0.48 and readiness >= 0.58:
+        dispatch_band = "稳态调度"
+    elif readiness >= 0.72:
+        dispatch_band = "高就绪调度"
+
+    schedule = {
+        "target_region_id": str(primary.get("target_region_id", "")),
+        "schedule_name": f"{str(primary.get('landing_name', '前线目标'))} · {dispatch_band}",
+        "dispatch_band": dispatch_band,
+        "primary_route": {
+            "label": "主执行",
+            "route_name": str(primary.get("route_name", "等待主执行")),
+            "landing_name": str(primary.get("landing_name", "等待落点")),
+            "ready_band": str(primary.get("ready_band", "待命")),
+        },
+        "support_route": {
+            "label": "辅执行",
+            "route_name": str(support.get("route_name", "等待辅执行")),
+            "landing_name": str(support.get("landing_name", "等待落点")),
+            "ready_band": str(support.get("ready_band", "待命")),
+        },
+        "fallback_route": {
+            "label": "回退",
+            "route_name": str(fallback.get("route_name", "等待回退路线")),
+            "landing_name": str(fallback.get("landing_name", "等待落点")),
+            "ready_band": str(fallback.get("ready_band", "待命")),
+        },
+        "summary": (
+            f"{dispatch_band} 当前以 {str(primary.get('landing_name', '前线目标'))} 为主执行，"
+            f"{str(support.get('landing_name', '辅执行目标'))} 作为辅执行，"
+            f"{str(fallback.get('landing_name', '回退目标'))} 作为回退路线。"
+        ),
+        "badges": [
+            f"主执行：{str(primary.get('landing_name', '前线目标'))}",
+            f"辅执行：{str(support.get('landing_name', '辅执行目标'))}",
+            f"回退：{str(fallback.get('landing_name', '回退目标'))}",
+            f"调度带：{dispatch_band}",
+        ],
+    }
+    return [schedule]
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -695,6 +753,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_campaigns"] = _build_frontier_campaigns(region_id, region_details)
         region_detail["frontier_route_profiles"] = _build_frontier_route_profiles(region_id, region_details)
         region_detail["frontier_execution_plans"] = _build_frontier_execution_plans(region_id, region_details)
+        region_detail["frontier_schedule_profiles"] = _build_frontier_schedule_profiles(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),

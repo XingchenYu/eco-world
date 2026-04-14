@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha139 (2026-04-15 00:30)
+
+- ✅ Godot 前端这轮把 `推进路线执行层` 继续推进成了 `推进路线调度层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_schedule_profiles`
+  - 每套调度的 `dispatch_band / primary_route / support_route / fallback_route`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `推进路线调度终端`
+  - 主视区显式显示 `调度带 / 主执行 / 辅执行 / 回退`
+  - 右侧总览显式收口当前调度编成
+- ✅ 这意味着当前战区已经不只是确认和执行路线，而开始形成完整的调度编成视图。
+
 ### v4.0-alpha138 (2026-04-15 00:22)
 
 - ✅ Godot 前端这轮把 `推进路线确认层` 继续推进成了 `推进路线执行层`。

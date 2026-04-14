@@ -696,6 +696,13 @@ func _active_execution_plan(active_region: Dictionary) -> Dictionary:
 	return plans[0]
 
 
+func _active_schedule_profile(active_region: Dictionary) -> Dictionary:
+	var profiles: Array = active_region.get("frontier_schedule_profiles", [])
+	if profiles.is_empty():
+		return {}
+	return profiles[0]
+
+
 func _active_campaign_stage(active_region: Dictionary) -> Dictionary:
 	var active_operation := _active_frontier_operation(active_region)
 	var route_stages: Array = active_operation.get("route_stages", [])
@@ -946,6 +953,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_campaign := _active_frontier_campaign(active_region)
 	var active_route_profile := _active_route_profile(active_region)
 	var active_execution_plan := _active_execution_plan(active_region)
+	var active_schedule_profile := _active_schedule_profile(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
 	var landing_candidates: Array = _campaign_landing_candidates(active_region)
@@ -1014,14 +1022,26 @@ func _build_focus_stage(regions: Array) -> void:
 	execution_row.add_child(_make_hero_chip("就绪带", str(active_execution_plan.get("ready_band", "待命")), Color8(102, 152, 204)))
 	execution_row.add_child(_make_hero_chip("压力带", str(active_execution_plan.get("pressure_band", "待命")), Color8(171, 132, 196)))
 
+	var schedule_row := HBoxContainer.new()
+	schedule_row.add_theme_constant_override("separation", 8)
+	root.add_child(schedule_row)
+	schedule_row.add_child(_make_hero_chip("调度带", str(active_schedule_profile.get("dispatch_band", "等待调度")), Color8(210, 182, 96)))
+	var primary_route: Dictionary = active_schedule_profile.get("primary_route", {})
+	var support_route: Dictionary = active_schedule_profile.get("support_route", {})
+	var fallback_route: Dictionary = active_schedule_profile.get("fallback_route", {})
+	schedule_row.add_child(_make_hero_chip("主执行", str(primary_route.get("landing_name", "待命")), Color8(104, 171, 144)))
+	schedule_row.add_child(_make_hero_chip("辅执行", str(support_route.get("landing_name", "待命")), Color8(102, 152, 204)))
+	schedule_row.add_child(_make_hero_chip("回退", str(fallback_route.get("landing_name", "待命")), Color8(171, 132, 196)))
+
 	var footer := Label.new()
-	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 筛选 %s" % [
+	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 调度带 %s · 筛选 %s" % [
 		str(world_data.get("world", {}).get("loaded_regions", 0)),
 		str(regions.size()),
 		str(active_campaign.get("campaign_band", "等待战区模式")),
 		str(stage_profile["stage_mode"]),
 		str(active_route_profile.get("confirmation_band", "待命")),
 		str(active_execution_plan.get("execution_mode", "待命")),
+		str(active_schedule_profile.get("dispatch_band", "待命")),
 		_campaign_filter_label(),
 	]
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2390,6 +2410,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_campaign_atlas_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_route_confirmation_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_execution_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_schedule_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
@@ -2988,6 +3009,47 @@ func _make_campaign_execution_card(active_region: Dictionary, region_accent: Col
 		))
 
 	return _wrap_menu_card(box, Color8(171, 132, 196))
+
+
+func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var active_schedule := _active_schedule_profile(active_region)
+	var primary_route: Dictionary = active_schedule.get("primary_route", {})
+	var support_route: Dictionary = active_schedule.get("support_route", {})
+	var fallback_route: Dictionary = active_schedule.get("fallback_route", {})
+
+	var title := Label.new()
+	title.text = "%s · 推进路线调度终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	box.add_child(body)
+
+	body.add_child(_make_feature_panel(
+		str(active_schedule.get("dispatch_band", "等待调度")),
+		str(active_schedule.get("schedule_name", "等待当前调度方案")),
+		str(active_schedule.get("summary", "当前暂无推进路线调度摘要。")),
+		region_accent
+	))
+
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 8)
+	body.add_child(stack)
+	stack.add_child(_make_hero_chip("主执行", str(primary_route.get("landing_name", "待命")), Color8(104, 171, 144)))
+	stack.add_child(_make_hero_chip("辅执行", str(support_route.get("landing_name", "待命")), Color8(102, 152, 204)))
+	stack.add_child(_make_hero_chip("回退", str(fallback_route.get("landing_name", "待命")), Color8(171, 132, 196)))
+
+	var badge_row := HBoxContainer.new()
+	badge_row.add_theme_constant_override("separation", 8)
+	box.add_child(badge_row)
+	for badge_variant in (active_schedule.get("badges", []) as Array).slice(0, 4):
+		badge_row.add_child(_make_hero_chip("调度信号", str(badge_variant), Color8(210, 182, 96)))
+
+	return _wrap_menu_card(box, Color8(210, 182, 96))
 
 
 func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
