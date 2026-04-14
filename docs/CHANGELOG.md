@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha143 (2026-04-15 01:05)
+
+- ✅ Godot 前端这轮把 `编成预案层` 继续推进成了 `预案激活层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_activation_profiles`
+  - 每套激活档案的 `activation_key / activation_name / activation_band`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `预案激活终端`
+  - 右侧可直接激活某套战区预案
+  - 激活后同步重排当前战区、编成、调度路线与落点
+- ✅ 这意味着当前 Godot 世界入口已经不只是展示和切换预案，而开始能把某套预案显式提升成现行战区计划。
+
 ### v4.0-alpha142 (2026-04-15 00:55)
 
 - ✅ Godot 前端这轮把 `编成切换层` 继续推进成了 `编成预案层`。

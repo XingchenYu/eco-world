@@ -44,6 +44,7 @@ var selected_campaign_filter := "balanced"
 var selected_campaign_landing_target_id := ""
 var selected_schedule_route_key := "primary_route"
 var selected_formation_key := "assault"
+var selected_activation_preset_key := "assault"
 var selected_frontier_target_id := ""
 var selected_branch_target_id := ""
 var refresh_button: Button
@@ -728,6 +729,18 @@ func _active_formation_preset(active_region: Dictionary) -> Dictionary:
 	return presets[0]
 
 
+func _active_activation_profile(active_region: Dictionary) -> Dictionary:
+	var profiles: Array = active_region.get("frontier_activation_profiles", [])
+	if profiles.is_empty():
+		return {}
+	for profile_variant in profiles:
+		var profile: Dictionary = profile_variant
+		if str(profile.get("activation_key", "")) == selected_activation_preset_key:
+			return profile
+	selected_activation_preset_key = "assault"
+	return profiles[0]
+
+
 func _active_schedule_route(active_region: Dictionary) -> Dictionary:
 	var active_formation := _active_formation_profile(active_region)
 	if active_formation.is_empty():
@@ -997,6 +1010,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_schedule_profile := _active_schedule_profile(active_region)
 	var active_formation_profile := _active_formation_profile(active_region)
 	var active_formation_preset := _active_formation_preset(active_region)
+	var active_activation_profile := _active_activation_profile(active_region)
 	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
@@ -1084,8 +1098,16 @@ func _build_focus_stage(regions: Array) -> void:
 	preset_row.add_child(_make_hero_chip("序列二", str(route_order[1]) if route_order.size() > 1 else "待命", Color8(102, 152, 204)))
 	preset_row.add_child(_make_hero_chip("序列三", str(route_order[2]) if route_order.size() > 2 else "待命", Color8(171, 132, 196)))
 
+	var activation_row := HBoxContainer.new()
+	activation_row.add_theme_constant_override("separation", 8)
+	root.add_child(activation_row)
+	activation_row.add_child(_make_hero_chip("激活预案", str(active_activation_profile.get("preset_name", "待命")), Color8(210, 182, 96)))
+	activation_row.add_child(_make_hero_chip("激活带", str(active_activation_profile.get("activation_band", "待命")), Color8(104, 171, 144)))
+	var active_activation_route: Dictionary = active_activation_profile.get("active_route", {})
+	activation_row.add_child(_make_hero_chip("激活主轴", str(active_activation_route.get("landing_name", "待命")), Color8(102, 152, 204)))
+
 	var footer := Label.new()
-	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 调度带 %s · 筛选 %s" % [
+	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 激活 %s · 调度带 %s · 筛选 %s" % [
 		str(world_data.get("world", {}).get("loaded_regions", 0)),
 		str(regions.size()),
 		str(active_campaign.get("campaign_band", "等待战区模式")),
@@ -1094,6 +1116,7 @@ func _build_focus_stage(regions: Array) -> void:
 		str(active_execution_plan.get("execution_mode", "待命")),
 		str(active_formation_profile.get("formation_name", "待命")),
 		str(active_formation_preset.get("preset_name", "待命")),
+		str(active_activation_profile.get("activation_band", "待命")),
 		str(active_schedule_profile.get("dispatch_band", "待命")),
 		_campaign_filter_label(),
 	]
@@ -2465,6 +2488,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_campaign_execution_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_schedule_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_formation_preset_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_activation_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
@@ -3190,6 +3214,63 @@ func _make_campaign_formation_preset_card(active_region: Dictionary, region_acce
 	return _wrap_menu_card(box, Color8(104, 171, 144))
 
 
+func _make_campaign_activation_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var active_activation := _active_activation_profile(active_region)
+	var activations: Array = active_region.get("frontier_activation_profiles", [])
+
+	var title := Label.new()
+	title.text = "%s · 预案激活终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	box.add_child(body)
+
+	body.add_child(_make_feature_panel(
+		str(active_activation.get("activation_band", "等待激活")),
+		str(active_activation.get("activation_name", "等待当前激活预案")),
+		str(active_activation.get("summary", "当前暂无预案激活摘要。")),
+		region_accent
+	))
+
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 8)
+	body.add_child(stack)
+	var active_route: Dictionary = active_activation.get("active_route", {})
+	stack.add_child(_make_hero_chip("激活预案", str(active_activation.get("preset_name", "待命")), Color8(210, 182, 96)))
+	stack.add_child(_make_hero_chip("激活主轴", str(active_route.get("landing_name", "待命")), Color8(104, 171, 144)))
+	stack.add_child(_make_hero_chip("激活编成", str(active_activation.get("formation_band", "待命")), Color8(102, 152, 204)))
+
+	var activation_row := HBoxContainer.new()
+	activation_row.add_theme_constant_override("separation", 8)
+	box.add_child(activation_row)
+	for activation_variant in activations.slice(0, 3):
+		var activation: Dictionary = activation_variant
+		var activation_key := str(activation.get("activation_key", ""))
+		var is_active := activation_key == selected_activation_preset_key
+		var button := Button.new()
+		button.text = "%s%s" % [
+			"已激活 · " if is_active else "",
+			str(activation.get("preset_name", "预案"))
+		]
+		button.toggle_mode = true
+		button.button_pressed = is_active
+		button.pressed.connect(_on_activation_preset_selected.bind(activation_key))
+		activation_row.add_child(button)
+
+	var badge_row := HBoxContainer.new()
+	badge_row.add_theme_constant_override("separation", 8)
+	box.add_child(badge_row)
+	for badge_variant in (active_activation.get("badges", []) as Array).slice(0, 4):
+		badge_row.add_child(_make_hero_chip("激活信号", str(badge_variant), Color8(171, 132, 196)))
+
+	return _wrap_menu_card(box, Color8(171, 132, 196))
+
+
 func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
@@ -3817,6 +3898,7 @@ func _on_region_pressed(region_id: String) -> void:
 	selected_campaign_landing_target_id = ""
 	selected_schedule_route_key = "primary_route"
 	selected_formation_key = "assault"
+	selected_activation_preset_key = "assault"
 	selected_frontier_target_id = ""
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
@@ -3898,6 +3980,23 @@ func _on_formation_selected(formation_key: String) -> void:
 	status_label.text = "系统栏 · 已切换战区编成：%s · 当前分页：%s" % [formation_key, _tab_title(selected_tab)]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(104, 171, 144))
+
+
+func _on_activation_preset_selected(activation_key: String) -> void:
+	selected_activation_preset_key = activation_key
+	selected_formation_key = activation_key
+	selected_schedule_route_key = "primary_route"
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var active_activation := _active_activation_profile(active_region)
+	var active_route: Dictionary = active_activation.get("active_route", {})
+	var target_region_id := str(active_route.get("target_region_id", ""))
+	if target_region_id != "":
+		selected_campaign_target_id = target_region_id
+		selected_frontier_target_id = target_region_id
+		selected_campaign_landing_target_id = target_region_id
+	status_label.text = "系统栏 · 已激活战区预案：%s · 当前分页：%s" % [activation_key, _tab_title(selected_tab)]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(171, 132, 196))
 
 
 func _on_schedule_route_selected(route_key: String) -> void:

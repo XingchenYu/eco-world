@@ -696,6 +696,9 @@ def _build_frontier_formation_presets(
                 "preset_key": str(formation.get("formation_key", "")),
                 "preset_name": f"{str(formation.get('formation_name', '编成'))}预案",
                 "formation_band": str(formation.get("formation_band", "战区编成")),
+                "active_route": active_route,
+                "support_route": support_route,
+                "fallback_route": fallback_route,
                 "route_order": [
                     str(active_route.get("landing_name", "待命")),
                     str(support_route.get("landing_name", "待命")),
@@ -716,6 +719,45 @@ def _build_frontier_formation_presets(
             }
         )
     return presets
+
+
+def _build_frontier_activation_profiles(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    presets: list[dict[str, Any]] = list(region_detail.get("frontier_formation_presets", []))
+    activations: list[dict[str, Any]] = []
+    for index, preset in enumerate(presets):
+        active_route = dict(preset.get("active_route", {}))
+        preset_name = str(preset.get("preset_name", "战区预案"))
+        formation_band = str(preset.get("formation_band", "战区编成"))
+        activation_band = "主战区激活"
+        if index == 1:
+            activation_band = "均衡激活"
+        elif index >= 2:
+            activation_band = "稳态激活"
+        activations.append(
+            {
+                "activation_key": str(preset.get("preset_key", "")),
+                "activation_name": f"{preset_name} · {activation_band}",
+                "activation_band": activation_band,
+                "preset_name": preset_name,
+                "formation_band": formation_band,
+                "active_route": active_route,
+                "summary": (
+                    f"{activation_band} 当前把 {preset_name} 设为现行战区计划，"
+                    f"主轴落点为 {str(active_route.get('landing_name', '待命'))}。"
+                ),
+                "badges": [
+                    f"预案：{preset_name}",
+                    f"激活带：{activation_band}",
+                    f"主轴：{str(active_route.get('landing_name', '待命'))}",
+                    f"编成：{formation_band}",
+                ],
+            }
+        )
+    return activations
 
 
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
@@ -851,6 +893,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_schedule_profiles"] = _build_frontier_schedule_profiles(region_id, region_details)
         region_detail["frontier_formation_profiles"] = _build_frontier_formation_profiles(region_id, region_details)
         region_detail["frontier_formation_presets"] = _build_frontier_formation_presets(region_id, region_details)
+        region_detail["frontier_activation_profiles"] = _build_frontier_activation_profiles(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
