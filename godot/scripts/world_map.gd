@@ -41,6 +41,7 @@ var selected_tab := "overview"
 var selected_campaign_target_id := ""
 var selected_campaign_stage_index := 0
 var selected_campaign_filter := "balanced"
+var selected_campaign_landing_target_id := ""
 var selected_frontier_target_id := ""
 var selected_branch_target_id := ""
 var refresh_button: Button
@@ -552,16 +553,19 @@ func _sync_campaign_focus(active_region: Dictionary) -> void:
 	if campaigns.is_empty():
 		selected_campaign_target_id = ""
 		selected_campaign_stage_index = 0
+		selected_campaign_landing_target_id = ""
 		return
 	for campaign_variant in campaigns:
 		var campaign: Dictionary = campaign_variant
 		if str(campaign.get("target_region_id", "")) == selected_campaign_target_id:
 			selected_frontier_target_id = selected_campaign_target_id
 			_sync_campaign_stage(active_region)
+			_sync_campaign_landing(active_region)
 			return
 	selected_campaign_target_id = str((campaigns[0] as Dictionary).get("target_region_id", ""))
 	selected_frontier_target_id = selected_campaign_target_id
 	_sync_campaign_stage(active_region)
+	_sync_campaign_landing(active_region)
 
 
 func _sync_campaign_stage(active_region: Dictionary) -> void:
@@ -571,6 +575,23 @@ func _sync_campaign_stage(active_region: Dictionary) -> void:
 		selected_campaign_stage_index = 0
 		return
 	selected_campaign_stage_index = clampi(selected_campaign_stage_index, 0, route_titles.size() - 1)
+
+
+func _sync_campaign_landing(active_region: Dictionary) -> void:
+	var candidates: Array = _campaign_landing_candidates(active_region)
+	if candidates.is_empty():
+		selected_campaign_landing_target_id = ""
+		return
+	for candidate_variant in candidates:
+		var candidate: Dictionary = candidate_variant
+		if str(candidate.get("target_region_id", "")) == selected_campaign_landing_target_id:
+			return
+	var active_stage := _active_campaign_stage(active_region)
+	var stage_target_id := str(active_stage.get("target_region_id", ""))
+	if stage_target_id != "":
+		selected_campaign_landing_target_id = stage_target_id
+		return
+	selected_campaign_landing_target_id = str((candidates[0] as Dictionary).get("target_region_id", ""))
 
 
 func _sync_branch_focus(active_region: Dictionary) -> void:
@@ -663,8 +684,10 @@ func _active_campaign_stage(active_region: Dictionary) -> Dictionary:
 
 
 func _active_campaign_landing(active_region: Dictionary) -> Dictionary:
-	var active_stage := _active_campaign_stage(active_region)
-	var landing_region_id := str(active_stage.get("target_region_id", ""))
+	var landing_region_id := selected_campaign_landing_target_id
+	if landing_region_id == "":
+		var active_stage := _active_campaign_stage(active_region)
+		landing_region_id = str(active_stage.get("target_region_id", ""))
 	if landing_region_id == "":
 		landing_region_id = str(_active_frontier_link(active_region).get("target_region_id", ""))
 	if landing_region_id == "":
@@ -1397,6 +1420,7 @@ func _build_campaign_overlay(regions: Array) -> void:
 	var active_frontier := _active_frontier_link(active_region)
 	var active_network := _active_frontier_network(active_region)
 	var landing_candidates: Array = _campaign_landing_candidates(active_region)
+	_sync_campaign_landing(active_region)
 	if active_campaign.is_empty() or active_frontier.is_empty():
 		return
 
@@ -1492,7 +1516,7 @@ func _build_campaign_overlay(regions: Array) -> void:
 		if landing_id == target_id or not positions.has(landing_id):
 			continue
 		var landing_pos: Vector2 = positions[landing_id]
-		var is_active_landing := landing_id == str(active_stage.get("target_region_id", ""))
+		var is_active_landing := landing_id == selected_campaign_landing_target_id
 		var is_best_landing := landing_variant == landing_candidates[0]
 		var landing_badge := PanelContainer.new()
 		landing_badge.position = landing_pos - Vector2(68, 118)
@@ -1533,7 +1557,7 @@ func _build_campaign_overlay(regions: Array) -> void:
 		landing_button.flat = true
 		landing_button.text = ""
 		landing_button.set_anchors_preset(PRESET_FULL_RECT)
-		landing_button.pressed.connect(_on_region_pressed.bind(landing_id))
+		landing_button.pressed.connect(_on_campaign_landing_selected.bind(landing_id))
 		landing_badge.add_child(landing_button)
 
 
@@ -2845,6 +2869,7 @@ func _make_campaign_landing_network_card(active_region: Dictionary, region_accen
 	box.add_theme_constant_override("separation", 8)
 	var active_stage := _active_campaign_stage(active_region)
 	var candidates: Array = _campaign_landing_candidates(active_region)
+	var active_landing := _active_campaign_landing(active_region)
 
 	var title := Label.new()
 	title.text = "%s · 落点网络总板" % _region_type_chip(active_region)
@@ -2876,7 +2901,7 @@ func _make_campaign_landing_network_card(active_region: Dictionary, region_accen
 		))
 		summary_row.add_child(_make_hero_chip(
 			"当前落点",
-			"%s" % str(_active_campaign_landing(active_region).get("name", active_stage.get("title", "等待落点"))),
+			"%s" % str(active_landing.get("name", active_stage.get("title", "等待落点"))),
 			Color8(102, 152, 204)
 		))
 		summary_row.add_child(_make_hero_chip(
@@ -2888,17 +2913,30 @@ func _make_campaign_landing_network_card(active_region: Dictionary, region_accen
 	for landing_variant in candidates:
 		var landing: Dictionary = landing_variant
 		var landing_id := str(landing.get("target_region_id", ""))
-		var is_active := landing_id == str(active_stage.get("target_region_id", ""))
-		box.add_child(_make_hero_chip(
-			"%s%s" % ["当前 · " if is_active else "", str(landing.get("stage_label", "落点"))],
+		var is_stage := landing_id == str(active_stage.get("target_region_id", ""))
+		var is_locked := landing_id == selected_campaign_landing_target_id
+		var chip_row := HBoxContainer.new()
+		chip_row.add_theme_constant_override("separation", 8)
+		chip_row.add_child(_make_hero_chip(
+			"%s%s%s" % [
+				"锁定 · " if is_locked else "",
+				"阶段 · " if is_stage and not is_locked else "",
+				str(landing.get("stage_label", "落点"))
+			],
 			"%s · 评分 %.2f · 繁荣 %.2f · 风险 %.2f" % [
 				str(landing.get("name", landing_id)),
 				float(landing.get("score", 0.0)),
 				float(landing.get("prosperity", 0.0)),
 				float(landing.get("risk", 0.0)),
 			],
-			region_accent if is_active else Color8(171, 132, 196)
+			region_accent if is_locked else Color8(171, 132, 196)
 		))
+		var lock_button := Button.new()
+		lock_button.text = "锁定推进"
+		lock_button.disabled = is_locked
+		lock_button.pressed.connect(_on_campaign_landing_selected.bind(landing_id))
+		chip_row.add_child(lock_button)
+		box.add_child(chip_row)
 
 	return _wrap_menu_card(box, Color8(171, 132, 196))
 
@@ -3450,6 +3488,7 @@ func _make_section(
 func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
 	selected_campaign_stage_index = 0
+	selected_campaign_landing_target_id = ""
 	selected_frontier_target_id = ""
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
@@ -3477,7 +3516,9 @@ func _on_frontier_campaign_selected(region_id: String) -> void:
 	selected_campaign_target_id = region_id
 	selected_frontier_target_id = region_id
 	selected_campaign_stage_index = 0
+	selected_campaign_landing_target_id = ""
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	_sync_campaign_landing(active_region)
 	_sync_branch_focus(active_region)
 	status_label.text = "系统栏 · 已切换战区推进模式：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
@@ -3486,6 +3527,9 @@ func _on_frontier_campaign_selected(region_id: String) -> void:
 
 func _on_campaign_stage_selected(stage_index: int) -> void:
 	selected_campaign_stage_index = stage_index
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	selected_campaign_landing_target_id = ""
+	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换推进阶段：%s · 当前分页：%s" % [str(stage_index + 1), _tab_title(selected_tab)]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(210, 182, 96))
@@ -3493,9 +3537,18 @@ func _on_campaign_stage_selected(stage_index: int) -> void:
 
 func _on_campaign_filter_selected(filter_key: String) -> void:
 	selected_campaign_filter = filter_key
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换战区筛选：%s · 当前分页：%s" % [_campaign_filter_label(), _tab_title(selected_tab)]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(104, 171, 144))
+
+
+func _on_campaign_landing_selected(region_id: String) -> void:
+	selected_campaign_landing_target_id = region_id
+	status_label.text = "系统栏 · 已锁定推进落点：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(171, 132, 196))
 
 
 func _on_tab_pressed(tab_id: String) -> void:
