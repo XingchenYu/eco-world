@@ -671,6 +671,48 @@ func _active_campaign_landing(active_region: Dictionary) -> Dictionary:
 	return detail_cache.get(landing_region_id, {})
 
 
+func _campaign_landing_candidates(active_region: Dictionary) -> Array:
+	var active_frontier := _active_frontier_link(active_region)
+	var active_network := _active_frontier_network(active_region)
+	var candidates: Array = []
+	var seen := {}
+
+	var frontier_target_id := str(active_frontier.get("target_region_id", ""))
+	if frontier_target_id != "" and detail_cache.has(frontier_target_id):
+		var landing_detail: Dictionary = detail_cache.get(frontier_target_id, {})
+		candidates.append(
+			{
+				"target_region_id": frontier_target_id,
+				"name": str(landing_detail.get("name", frontier_target_id)),
+				"role": str(landing_detail.get("region_role", "生态观测区")),
+				"prosperity": float(landing_detail.get("health_state", {}).get("prosperity", 0.0)),
+				"risk": float(landing_detail.get("health_state", {}).get("collapse_risk", 0.0)),
+				"stage_label": "第一阶段",
+			}
+		)
+		seen[frontier_target_id] = true
+
+	for branch_variant in active_network.get("branches", []):
+		var branch: Dictionary = branch_variant
+		var branch_id := str(branch.get("target_region_id", ""))
+		if branch_id == "" or seen.has(branch_id):
+			continue
+		var branch_detail: Dictionary = detail_cache.get(branch_id, {})
+		candidates.append(
+			{
+				"target_region_id": branch_id,
+				"name": str(branch_detail.get("name", branch.get("target_name", branch_id))),
+				"role": str(branch_detail.get("region_role", branch.get("target_role", "生态观测区"))),
+				"prosperity": float(branch_detail.get("health_state", {}).get("prosperity", branch.get("target_prosperity", 0.0))),
+				"risk": float(branch_detail.get("health_state", {}).get("collapse_risk", branch.get("target_risk", 0.0))),
+				"stage_label": "第二阶段",
+			}
+		)
+		seen[branch_id] = true
+
+	return candidates
+
+
 func _build_world_backdrop() -> void:
 	var map_size := map_layer.get_rect().size
 	if map_size.x <= 0.0 or map_size.y <= 0.0:
@@ -1308,6 +1350,7 @@ func _build_campaign_overlay(regions: Array) -> void:
 	var active_stage := _active_campaign_stage(active_region)
 	var active_frontier := _active_frontier_link(active_region)
 	var active_network := _active_frontier_network(active_region)
+	var landing_candidates: Array = _campaign_landing_candidates(active_region)
 	if active_campaign.is_empty() or active_frontier.is_empty():
 		return
 
@@ -1396,6 +1439,45 @@ func _build_campaign_overlay(regions: Array) -> void:
 		stage_two_button.set_anchors_preset(PRESET_FULL_RECT)
 		stage_two_button.pressed.connect(_on_region_pressed.bind(branch_id))
 		stage_two.add_child(stage_two_button)
+
+	for landing_variant in landing_candidates:
+		var landing: Dictionary = landing_variant
+		var landing_id := str(landing.get("target_region_id", ""))
+		if landing_id == target_id or not positions.has(landing_id):
+			continue
+		var landing_pos: Vector2 = positions[landing_id]
+		var is_active_landing := landing_id == str(active_stage.get("target_region_id", ""))
+		var landing_badge := PanelContainer.new()
+		landing_badge.position = landing_pos - Vector2(68, 118)
+		landing_badge.custom_minimum_size = Vector2(136, 56)
+		landing_badge.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active_landing else 0.72)
+		map_layer.add_child(landing_badge)
+
+		var landing_box := VBoxContainer.new()
+		landing_box.add_theme_constant_override("separation", 2)
+		landing_badge.add_child(landing_box)
+
+		var landing_title := Label.new()
+		landing_title.text = "%s · %s" % [str(landing.get("stage_label", "落点")), str(landing.get("name", landing_id))]
+		_style_body(landing_title, 13)
+		landing_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		landing_box.add_child(landing_title)
+
+		var landing_body := Label.new()
+		landing_body.text = "繁荣 %.2f · 风险 %.2f" % [
+			float(landing.get("prosperity", 0.0)),
+			float(landing.get("risk", 0.0)),
+		]
+		landing_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_dim(landing_body, 12)
+		landing_box.add_child(landing_body)
+
+		var landing_button := Button.new()
+		landing_button.flat = true
+		landing_button.text = ""
+		landing_button.set_anchors_preset(PRESET_FULL_RECT)
+		landing_button.pressed.connect(_on_region_pressed.bind(landing_id))
+		landing_badge.add_child(landing_button)
 
 
 func _make_route_line(from_pos: Vector2, to_pos: Vector2, strength: float) -> ColorRect:
@@ -2168,6 +2250,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_frontier_operation_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_atlas_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
 			tab_content.add_child(_make_region_summary_card(active_region))
 			tab_content.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
@@ -2680,6 +2763,34 @@ func _make_campaign_landing_card(active_region: Dictionary, region_accent: Color
 	stack.add_child(_make_hero_chip("落点风险", "%.2f" % float(active_landing.get("health_state", {}).get("collapse_risk", 0.0)), Color8(171, 132, 196)))
 
 	return _wrap_menu_card(box, Color8(102, 152, 204))
+
+
+func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var active_stage := _active_campaign_stage(active_region)
+	var candidates: Array = _campaign_landing_candidates(active_region)
+
+	var title := Label.new()
+	title.text = "%s · 落点网络总板" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	for landing_variant in candidates:
+		var landing: Dictionary = landing_variant
+		var landing_id := str(landing.get("target_region_id", ""))
+		var is_active := landing_id == str(active_stage.get("target_region_id", ""))
+		box.add_child(_make_hero_chip(
+			"%s%s" % ["当前 · " if is_active else "", str(landing.get("stage_label", "落点"))],
+			"%s · 繁荣 %.2f · 风险 %.2f" % [
+				str(landing.get("name", landing_id)),
+				float(landing.get("prosperity", 0.0)),
+				float(landing.get("risk", 0.0)),
+			],
+			region_accent if is_active else Color8(171, 132, 196)
+		))
+
+	return _wrap_menu_card(box, Color8(171, 132, 196))
 
 
 func _make_chain_command_deck(chains: Dictionary, active_region: Dictionary, region_accent: Color) -> PanelContainer:
