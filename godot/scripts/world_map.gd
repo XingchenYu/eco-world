@@ -710,6 +710,15 @@ func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 		)
 		seen[branch_id] = true
 
+	for candidate_variant in candidates:
+		var candidate: Dictionary = candidate_variant
+		var prosperity := float(candidate.get("prosperity", 0.0))
+		var risk := float(candidate.get("risk", 0.0))
+		candidate["score"] = round(prosperity * 0.64 + (1.0 - risk) * 0.36, 4)
+
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a.get("score", 0.0)) > float(b.get("score", 0.0))
+	)
 	return candidates
 
 
@@ -859,6 +868,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_campaign := _active_frontier_campaign(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
+	var landing_candidates: Array = _campaign_landing_candidates(active_region)
 	var header_copy := _region_command_header(active_region)
 	var stage_profile := _focus_stage_profile(active_region, active_frontier, active_frontier_network, active_operation, active_campaign, active_stage)
 	var stage := PanelContainer.new()
@@ -907,6 +917,8 @@ func _build_focus_stage(regions: Array) -> void:
 	root.add_child(landing_row)
 	landing_row.add_child(_make_hero_chip("当前落点", str(active_landing.get("name", active_stage.get("title", "等待落点"))), accent))
 	landing_row.add_child(_make_hero_chip("落点定位", str(active_landing.get("region_role", active_stage.get("detail", "等待落点情报"))), Color8(102, 152, 204)))
+	if not landing_candidates.is_empty():
+		landing_row.add_child(_make_hero_chip("优选落点", str((landing_candidates[0] as Dictionary).get("name", "等待优选分支")), Color8(104, 171, 144)))
 
 	var footer := Label.new()
 	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s" % [
@@ -1447,10 +1459,11 @@ func _build_campaign_overlay(regions: Array) -> void:
 			continue
 		var landing_pos: Vector2 = positions[landing_id]
 		var is_active_landing := landing_id == str(active_stage.get("target_region_id", ""))
+		var is_best_landing := landing_variant == landing_candidates[0]
 		var landing_badge := PanelContainer.new()
 		landing_badge.position = landing_pos - Vector2(68, 118)
 		landing_badge.custom_minimum_size = Vector2(136, 56)
-		landing_badge.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active_landing else 0.72)
+		landing_badge.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active_landing else (0.90 if is_best_landing else 0.72))
 		map_layer.add_child(landing_badge)
 
 		var landing_box := VBoxContainer.new()
@@ -1458,7 +1471,11 @@ func _build_campaign_overlay(regions: Array) -> void:
 		landing_badge.add_child(landing_box)
 
 		var landing_title := Label.new()
-		landing_title.text = "%s · %s" % [str(landing.get("stage_label", "落点")), str(landing.get("name", landing_id))]
+		landing_title.text = "%s%s · %s" % [
+			"优选 · " if is_best_landing and not is_active_landing else "",
+			str(landing.get("stage_label", "落点")),
+			str(landing.get("name", landing_id)),
+		]
 		_style_body(landing_title, 13)
 		landing_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		landing_box.add_child(landing_title)
@@ -1471,6 +1488,12 @@ func _build_campaign_overlay(regions: Array) -> void:
 		landing_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_style_dim(landing_body, 12)
 		landing_box.add_child(landing_body)
+
+		var score_body := Label.new()
+		score_body.text = "推进评分 %.2f" % float(landing.get("score", 0.0))
+		score_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_dim(score_body, 12)
+		landing_box.add_child(score_body)
 
 		var landing_button := Button.new()
 		landing_button.flat = true
@@ -2776,14 +2799,43 @@ func _make_campaign_landing_network_card(active_region: Dictionary, region_accen
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
+	if not candidates.is_empty():
+		var summary_row := HBoxContainer.new()
+		summary_row.add_theme_constant_override("separation", 8)
+		box.add_child(summary_row)
+
+		var best_candidate: Dictionary = candidates[0]
+		var risk_sorted := candidates.duplicate()
+		risk_sorted.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return float(a.get("risk", 0.0)) > float(b.get("risk", 0.0))
+		)
+		var riskiest_candidate: Dictionary = risk_sorted[0]
+
+		summary_row.add_child(_make_hero_chip(
+			"优选推进",
+			"%s · %.2f" % [str(best_candidate.get("name", "")), float(best_candidate.get("score", 0.0))],
+			region_accent
+		))
+		summary_row.add_child(_make_hero_chip(
+			"当前落点",
+			"%s" % str(_active_campaign_landing(active_region).get("name", active_stage.get("title", "等待落点"))),
+			Color8(102, 152, 204)
+		))
+		summary_row.add_child(_make_hero_chip(
+			"高风险分支",
+			"%s · %.2f" % [str(riskiest_candidate.get("name", "")), float(riskiest_candidate.get("risk", 0.0))],
+			Color8(171, 132, 196)
+		))
+
 	for landing_variant in candidates:
 		var landing: Dictionary = landing_variant
 		var landing_id := str(landing.get("target_region_id", ""))
 		var is_active := landing_id == str(active_stage.get("target_region_id", ""))
 		box.add_child(_make_hero_chip(
 			"%s%s" % ["当前 · " if is_active else "", str(landing.get("stage_label", "落点"))],
-			"%s · 繁荣 %.2f · 风险 %.2f" % [
+			"%s · 评分 %.2f · 繁荣 %.2f · 风险 %.2f" % [
 				str(landing.get("name", landing_id)),
+				float(landing.get("score", 0.0)),
 				float(landing.get("prosperity", 0.0)),
 				float(landing.get("risk", 0.0)),
 			],
