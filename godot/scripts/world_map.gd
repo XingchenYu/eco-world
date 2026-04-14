@@ -661,6 +661,16 @@ func _active_campaign_stage(active_region: Dictionary) -> Dictionary:
 	return route_stages[stage_index]
 
 
+func _active_campaign_landing(active_region: Dictionary) -> Dictionary:
+	var active_stage := _active_campaign_stage(active_region)
+	var landing_region_id := str(active_stage.get("target_region_id", ""))
+	if landing_region_id == "":
+		landing_region_id = str(_active_frontier_link(active_region).get("target_region_id", ""))
+	if landing_region_id == "":
+		return {}
+	return detail_cache.get(landing_region_id, {})
+
+
 func _build_world_backdrop() -> void:
 	var map_size := map_layer.get_rect().size
 	if map_size.x <= 0.0 or map_size.y <= 0.0:
@@ -806,6 +816,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_operation := _active_frontier_operation(active_region)
 	var active_campaign := _active_frontier_campaign(active_region)
 	var active_stage := _active_campaign_stage(active_region)
+	var active_landing := _active_campaign_landing(active_region)
 	var header_copy := _region_command_header(active_region)
 	var stage_profile := _focus_stage_profile(active_region, active_frontier, active_frontier_network, active_operation, active_campaign, active_stage)
 	var stage := PanelContainer.new()
@@ -848,6 +859,12 @@ func _build_focus_stage(regions: Array) -> void:
 	for item_variant in stage_profile["hero_rows"]:
 		var item: Dictionary = item_variant
 		center_row.add_child(_make_hero_chip(str(item["label"]), str(item["value"]), item["color"]))
+
+	var landing_row := HBoxContainer.new()
+	landing_row.add_theme_constant_override("separation", 8)
+	root.add_child(landing_row)
+	landing_row.add_child(_make_hero_chip("当前落点", str(active_landing.get("name", active_stage.get("title", "等待落点"))), accent))
+	landing_row.add_child(_make_hero_chip("落点定位", str(active_landing.get("region_role", active_stage.get("detail", "等待落点情报"))), Color8(102, 152, 204)))
 
 	var footer := Label.new()
 	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s" % [
@@ -1334,6 +1351,13 @@ func _build_campaign_overlay(regions: Array) -> void:
 	stage_one_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stage_one.add_child(stage_one_label)
 
+	var stage_one_button := Button.new()
+	stage_one_button.flat = true
+	stage_one_button.text = ""
+	stage_one_button.set_anchors_preset(PRESET_FULL_RECT)
+	stage_one_button.pressed.connect(_on_region_pressed.bind(target_id))
+	stage_one.add_child(stage_one_button)
+
 	var branches: Array = active_network.get("branches", [])
 	for branch_variant in branches:
 		var branch: Dictionary = branch_variant
@@ -1365,6 +1389,13 @@ func _build_campaign_overlay(regions: Array) -> void:
 		_style_dim(stage_two_label, 12)
 		stage_two_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		stage_two.add_child(stage_two_label)
+
+		var stage_two_button := Button.new()
+		stage_two_button.flat = true
+		stage_two_button.text = ""
+		stage_two_button.set_anchors_preset(PRESET_FULL_RECT)
+		stage_two_button.pressed.connect(_on_region_pressed.bind(branch_id))
+		stage_two.add_child(stage_two_button)
 
 
 func _make_route_line(from_pos: Vector2, to_pos: Vector2, strength: float) -> ColorRect:
@@ -1635,6 +1666,7 @@ func _make_focus_command_strip(active_region: Dictionary) -> PanelContainer:
 	var active_branch := _active_frontier_branch(active_region)
 	var active_operation := _active_frontier_operation(active_region)
 	var active_campaign := _active_frontier_campaign(active_region)
+	var active_landing := _active_campaign_landing(active_region)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
@@ -1656,7 +1688,7 @@ func _make_focus_command_strip(active_region: Dictionary) -> PanelContainer:
 	box.add_child(row)
 	row.add_child(_make_hero_chip("焦点区域", str(active_region.get("name", "未选择")), _active_region_accent()))
 	row.add_child(_make_hero_chip("战区模式", str(active_campaign.get("campaign_band", "等待战区模式")), Color8(102, 152, 204)))
-	row.add_child(_make_hero_chip("当前分支", str(active_branch.get("target_name", "等待分支目标")), Color8(210, 182, 96)))
+	row.add_child(_make_hero_chip("当前落点", str(active_landing.get("name", active_branch.get("target_name", "等待分支目标"))), Color8(210, 182, 96)))
 
 	var footer := Label.new()
 	footer.text = "连接 %s · 种群 %s · 分支 %s · %s / %s · %s" % [
@@ -2135,6 +2167,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_frontier_overview_card(active_region, region_accent))
 			tab_content.add_child(_make_frontier_operation_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_atlas_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
 			tab_content.add_child(_make_region_summary_card(active_region))
 			tab_content.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
@@ -2613,6 +2646,40 @@ func _make_campaign_atlas_card(active_region: Dictionary, region_accent: Color) 
 	stage_row.add_child(_make_hero_chip("阶段目标", str(active_stage.get("title", "等待阶段目标")), Color8(102, 152, 204)))
 
 	return _wrap_menu_card(box, Color8(210, 182, 96))
+
+
+func _make_campaign_landing_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var active_stage := _active_campaign_stage(active_region)
+	var active_landing := _active_campaign_landing(active_region)
+
+	var title := Label.new()
+	title.text = "%s · 推进落点终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	box.add_child(body)
+
+	body.add_child(_make_feature_panel(
+		"当前落点",
+		str(active_landing.get("name", active_stage.get("title", "等待落点"))),
+		str(active_landing.get("region_intro", active_stage.get("detail", "当前暂无推进落点说明。"))),
+		region_accent
+	))
+
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 8)
+	body.add_child(stack)
+	stack.add_child(_make_hero_chip("推进阶段", str(active_stage.get("stage", "阶段待命")), Color8(210, 182, 96)))
+	stack.add_child(_make_hero_chip("落点定位", str(active_landing.get("region_role", "等待落点定位")), Color8(102, 152, 204)))
+	stack.add_child(_make_hero_chip("落点繁荣", "%.2f" % float(active_landing.get("health_state", {}).get("prosperity", 0.0)), Color8(104, 171, 144)))
+	stack.add_child(_make_hero_chip("落点风险", "%.2f" % float(active_landing.get("health_state", {}).get("collapse_risk", 0.0)), Color8(171, 132, 196)))
+
+	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
 func _make_chain_command_deck(chains: Dictionary, active_region: Dictionary, region_accent: Color) -> PanelContainer:
