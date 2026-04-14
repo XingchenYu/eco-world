@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha137 (2026-04-15 00:14)
+
+- ✅ Godot 前端这轮把 `落点锁定视图` 继续推进成了 `推进路线确认层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_route_profiles`
+  - 每条路线的 `confirmation_band / primary_stage_title / secondary_stage_title / badges`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `推进路线确认终端`
+  - 主视区显式显示 `确认姿态 / 主走廊 / 二阶段`
+  - 右侧总览围绕当前战区与锁定落点显示路线确认摘要
+- ✅ 这意味着当前 Godot 世界入口已经不只是锁定一个落点，而开始把当前推进路线本身收成一套可读的确认界面。
+
 ### v4.0-alpha136 (2026-04-14 14:18)
 
 - ✅ Godot 前端这轮把 `战区筛选视图` 继续推进成了 `落点锁定视图`。

@@ -422,6 +422,90 @@ def _build_frontier_campaigns(
     return campaigns[:3]
 
 
+def _frontier_confirmation_band(posture: str, threat_band: str, opportunity_band: str) -> str:
+    if posture == "高压突进":
+        return "落点突入确认"
+    if posture == "网络扩张":
+        return "多段扩张确认"
+    if opportunity_band == "扩张窗口":
+        return "丰度接管确认"
+    if threat_band == "高压战区":
+        return "高压试探确认"
+    return "主走廊确认"
+
+
+def _build_frontier_route_profiles(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    operations: list[dict[str, Any]] = list(region_detail.get("frontier_operations", []))
+    campaigns: dict[str, dict[str, Any]] = {
+        str(entry.get("target_region_id", "")): entry
+        for entry in region_detail.get("frontier_campaigns", [])
+    }
+    frontier_network: dict[str, dict[str, Any]] = {
+        str(entry.get("target_region_id", "")): entry
+        for entry in region_detail.get("frontier_network", [])
+    }
+    frontier_links: dict[str, dict[str, Any]] = {
+        str(entry.get("target_region_id", "")): entry
+        for entry in region_detail.get("frontier_links", [])
+    }
+    profiles: list[dict[str, Any]] = []
+
+    for operation in operations:
+        target_region_id = str(operation.get("target_region_id", ""))
+        if not target_region_id:
+            continue
+        campaign = campaigns.get(target_region_id, {})
+        network = frontier_network.get(target_region_id, {})
+        link = frontier_links.get(target_region_id, {})
+        route_stages = list(operation.get("route_stages", []))
+        stage_titles = [str(stage.get("title", "")) for stage in route_stages[:2]]
+        target_name = str(operation.get("target_name", target_region_id))
+        threat_band = str(operation.get("threat_band", "稳态战区"))
+        opportunity_band = str(operation.get("opportunity_band", "侦察窗口"))
+        posture = str(operation.get("posture", "前线侦察"))
+        confirmation_band = _frontier_confirmation_band(posture, threat_band, opportunity_band)
+        lead_branch = (network.get("branches", []) or [{}])[0]
+        lead_branch_name = str(lead_branch.get("target_name", lead_branch.get("target_region_id", "等待二阶段分支")))
+        corridor_strength = float(link.get("strength", 0.0))
+        target_prosperity = float(link.get("target_prosperity", 0.0))
+        target_risk = float(link.get("target_risk", 0.0))
+        branch_count = int(network.get("branch_count", 0))
+        profiles.append(
+            {
+                "target_region_id": target_region_id,
+                "route_name": f"{target_name} · {confirmation_band}",
+                "campaign_name": str(campaign.get("campaign_name", target_name)),
+                "campaign_band": str(campaign.get("campaign_band", "战区推进令")),
+                "confirmation_band": confirmation_band,
+                "primary_stage_title": stage_titles[0] if stage_titles else f"推进至 {target_name}",
+                "secondary_stage_title": stage_titles[1] if len(stage_titles) > 1 else f"分支至 {lead_branch_name}",
+                "route_stage_titles": stage_titles,
+                "lead_branch_name": lead_branch_name,
+                "landing_count": max(1, branch_count + 1),
+                "corridor_strength": corridor_strength,
+                "target_prosperity": target_prosperity,
+                "target_risk": target_risk,
+                "summary": (
+                    f"{confirmation_band} 当前以 {target_name} 为主走廊，"
+                    f"阶段目标为 {stage_titles[0] if stage_titles else target_name}，"
+                    f"二阶段延伸至 {lead_branch_name}。"
+                ),
+                "badges": [
+                    f"姿态：{posture}",
+                    f"走廊强度：{corridor_strength:.2f}",
+                    f"候选落点：{max(1, branch_count + 1)}",
+                    f"风险/繁荣：{target_risk:.2f}/{target_prosperity:.2f}",
+                ],
+            }
+        )
+
+    return profiles[:3]
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -550,6 +634,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_network"] = _build_frontier_network(region_id, region_details)
         region_detail["frontier_operations"] = _build_frontier_operations(region_id, region_details)
         region_detail["frontier_campaigns"] = _build_frontier_campaigns(region_id, region_details)
+        region_detail["frontier_route_profiles"] = _build_frontier_route_profiles(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
