@@ -547,6 +547,28 @@ func _active_frontier_link(active_region: Dictionary) -> Dictionary:
 	return frontier_links[0]
 
 
+func _active_frontier_network(active_region: Dictionary) -> Dictionary:
+	var frontier_network: Array = active_region.get("frontier_network", [])
+	if frontier_network.is_empty():
+		return {}
+	for network_variant in frontier_network:
+		var network: Dictionary = network_variant
+		if str(network.get("target_region_id", "")) == selected_frontier_target_id:
+			return network
+	return frontier_network[0]
+
+
+func _frontier_branch_line(branches: Array, index: int = 0) -> String:
+	if branches.size() <= index:
+		return "等待更多网络分支"
+	var branch: Dictionary = branches[index]
+	return "%s · %s %.2f" % [
+		str(branch.get("target_name", branch.get("target_region_id", ""))),
+		str(branch.get("connection_label", "区域通道")),
+		float(branch.get("strength", 0.0)),
+	]
+
+
 func _build_world_backdrop() -> void:
 	var map_size := map_layer.get_rect().size
 	if map_size.x <= 0.0 or map_size.y <= 0.0:
@@ -668,8 +690,9 @@ func _build_focus_stage(regions: Array) -> void:
 	var route_summary: Array = active_region.get("route_summary", [])
 	var top_species: Array = active_region.get("top_species", [])
 	var active_frontier := _active_frontier_link(active_region)
+	var active_frontier_network := _active_frontier_network(active_region)
 	var header_copy := _region_command_header(active_region)
-	var stage_profile := _focus_stage_profile(active_region, active_frontier)
+	var stage_profile := _focus_stage_profile(active_region, active_frontier, active_frontier_network)
 	var stage := PanelContainer.new()
 	stage.custom_minimum_size = Vector2(360, 150)
 	stage.position = Vector2(map_size.x * 0.34, map_size.y * 0.38)
@@ -837,7 +860,7 @@ func _region_command_header(active_region: Dictionary) -> Dictionary:
 	}
 
 
-func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary) -> Dictionary:
+func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary, active_frontier_network: Dictionary) -> Dictionary:
 	var health := active_region.get("health_state", {})
 	var chain_focus: Array = active_region.get("chain_focus", [])
 	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
@@ -846,9 +869,12 @@ func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary
 	var chains: Dictionary = active_region.get("chains", {})
 	var narrative: Dictionary = active_region.get("narrative", {})
 	var biome_text := " / ".join(active_region.get("dominant_biomes", []).slice(0, 2))
+	var frontier_branches: Array = active_frontier_network.get("branches", [])
 	var frontier_target_name := str(active_frontier.get("target_name", "等待前线目标"))
 	var frontier_target_role := str(active_frontier.get("target_role", "等待前线情报"))
 	var frontier_target_species := _frontier_species_summary(active_frontier.get("target_species", []))
+	var frontier_branch_count := int(active_frontier_network.get("branch_count", 0))
+	var frontier_branch_total_strength := float(active_frontier_network.get("branch_total_strength", 0.0))
 	var frontier_connection := "%s %.2f" % [
 		str(active_frontier.get("connection_label", "区域通道")),
 		float(active_frontier.get("strength", 0.0)),
@@ -866,20 +892,20 @@ func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary
 		"strip_rows": [
 			{"label": "繁荣", "value": "%.2f" % float(health.get("prosperity", 0.0)), "color": _active_region_accent()},
 			{"label": "稳定", "value": "%.2f" % float(health.get("stability", 0.0)), "color": Color8(102, 152, 204)},
-			{"label": "风险", "value": "%.2f" % float(health.get("collapse_risk", 0.0)), "color": Color8(171, 132, 196)},
-			{"label": "种群", "value": str(active_region.get("species_population", 0)), "color": Color8(210, 182, 96)},
+			{"label": "分支", "value": str(frontier_branch_count), "color": Color8(171, 132, 196)},
+			{"label": "网络强度", "value": "%.2f" % frontier_branch_total_strength, "color": Color8(210, 182, 96)},
 		],
 		"left_title": "前线走廊情报",
 		"left_rows": [
 			frontier_target_role,
 			frontier_connection,
-			str(route_summary[0]) if route_summary.size() > 0 else "当前暂无显著通道情报",
+			_frontier_branch_line(frontier_branches),
 		],
 		"right_title": "前线目标快照",
 		"right_rows": [
 			frontier_target_species,
-			_species_entry_label(top_species[0]) if top_species.size() > 0 else "当前暂无核心物种数据",
-			str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "当前暂无突出风险",
+			_frontier_branch_line(frontier_branches, 1),
+			_frontier_branch_line(frontier_branches, 2),
 		],
 	}
 	if selected_tab == "chains":
@@ -903,14 +929,14 @@ func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary
 			frontier_target_role,
 			_lead_chain_line(chains.get("social_phases", [])),
 			_lead_chain_line(chains.get("grassland_chain", [])),
-			_lead_chain_line(chains.get("carrion_chain", []))
+			_frontier_branch_line(frontier_branches)
 		]
 		base_profile["right_title"] = "前线压力窗"
 		base_profile["right_rows"] = [
-			str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "当前暂无突出风险",
+			"网络分支 %s 条" % str(frontier_branch_count),
 			_lead_chain_line(chains.get("territory", [])),
 			_lead_chain_line(chains.get("competition", [])),
-			_lead_chain_line(chains.get("predation", []))
+			_frontier_branch_line(frontier_branches, 1)
 		]
 	elif selected_tab == "species":
 		base_profile["mode"] = "物种图鉴主视区"
@@ -932,13 +958,13 @@ func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary
 		base_profile["left_rows"] = [
 			_species_entry_label(top_species[0]) if top_species.size() > 0 else "等待更多物种聚焦",
 			_species_entry_label(top_species[1]) if top_species.size() > 1 else "等待更多物种聚焦",
-			_species_entry_label(top_species[2]) if top_species.size() > 2 else "等待更多物种聚焦"
+			_frontier_branch_line(frontier_branches)
 		]
 		base_profile["right_title"] = "邻区图鉴前哨"
 		base_profile["right_rows"] = [
 			frontier_target_species,
 			"%s · %s" % [_region_type_chip(active_region), _species_category(str((top_species[0] as Dictionary).get("species_id", "")))] if top_species.size() > 0 else "等待更多分类标签",
-			"%s · %s" % [_region_type_chip(active_region), _species_category(str((top_species[1] as Dictionary).get("species_id", "")))] if top_species.size() > 1 else "等待更多分类标签",
+			_frontier_branch_line(frontier_branches, 1),
 		]
 	elif selected_tab == "story":
 		base_profile["mode"] = "区域播报主视区"
@@ -961,14 +987,14 @@ func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary
 			frontier_target_role,
 			_lead_story_line(narrative.get("territory", [])),
 			_lead_story_line(narrative.get("social_trends", [])),
-			_lead_story_line(narrative.get("predation", []))
+			_frontier_branch_line(frontier_branches)
 		]
 		base_profile["right_title"] = "前线链路摘要"
 		base_profile["right_rows"] = [
 			frontier_connection,
 			_lead_story_line(narrative.get("grassland_chain", [])),
 			_lead_story_line(narrative.get("carrion_chain", [])),
-			_lead_story_line(narrative.get("wetland_chain", []))
+			_frontier_branch_line(frontier_branches, 1)
 		]
 	return base_profile
 
@@ -1271,6 +1297,7 @@ func _make_focus_command_strip(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(360, 0)
 	var active_frontier := _active_frontier_link(active_region)
+	var active_frontier_network := _active_frontier_network(active_region)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
@@ -1295,9 +1322,10 @@ func _make_focus_command_strip(active_region: Dictionary) -> PanelContainer:
 	row.add_child(_make_hero_chip("通道路由", str(active_frontier.get("connection_label", "区域通道")), Color8(210, 182, 96)))
 
 	var footer := Label.new()
-	footer.text = "连接 %s · 种群 %s · 前线风险 %.2f" % [
+	footer.text = "连接 %s · 种群 %s · 分支 %s · 前线风险 %.2f" % [
 		str(active_region.get("connector_count", active_region.get("connectors", []).size())),
 		str(active_region.get("species_population", 0)),
+		str(active_frontier_network.get("branch_count", 0)),
 		float(active_frontier.get("target_risk", 0.0)),
 	]
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1418,6 +1446,8 @@ func _make_frontier_command_stage(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 86)
 	var active_frontier := _active_frontier_link(active_region)
+	var active_frontier_network := _active_frontier_network(active_region)
+	var branches: Array = active_frontier_network.get("branches", [])
 	var target_region_id := str(active_frontier.get("target_region_id", ""))
 	var target_accent := REGION_COLORS.get(target_region_id, _active_region_accent())
 
@@ -1428,9 +1458,10 @@ func _make_frontier_command_stage(active_region: Dictionary) -> PanelContainer:
 	row.add_child(_make_feature_panel(
 		"当前前线目标",
 		str(active_frontier.get("target_name", "等待前线目标")),
-		"%s · 强度 %.2f" % [
+		"%s · 强度 %.2f · 分支 %s" % [
 			str(active_frontier.get("connection_label", "区域通道")),
 			float(active_frontier.get("strength", 0.0)),
+			str(active_frontier_network.get("branch_count", 0)),
 		],
 		target_accent
 	))
@@ -1442,6 +1473,7 @@ func _make_frontier_command_stage(active_region: Dictionary) -> PanelContainer:
 
 	stack.add_child(_make_hero_chip("区域定位", str(active_frontier.get("target_role", "生态观测区")), target_accent))
 	stack.add_child(_make_hero_chip("核心物种", _frontier_species_summary(active_frontier.get("target_species", [])), Color8(171, 132, 196)))
+	stack.add_child(_make_hero_chip("网络分支", _frontier_branch_line(branches), Color8(102, 152, 204)))
 
 	var action_row := HBoxContainer.new()
 	action_row.add_theme_constant_override("separation", 8)
@@ -1469,6 +1501,9 @@ func _make_frontier_card(frontier_link: Dictionary, is_selected: bool) -> PanelC
 
 	var target_region_id := str(frontier_link.get("target_region_id", ""))
 	var target_accent := REGION_COLORS.get(target_region_id, Color8(102, 152, 204))
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var frontier_network: Dictionary = _active_frontier_network(active_region) if is_selected else _frontier_network_for_target(active_region, target_region_id)
+	var branches: Array = frontier_network.get("branches", [])
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 4)
@@ -1524,6 +1559,12 @@ func _make_frontier_card(frontier_link: Dictionary, is_selected: bool) -> PanelC
 	_style_body(species, 13)
 	box.add_child(species)
 
+	var branch := Label.new()
+	branch.text = "网络分支 · %s" % _frontier_branch_line(branches)
+	branch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_dim(branch, 12)
+	box.add_child(branch)
+
 	panel.mouse_entered.connect(func() -> void:
 		_animate_card_hover(panel, true)
 	)
@@ -1555,6 +1596,15 @@ func _frontier_species_summary(rows: Array) -> String:
 		var row: Dictionary = row_variant
 		labels.append("%s×%s" % [str(row.get("label", "")), str(row.get("count", 0))])
 	return "核心物种 · %s" % " / ".join(labels.slice(0, 2))
+
+
+func _frontier_network_for_target(active_region: Dictionary, target_region_id: String) -> Dictionary:
+	var frontier_network: Array = active_region.get("frontier_network", [])
+	for network_variant in frontier_network:
+		var network: Dictionary = network_variant
+		if str(network.get("target_region_id", "")) == target_region_id:
+			return network
+	return {}
 
 
 func _build_side_panel() -> void:
@@ -1901,6 +1951,8 @@ func _make_frontier_overview_card(active_region: Dictionary, region_accent: Colo
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	var active_frontier := _active_frontier_link(active_region)
+	var active_frontier_network := _active_frontier_network(active_region)
+	var branches: Array = active_frontier_network.get("branches", [])
 
 	var title := Label.new()
 	title.text = "%s · 前线转运情报" % _region_type_chip(active_region)
@@ -1944,6 +1996,7 @@ func _make_frontier_overview_card(active_region: Dictionary, region_accent: Colo
 			"%s · %.2f" % [str(link.get("connection_label", "区域通道")), float(link.get("strength", 0.0))],
 			REGION_COLORS.get(str(link.get("target_region_id", "")), Color8(102, 152, 204))
 		))
+	stack.add_child(_make_hero_chip("网络分支", _frontier_branch_line(branches), Color8(171, 132, 196)))
 
 	if frontier_links.is_empty():
 		stack.add_child(_make_hero_chip("前线转运带", "当前暂无前线邻区", Color8(102, 152, 204)))

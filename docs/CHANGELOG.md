@@ -2,6 +2,19 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha126 (2026-04-14 12:11)
+
+- ✅ Godot 前端这轮不是继续停留在“单前线目标”，而是把前线走廊正式扩成了多层网络。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_network`
+  - 每个前线目标下挂的二级网络分支
+  - 分支总强度与分支数量
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 底部前线卡的分支摘要
+  - 中心主舞台、副舞台、信息翼同步当前前线网络
+  - 右侧总览页同步当前网络分支摘要
+- ✅ 这意味着世界地图现在已经不只是“锁定一个邻区”，而开始具备从当前区域往外看一层网络结构的能力。
+
 ### v4.0-alpha125 (2026-04-14 11:58)
 
 - ✅ Godot 前端这轮不是只在地图底部加一排邻区卡，而是把这层正式升级成了 `前线走廊切换层`。

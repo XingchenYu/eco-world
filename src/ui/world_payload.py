@@ -209,6 +209,55 @@ def _build_frontier_links(
     return frontier_links[:4]
 
 
+def _build_frontier_network(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    frontier_network: list[dict[str, Any]] = []
+    for connector in region_detail.get("connectors", []):
+        target_id = str(connector["target_region_id"])
+        target_detail = region_details.get(target_id, {})
+        branches: list[dict[str, Any]] = []
+        for branch_connector in target_detail.get("connectors", []):
+            branch_target_id = str(branch_connector["target_region_id"])
+            if branch_target_id == region_id:
+                continue
+            branch_detail = region_details.get(branch_target_id, {})
+            branches.append(
+                {
+                    "target_region_id": branch_target_id,
+                    "target_name": branch_detail.get("name", branch_target_id),
+                    "target_role": branch_detail.get("region_role", "生态观测区"),
+                    "connection_type": branch_connector["connection_type"],
+                    "connection_label": CONNECTION_LABELS.get(
+                        branch_connector["connection_type"],
+                        branch_connector["connection_type"],
+                    ),
+                    "strength": round(float(branch_connector["strength"]), 4),
+                    "target_prosperity": round(
+                        float(branch_detail.get("health_state", {}).get("prosperity", 0.0)),
+                        4,
+                    ),
+                    "target_risk": round(
+                        float(branch_detail.get("health_state", {}).get("collapse_risk", 0.0)),
+                        4,
+                    ),
+                }
+            )
+        branches.sort(key=lambda item: float(item["strength"]), reverse=True)
+        frontier_network.append(
+            {
+                "target_region_id": target_id,
+                "branch_count": len(branches),
+                "branch_total_strength": round(sum(float(item["strength"]) for item in branches), 4),
+                "branches": branches[:3],
+            }
+        )
+    frontier_network.sort(key=lambda item: float(item["branch_total_strength"]), reverse=True)
+    return frontier_network
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -334,6 +383,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
 
     for region_id, region_detail in region_details.items():
         region_detail["frontier_links"] = _build_frontier_links(region_id, region_details)
+        region_detail["frontier_network"] = _build_frontier_network(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
