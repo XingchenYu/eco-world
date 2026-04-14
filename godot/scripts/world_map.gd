@@ -40,6 +40,7 @@ var side_box: VBoxContainer
 var selected_tab := "overview"
 var selected_campaign_target_id := ""
 var selected_campaign_stage_index := 0
+var selected_campaign_filter := "balanced"
 var selected_frontier_target_id := ""
 var selected_branch_target_id := ""
 var refresh_button: Button
@@ -714,12 +715,44 @@ func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 		var candidate: Dictionary = candidate_variant
 		var prosperity := float(candidate.get("prosperity", 0.0))
 		var risk := float(candidate.get("risk", 0.0))
-		candidate["score"] = round(prosperity * 0.64 + (1.0 - risk) * 0.36, 4)
+		candidate["score_balanced"] = round(prosperity * 0.64 + (1.0 - risk) * 0.36, 4)
+		candidate["score_safe"] = round((1.0 - risk) * 0.72 + prosperity * 0.28, 4)
+		candidate["score_rich"] = round(prosperity * 0.82 + (1.0 - risk) * 0.18, 4)
+		candidate["score_risk"] = round(risk * 0.78 + prosperity * 0.22, 4)
+		candidate["score"] = float(candidate.get("score_balanced", 0.0))
 
+	_apply_campaign_filter(candidates)
+	return candidates
+
+
+func _campaign_filter_label() -> String:
+	return {
+		"balanced": "综合",
+		"safe": "稳态",
+		"rich": "高繁荣",
+		"risk": "高风险",
+	}.get(selected_campaign_filter, "综合")
+
+
+func _candidate_sort_score(candidate: Dictionary) -> float:
+	match selected_campaign_filter:
+		"safe":
+			return float(candidate.get("score_safe", 0.0))
+		"rich":
+			return float(candidate.get("score_rich", 0.0))
+		"risk":
+			return float(candidate.get("score_risk", 0.0))
+		_:
+			return float(candidate.get("score_balanced", 0.0))
+
+
+func _apply_campaign_filter(candidates: Array) -> void:
+	for candidate_variant in candidates:
+		var candidate: Dictionary = candidate_variant
+		candidate["score"] = _candidate_sort_score(candidate)
 	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return float(a.get("score", 0.0)) > float(b.get("score", 0.0))
 	)
-	return candidates
 
 
 func _build_world_backdrop() -> void:
@@ -886,7 +919,7 @@ func _build_focus_stage(regions: Array) -> void:
 	root.add_child(ribbon)
 
 	var eyebrow := Label.new()
-	eyebrow.text = "%s · %s · %s · %s" % [_region_type_chip(active_region), header_copy["eyebrow"], str(stage_profile["mode"]), str(stage_profile["stage_mode"])]
+	eyebrow.text = "%s · %s · %s · %s · %s筛选" % [_region_type_chip(active_region), header_copy["eyebrow"], str(stage_profile["mode"]), str(stage_profile["stage_mode"]), _campaign_filter_label()]
 	_style_dim(eyebrow, 13)
 	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(eyebrow)
@@ -921,11 +954,12 @@ func _build_focus_stage(regions: Array) -> void:
 		landing_row.add_child(_make_hero_chip("优选落点", str((landing_candidates[0] as Dictionary).get("name", "等待优选分支")), Color8(104, 171, 144)))
 
 	var footer := Label.new()
-	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s" % [
+	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 筛选 %s" % [
 		str(world_data.get("world", {}).get("loaded_regions", 0)),
 		str(regions.size()),
 		str(active_campaign.get("campaign_band", "等待战区模式")),
 		str(stage_profile["stage_mode"]),
+		_campaign_filter_label(),
 	]
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_dim(footer, 13)
@@ -1833,7 +1867,7 @@ func _make_frontier_campaign_bar(active_region: Dictionary) -> PanelContainer:
 	title_row.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "切换不同前线编成"
+	hint.text = "切换编成与筛选模式"
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_style_dim(hint, 12)
@@ -1857,6 +1891,14 @@ func _make_frontier_campaign_bar(active_region: Dictionary) -> PanelContainer:
 	box.add_child(stage_row)
 	stage_row.add_child(_make_campaign_stage_button(active_region, 0, "第一阶段"))
 	stage_row.add_child(_make_campaign_stage_button(active_region, 1, "第二阶段"))
+
+	var filter_row := HBoxContainer.new()
+	filter_row.add_theme_constant_override("separation", 8)
+	box.add_child(filter_row)
+	filter_row.add_child(_make_campaign_filter_button("综合", "balanced"))
+	filter_row.add_child(_make_campaign_filter_button("稳态", "safe"))
+	filter_row.add_child(_make_campaign_filter_button("高繁荣", "rich"))
+	filter_row.add_child(_make_campaign_filter_button("高风险", "risk"))
 	return panel
 
 
@@ -1926,6 +1968,16 @@ func _make_campaign_stage_button(active_region: Dictionary, stage_index: int, la
 	if stage_index >= route_stages.size():
 		button.disabled = true
 	button.pressed.connect(_on_campaign_stage_selected.bind(stage_index))
+	return button
+
+
+func _make_campaign_filter_button(label_text: String, filter_key: String) -> Button:
+	var button := Button.new()
+	button.toggle_mode = true
+	button.button_pressed = selected_campaign_filter == filter_key
+	button.custom_minimum_size = Vector2(88, 30)
+	button.text = "%s%s" % [label_text, " · 当前" if selected_campaign_filter == filter_key else ""]
+	button.pressed.connect(_on_campaign_filter_selected.bind(filter_key))
 	return button
 
 
@@ -2799,6 +2851,12 @@ func _make_campaign_landing_network_card(active_region: Dictionary, region_accen
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
+	var filter_chip_row := HBoxContainer.new()
+	filter_chip_row.add_theme_constant_override("separation", 8)
+	box.add_child(filter_chip_row)
+	filter_chip_row.add_child(_make_hero_chip("当前筛选", _campaign_filter_label(), region_accent))
+	filter_chip_row.add_child(_make_hero_chip("排序依据", "评分从高到低", Color8(102, 152, 204)))
+
 	if not candidates.is_empty():
 		var summary_row := HBoxContainer.new()
 		summary_row.add_theme_constant_override("separation", 8)
@@ -3431,6 +3489,13 @@ func _on_campaign_stage_selected(stage_index: int) -> void:
 	status_label.text = "系统栏 · 已切换推进阶段：%s · 当前分页：%s" % [str(stage_index + 1), _tab_title(selected_tab)]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(210, 182, 96))
+
+
+func _on_campaign_filter_selected(filter_key: String) -> void:
+	selected_campaign_filter = filter_key
+	status_label.text = "系统栏 · 已切换战区筛选：%s · 当前分页：%s" % [_campaign_filter_label(), _tab_title(selected_tab)]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(104, 171, 144))
 
 
 func _on_tab_pressed(tab_id: String) -> void:
