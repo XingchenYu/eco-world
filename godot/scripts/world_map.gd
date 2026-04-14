@@ -521,6 +521,7 @@ func _render_world() -> void:
 	_build_focus_stage(world_meta.get("regions", []))
 	_build_route_lines(world_meta.get("regions", []))
 	_build_frontier_network_overlay(world_meta.get("regions", []))
+	_build_campaign_overlay(world_meta.get("regions", []))
 	_build_map_nodes(world_meta.get("regions", []))
 	_build_map_command_layer()
 	_build_side_panel()
@@ -745,6 +746,16 @@ func _build_world_ambience() -> void:
 	aura.position = active_pos - Vector2(118, 52)
 	aura.custom_minimum_size = Vector2(236, 104)
 	map_layer.add_child(aura)
+
+
+func _campaign_accent(campaign_band: String) -> Color:
+	return {
+		"赤线推进令": Color8(216, 112, 96),
+		"多线扩张令": Color8(171, 132, 196),
+		"丰度扩张令": Color8(104, 171, 144),
+		"稳态侦察令": Color8(102, 152, 204),
+		"前线巡察令": Color8(210, 182, 96),
+	}.get(campaign_band, Color8(171, 132, 196))
 
 
 func _region_positions(regions: Array, map_size: Vector2) -> Dictionary:
@@ -1238,6 +1249,84 @@ func _build_frontier_network_overlay(regions: Array) -> void:
 		branch_button.set_anchors_preset(PRESET_FULL_RECT)
 		branch_button.pressed.connect(_on_frontier_branch_selected.bind(branch_id))
 		branch_badge.add_child(branch_button)
+
+
+func _build_campaign_overlay(regions: Array) -> void:
+	var map_size := map_layer.get_rect().size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
+	var positions := _region_positions(regions, map_size)
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var active_campaign := _active_frontier_campaign(active_region)
+	var active_frontier := _active_frontier_link(active_region)
+	var active_network := _active_frontier_network(active_region)
+	if active_campaign.is_empty() or active_frontier.is_empty():
+		return
+
+	var active_pos: Vector2 = positions.get(active_region_id, Vector2(map_size.x * 0.5, map_size.y * 0.5))
+	var target_id := str(active_campaign.get("target_region_id", ""))
+	if not positions.has(target_id):
+		return
+	var target_pos: Vector2 = positions[target_id]
+	var campaign_accent := _campaign_accent(str(active_campaign.get("campaign_band", "")))
+
+	var target_zone := ColorRect.new()
+	target_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.10)
+	target_zone.position = target_pos - Vector2(104, 64)
+	target_zone.custom_minimum_size = Vector2(208, 128)
+	map_layer.add_child(target_zone)
+
+	var active_zone := ColorRect.new()
+	active_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.06)
+	active_zone.position = active_pos - Vector2(84, 48)
+	active_zone.custom_minimum_size = Vector2(168, 96)
+	map_layer.add_child(active_zone)
+
+	var stage_line := _make_route_line(active_pos, target_pos, 0.9)
+	stage_line.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.52)
+	stage_line.custom_minimum_size = Vector2(stage_line.custom_minimum_size.x, 10.0)
+	map_layer.add_child(stage_line)
+
+	var stage_one := PanelContainer.new()
+	stage_one.position = active_pos.lerp(target_pos, 0.36) - Vector2(62, 18)
+	stage_one.custom_minimum_size = Vector2(124, 34)
+	map_layer.add_child(stage_one)
+
+	var stage_one_label := Label.new()
+	stage_one_label.text = "第一阶段 · 推进"
+	_style_dim(stage_one_label, 13)
+	stage_one_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stage_one.add_child(stage_one_label)
+
+	var branches: Array = active_network.get("branches", [])
+	for branch_variant in branches:
+		var branch: Dictionary = branch_variant
+		var branch_id := str(branch.get("target_region_id", ""))
+		if not positions.has(branch_id):
+			continue
+		var branch_pos: Vector2 = positions[branch_id]
+
+		var branch_zone := ColorRect.new()
+		branch_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.07)
+		branch_zone.position = branch_pos - Vector2(76, 42)
+		branch_zone.custom_minimum_size = Vector2(152, 84)
+		map_layer.add_child(branch_zone)
+
+		var branch_line := _make_route_line(target_pos, branch_pos, 0.72)
+		branch_line.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.32)
+		branch_line.custom_minimum_size = Vector2(branch_line.custom_minimum_size.x, 6.0)
+		map_layer.add_child(branch_line)
+
+		var stage_two := PanelContainer.new()
+		stage_two.position = target_pos.lerp(branch_pos, 0.54) - Vector2(54, 16)
+		stage_two.custom_minimum_size = Vector2(108, 30)
+		map_layer.add_child(stage_two)
+
+		var stage_two_label := Label.new()
+		stage_two_label.text = "二阶段 · 分支"
+		_style_dim(stage_two_label, 12)
+		stage_two_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stage_two.add_child(stage_two_label)
 
 
 func _make_route_line(from_pos: Vector2, to_pos: Vector2, strength: float) -> ColorRect:
@@ -1984,6 +2073,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_overview_dashboard(active_region, pressure_headlines, chain_focus, route_summary, region_accent))
 			tab_content.add_child(_make_frontier_overview_card(active_region, region_accent))
 			tab_content.add_child(_make_frontier_operation_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_atlas_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
 			tab_content.add_child(_make_region_summary_card(active_region))
 			tab_content.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
@@ -2417,6 +2507,44 @@ func _make_frontier_operation_card(active_region: Dictionary, region_accent: Col
 			badge_row.add_child(_make_hero_chip("战区标签", str(badge_variant), region_accent))
 
 	return _wrap_menu_card(box, Color8(171, 132, 196))
+
+
+func _make_campaign_atlas_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var active_campaign := _active_frontier_campaign(active_region)
+	var campaigns: Array = active_region.get("frontier_campaigns", [])
+
+	var title := Label.new()
+	title.text = "%s · 战区图谱总板" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	box.add_child(body)
+
+	body.add_child(_make_feature_panel(
+		"当前战区",
+		str(active_campaign.get("campaign_name", "等待战区推进模式")),
+		str(active_campaign.get("summary", "当前暂无战区推演摘要。")),
+		_campaign_accent(str(active_campaign.get("campaign_band", "")))
+	))
+
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 8)
+	body.add_child(stack)
+
+	for campaign_variant in campaigns.slice(0, 3):
+		var campaign: Dictionary = campaign_variant
+		stack.add_child(_make_hero_chip(
+			"%s%s" % ["当前 · " if str(campaign.get("target_region_id", "")) == selected_campaign_target_id else "", str(campaign.get("campaign_band", "战区推进令"))],
+			str(campaign.get("campaign_name", "等待战区推进模式")),
+			_campaign_accent(str(campaign.get("campaign_band", "")))
+		))
+
+	return _wrap_menu_card(box, Color8(210, 182, 96))
 
 
 func _make_chain_command_deck(chains: Dictionary, active_region: Dictionary, region_accent: Color) -> PanelContainer:
