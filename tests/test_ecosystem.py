@@ -455,6 +455,7 @@ def test_v4_world_ui_payload():
     assert payload["region_details"]["temperate_grassland"]["frontier_schedule_profiles"]
     assert "dispatch_band" in payload["region_details"]["temperate_grassland"]["frontier_schedule_profiles"][0]
     assert "primary_route" in payload["region_details"]["temperate_grassland"]["frontier_schedule_profiles"][0]
+    assert "target_region_id" in payload["region_details"]["temperate_grassland"]["frontier_schedule_profiles"][0]["primary_route"]
     assert payload["region_details"]["temperate_grassland"]["pressure_headlines"]
     assert payload["region_details"]["temperate_grassland"]["chain_focus"]
     assert "label" in payload["region_details"]["temperate_grassland"]["top_species"][0]

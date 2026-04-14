@@ -42,6 +42,7 @@ var selected_campaign_target_id := ""
 var selected_campaign_stage_index := 0
 var selected_campaign_filter := "balanced"
 var selected_campaign_landing_target_id := ""
+var selected_schedule_route_key := "primary_route"
 var selected_frontier_target_id := ""
 var selected_branch_target_id := ""
 var refresh_button: Button
@@ -703,6 +704,17 @@ func _active_schedule_profile(active_region: Dictionary) -> Dictionary:
 	return profiles[0]
 
 
+func _active_schedule_route(active_region: Dictionary) -> Dictionary:
+	var active_schedule := _active_schedule_profile(active_region)
+	if active_schedule.is_empty():
+		return {}
+	var route := active_schedule.get(selected_schedule_route_key, {})
+	if route is Dictionary and not route.is_empty():
+		return route
+	selected_schedule_route_key = "primary_route"
+	return active_schedule.get("primary_route", {})
+
+
 func _active_campaign_stage(active_region: Dictionary) -> Dictionary:
 	var active_operation := _active_frontier_operation(active_region)
 	var route_stages: Array = active_operation.get("route_stages", [])
@@ -954,6 +966,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_route_profile := _active_route_profile(active_region)
 	var active_execution_plan := _active_execution_plan(active_region)
 	var active_schedule_profile := _active_schedule_profile(active_region)
+	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
 	var landing_candidates: Array = _campaign_landing_candidates(active_region)
@@ -1026,12 +1039,9 @@ func _build_focus_stage(regions: Array) -> void:
 	schedule_row.add_theme_constant_override("separation", 8)
 	root.add_child(schedule_row)
 	schedule_row.add_child(_make_hero_chip("调度带", str(active_schedule_profile.get("dispatch_band", "等待调度")), Color8(210, 182, 96)))
-	var primary_route: Dictionary = active_schedule_profile.get("primary_route", {})
-	var support_route: Dictionary = active_schedule_profile.get("support_route", {})
-	var fallback_route: Dictionary = active_schedule_profile.get("fallback_route", {})
-	schedule_row.add_child(_make_hero_chip("主执行", str(primary_route.get("landing_name", "待命")), Color8(104, 171, 144)))
-	schedule_row.add_child(_make_hero_chip("辅执行", str(support_route.get("landing_name", "待命")), Color8(102, 152, 204)))
-	schedule_row.add_child(_make_hero_chip("回退", str(fallback_route.get("landing_name", "待命")), Color8(171, 132, 196)))
+	schedule_row.add_child(_make_hero_chip("当前调度", str(active_schedule_route.get("label", "主执行")), Color8(104, 171, 144)))
+	schedule_row.add_child(_make_hero_chip("调度落点", str(active_schedule_route.get("landing_name", "待命")), Color8(102, 152, 204)))
+	schedule_row.add_child(_make_hero_chip("调度就绪", str(active_schedule_route.get("ready_band", "待命")), Color8(171, 132, 196)))
 
 	var footer := Label.new()
 	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 调度带 %s · 筛选 %s" % [
@@ -3015,6 +3025,7 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	var active_schedule := _active_schedule_profile(active_region)
+	var active_route := _active_schedule_route(active_region)
 	var primary_route: Dictionary = active_schedule.get("primary_route", {})
 	var support_route: Dictionary = active_schedule.get("support_route", {})
 	var fallback_route: Dictionary = active_schedule.get("fallback_route", {})
@@ -3039,9 +3050,26 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.add_theme_constant_override("separation", 8)
 	body.add_child(stack)
-	stack.add_child(_make_hero_chip("主执行", str(primary_route.get("landing_name", "待命")), Color8(104, 171, 144)))
-	stack.add_child(_make_hero_chip("辅执行", str(support_route.get("landing_name", "待命")), Color8(102, 152, 204)))
-	stack.add_child(_make_hero_chip("回退", str(fallback_route.get("landing_name", "待命")), Color8(171, 132, 196)))
+	stack.add_child(_make_hero_chip("当前调度", str(active_route.get("label", "待命")), Color8(104, 171, 144)))
+	stack.add_child(_make_hero_chip("调度落点", str(active_route.get("landing_name", "待命")), Color8(102, 152, 204)))
+	stack.add_child(_make_hero_chip("调度就绪", str(active_route.get("ready_band", "待命")), Color8(171, 132, 196)))
+
+	var route_row := HBoxContainer.new()
+	route_row.add_theme_constant_override("separation", 8)
+	box.add_child(route_row)
+	for route_key in ["primary_route", "support_route", "fallback_route"]:
+		var route: Dictionary = active_schedule.get(route_key, {})
+		var is_active := route_key == selected_schedule_route_key
+		var route_button := Button.new()
+		route_button.text = "%s%s · %s" % [
+			"当前 · " if is_active else "",
+			str(route.get("label", "调度")),
+			str(route.get("landing_name", "待命")),
+		]
+		route_button.toggle_mode = true
+		route_button.button_pressed = is_active
+		route_button.pressed.connect(_on_schedule_route_selected.bind(route_key))
+		route_row.add_child(route_button)
 
 	var badge_row := HBoxContainer.new()
 	badge_row.add_theme_constant_override("separation", 8)
@@ -3677,6 +3705,7 @@ func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
 	selected_campaign_stage_index = 0
 	selected_campaign_landing_target_id = ""
+	selected_schedule_route_key = "primary_route"
 	selected_frontier_target_id = ""
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
@@ -3705,6 +3734,7 @@ func _on_frontier_campaign_selected(region_id: String) -> void:
 	selected_frontier_target_id = region_id
 	selected_campaign_stage_index = 0
 	selected_campaign_landing_target_id = ""
+	selected_schedule_route_key = "primary_route"
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	_sync_campaign_landing(active_region)
 	_sync_branch_focus(active_region)
@@ -3717,6 +3747,7 @@ func _on_campaign_stage_selected(stage_index: int) -> void:
 	selected_campaign_stage_index = stage_index
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	selected_campaign_landing_target_id = ""
+	selected_schedule_route_key = "primary_route"
 	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换推进阶段：%s · 当前分页：%s" % [str(stage_index + 1), _tab_title(selected_tab)]
 	_render_world()
@@ -3726,6 +3757,7 @@ func _on_campaign_stage_selected(stage_index: int) -> void:
 func _on_campaign_filter_selected(filter_key: String) -> void:
 	selected_campaign_filter = filter_key
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	selected_schedule_route_key = "primary_route"
 	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换战区筛选：%s · 当前分页：%s" % [_campaign_filter_label(), _tab_title(selected_tab)]
 	_render_world()
@@ -3737,6 +3769,21 @@ func _on_campaign_landing_selected(region_id: String) -> void:
 	status_label.text = "系统栏 · 已锁定推进落点：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(171, 132, 196))
+
+
+func _on_schedule_route_selected(route_key: String) -> void:
+	selected_schedule_route_key = route_key
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var active_schedule := _active_schedule_profile(active_region)
+	var route: Dictionary = active_schedule.get(route_key, {})
+	var target_region_id := str(route.get("target_region_id", ""))
+	if target_region_id != "":
+		selected_campaign_target_id = target_region_id
+		selected_frontier_target_id = target_region_id
+		selected_campaign_landing_target_id = target_region_id
+	status_label.text = "系统栏 · 已切换调度路线：%s · 当前分页：%s" % [str(route.get("label", route_key)), _tab_title(selected_tab)]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(210, 182, 96))
 
 
 func _on_tab_pressed(tab_id: String) -> void:

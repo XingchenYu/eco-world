@@ -592,18 +592,21 @@ def _build_frontier_schedule_profiles(
         "dispatch_band": dispatch_band,
         "primary_route": {
             "label": "主执行",
+            "target_region_id": str(primary.get("target_region_id", "")),
             "route_name": str(primary.get("route_name", "等待主执行")),
             "landing_name": str(primary.get("landing_name", "等待落点")),
             "ready_band": str(primary.get("ready_band", "待命")),
         },
         "support_route": {
             "label": "辅执行",
+            "target_region_id": str(support.get("target_region_id", "")),
             "route_name": str(support.get("route_name", "等待辅执行")),
             "landing_name": str(support.get("landing_name", "等待落点")),
             "ready_band": str(support.get("ready_band", "待命")),
         },
         "fallback_route": {
             "label": "回退",
+            "target_region_id": str(fallback.get("target_region_id", "")),
             "route_name": str(fallback.get("route_name", "等待回退路线")),
             "landing_name": str(fallback.get("landing_name", "等待落点")),
             "ready_band": str(fallback.get("ready_band", "待命")),

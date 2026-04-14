@@ -2,6 +2,19 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha140 (2026-04-15 00:38)
+
+- ✅ Godot 前端这轮把 `推进路线调度层` 继续推进成了 `路线切换层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在把 `target_region_id` 下沉到：
+  - `primary_route`
+  - `support_route`
+  - `fallback_route`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 调度终端里的 `主执行 / 辅执行 / 回退` 切换按钮
+  - 主视区显式显示当前调度焦点
+  - 切换调度路线后同步重排当前战区与锁定落点
+- ✅ 这意味着当前 Godot 世界入口已经不只是显示调度编成，而开始能直接切换当前路线焦点。
+
 ### v4.0-alpha139 (2026-04-15 00:30)
 
 - ✅ Godot 前端这轮把 `推进路线执行层` 继续推进成了 `推进路线调度层`。
