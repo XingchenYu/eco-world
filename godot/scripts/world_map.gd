@@ -39,6 +39,7 @@ var side_scroll: ScrollContainer
 var side_box: VBoxContainer
 var selected_tab := "overview"
 var selected_campaign_target_id := ""
+var selected_campaign_stage_index := 0
 var selected_frontier_target_id := ""
 var selected_branch_target_id := ""
 var refresh_button: Button
@@ -549,14 +550,26 @@ func _sync_campaign_focus(active_region: Dictionary) -> void:
 	var campaigns: Array = active_region.get("frontier_campaigns", [])
 	if campaigns.is_empty():
 		selected_campaign_target_id = ""
+		selected_campaign_stage_index = 0
 		return
 	for campaign_variant in campaigns:
 		var campaign: Dictionary = campaign_variant
 		if str(campaign.get("target_region_id", "")) == selected_campaign_target_id:
 			selected_frontier_target_id = selected_campaign_target_id
+			_sync_campaign_stage(active_region)
 			return
 	selected_campaign_target_id = str((campaigns[0] as Dictionary).get("target_region_id", ""))
 	selected_frontier_target_id = selected_campaign_target_id
+	_sync_campaign_stage(active_region)
+
+
+func _sync_campaign_stage(active_region: Dictionary) -> void:
+	var active_campaign := _active_frontier_campaign(active_region)
+	var route_titles: Array = active_campaign.get("route_titles", [])
+	if route_titles.is_empty():
+		selected_campaign_stage_index = 0
+		return
+	selected_campaign_stage_index = clampi(selected_campaign_stage_index, 0, route_titles.size() - 1)
 
 
 func _sync_branch_focus(active_region: Dictionary) -> void:
@@ -637,6 +650,15 @@ func _active_frontier_campaign(active_region: Dictionary) -> Dictionary:
 		if str(campaign.get("target_region_id", "")) == selected_campaign_target_id:
 			return campaign
 	return campaigns[0]
+
+
+func _active_campaign_stage(active_region: Dictionary) -> Dictionary:
+	var active_operation := _active_frontier_operation(active_region)
+	var route_stages: Array = active_operation.get("route_stages", [])
+	if route_stages.is_empty():
+		return {}
+	var stage_index := clampi(selected_campaign_stage_index, 0, route_stages.size() - 1)
+	return route_stages[stage_index]
 
 
 func _build_world_backdrop() -> void:
@@ -783,8 +805,9 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_frontier_network := _active_frontier_network(active_region)
 	var active_operation := _active_frontier_operation(active_region)
 	var active_campaign := _active_frontier_campaign(active_region)
+	var active_stage := _active_campaign_stage(active_region)
 	var header_copy := _region_command_header(active_region)
-	var stage_profile := _focus_stage_profile(active_region, active_frontier, active_frontier_network, active_operation)
+	var stage_profile := _focus_stage_profile(active_region, active_frontier, active_frontier_network, active_operation, active_campaign, active_stage)
 	var stage := PanelContainer.new()
 	stage.custom_minimum_size = Vector2(360, 150)
 	stage.position = Vector2(map_size.x * 0.34, map_size.y * 0.38)
@@ -800,7 +823,7 @@ func _build_focus_stage(regions: Array) -> void:
 	root.add_child(ribbon)
 
 	var eyebrow := Label.new()
-	eyebrow.text = "%s · %s · %s · %s" % [_region_type_chip(active_region), header_copy["eyebrow"], str(stage_profile["mode"]), str(active_campaign.get("campaign_band", "战区推进模式"))]
+	eyebrow.text = "%s · %s · %s · %s" % [_region_type_chip(active_region), header_copy["eyebrow"], str(stage_profile["mode"]), str(stage_profile["stage_mode"])]
 	_style_dim(eyebrow, 13)
 	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(eyebrow)
@@ -813,7 +836,7 @@ func _build_focus_stage(regions: Array) -> void:
 	root.add_child(title)
 
 	var role := Label.new()
-	role.text = "%s · %s" % [str(header_copy["subtitle"]), str(active_campaign.get("campaign_name", "等待战区推演"))]
+	role.text = "%s · %s" % [str(header_copy["subtitle"]), str(stage_profile["stage_title"])]
 	_style_secondary_title(role, 17)
 	role.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	role.modulate = accent.lightened(0.16)
@@ -827,10 +850,11 @@ func _build_focus_stage(regions: Array) -> void:
 		center_row.add_child(_make_hero_chip(str(item["label"]), str(item["value"]), item["color"]))
 
 	var footer := Label.new()
-	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s" % [
+	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s" % [
 		str(world_data.get("world", {}).get("loaded_regions", 0)),
 		str(regions.size()),
 		str(active_campaign.get("campaign_band", "等待战区模式")),
+		str(stage_profile["stage_mode"]),
 	]
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_style_dim(footer, 13)
@@ -953,7 +977,7 @@ func _region_command_header(active_region: Dictionary) -> Dictionary:
 	}
 
 
-func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary, active_frontier_network: Dictionary, active_operation: Dictionary) -> Dictionary:
+func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary, active_frontier_network: Dictionary, active_operation: Dictionary, active_campaign: Dictionary, active_stage: Dictionary) -> Dictionary:
 	var health := active_region.get("health_state", {})
 	var chain_focus: Array = active_region.get("chain_focus", [])
 	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
@@ -975,6 +999,10 @@ func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary
 	var operation_threat := str(active_operation.get("threat_band", "等待战区判断"))
 	var operation_opportunity := str(active_operation.get("opportunity_band", "等待机会判断"))
 	var operation_summary := str(active_operation.get("summary", "当前暂无前线行动方案"))
+	var campaign_band := str(active_campaign.get("campaign_band", "战区推进模式"))
+	var stage_mode := str(active_stage.get("stage", "阶段待命"))
+	var stage_title := str(active_stage.get("title", str(active_campaign.get("campaign_name", "等待战区推演"))))
+	var stage_detail := str(active_stage.get("detail", operation_summary))
 	var branch_connection := "%s %.2f" % [
 		str(active_branch.get("connection_label", "区域通道")),
 		float(active_branch.get("strength", 0.0)),
@@ -985,12 +1013,14 @@ func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary
 	] if not active_frontier.is_empty() else "当前暂无可用前线通道"
 	var base_profile := {
 		"mode": "总览主视区",
+		"stage_mode": stage_mode,
+		"stage_title": stage_title,
 		"substage_title": "总览聚焦副舞台",
-		"sub_primary": {"label": "前线目标", "value": frontier_target_name, "color": Color8(104, 171, 144)},
-		"sub_secondary": {"label": "行动姿态", "value": operation_posture, "color": Color8(171, 132, 196)},
+		"sub_primary": {"label": "当前阶段", "value": stage_mode, "color": Color8(104, 171, 144)},
+		"sub_secondary": {"label": "阶段目标", "value": stage_title, "color": Color8(171, 132, 196)},
 		"hero_rows": [
 			{"label": "主地貌", "value": biome_text, "color": _active_region_accent()},
-			{"label": "行动姿态", "value": operation_posture, "color": Color8(104, 171, 144)},
+			{"label": "战区模式", "value": campaign_band, "color": Color8(104, 171, 144)},
 			{"label": "区域网络", "value": "%s 条连接" % str(active_region.get("connectors", []).size()), "color": Color8(102, 152, 204)},
 		],
 		"strip_rows": [
@@ -1002,7 +1032,7 @@ func _focus_stage_profile(active_region: Dictionary, active_frontier: Dictionary
 		"left_title": "前线走廊情报",
 		"left_rows": [
 			frontier_target_role,
-			frontier_connection,
+			stage_detail,
 			"当前分支 · %s" % branch_target_name,
 			operation_summary,
 		],
@@ -1258,6 +1288,7 @@ func _build_campaign_overlay(regions: Array) -> void:
 	var positions := _region_positions(regions, map_size)
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var active_campaign := _active_frontier_campaign(active_region)
+	var active_stage := _active_campaign_stage(active_region)
 	var active_frontier := _active_frontier_link(active_region)
 	var active_network := _active_frontier_network(active_region)
 	if active_campaign.is_empty() or active_frontier.is_empty():
@@ -1269,31 +1300,36 @@ func _build_campaign_overlay(regions: Array) -> void:
 		return
 	var target_pos: Vector2 = positions[target_id]
 	var campaign_accent := _campaign_accent(str(active_campaign.get("campaign_band", "")))
+	var stage_index := selected_campaign_stage_index
 
 	var target_zone := ColorRect.new()
-	target_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.10)
+	target_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.16 if stage_index == 0 else 0.09)
 	target_zone.position = target_pos - Vector2(104, 64)
 	target_zone.custom_minimum_size = Vector2(208, 128)
 	map_layer.add_child(target_zone)
 
 	var active_zone := ColorRect.new()
-	active_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.06)
+	active_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.12 if stage_index == 0 else 0.05)
 	active_zone.position = active_pos - Vector2(84, 48)
 	active_zone.custom_minimum_size = Vector2(168, 96)
 	map_layer.add_child(active_zone)
 
 	var stage_line := _make_route_line(active_pos, target_pos, 0.9)
-	stage_line.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.52)
-	stage_line.custom_minimum_size = Vector2(stage_line.custom_minimum_size.x, 10.0)
+	stage_line.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.60 if stage_index == 0 else 0.34)
+	stage_line.custom_minimum_size = Vector2(stage_line.custom_minimum_size.x, 10.0 if stage_index == 0 else 6.0)
 	map_layer.add_child(stage_line)
 
 	var stage_one := PanelContainer.new()
 	stage_one.position = active_pos.lerp(target_pos, 0.36) - Vector2(62, 18)
 	stage_one.custom_minimum_size = Vector2(124, 34)
+	stage_one.modulate = Color(1.0, 1.0, 1.0, 1.0 if stage_index == 0 else 0.72)
 	map_layer.add_child(stage_one)
 
+	var stage_one_text := "第一阶段 · 推进"
+	if stage_index == 0:
+		stage_one_text = "第一阶段 · %s" % str(active_stage.get("title", "推进"))
 	var stage_one_label := Label.new()
-	stage_one_label.text = "第一阶段 · 推进"
+	stage_one_label.text = stage_one_text
 	_style_dim(stage_one_label, 13)
 	stage_one_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stage_one.add_child(stage_one_label)
@@ -1305,25 +1341,27 @@ func _build_campaign_overlay(regions: Array) -> void:
 		if not positions.has(branch_id):
 			continue
 		var branch_pos: Vector2 = positions[branch_id]
+		var is_active_stage_branch := stage_index == 1 and branch_id == str(active_stage.get("target_region_id", ""))
 
 		var branch_zone := ColorRect.new()
-		branch_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.07)
+		branch_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.16 if is_active_stage_branch else 0.05)
 		branch_zone.position = branch_pos - Vector2(76, 42)
 		branch_zone.custom_minimum_size = Vector2(152, 84)
 		map_layer.add_child(branch_zone)
 
 		var branch_line := _make_route_line(target_pos, branch_pos, 0.72)
-		branch_line.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.32)
-		branch_line.custom_minimum_size = Vector2(branch_line.custom_minimum_size.x, 6.0)
+		branch_line.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.56 if is_active_stage_branch else 0.24)
+		branch_line.custom_minimum_size = Vector2(branch_line.custom_minimum_size.x, 8.0 if is_active_stage_branch else 4.0)
 		map_layer.add_child(branch_line)
 
 		var stage_two := PanelContainer.new()
 		stage_two.position = target_pos.lerp(branch_pos, 0.54) - Vector2(54, 16)
 		stage_two.custom_minimum_size = Vector2(108, 30)
+		stage_two.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active_stage_branch else 0.70)
 		map_layer.add_child(stage_two)
 
 		var stage_two_label := Label.new()
-		stage_two_label.text = "二阶段 · 分支"
+		stage_two_label.text = "二阶段 · %s" % str(branch.get("target_name", branch_id))
 		_style_dim(stage_two_label, 12)
 		stage_two_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		stage_two.add_child(stage_two_label)
@@ -1676,6 +1714,12 @@ func _make_frontier_campaign_bar(active_region: Dictionary) -> PanelContainer:
 	for campaign_variant in campaigns.slice(0, 3):
 		var campaign: Dictionary = campaign_variant
 		row.add_child(_make_frontier_campaign_card(campaign))
+
+	var stage_row := HBoxContainer.new()
+	stage_row.add_theme_constant_override("separation", 8)
+	box.add_child(stage_row)
+	stage_row.add_child(_make_campaign_stage_button(active_region, 0, "第一阶段"))
+	stage_row.add_child(_make_campaign_stage_button(active_region, 1, "第二阶段"))
 	return panel
 
 
@@ -1729,6 +1773,23 @@ func _make_frontier_campaign_card(campaign: Dictionary) -> PanelContainer:
 	button.pressed.connect(_on_frontier_campaign_selected.bind(target_region_id))
 	panel.add_child(button)
 	return panel
+
+
+func _make_campaign_stage_button(active_region: Dictionary, stage_index: int, label_text: String) -> Button:
+	var button := Button.new()
+	button.toggle_mode = true
+	button.button_pressed = selected_campaign_stage_index == stage_index
+	button.custom_minimum_size = Vector2(120, 34)
+	var active_operation := _active_frontier_operation(active_region)
+	var route_stages: Array = active_operation.get("route_stages", [])
+	if selected_campaign_stage_index == stage_index:
+		button.text = "%s · 当前" % label_text
+	else:
+		button.text = label_text
+	if stage_index >= route_stages.size():
+		button.disabled = true
+	button.pressed.connect(_on_campaign_stage_selected.bind(stage_index))
+	return button
 
 
 func _make_map_legend_panel(active_region: Dictionary) -> PanelContainer:
@@ -2513,6 +2574,7 @@ func _make_campaign_atlas_card(active_region: Dictionary, region_accent: Color) 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
 	var active_campaign := _active_frontier_campaign(active_region)
+	var active_stage := _active_campaign_stage(active_region)
 	var campaigns: Array = active_region.get("frontier_campaigns", [])
 
 	var title := Label.new()
@@ -2543,6 +2605,12 @@ func _make_campaign_atlas_card(active_region: Dictionary, region_accent: Color) 
 			str(campaign.get("campaign_name", "等待战区推进模式")),
 			_campaign_accent(str(campaign.get("campaign_band", "")))
 		))
+
+	var stage_row := HBoxContainer.new()
+	stage_row.add_theme_constant_override("separation", 8)
+	box.add_child(stage_row)
+	stage_row.add_child(_make_hero_chip("当前阶段", str(active_stage.get("stage", "阶段待命")), region_accent))
+	stage_row.add_child(_make_hero_chip("阶段目标", str(active_stage.get("title", "等待阶段目标")), Color8(102, 152, 204)))
 
 	return _wrap_menu_card(box, Color8(210, 182, 96))
 
@@ -3093,6 +3161,7 @@ func _make_section(
 
 func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
+	selected_campaign_stage_index = 0
 	selected_frontier_target_id = ""
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
@@ -3119,11 +3188,19 @@ func _on_frontier_branch_selected(region_id: String) -> void:
 func _on_frontier_campaign_selected(region_id: String) -> void:
 	selected_campaign_target_id = region_id
 	selected_frontier_target_id = region_id
+	selected_campaign_stage_index = 0
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	_sync_branch_focus(active_region)
 	status_label.text = "系统栏 · 已切换战区推进模式：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(171, 132, 196))
+
+
+func _on_campaign_stage_selected(stage_index: int) -> void:
+	selected_campaign_stage_index = stage_index
+	status_label.text = "系统栏 · 已切换推进阶段：%s · 当前分页：%s" % [str(stage_index + 1), _tab_title(selected_tab)]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(210, 182, 96))
 
 
 func _on_tab_pressed(tab_id: String) -> void:
