@@ -2,6 +2,20 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha128 (2026-04-14 12:37)
+
+- ✅ Godot 前端这轮不再只显示前线网络，而是把这层推进成了 `前线行动方案`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_operations`
+  - 每条前线的 `posture / threat_band / opportunity_band`
+  - 双跳 `route_stages`
+  - 行动摘要与战区标签
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 中心主舞台同步行动姿态、威胁带、机会带
+  - 底部前线转运带里的 `前线行动阶段`
+  - 右侧总览页里的 `前线行动总板`
+- ✅ 这意味着世界地图现在不只是“锁定前线和分支”，而开始具备真正的前线战略推演层。
+
 ### v4.0-alpha127 (2026-04-14 12:20)
 
 - ✅ Godot 前端这轮不是只在底部卡片里显示前线网络，而是把这层正式投回了地图空间。

@@ -258,6 +258,123 @@ def _build_frontier_network(
     return frontier_network
 
 
+def _frontier_threat_band(target_risk: float, branch_count: int, branch_total_strength: float) -> str:
+    if target_risk >= 0.68 or branch_total_strength >= 1.6:
+        return "高压战区"
+    if target_risk >= 0.42 or branch_count >= 2:
+        return "波动战区"
+    return "稳态战区"
+
+
+def _frontier_opportunity_band(target_prosperity: float, target_stability: float, strength: float) -> str:
+    if target_prosperity >= 0.62 and target_stability >= 0.52:
+        return "扩张窗口"
+    if strength >= 0.58:
+        return "通道窗口"
+    return "侦察窗口"
+
+
+def _frontier_operation_posture(
+    target_risk: float,
+    strength: float,
+    branch_count: int,
+    branch_total_strength: float,
+) -> str:
+    if target_risk >= 0.68 and strength >= 0.56:
+        return "高压突进"
+    if branch_count >= 2 and branch_total_strength >= 1.2:
+        return "网络扩张"
+    if target_risk <= 0.38 and strength >= 0.44:
+        return "稳态推进"
+    return "前线侦察"
+
+
+def _frontier_operation_badges(
+    target_name: str,
+    threat_band: str,
+    opportunity_band: str,
+    branch_count: int,
+) -> list[str]:
+    badges = [
+        f"焦点前线：{target_name}",
+        f"威胁带：{threat_band}",
+        f"机会带：{opportunity_band}",
+    ]
+    if branch_count > 0:
+        badges.append(f"网络分支：{branch_count} 条")
+    return badges[:4]
+
+
+def _build_frontier_operations(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    frontier_links = region_detail.get("frontier_links", [])
+    frontier_network = {
+        str(entry.get("target_region_id", "")): entry
+        for entry in region_detail.get("frontier_network", [])
+    }
+    operations: list[dict[str, Any]] = []
+
+    for frontier_link in frontier_links:
+        target_region_id = str(frontier_link.get("target_region_id", ""))
+        network_entry = frontier_network.get(target_region_id, {})
+        branches = list(network_entry.get("branches", []))
+        lead_branch = branches[0] if branches else {}
+        target_name = str(frontier_link.get("target_name", target_region_id))
+        target_risk = float(frontier_link.get("target_risk", 0.0))
+        target_prosperity = float(frontier_link.get("target_prosperity", 0.0))
+        target_stability = float(frontier_link.get("target_stability", 0.0))
+        strength = float(frontier_link.get("strength", 0.0))
+        branch_count = int(network_entry.get("branch_count", 0))
+        branch_total_strength = float(network_entry.get("branch_total_strength", 0.0))
+        threat_band = _frontier_threat_band(target_risk, branch_count, branch_total_strength)
+        opportunity_band = _frontier_opportunity_band(target_prosperity, target_stability, strength)
+        posture = _frontier_operation_posture(target_risk, strength, branch_count, branch_total_strength)
+
+        route_stages = [
+            {
+                "stage": "第一跳",
+                "target_region_id": target_region_id,
+                "title": f"推进至 {target_name}",
+                "detail": f"{frontier_link.get('connection_label', '区域通道')} · 强度 {strength:.2f}",
+            }
+        ]
+        if lead_branch:
+            route_stages.append(
+                {
+                    "stage": "第二跳",
+                    "target_region_id": str(lead_branch.get("target_region_id", "")),
+                    "title": f"分支至 {lead_branch.get('target_name', lead_branch.get('target_region_id', '分支区域'))}",
+                    "detail": f"{lead_branch.get('connection_label', '区域通道')} · 强度 {float(lead_branch.get('strength', 0.0)):.2f}",
+                }
+            )
+
+        operations.append(
+            {
+                "target_region_id": target_region_id,
+                "target_name": target_name,
+                "posture": posture,
+                "threat_band": threat_band,
+                "opportunity_band": opportunity_band,
+                "summary": (
+                    f"{target_name} 当前适合执行 {posture}，"
+                    f"前线处于{threat_band}，当前机会判断为{opportunity_band}。"
+                ),
+                "route_stages": route_stages,
+                "badges": _frontier_operation_badges(
+                    target_name,
+                    threat_band,
+                    opportunity_band,
+                    branch_count,
+                ),
+            }
+        )
+
+    return operations[:4]
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -384,6 +501,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
     for region_id, region_detail in region_details.items():
         region_detail["frontier_links"] = _build_frontier_links(region_id, region_details)
         region_detail["frontier_network"] = _build_frontier_network(region_id, region_details)
+        region_detail["frontier_operations"] = _build_frontier_operations(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
