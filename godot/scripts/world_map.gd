@@ -325,6 +325,15 @@ func _region_type_chip(active_region: Dictionary) -> String:
 	}.get(label, "区域徽记")
 
 
+func _connection_type_icon(connection_type: String) -> String:
+	return {
+		"land_corridor": "⇄",
+		"river_network": "≈",
+		"coastal_exchange": "⚓",
+		"air_migration_lane": "➶",
+	}.get(connection_type, "⇢")
+
+
 func _active_region_accent() -> Color:
 	return REGION_COLORS.get(active_region_id, Color8(210, 182, 96))
 
@@ -1119,6 +1128,9 @@ func _build_map_nodes(regions: Array) -> void:
 
 
 func _build_map_command_layer() -> void:
+	var map_size := map_layer.get_rect().size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var bulletin_panel := _make_world_bulletin_panel(active_region)
 	bulletin_panel.position = Vector2(24, 20)
@@ -1131,6 +1143,10 @@ func _build_map_command_layer() -> void:
 	var legend_panel := _make_map_legend_panel(active_region)
 	legend_panel.position = Vector2(max(24, map_layer.size.x - 250), 20)
 	map_layer.add_child(legend_panel)
+
+	var frontier_belt := _make_frontier_transfer_belt(active_region)
+	frontier_belt.position = Vector2(max(36, map_size.x * 0.16), map_size.y - 182)
+	map_layer.add_child(frontier_belt)
 
 
 func _make_world_bulletin_panel(active_region: Dictionary) -> PanelContainer:
@@ -1307,6 +1323,149 @@ func _make_map_legend_panel(active_region: Dictionary) -> PanelContainer:
 	return panel
 
 
+func _make_frontier_transfer_belt(active_region: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(760, 150)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	panel.add_child(box)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = _active_region_accent().lightened(0.04)
+	ribbon.custom_minimum_size = Vector2(0, 8)
+	box.add_child(ribbon)
+
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 10)
+	box.add_child(title_row)
+
+	var title := Label.new()
+	title.text = "%s · 前线转运带" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	title.modulate = _active_region_accent().lightened(0.24)
+	title_row.add_child(title)
+
+	var tip := Label.new()
+	tip.text = "点击相邻区域可直接切换焦点"
+	tip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_style_dim(tip, 13)
+	title_row.add_child(tip)
+
+	var frontier_links: Array = active_region.get("frontier_links", [])
+	if frontier_links.is_empty():
+		var empty := Label.new()
+		empty.text = "当前没有可用前线通道。"
+		_style_dim(empty, 15)
+		box.add_child(empty)
+		return panel
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	box.add_child(row)
+
+	for link_variant in frontier_links:
+		var link: Dictionary = link_variant
+		row.add_child(_make_frontier_card(link))
+
+	return panel
+
+
+func _make_frontier_card(frontier_link: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(176, 100)
+	panel.modulate = Color(1.0, 1.0, 1.0, 0.96)
+
+	var target_region_id := str(frontier_link.get("target_region_id", ""))
+	var target_accent := REGION_COLORS.get(target_region_id, Color8(102, 152, 204))
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	panel.add_child(box)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = target_accent.lightened(0.06)
+	ribbon.custom_minimum_size = Vector2(0, 6)
+	box.add_child(ribbon)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 8)
+	box.add_child(header)
+
+	var icon := Label.new()
+	icon.text = _connection_type_icon(str(frontier_link.get("connection_type", "")))
+	_style_secondary_title(icon, 20)
+	icon.modulate = target_accent.lightened(0.18)
+	header.add_child(icon)
+
+	var name := Label.new()
+	name.text = str(frontier_link.get("target_name", target_region_id))
+	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_secondary_title(name, 17)
+	name.modulate = target_accent.lightened(0.22)
+	header.add_child(name)
+
+	var strength := Label.new()
+	strength.text = "%.2f" % float(frontier_link.get("strength", 0.0))
+	_style_primary_title(strength, 18)
+	strength.modulate = target_accent.lightened(0.28)
+	header.add_child(strength)
+
+	var route := Label.new()
+	route.text = "%s · %s" % [
+		str(frontier_link.get("connection_label", "区域通道")),
+		str(frontier_link.get("target_role", "生态观测区")),
+	]
+	route.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_dim(route, 13)
+	box.add_child(route)
+
+	var meter_row := HBoxContainer.new()
+	meter_row.add_theme_constant_override("separation", 8)
+	box.add_child(meter_row)
+	meter_row.add_child(_make_hero_chip("繁荣", "%.2f" % float(frontier_link.get("target_prosperity", 0.0)), target_accent))
+	meter_row.add_child(_make_hero_chip("风险", "%.2f" % float(frontier_link.get("target_risk", 0.0)), Color8(171, 132, 196)))
+
+	var species := Label.new()
+	species.text = _frontier_species_summary(frontier_link.get("target_species", []))
+	species.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_body(species, 13)
+	box.add_child(species)
+
+	panel.mouse_entered.connect(func() -> void:
+		_animate_card_hover(panel, true)
+	)
+	panel.mouse_exited.connect(func() -> void:
+		_animate_card_hover(panel, false)
+	)
+
+	var button := Button.new()
+	button.flat = true
+	button.text = ""
+	button.set_anchors_preset(PRESET_FULL_RECT)
+	button.pressed.connect(_on_region_pressed.bind(target_region_id))
+	button.mouse_entered.connect(func() -> void:
+		_animate_card_hover(panel, true)
+	)
+	button.mouse_exited.connect(func() -> void:
+		_animate_card_hover(panel, false)
+	)
+	panel.add_child(button)
+
+	return panel
+
+
+func _frontier_species_summary(rows: Array) -> String:
+	if rows.is_empty():
+		return "当前暂无邻区物种快照"
+	var labels: Array = []
+	for row_variant in rows:
+		var row: Dictionary = row_variant
+		labels.append("%s×%s" % [str(row.get("label", "")), str(row.get("count", 0))])
+	return "核心物种 · %s" % " / ".join(labels.slice(0, 2))
+
+
 func _build_side_panel() -> void:
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var chains: Dictionary = active_region.get("chains", world_data.get("chains", {}))
@@ -1325,6 +1484,7 @@ func _build_side_panel() -> void:
 		"overview":
 			tab_content.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview"), region_accent, active_region))
 			tab_content.add_child(_make_overview_dashboard(active_region, pressure_headlines, chain_focus, route_summary, region_accent))
+			tab_content.add_child(_make_frontier_overview_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
 			tab_content.add_child(_make_region_summary_card(active_region))
 			tab_content.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
@@ -1644,6 +1804,59 @@ func _make_overview_dashboard(active_region: Dictionary, pressure_headlines: Arr
 	stack.add_child(_make_hero_chip("主链", str(chain_focus[0]) if chain_focus.size() > 0 else "当前暂无主导链路信号", Color8(104, 171, 144)))
 	stack.add_child(_make_hero_chip("通道", str(route_summary[0]) if route_summary.size() > 0 else "当前暂无显著通道情报", region_accent))
 	return _wrap_menu_card(box, Color8(210, 182, 96))
+
+
+func _make_frontier_overview_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	var title := Label.new()
+	title.text = "%s · 前线转运情报" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	box.add_child(body)
+
+	var frontier_links: Array = active_region.get("frontier_links", [])
+	var lead_text := "当前暂无前线邻区情报"
+	var sub_text := "等待更多区域连接被识别。"
+	if not frontier_links.is_empty():
+		var lead_link: Dictionary = frontier_links[0]
+		lead_text = "%s · %s" % [
+			str(lead_link.get("target_name", lead_link.get("target_region_id", ""))),
+			str(lead_link.get("connection_label", "区域通道")),
+		]
+		sub_text = "繁荣 %.2f · 风险 %.2f" % [
+			float(lead_link.get("target_prosperity", 0.0)),
+			float(lead_link.get("target_risk", 0.0)),
+		]
+
+	body.add_child(_make_feature_panel(
+		"当前前线节点",
+		lead_text,
+		sub_text,
+		region_accent
+	))
+
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 8)
+	body.add_child(stack)
+
+	for link_variant in frontier_links.slice(0, 2):
+		var link: Dictionary = link_variant
+		stack.add_child(_make_hero_chip(
+			str(link.get("target_name", link.get("target_region_id", ""))),
+			"%s · %.2f" % [str(link.get("connection_label", "区域通道")), float(link.get("strength", 0.0))],
+			REGION_COLORS.get(str(link.get("target_region_id", "")), Color8(102, 152, 204))
+		))
+
+	if frontier_links.is_empty():
+		stack.add_child(_make_hero_chip("前线转运带", "当前暂无前线邻区", Color8(102, 152, 204)))
+
+	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
 func _make_chain_command_deck(chains: Dictionary, active_region: Dictionary, region_accent: Color) -> PanelContainer:

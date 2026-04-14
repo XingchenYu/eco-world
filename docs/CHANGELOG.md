@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha124 (2026-04-14 11:42)
+
+- ✅ Godot 前端这轮不是再加一块装饰卡，而是把当前焦点区域的相邻区域真正做成了地图主视区里的 `前线转运带`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_links`
+  - 邻区名称、通道类型、强度、繁荣、风险、核心物种快照
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - 地图底部前线转运带
+  - 可点击的相邻区域快速切换卡
+  - 右侧总览页的前线转运情报卡
+- ✅ 这意味着世界地图现在不只是在“看一个区域”，而开始具备沿连接关系推进和切换焦点的前线操作感。
+
 ### v4.0-alpha123 (2026-04-13 06:18)
 
 - ✅ Godot 前端这轮不再只是继续扩地图中心簇，而是让中心主视区开始跟右侧分页联动。

@@ -173,6 +173,42 @@ def _build_route_summary(connectors: list[dict[str, Any]]) -> list[str]:
     return summaries
 
 
+def _build_frontier_links(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    frontier_links: list[dict[str, Any]] = []
+    for connector in region_detail.get("connectors", []):
+        target_id = str(connector["target_region_id"])
+        target_detail = region_details.get(target_id, {})
+        target_species = target_detail.get("top_species", [])
+        frontier_links.append(
+            {
+                "target_region_id": target_id,
+                "target_name": target_detail.get("name", target_id),
+                "target_role": target_detail.get("region_role", "生态观测区"),
+                "target_biomes": list(target_detail.get("dominant_biomes", [])),
+                "connection_type": connector["connection_type"],
+                "connection_label": CONNECTION_LABELS.get(connector["connection_type"], connector["connection_type"]),
+                "strength": round(float(connector["strength"]), 4),
+                "seasonal_bias": connector.get("seasonal_bias", ""),
+                "target_prosperity": round(float(target_detail.get("health_state", {}).get("prosperity", 0.0)), 4),
+                "target_stability": round(float(target_detail.get("health_state", {}).get("stability", 0.0)), 4),
+                "target_risk": round(float(target_detail.get("health_state", {}).get("collapse_risk", 0.0)), 4),
+                "target_species": [
+                    {
+                        "label": str(entry.get("label", entry.get("species_id", ""))),
+                        "count": int(entry.get("count", 0)),
+                    }
+                    for entry in target_species[:2]
+                ],
+            }
+        )
+    frontier_links.sort(key=lambda item: float(item["strength"]), reverse=True)
+    return frontier_links[:4]
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -295,6 +331,9 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
             }
         )
         region_details[region_id] = _build_region_detail_payload(world, region_id)
+
+    for region_id, region_detail in region_details.items():
+        region_detail["frontier_links"] = _build_frontier_links(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
