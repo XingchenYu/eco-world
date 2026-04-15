@@ -927,6 +927,60 @@ def _build_frontier_directive_profiles(
     return directives
 
 
+def _build_frontier_directive_previews(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    directives: list[dict[str, Any]] = list(region_detail.get("frontier_directive_profiles", []))
+    previews: list[dict[str, Any]] = []
+    for directive in directives:
+        active_route = dict(directive.get("active_route", {}))
+        support_route = dict(directive.get("support_route", {}))
+        fallback_route = dict(directive.get("fallback_route", {}))
+        preview_stages = [
+            {
+                "stage_label": "预演一阶",
+                "target_region_id": str(active_route.get("target_region_id", "")),
+                "target_name": str(active_route.get("landing_name", "待命")),
+                "focus": "主轴压进",
+            },
+            {
+                "stage_label": "预演二阶",
+                "target_region_id": str(support_route.get("target_region_id", "")),
+                "target_name": str(support_route.get("landing_name", "待命")),
+                "focus": "支援轮换",
+            },
+            {
+                "stage_label": "预演回退",
+                "target_region_id": str(fallback_route.get("target_region_id", "")),
+                "target_name": str(fallback_route.get("landing_name", "待命")),
+                "focus": "回退保留",
+            },
+        ]
+        previews.append(
+            {
+                "directive_key": str(directive.get("directive_key", "")),
+                "preview_name": f"{str(directive.get('directive_band', '战区指令'))} · 路线预演",
+                "preview_band": str(directive.get("directive_band", "战区指令")),
+                "preview_stages": preview_stages,
+                "summary": (
+                    f"{str(directive.get('directive_band', '战区指令'))} 当前按 "
+                    f"{str(active_route.get('landing_name', '待命'))} → "
+                    f"{str(support_route.get('landing_name', '待命'))} → "
+                    f"{str(fallback_route.get('landing_name', '待命'))} 预演推进。"
+                ),
+                "badges": [
+                    f"一阶：{str(active_route.get('landing_name', '待命'))}",
+                    f"二阶：{str(support_route.get('landing_name', '待命'))}",
+                    f"回退：{str(fallback_route.get('landing_name', '待命'))}",
+                    f"编排：{str(directive.get('comparison_focus', '综合推进'))}",
+                ],
+            }
+        )
+    return previews
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -1063,6 +1117,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_activation_profiles"] = _build_frontier_activation_profiles(region_id, region_details)
         region_detail["frontier_activation_feedbacks"] = _build_frontier_activation_feedbacks(region_id, region_details)
         region_detail["frontier_directive_profiles"] = _build_frontier_directive_profiles(region_id, region_details)
+        region_detail["frontier_directive_previews"] = _build_frontier_directive_previews(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),

@@ -798,6 +798,17 @@ func _active_directive_profile(active_region: Dictionary) -> Dictionary:
 	return directives[0]
 
 
+func _active_directive_preview(active_region: Dictionary) -> Dictionary:
+	var previews: Array = active_region.get("frontier_directive_previews", [])
+	if previews.is_empty():
+		return {}
+	for preview_variant in previews:
+		var preview: Dictionary = preview_variant
+		if str(preview.get("directive_key", "")) == selected_directive_key:
+			return preview
+	return previews[0]
+
+
 func _active_schedule_route(active_region: Dictionary) -> Dictionary:
 	var active_formation := _active_formation_profile(active_region)
 	if active_formation.is_empty():
@@ -1112,6 +1123,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_activation_profile := _active_activation_profile(active_region)
 	var active_activation_feedback := _active_activation_feedback(active_region)
 	var active_directive := _active_directive_profile(active_region)
+	var active_directive_preview := _active_directive_preview(active_region)
 	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
@@ -1222,6 +1234,14 @@ func _build_focus_stage(regions: Array) -> void:
 	directive_row.add_child(_make_hero_chip("指令主轴", str((active_directive.get("active_route", {}) as Dictionary).get("landing_name", "待命")), Color8(104, 171, 144)))
 	directive_row.add_child(_make_hero_chip("指令编排", str(active_directive.get("comparison_focus", "综合推进")), Color8(102, 152, 204)))
 	directive_row.add_child(_make_hero_chip("指令筛选", _campaign_filter_label(), Color8(171, 132, 196)))
+
+	var preview_row := HBoxContainer.new()
+	preview_row.add_theme_constant_override("separation", 8)
+	root.add_child(preview_row)
+	var preview_stages: Array = active_directive_preview.get("preview_stages", [])
+	preview_row.add_child(_make_hero_chip("预演一阶", str((preview_stages[0] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 0 else "待命", Color8(210, 182, 96)))
+	preview_row.add_child(_make_hero_chip("预演二阶", str((preview_stages[1] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 1 else "待命", Color8(104, 171, 144)))
+	preview_row.add_child(_make_hero_chip("预演回退", str((preview_stages[2] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 2 else "待命", Color8(171, 132, 196)))
 
 	var footer := Label.new()
 	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 激活 %s · 回路 %s · 指令 %s · 调度带 %s · 筛选 %s" % [
@@ -2610,6 +2630,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_campaign_activation_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_activation_feedback_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_directive_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_directive_preview_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
@@ -3497,6 +3518,45 @@ func _make_campaign_directive_card(active_region: Dictionary, region_accent: Col
 		badge_row.add_child(_make_hero_chip("指令信号", str(badge_variant), Color8(210, 182, 96)))
 
 	return _wrap_menu_card(box, Color8(104, 171, 144))
+
+
+func _make_campaign_directive_preview_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var active_preview := _active_directive_preview(active_region)
+	var preview_stages: Array = active_preview.get("preview_stages", [])
+
+	var title := Label.new()
+	title.text = "%s · 指令预演终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	box.add_child(body)
+
+	body.add_child(_make_feature_panel(
+		str(active_preview.get("preview_band", "等待预演")),
+		str(active_preview.get("preview_name", "等待当前指令预演")),
+		str(active_preview.get("summary", "当前暂无指令预演摘要。")),
+		region_accent
+	))
+
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 8)
+	body.add_child(stack)
+	stack.add_child(_make_hero_chip("预演一阶", str((preview_stages[0] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 0 else "待命", Color8(210, 182, 96)))
+	stack.add_child(_make_hero_chip("预演二阶", str((preview_stages[1] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 1 else "待命", Color8(104, 171, 144)))
+	stack.add_child(_make_hero_chip("预演回退", str((preview_stages[2] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 2 else "待命", Color8(171, 132, 196)))
+
+	var badge_row := HBoxContainer.new()
+	badge_row.add_theme_constant_override("separation", 8)
+	box.add_child(badge_row)
+	for badge_variant in (active_preview.get("badges", []) as Array).slice(0, 4):
+		badge_row.add_child(_make_hero_chip("预演信号", str(badge_variant), Color8(102, 152, 204)))
+
+	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
 func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:

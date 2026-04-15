@@ -2,6 +2,17 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha147 (2026-04-15 01:57)
+
+- ✅ Godot 前端这轮把 `战区指令层` 继续推进成了 `指令预演层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_directive_previews`
+  - 每套预演的 `preview_name / preview_stages`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `指令预演终端`
+  - 主视区显式显示 `预演一阶 / 预演二阶 / 预演回退`
+- ✅ 这意味着当前 Godot 世界入口已经不只是能切战区指令，而开始能直接查看这套指令的阶段化预演。
+
 ### v4.0-alpha146 (2026-04-15 01:45)
 
 - ✅ Godot 前端这轮把 `联动重排层` 继续推进成了 `战区指令层`。
