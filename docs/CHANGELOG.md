@@ -2,6 +2,17 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha152 (2026-04-15 03:39)
+
+- ✅ 新增 [docs/GAMEPLAY-LOOP.md](/Users/yumini/Projects/eco-world/docs/GAMEPLAY-LOOP.md)，把当前 `v4` 设计正式整理成中文玩法循环说明。
+- ✅ 这份文档明确了：
+  - 玩家身份
+  - 世界层 / 区域层 / 长期层玩法
+  - 当前 Godot 世界入口各控制层的玩法含义
+  - 当前已经具备的玩法基础
+  - 当前仍缺失的可玩性缺口
+- ✅ [README.md](/Users/yumini/Projects/eco-world/README.md) 也补了玩法文档入口，避免后面只能从对话里理解项目怎么玩。
+
 ### v4.0-alpha151 (2026-04-15 03:18)
 
 - ✅ Godot 前端这轮把 `指令定案层` 继续推进成了 `定案锁定 + 定案确认层`。
