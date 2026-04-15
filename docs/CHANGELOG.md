@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha145 (2026-04-15 01:31)
+
+- ✅ Godot 前端这轮把 `预案回路层` 继续推进成了 `联动重排层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在在 `frontier_activation_feedbacks` 里继续新增：
+  - `route_priority_order`
+  - `comparison_focus`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在会让回路继续重排：
+  - 战区图谱总板
+  - 候选落点评分
+  - 调度路线顺序
+- ✅ 这意味着当前激活预案已经不只是改写筛选和阶段，而开始直接改写整套战区比较与调度读法。
+
 ### v4.0-alpha144 (2026-04-15 01:18)
 
 - ✅ Godot 前端这轮把 `预案激活层` 继续推进成了 `预案回路层`。

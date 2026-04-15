@@ -795,6 +795,17 @@ def _build_frontier_activation_feedbacks(
             recommended_stage_index = 1
             feedback_band = "稳态回退回路"
 
+        route_priority_order = ["primary_route", "support_route", "fallback_route"]
+        comparison_focus = "综合推进"
+        if activation_key == "balanced":
+            route_priority_order = ["support_route", "primary_route", "fallback_route"]
+            comparison_focus = "中轴轮换"
+        elif activation_key == "safe":
+            route_priority_order = ["fallback_route", "support_route", "primary_route"]
+            comparison_focus = "稳态回退"
+        elif activation_key == "assault":
+            comparison_focus = "高压突进"
+
         if target_detail:
             prosperity = float(target_detail.get("health_state", {}).get("prosperity", 0.0))
             risk = float(target_detail.get("health_state", {}).get("collapse_risk", 0.0))
@@ -829,6 +840,8 @@ def _build_frontier_activation_feedbacks(
                 "priority_target_id": target_region_id,
                 "priority_target_name": str(target_detail.get("name", target_region_id or "待命")),
                 "priority_role": str(target_detail.get("region_role", "生态观测区")),
+                "route_priority_order": route_priority_order,
+                "comparison_focus": comparison_focus,
                 "summary": (
                     f"{campaign_name} 当前建议切到 {_humanize_filter_key(recommended_filter)} 筛选，"
                     f"推进 {route_stage_title}，优先围绕 "
@@ -837,6 +850,7 @@ def _build_frontier_activation_feedbacks(
                 "badges": [
                     f"筛选：{_humanize_filter_key(recommended_filter)}",
                     f"阶段：{route_stage_title}",
+                    f"调度：{comparison_focus}",
                     f"优先落点：{str(target_detail.get('name', target_region_id or '待命'))}",
                     f"回路：{feedback_band}",
                 ],

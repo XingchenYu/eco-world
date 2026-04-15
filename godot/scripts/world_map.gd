@@ -805,9 +805,32 @@ func _active_campaign_landing(active_region: Dictionary) -> Dictionary:
 	return detail_cache.get(landing_region_id, {})
 
 
+func _activation_route_priority_order(active_region: Dictionary) -> Array:
+	var feedback := _active_activation_feedback(active_region)
+	var order: Array = feedback.get("route_priority_order", [])
+	if order.is_empty():
+		return ["primary_route", "support_route", "fallback_route"]
+	return order
+
+
+func _reordered_schedule_routes(active_region: Dictionary, active_schedule: Dictionary) -> Array:
+	var order := _activation_route_priority_order(active_region)
+	var routes: Array = []
+	for route_key_variant in order:
+		var route_key := str(route_key_variant)
+		var route: Dictionary = active_schedule.get(route_key, {})
+		if route.is_empty():
+			continue
+		var route_copy := route.duplicate(true)
+		route_copy["route_key"] = route_key
+		routes.append(route_copy)
+	return routes
+
+
 func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 	var active_frontier := _active_frontier_link(active_region)
 	var active_network := _active_frontier_network(active_region)
+	var active_feedback := _active_activation_feedback(active_region)
 	var candidates: Array = []
 	var seen := {}
 
@@ -848,11 +871,17 @@ func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 		var candidate: Dictionary = candidate_variant
 		var prosperity := float(candidate.get("prosperity", 0.0))
 		var risk := float(candidate.get("risk", 0.0))
+		var loop_boost := 0.0
+		if str(candidate.get("target_region_id", "")) == str(active_feedback.get("priority_target_id", "")):
+			loop_boost += 0.16
+		if str(candidate.get("stage_label", "")) == str(active_feedback.get("recommended_stage_title", "")):
+			loop_boost += 0.08
 		candidate["score_balanced"] = round(prosperity * 0.64 + (1.0 - risk) * 0.36, 4)
 		candidate["score_safe"] = round((1.0 - risk) * 0.72 + prosperity * 0.28, 4)
 		candidate["score_rich"] = round(prosperity * 0.82 + (1.0 - risk) * 0.18, 4)
 		candidate["score_risk"] = round(risk * 0.78 + prosperity * 0.22, 4)
-		candidate["score"] = float(candidate.get("score_balanced", 0.0))
+		candidate["loop_boost"] = round(loop_boost, 4)
+		candidate["score"] = float(candidate.get("score_balanced", 0.0)) + loop_boost
 
 	_apply_campaign_filter(candidates)
 	return candidates
@@ -2969,7 +2998,15 @@ func _make_campaign_atlas_card(active_region: Dictionary, region_accent: Color) 
 	box.add_theme_constant_override("separation", 8)
 	var active_campaign := _active_frontier_campaign(active_region)
 	var active_stage := _active_campaign_stage(active_region)
-	var campaigns: Array = active_region.get("frontier_campaigns", [])
+	var active_feedback := _active_activation_feedback(active_region)
+	var campaigns: Array = active_region.get("frontier_campaigns", []).duplicate(true)
+	campaigns.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_priority := str(a.get("target_region_id", "")) == str(active_feedback.get("priority_target_id", ""))
+		var b_priority := str(b.get("target_region_id", "")) == str(active_feedback.get("priority_target_id", ""))
+		if a_priority != b_priority:
+			return a_priority
+		return str(a.get("campaign_name", "")) < str(b.get("campaign_name", ""))
+	)
 
 	var title := Label.new()
 	title.text = "%s · 战区图谱总板" % _region_type_chip(active_region)
@@ -3005,6 +3042,7 @@ func _make_campaign_atlas_card(active_region: Dictionary, region_accent: Color) 
 	box.add_child(stage_row)
 	stage_row.add_child(_make_hero_chip("当前阶段", str(active_stage.get("stage", "阶段待命")), region_accent))
 	stage_row.add_child(_make_hero_chip("阶段目标", str(active_stage.get("title", "等待阶段目标")), Color8(102, 152, 204)))
+	stage_row.add_child(_make_hero_chip("回路优先", str(active_feedback.get("priority_target_name", "待命")), Color8(171, 132, 196)))
 
 	return _wrap_menu_card(box, Color8(210, 182, 96))
 
@@ -3133,10 +3171,9 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	var active_schedule := _active_schedule_profile(active_region)
 	var active_formation := _active_formation_profile(active_region)
 	var active_preset := _active_formation_preset(active_region)
+	var active_feedback := _active_activation_feedback(active_region)
 	var active_route := _active_schedule_route(active_region)
-	var primary_route: Dictionary = active_schedule.get("primary_route", {})
-	var support_route: Dictionary = active_schedule.get("support_route", {})
-	var fallback_route: Dictionary = active_schedule.get("fallback_route", {})
+	var reordered_routes := _reordered_schedule_routes(active_region, active_schedule)
 	var formations: Array = active_region.get("frontier_formation_profiles", [])
 
 	var title := Label.new()
@@ -3162,6 +3199,7 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	stack.add_child(_make_hero_chip("当前调度", str(active_route.get("label", "待命")), Color8(104, 171, 144)))
 	stack.add_child(_make_hero_chip("调度落点", str(active_route.get("landing_name", "待命")), Color8(102, 152, 204)))
 	stack.add_child(_make_hero_chip("调度就绪", str(active_route.get("ready_band", "待命")), Color8(171, 132, 196)))
+	stack.add_child(_make_hero_chip("回路编排", str(active_feedback.get("comparison_focus", "综合推进")), Color8(210, 182, 96)))
 
 	var formation_row := HBoxContainer.new()
 	formation_row.add_theme_constant_override("separation", 8)
@@ -3183,8 +3221,9 @@ func _make_campaign_schedule_card(active_region: Dictionary, region_accent: Colo
 	var route_row := HBoxContainer.new()
 	route_row.add_theme_constant_override("separation", 8)
 	box.add_child(route_row)
-	for route_key in ["primary_route", "support_route", "fallback_route"]:
-		var route: Dictionary = active_schedule.get(route_key, {})
+	for route_variant in reordered_routes:
+		var route: Dictionary = route_variant
+		var route_key := str(route.get("route_key", "primary_route"))
 		var is_active := route_key == selected_schedule_route_key
 		var route_button := Button.new()
 		route_button.text = "%s%s · %s" % [
@@ -3337,6 +3376,7 @@ func _make_campaign_activation_feedback_card(active_region: Dictionary, region_a
 	stack.add_child(_make_hero_chip("回路筛选", _campaign_filter_label(), Color8(210, 182, 96)))
 	stack.add_child(_make_hero_chip("回路阶段", str(active_feedback.get("recommended_stage_title", "待命")), Color8(104, 171, 144)))
 	stack.add_child(_make_hero_chip("回路落点", str(active_feedback.get("priority_target_name", "待命")), Color8(102, 152, 204)))
+	stack.add_child(_make_hero_chip("回路编排", str(active_feedback.get("comparison_focus", "综合推进")), Color8(171, 132, 196)))
 	stack.add_child(_make_hero_chip("落点定位", str(active_feedback.get("priority_role", "生态观测区")), Color8(171, 132, 196)))
 
 	var badge_row := HBoxContainer.new()
