@@ -2,6 +2,17 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha150 (2026-04-15 02:29)
+
+- ✅ Godot 前端这轮把 `指令比选层` 继续推进成了 `指令定案层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_directive_decisions`
+  - 每套定案的 `decision_band / decision_name`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `指令定案终端`
+  - 主视区显式显示 `当前定案 / 定案主轴`
+- ✅ 这意味着当前 Godot 世界入口已经不只是做比选，而开始把比选结果推进成正式战区定案。
+
 ### v4.0-alpha149 (2026-04-15 02:18)
 
 - ✅ Godot 前端这轮把 `指令沙盘层` 继续推进成了 `指令比选层`。

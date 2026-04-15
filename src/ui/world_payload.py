@@ -1070,6 +1070,46 @@ def _build_frontier_directive_comparison(
     }
 
 
+def _build_frontier_directive_decisions(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    comparison: dict[str, Any] = dict(region_detail.get("frontier_directive_comparison", {}))
+    if not comparison:
+        return []
+
+    decisions: list[dict[str, Any]] = []
+    for decision_key, decision_band in [
+        ("best_directive", "优选定案"),
+        ("active_directive", "现行定案"),
+        ("risk_directive", "风险定案"),
+    ]:
+        source = dict(comparison.get(decision_key, {}))
+        if not source:
+            continue
+        decisions.append(
+            {
+                "decision_key": str(source.get("directive_key", "")),
+                "decision_name": f"{str(source.get('directive_name', '战区指令'))} · {decision_band}",
+                "decision_band": decision_band,
+                "directive_name": str(source.get("directive_name", "战区指令")),
+                "primary_target_name": str(source.get("primary_target_name", "待命")),
+                "sandbox_score": float(source.get("sandbox_score", 0.0)),
+                "summary": (
+                    f"{decision_band} 当前指向 {str(source.get('primary_target_name', '待命'))}，"
+                    f"沙盘总分 {float(source.get('sandbox_score', 0.0)):.2f}。"
+                ),
+                "badges": [
+                    f"定案：{decision_band}",
+                    f"主轴：{str(source.get('primary_target_name', '待命'))}",
+                    f"分数：{float(source.get('sandbox_score', 0.0)):.2f}",
+                ],
+            }
+        )
+    return decisions
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -1209,6 +1249,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_directive_previews"] = _build_frontier_directive_previews(region_id, region_details)
         region_detail["frontier_directive_sandbox"] = _build_frontier_directive_sandbox(region_id, region_details)
         region_detail["frontier_directive_comparison"] = _build_frontier_directive_comparison(region_id, region_details)
+        region_detail["frontier_directive_decisions"] = _build_frontier_directive_decisions(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),

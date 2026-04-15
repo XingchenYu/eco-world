@@ -818,6 +818,10 @@ func _directive_comparison(active_region: Dictionary) -> Dictionary:
 	return active_region.get("frontier_directive_comparison", {})
 
 
+func _directive_decisions(active_region: Dictionary) -> Array:
+	return active_region.get("frontier_directive_decisions", [])
+
+
 func _active_schedule_route(active_region: Dictionary) -> Dictionary:
 	var active_formation := _active_formation_profile(active_region)
 	if active_formation.is_empty():
@@ -1135,6 +1139,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_directive_preview := _active_directive_preview(active_region)
 	var directive_sandbox := _directive_sandbox_rows(active_region)
 	var directive_comparison := _directive_comparison(active_region)
+	var directive_decisions := _directive_decisions(active_region)
 	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
@@ -1266,6 +1271,12 @@ func _build_focus_stage(regions: Array) -> void:
 	comparison_row.add_child(_make_hero_chip("比选优选", str((directive_comparison.get("best_directive", {}) as Dictionary).get("directive_name", "待命")), Color8(210, 182, 96)))
 	comparison_row.add_child(_make_hero_chip("当前指令", str((directive_comparison.get("active_directive", {}) as Dictionary).get("directive_name", "待命")), Color8(104, 171, 144)))
 	comparison_row.add_child(_make_hero_chip("高风险指令", str((directive_comparison.get("risk_directive", {}) as Dictionary).get("directive_name", "待命")), Color8(171, 132, 196)))
+
+	var decision_row := HBoxContainer.new()
+	decision_row.add_theme_constant_override("separation", 8)
+	root.add_child(decision_row)
+	decision_row.add_child(_make_hero_chip("当前定案", str((directive_decisions[0] as Dictionary).get("decision_name", "待命")) if directive_decisions.size() > 0 else "待命", Color8(210, 182, 96)))
+	decision_row.add_child(_make_hero_chip("定案主轴", str((directive_decisions[0] as Dictionary).get("primary_target_name", "待命")) if directive_decisions.size() > 0 else "待命", Color8(104, 171, 144)))
 
 	var footer := Label.new()
 	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 激活 %s · 回路 %s · 指令 %s · 调度带 %s · 筛选 %s" % [
@@ -2657,6 +2668,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_campaign_directive_preview_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_directive_sandbox_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_directive_comparison_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_directive_decision_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
@@ -3644,6 +3656,37 @@ func _make_campaign_directive_comparison_card(active_region: Dictionary, region_
 	row.add_child(_make_hero_chip("高风险指令", str(risk_directive.get("directive_name", "待命")), Color8(171, 132, 196)))
 
 	return _wrap_menu_card(box, Color8(210, 182, 96))
+
+
+func _make_campaign_directive_decision_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var decisions := _directive_decisions(active_region)
+
+	var title := Label.new()
+	title.text = "%s · 指令定案终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	if not decisions.is_empty():
+		var top_decision: Dictionary = decisions[0]
+		box.add_child(_make_feature_panel(
+			str(top_decision.get("decision_band", "等待定案")),
+			str(top_decision.get("decision_name", "等待当前定案")),
+			str(top_decision.get("summary", "当前暂无指令定案摘要。")),
+			region_accent
+		))
+
+	for decision_variant in decisions.slice(0, 3):
+		var decision: Dictionary = decision_variant
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		box.add_child(row)
+		row.add_child(_make_hero_chip(str(decision.get("decision_band", "定案")), str(decision.get("directive_name", "待命")), Color8(210, 182, 96)))
+		row.add_child(_make_hero_chip("主轴", str(decision.get("primary_target_name", "待命")), Color8(104, 171, 144)))
+		row.add_child(_make_hero_chip("分数", "%.2f" % float(decision.get("sandbox_score", 0.0)), Color8(171, 132, 196)))
+
+	return _wrap_menu_card(box, Color8(104, 171, 144))
 
 
 func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
