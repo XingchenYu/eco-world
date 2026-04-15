@@ -46,6 +46,8 @@ var selected_schedule_route_key := "primary_route"
 var selected_formation_key := "assault"
 var selected_activation_preset_key := "assault"
 var selected_directive_key := "assault"
+var selected_decision_key := "assault"
+var selected_confirmation_key := "assault"
 var selected_frontier_target_id := ""
 var selected_branch_target_id := ""
 var refresh_button: Button
@@ -631,6 +633,19 @@ func _apply_directive_profile(active_region: Dictionary) -> void:
 	_sync_branch_focus(active_region)
 
 
+func _apply_decision_lock(active_region: Dictionary) -> void:
+	var lock := _active_directive_lock(active_region)
+	if lock.is_empty():
+		return
+	var decision_key := str(lock.get("lock_key", "assault"))
+	selected_decision_key = decision_key
+	selected_confirmation_key = decision_key
+	selected_directive_key = decision_key
+	selected_activation_preset_key = decision_key
+	selected_formation_key = decision_key
+	_apply_directive_profile(active_region)
+
+
 func _sync_branch_focus(active_region: Dictionary) -> void:
 	var active_network := _active_frontier_network(active_region)
 	var branches: Array = active_network.get("branches", [])
@@ -820,6 +835,40 @@ func _directive_comparison(active_region: Dictionary) -> Dictionary:
 
 func _directive_decisions(active_region: Dictionary) -> Array:
 	return active_region.get("frontier_directive_decisions", [])
+
+
+func _active_directive_lock(active_region: Dictionary) -> Dictionary:
+	var locks: Array = active_region.get("frontier_directive_locks", [])
+	if locks.is_empty():
+		return {}
+	for lock_variant in locks:
+		var lock: Dictionary = lock_variant
+		if str(lock.get("lock_key", "")) == selected_decision_key:
+			return lock
+	selected_decision_key = "assault"
+	return locks[0]
+
+
+func _active_directive_confirmation(active_region: Dictionary) -> Dictionary:
+	var confirmations: Array = active_region.get("frontier_directive_confirmations", [])
+	if confirmations.is_empty():
+		return {}
+	for confirmation_variant in confirmations:
+		var confirmation: Dictionary = confirmation_variant
+		if str(confirmation.get("confirmation_key", "")) == selected_confirmation_key:
+			return confirmation
+	selected_confirmation_key = "assault"
+	return confirmations[0]
+
+
+func _apply_directive_confirmation(active_region: Dictionary) -> void:
+	var confirmation := _active_directive_confirmation(active_region)
+	if confirmation.is_empty():
+		return
+	var confirmation_key := str(confirmation.get("confirmation_key", "assault"))
+	selected_confirmation_key = confirmation_key
+	selected_decision_key = confirmation_key
+	_apply_decision_lock(active_region)
 
 
 func _active_schedule_route(active_region: Dictionary) -> Dictionary:
@@ -1140,6 +1189,8 @@ func _build_focus_stage(regions: Array) -> void:
 	var directive_sandbox := _directive_sandbox_rows(active_region)
 	var directive_comparison := _directive_comparison(active_region)
 	var directive_decisions := _directive_decisions(active_region)
+	var active_lock := _active_directive_lock(active_region)
+	var active_confirmation := _active_directive_confirmation(active_region)
 	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
@@ -1277,6 +1328,14 @@ func _build_focus_stage(regions: Array) -> void:
 	root.add_child(decision_row)
 	decision_row.add_child(_make_hero_chip("当前定案", str((directive_decisions[0] as Dictionary).get("decision_name", "待命")) if directive_decisions.size() > 0 else "待命", Color8(210, 182, 96)))
 	decision_row.add_child(_make_hero_chip("定案主轴", str((directive_decisions[0] as Dictionary).get("primary_target_name", "待命")) if directive_decisions.size() > 0 else "待命", Color8(104, 171, 144)))
+	decision_row.add_child(_make_hero_chip("锁定结论", str(active_lock.get("lock_name", "待命")), Color8(171, 132, 196)))
+
+	var confirmation_row := HBoxContainer.new()
+	confirmation_row.add_theme_constant_override("separation", 8)
+	root.add_child(confirmation_row)
+	confirmation_row.add_child(_make_hero_chip("当前确认", str(active_confirmation.get("confirmation_name", "待命")), Color8(210, 182, 96)))
+	confirmation_row.add_child(_make_hero_chip("确认主轴", str(active_confirmation.get("primary_target_name", "待命")), Color8(104, 171, 144)))
+	confirmation_row.add_child(_make_hero_chip("确认带", str(active_confirmation.get("confirmation_band", "待命")), Color8(171, 132, 196)))
 
 	var footer := Label.new()
 	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 激活 %s · 回路 %s · 指令 %s · 调度带 %s · 筛选 %s" % [
@@ -2669,6 +2728,8 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_campaign_directive_sandbox_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_directive_comparison_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_directive_decision_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_directive_lock_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_directive_confirmation_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
@@ -3689,6 +3750,84 @@ func _make_campaign_directive_decision_card(active_region: Dictionary, region_ac
 	return _wrap_menu_card(box, Color8(104, 171, 144))
 
 
+func _make_campaign_directive_lock_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var locks: Array = active_region.get("frontier_directive_locks", [])
+	var active_lock := _active_directive_lock(active_region)
+
+	var title := Label.new()
+	title.text = "%s · 定案锁定终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	if not active_lock.is_empty():
+		box.add_child(_make_feature_panel(
+			str(active_lock.get("lock_band", "等待锁定")),
+			str(active_lock.get("lock_name", "等待当前锁定结论")),
+			str(active_lock.get("summary", "当前暂无定案锁定摘要。")),
+			region_accent
+		))
+
+	var lock_row := HBoxContainer.new()
+	lock_row.add_theme_constant_override("separation", 8)
+	box.add_child(lock_row)
+	for lock_variant in locks.slice(0, 3):
+		var lock: Dictionary = lock_variant
+		var lock_key := str(lock.get("lock_key", ""))
+		var is_active := lock_key == selected_decision_key
+		var button := Button.new()
+		button.text = "%s%s" % [
+			"已锁定 · " if is_active else "",
+			str(lock.get("lock_band", "锁定结论"))
+		]
+		button.toggle_mode = true
+		button.button_pressed = is_active
+		button.pressed.connect(_on_decision_lock_selected.bind(lock_key))
+		lock_row.add_child(button)
+
+	return _wrap_menu_card(box, Color8(171, 132, 196))
+
+
+func _make_campaign_directive_confirmation_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var confirmations: Array = active_region.get("frontier_directive_confirmations", [])
+	var active_confirmation := _active_directive_confirmation(active_region)
+
+	var title := Label.new()
+	title.text = "%s · 定案确认终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	if not active_confirmation.is_empty():
+		box.add_child(_make_feature_panel(
+			str(active_confirmation.get("confirmation_band", "等待确认")),
+			str(active_confirmation.get("confirmation_name", "等待当前确认通令")),
+			str(active_confirmation.get("summary", "当前暂无定案确认摘要。")),
+			region_accent
+		))
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	for confirmation_variant in confirmations.slice(0, 3):
+		var confirmation: Dictionary = confirmation_variant
+		var confirmation_key := str(confirmation.get("confirmation_key", ""))
+		var is_active := confirmation_key == selected_confirmation_key
+		var button := Button.new()
+		button.text = "%s%s" % [
+			"已确认 · " if is_active else "",
+			str(confirmation.get("confirmation_band", "确认通令"))
+		]
+		button.toggle_mode = true
+		button.button_pressed = is_active
+		button.pressed.connect(_on_directive_confirmation_selected.bind(confirmation_key))
+		row.add_child(button)
+
+	return _wrap_menu_card(box, Color8(210, 182, 96))
+
+
 func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
@@ -4318,6 +4457,8 @@ func _on_region_pressed(region_id: String) -> void:
 	selected_formation_key = "assault"
 	selected_activation_preset_key = "assault"
 	selected_directive_key = "assault"
+	selected_decision_key = "assault"
+	selected_confirmation_key = "assault"
 	selected_frontier_target_id = ""
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
@@ -4350,6 +4491,8 @@ func _on_frontier_campaign_selected(region_id: String) -> void:
 	selected_formation_key = "assault"
 	selected_activation_preset_key = "assault"
 	selected_directive_key = "assault"
+	selected_decision_key = "assault"
+	selected_confirmation_key = "assault"
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	_sync_campaign_landing(active_region)
 	_sync_branch_focus(active_region)
@@ -4366,6 +4509,8 @@ func _on_campaign_stage_selected(stage_index: int) -> void:
 	selected_formation_key = "assault"
 	selected_activation_preset_key = "assault"
 	selected_directive_key = "assault"
+	selected_decision_key = "assault"
+	selected_confirmation_key = "assault"
 	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换推进阶段：%s · 当前分页：%s" % [str(stage_index + 1), _tab_title(selected_tab)]
 	_render_world()
@@ -4379,6 +4524,8 @@ func _on_campaign_filter_selected(filter_key: String) -> void:
 	selected_formation_key = "assault"
 	selected_activation_preset_key = "assault"
 	selected_directive_key = "assault"
+	selected_decision_key = "assault"
+	selected_confirmation_key = "assault"
 	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换战区筛选：%s · 当前分页：%s" % [_campaign_filter_label(), _tab_title(selected_tab)]
 	_render_world()
@@ -4396,6 +4543,8 @@ func _on_formation_selected(formation_key: String) -> void:
 	selected_formation_key = formation_key
 	selected_activation_preset_key = formation_key
 	selected_directive_key = formation_key
+	selected_decision_key = formation_key
+	selected_confirmation_key = formation_key
 	selected_schedule_route_key = "primary_route"
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var active_route := _active_schedule_route(active_region)
@@ -4413,6 +4562,8 @@ func _on_activation_preset_selected(activation_key: String) -> void:
 	selected_activation_preset_key = activation_key
 	selected_formation_key = activation_key
 	selected_directive_key = activation_key
+	selected_decision_key = activation_key
+	selected_confirmation_key = activation_key
 	selected_schedule_route_key = "primary_route"
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	_apply_activation_feedback(active_region)
@@ -4431,6 +4582,8 @@ func _on_directive_selected(directive_key: String) -> void:
 	selected_directive_key = directive_key
 	selected_activation_preset_key = directive_key
 	selected_formation_key = directive_key
+	selected_decision_key = directive_key
+	selected_confirmation_key = directive_key
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	_apply_directive_profile(active_region)
 	var active_directive := _active_directive_profile(active_region)
@@ -4440,6 +4593,33 @@ func _on_directive_selected(directive_key: String) -> void:
 	]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(104, 171, 144))
+
+
+func _on_decision_lock_selected(decision_key: String) -> void:
+	selected_decision_key = decision_key
+	selected_confirmation_key = decision_key
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	_apply_decision_lock(active_region)
+	var active_lock := _active_directive_lock(active_region)
+	status_label.text = "系统栏 · 已锁定战区定案：%s · 当前分页：%s" % [
+		str(active_lock.get("lock_band", decision_key)),
+		_tab_title(selected_tab)
+	]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(171, 132, 196))
+
+
+func _on_directive_confirmation_selected(confirmation_key: String) -> void:
+	selected_confirmation_key = confirmation_key
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	_apply_directive_confirmation(active_region)
+	var active_confirmation := _active_directive_confirmation(active_region)
+	status_label.text = "系统栏 · 已确认战区定案：%s · 当前分页：%s" % [
+		str(active_confirmation.get("confirmation_band", confirmation_key)),
+		_tab_title(selected_tab)
+	]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(210, 182, 96))
 
 
 func _on_schedule_route_selected(route_key: String) -> void:

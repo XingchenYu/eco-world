@@ -1110,6 +1110,69 @@ def _build_frontier_directive_decisions(
     return decisions
 
 
+def _build_frontier_directive_locks(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    decisions: list[dict[str, Any]] = list(region_detail.get("frontier_directive_decisions", []))
+    locks: list[dict[str, Any]] = []
+    for decision in decisions:
+        locks.append(
+            {
+                "lock_key": str(decision.get("decision_key", "")),
+                "lock_name": f"{str(decision.get('decision_name', '战区定案'))} · 锁定结论",
+                "lock_band": str(decision.get("decision_band", "战区定案")),
+                "directive_name": str(decision.get("directive_name", "战区指令")),
+                "primary_target_name": str(decision.get("primary_target_name", "待命")),
+                "sandbox_score": float(decision.get("sandbox_score", 0.0)),
+                "summary": (
+                    f"{str(decision.get('decision_band', '战区定案'))} 当前将 "
+                    f"{str(decision.get('directive_name', '战区指令'))} 锁为现行结论，"
+                    f"主轴维持 {str(decision.get('primary_target_name', '待命'))}。"
+                ),
+                "badges": [
+                    f"锁定：{str(decision.get('decision_band', '战区定案'))}",
+                    f"指令：{str(decision.get('directive_name', '战区指令'))}",
+                    f"主轴：{str(decision.get('primary_target_name', '待命'))}",
+                ],
+            }
+        )
+    return locks
+
+
+def _build_frontier_directive_confirmations(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    locks: list[dict[str, Any]] = list(region_detail.get("frontier_directive_locks", []))
+    confirmations: list[dict[str, Any]] = []
+    for lock in locks:
+        confirmations.append(
+            {
+                "confirmation_key": str(lock.get("lock_key", "")),
+                "confirmation_name": f"{str(lock.get('lock_name', '战区锁定'))} · 确认通令",
+                "confirmation_band": str(lock.get("lock_band", "战区锁定")),
+                "directive_name": str(lock.get("directive_name", "战区指令")),
+                "primary_target_name": str(lock.get("primary_target_name", "待命")),
+                "lock_name": str(lock.get("lock_name", "战区锁定")),
+                "sandbox_score": float(lock.get("sandbox_score", 0.0)),
+                "summary": (
+                    f"{str(lock.get('lock_name', '战区锁定'))} 当前已经转入确认通令，"
+                    f"现行主轴维持 {str(lock.get('primary_target_name', '待命'))}，"
+                    f"并继续执行 {str(lock.get('directive_name', '战区指令'))}。"
+                ),
+                "badges": [
+                    f"确认：{str(lock.get('lock_band', '战区锁定'))}",
+                    f"锁定：{str(lock.get('lock_name', '战区锁定'))}",
+                    f"主轴：{str(lock.get('primary_target_name', '待命'))}",
+                ],
+            }
+        )
+    return confirmations
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -1250,6 +1313,8 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_directive_sandbox"] = _build_frontier_directive_sandbox(region_id, region_details)
         region_detail["frontier_directive_comparison"] = _build_frontier_directive_comparison(region_id, region_details)
         region_detail["frontier_directive_decisions"] = _build_frontier_directive_decisions(region_id, region_details)
+        region_detail["frontier_directive_locks"] = _build_frontier_directive_locks(region_id, region_details)
+        region_detail["frontier_directive_confirmations"] = _build_frontier_directive_confirmations(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),

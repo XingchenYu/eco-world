@@ -2,6 +2,19 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha151 (2026-04-15 03:18)
+
+- ✅ Godot 前端这轮把 `指令定案层` 继续推进成了 `定案锁定 + 定案确认层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_directive_locks`
+  - `frontier_directive_confirmations`
+  - 每套锁定/确认的 `lock_band / confirmation_band`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `定案锁定终端`
+  - `定案确认终端`
+  - 主视区显式显示 `锁定结论 / 当前确认 / 确认主轴 / 确认带`
+- ✅ 这意味着当前 Godot 世界入口已经不只是在右侧显示定案，而开始把定案推进成真正可锁定、可确认的战区结论。
+
 ### v4.0-alpha150 (2026-04-15 02:29)
 
 - ✅ Godot 前端这轮把 `指令比选层` 继续推进成了 `指令定案层`。
