@@ -485,6 +485,8 @@ def test_v4_world_ui_payload():
     assert "frontier_directive_sandbox" in payload["region_details"]["temperate_grassland"]
     assert payload["region_details"]["temperate_grassland"]["frontier_directive_sandbox"]
     assert "sandbox_score" in payload["region_details"]["temperate_grassland"]["frontier_directive_sandbox"][0]
+    assert "frontier_directive_comparison" in payload["region_details"]["temperate_grassland"]
+    assert payload["region_details"]["temperate_grassland"]["frontier_directive_comparison"]["best_directive"]
     assert payload["region_details"]["temperate_grassland"]["pressure_headlines"]
     assert payload["region_details"]["temperate_grassland"]["chain_focus"]
     assert "label" in payload["region_details"]["temperate_grassland"]["top_species"][0]

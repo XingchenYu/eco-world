@@ -1024,6 +1024,52 @@ def _build_frontier_directive_sandbox(
     return sandbox_rows
 
 
+def _build_frontier_directive_comparison(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    region_detail = region_details.get(region_id, {})
+    sandbox_rows: list[dict[str, Any]] = list(region_detail.get("frontier_directive_sandbox", []))
+    if not sandbox_rows:
+        return {}
+
+    best_row = sandbox_rows[0]
+    riskiest_row = max(
+        sandbox_rows,
+        key=lambda row: 0.0 if "稳态" in str(row.get("sandbox_name", "")) else float(row.get("sandbox_score", 0.0)),
+    )
+    active_row = sandbox_rows[0]
+    for row in sandbox_rows:
+        if str(row.get("directive_key", "")) == "assault":
+            active_row = row
+            break
+
+    return {
+        "best_directive": {
+            "directive_key": str(best_row.get("directive_key", "")),
+            "directive_name": str(best_row.get("sandbox_name", "待命")),
+            "sandbox_score": float(best_row.get("sandbox_score", 0.0)),
+            "primary_target_name": str(best_row.get("primary_target_name", "待命")),
+        },
+        "active_directive": {
+            "directive_key": str(active_row.get("directive_key", "")),
+            "directive_name": str(active_row.get("sandbox_name", "待命")),
+            "sandbox_score": float(active_row.get("sandbox_score", 0.0)),
+            "primary_target_name": str(active_row.get("primary_target_name", "待命")),
+        },
+        "risk_directive": {
+            "directive_key": str(riskiest_row.get("directive_key", "")),
+            "directive_name": str(riskiest_row.get("sandbox_name", "待命")),
+            "sandbox_score": float(riskiest_row.get("sandbox_score", 0.0)),
+            "primary_target_name": str(riskiest_row.get("primary_target_name", "待命")),
+        },
+        "summary": (
+            f"当前沙盘优选 {str(best_row.get('sandbox_name', '待命'))}，"
+            f"主轴指向 {str(best_row.get('primary_target_name', '待命'))}。"
+        ),
+    }
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -1162,6 +1208,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_directive_profiles"] = _build_frontier_directive_profiles(region_id, region_details)
         region_detail["frontier_directive_previews"] = _build_frontier_directive_previews(region_id, region_details)
         region_detail["frontier_directive_sandbox"] = _build_frontier_directive_sandbox(region_id, region_details)
+        region_detail["frontier_directive_comparison"] = _build_frontier_directive_comparison(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),

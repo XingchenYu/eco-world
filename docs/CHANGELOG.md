@@ -2,6 +2,17 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha149 (2026-04-15 02:18)
+
+- ✅ Godot 前端这轮把 `指令沙盘层` 继续推进成了 `指令比选层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_directive_comparison`
+  - 比选里的 `best_directive / active_directive / risk_directive`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `指令比选终端`
+  - 主视区显式显示 `比选优选 / 当前指令 / 高风险指令`
+- ✅ 这意味着当前 Godot 世界入口已经不只是比较沙盘分数，而开始给出明确的战区指令比选结论。
+
 ### v4.0-alpha148 (2026-04-15 02:08)
 
 - ✅ Godot 前端这轮把 `指令预演层` 继续推进成了 `指令沙盘层`。
