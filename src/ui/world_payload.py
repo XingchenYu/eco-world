@@ -860,6 +860,73 @@ def _build_frontier_activation_feedbacks(
     return feedbacks
 
 
+def _build_frontier_directive_profiles(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    feedbacks: list[dict[str, Any]] = list(region_detail.get("frontier_activation_feedbacks", []))
+    schedule_profiles: list[dict[str, Any]] = list(region_detail.get("frontier_schedule_profiles", []))
+    if not feedbacks or not schedule_profiles:
+        return []
+
+    schedule = schedule_profiles[0]
+    directives: list[dict[str, Any]] = []
+    for feedback in feedbacks:
+        directive_key = str(feedback.get("activation_key", ""))
+        route_priority_order: list[str] = [str(item) for item in feedback.get("route_priority_order", [])]
+        if not route_priority_order:
+            route_priority_order = ["primary_route", "support_route", "fallback_route"]
+
+        ordered_routes: list[dict[str, Any]] = []
+        for route_key in route_priority_order:
+            route = dict(schedule.get(route_key, {}))
+            if not route:
+                continue
+            route["route_key"] = route_key
+            ordered_routes.append(route)
+
+        active_route = ordered_routes[0] if ordered_routes else {}
+        support_route = ordered_routes[1] if len(ordered_routes) > 1 else active_route
+        fallback_route = ordered_routes[2] if len(ordered_routes) > 2 else support_route
+
+        directive_band = "战区均衡指令"
+        if directive_key == "assault":
+            directive_band = "战区突进指令"
+        elif directive_key == "safe":
+            directive_band = "战区稳态指令"
+
+        directives.append(
+            {
+                "directive_key": directive_key,
+                "directive_name": f"{str(feedback.get('feedback_name', '战区回路'))} · {directive_band}",
+                "directive_band": directive_band,
+                "comparison_focus": str(feedback.get("comparison_focus", "综合推进")),
+                "recommended_filter": str(feedback.get("recommended_filter", "balanced")),
+                "recommended_stage_index": int(feedback.get("recommended_stage_index", 0)),
+                "recommended_stage_title": str(feedback.get("recommended_stage_title", "第一阶段")),
+                "priority_target_id": str(feedback.get("priority_target_id", "")),
+                "priority_target_name": str(feedback.get("priority_target_name", "待命")),
+                "active_route_key": str(active_route.get("route_key", "primary_route")),
+                "active_route": active_route,
+                "support_route": support_route,
+                "fallback_route": fallback_route,
+                "summary": (
+                    f"{directive_band} 当前以 {str(active_route.get('landing_name', '待命'))} 为主轴，"
+                    f"按 {str(feedback.get('comparison_focus', '综合推进'))} 逻辑重排战区。"
+                ),
+                "badges": [
+                    f"筛选：{_humanize_filter_key(str(feedback.get('recommended_filter', 'balanced')))}",
+                    f"阶段：{str(feedback.get('recommended_stage_title', '第一阶段'))}",
+                    f"主轴：{str(active_route.get('landing_name', '待命'))}",
+                    f"指令：{directive_band}",
+                ],
+            }
+        )
+
+    return directives
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -995,6 +1062,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_formation_presets"] = _build_frontier_formation_presets(region_id, region_details)
         region_detail["frontier_activation_profiles"] = _build_frontier_activation_profiles(region_id, region_details)
         region_detail["frontier_activation_feedbacks"] = _build_frontier_activation_feedbacks(region_id, region_details)
+        region_detail["frontier_directive_profiles"] = _build_frontier_directive_profiles(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),

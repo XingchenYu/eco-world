@@ -45,6 +45,7 @@ var selected_campaign_landing_target_id := ""
 var selected_schedule_route_key := "primary_route"
 var selected_formation_key := "assault"
 var selected_activation_preset_key := "assault"
+var selected_directive_key := "assault"
 var selected_frontier_target_id := ""
 var selected_branch_target_id := ""
 var refresh_button: Button
@@ -603,8 +604,25 @@ func _apply_activation_feedback(active_region: Dictionary) -> void:
 		return
 	selected_campaign_filter = str(feedback.get("recommended_filter", "balanced"))
 	selected_campaign_stage_index = int(feedback.get("recommended_stage_index", 0))
+	selected_directive_key = str(feedback.get("activation_key", "assault"))
 	_sync_campaign_stage(active_region)
 	var priority_target_id := str(feedback.get("priority_target_id", ""))
+	if priority_target_id != "":
+		selected_campaign_target_id = priority_target_id
+		selected_frontier_target_id = priority_target_id
+		selected_campaign_landing_target_id = priority_target_id
+	_sync_campaign_focus(active_region)
+	_sync_branch_focus(active_region)
+
+
+func _apply_directive_profile(active_region: Dictionary) -> void:
+	var directive := _active_directive_profile(active_region)
+	if directive.is_empty():
+		return
+	selected_campaign_filter = str(directive.get("recommended_filter", "balanced"))
+	selected_campaign_stage_index = int(directive.get("recommended_stage_index", 0))
+	selected_schedule_route_key = str(directive.get("active_route_key", "primary_route"))
+	var priority_target_id := str(directive.get("priority_target_id", ""))
 	if priority_target_id != "":
 		selected_campaign_target_id = priority_target_id
 		selected_frontier_target_id = priority_target_id
@@ -768,6 +786,18 @@ func _active_activation_feedback(active_region: Dictionary) -> Dictionary:
 	return feedbacks[0]
 
 
+func _active_directive_profile(active_region: Dictionary) -> Dictionary:
+	var directives: Array = active_region.get("frontier_directive_profiles", [])
+	if directives.is_empty():
+		return {}
+	for directive_variant in directives:
+		var directive: Dictionary = directive_variant
+		if str(directive.get("directive_key", "")) == selected_directive_key:
+			return directive
+	selected_directive_key = "assault"
+	return directives[0]
+
+
 func _active_schedule_route(active_region: Dictionary) -> Dictionary:
 	var active_formation := _active_formation_profile(active_region)
 	if active_formation.is_empty():
@@ -814,7 +844,20 @@ func _activation_route_priority_order(active_region: Dictionary) -> Array:
 
 
 func _reordered_schedule_routes(active_region: Dictionary, active_schedule: Dictionary) -> Array:
-	var order := _activation_route_priority_order(active_region)
+	var directive := _active_directive_profile(active_region)
+	var order: Array = []
+	var active_route_key := str(directive.get("active_route_key", ""))
+	if active_route_key == "":
+		order = _activation_route_priority_order(active_region)
+	else:
+		var candidates := [active_route_key, "primary_route", "support_route", "fallback_route"]
+		var seen := {}
+		for route_key_variant in candidates:
+			var route_key := str(route_key_variant)
+			if seen.has(route_key):
+				continue
+			seen[route_key] = true
+			order.append(route_key)
 	var routes: Array = []
 	for route_key_variant in order:
 		var route_key := str(route_key_variant)
@@ -1068,6 +1111,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_formation_preset := _active_formation_preset(active_region)
 	var active_activation_profile := _active_activation_profile(active_region)
 	var active_activation_feedback := _active_activation_feedback(active_region)
+	var active_directive := _active_directive_profile(active_region)
 	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
@@ -1171,8 +1215,16 @@ func _build_focus_stage(regions: Array) -> void:
 	feedback_row.add_child(_make_hero_chip("回路落点", str(active_activation_feedback.get("priority_target_name", "待命")), Color8(102, 152, 204)))
 	feedback_row.add_child(_make_hero_chip("回路带", str(active_activation_feedback.get("feedback_band", "待命")), Color8(210, 182, 96)))
 
+	var directive_row := HBoxContainer.new()
+	directive_row.add_theme_constant_override("separation", 8)
+	root.add_child(directive_row)
+	directive_row.add_child(_make_hero_chip("当前指令", str(active_directive.get("directive_band", "待命")), Color8(210, 182, 96)))
+	directive_row.add_child(_make_hero_chip("指令主轴", str((active_directive.get("active_route", {}) as Dictionary).get("landing_name", "待命")), Color8(104, 171, 144)))
+	directive_row.add_child(_make_hero_chip("指令编排", str(active_directive.get("comparison_focus", "综合推进")), Color8(102, 152, 204)))
+	directive_row.add_child(_make_hero_chip("指令筛选", _campaign_filter_label(), Color8(171, 132, 196)))
+
 	var footer := Label.new()
-	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 激活 %s · 回路 %s · 调度带 %s · 筛选 %s" % [
+	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 激活 %s · 回路 %s · 指令 %s · 调度带 %s · 筛选 %s" % [
 		str(world_data.get("world", {}).get("loaded_regions", 0)),
 		str(regions.size()),
 		str(active_campaign.get("campaign_band", "等待战区模式")),
@@ -1183,6 +1235,7 @@ func _build_focus_stage(regions: Array) -> void:
 		str(active_formation_preset.get("preset_name", "待命")),
 		str(active_activation_profile.get("activation_band", "待命")),
 		str(active_activation_feedback.get("feedback_band", "待命")),
+		str(active_directive.get("directive_band", "待命")),
 		str(active_schedule_profile.get("dispatch_band", "待命")),
 		_campaign_filter_label(),
 	]
@@ -2556,6 +2609,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_campaign_formation_preset_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_activation_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_activation_feedback_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_directive_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
@@ -3388,6 +3442,63 @@ func _make_campaign_activation_feedback_card(active_region: Dictionary, region_a
 	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
+func _make_campaign_directive_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var active_directive := _active_directive_profile(active_region)
+	var directives: Array = active_region.get("frontier_directive_profiles", [])
+
+	var title := Label.new()
+	title.text = "%s · 战区指令终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	var body := HBoxContainer.new()
+	body.add_theme_constant_override("separation", 10)
+	box.add_child(body)
+
+	body.add_child(_make_feature_panel(
+		str(active_directive.get("directive_band", "等待指令")),
+		str(active_directive.get("directive_name", "等待当前战区指令")),
+		str(active_directive.get("summary", "当前暂无战区指令摘要。")),
+		region_accent
+	))
+
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_theme_constant_override("separation", 8)
+	body.add_child(stack)
+	stack.add_child(_make_hero_chip("指令筛选", _campaign_filter_label(), Color8(210, 182, 96)))
+	stack.add_child(_make_hero_chip("指令阶段", str(active_directive.get("recommended_stage_title", "待命")), Color8(104, 171, 144)))
+	stack.add_child(_make_hero_chip("指令主轴", str((active_directive.get("active_route", {}) as Dictionary).get("landing_name", "待命")), Color8(102, 152, 204)))
+	stack.add_child(_make_hero_chip("指令编排", str(active_directive.get("comparison_focus", "综合推进")), Color8(171, 132, 196)))
+
+	var directive_row := HBoxContainer.new()
+	directive_row.add_theme_constant_override("separation", 8)
+	box.add_child(directive_row)
+	for directive_variant in directives.slice(0, 3):
+		var directive: Dictionary = directive_variant
+		var directive_key := str(directive.get("directive_key", ""))
+		var is_active := directive_key == selected_directive_key
+		var button := Button.new()
+		button.text = "%s%s" % [
+			"当前 · " if is_active else "",
+			str(directive.get("directive_band", "指令"))
+		]
+		button.toggle_mode = true
+		button.button_pressed = is_active
+		button.pressed.connect(_on_directive_selected.bind(directive_key))
+		directive_row.add_child(button)
+
+	var badge_row := HBoxContainer.new()
+	badge_row.add_theme_constant_override("separation", 8)
+	box.add_child(badge_row)
+	for badge_variant in (active_directive.get("badges", []) as Array).slice(0, 4):
+		badge_row.add_child(_make_hero_chip("指令信号", str(badge_variant), Color8(210, 182, 96)))
+
+	return _wrap_menu_card(box, Color8(104, 171, 144))
+
+
 func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
@@ -4016,6 +4127,7 @@ func _on_region_pressed(region_id: String) -> void:
 	selected_schedule_route_key = "primary_route"
 	selected_formation_key = "assault"
 	selected_activation_preset_key = "assault"
+	selected_directive_key = "assault"
 	selected_frontier_target_id = ""
 	status_label.text = "系统栏 · 已切换焦点区域：%s · 当前分页：%s" % [region_id, _tab_title(selected_tab)]
 	_render_world()
@@ -4047,6 +4159,7 @@ func _on_frontier_campaign_selected(region_id: String) -> void:
 	selected_schedule_route_key = "primary_route"
 	selected_formation_key = "assault"
 	selected_activation_preset_key = "assault"
+	selected_directive_key = "assault"
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	_sync_campaign_landing(active_region)
 	_sync_branch_focus(active_region)
@@ -4062,6 +4175,7 @@ func _on_campaign_stage_selected(stage_index: int) -> void:
 	selected_schedule_route_key = "primary_route"
 	selected_formation_key = "assault"
 	selected_activation_preset_key = "assault"
+	selected_directive_key = "assault"
 	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换推进阶段：%s · 当前分页：%s" % [str(stage_index + 1), _tab_title(selected_tab)]
 	_render_world()
@@ -4074,6 +4188,7 @@ func _on_campaign_filter_selected(filter_key: String) -> void:
 	selected_schedule_route_key = "primary_route"
 	selected_formation_key = "assault"
 	selected_activation_preset_key = "assault"
+	selected_directive_key = "assault"
 	_sync_campaign_landing(active_region)
 	status_label.text = "系统栏 · 已切换战区筛选：%s · 当前分页：%s" % [_campaign_filter_label(), _tab_title(selected_tab)]
 	_render_world()
@@ -4090,6 +4205,7 @@ func _on_campaign_landing_selected(region_id: String) -> void:
 func _on_formation_selected(formation_key: String) -> void:
 	selected_formation_key = formation_key
 	selected_activation_preset_key = formation_key
+	selected_directive_key = formation_key
 	selected_schedule_route_key = "primary_route"
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var active_route := _active_schedule_route(active_region)
@@ -4106,6 +4222,7 @@ func _on_formation_selected(formation_key: String) -> void:
 func _on_activation_preset_selected(activation_key: String) -> void:
 	selected_activation_preset_key = activation_key
 	selected_formation_key = activation_key
+	selected_directive_key = activation_key
 	selected_schedule_route_key = "primary_route"
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	_apply_activation_feedback(active_region)
@@ -4118,6 +4235,21 @@ func _on_activation_preset_selected(activation_key: String) -> void:
 	]
 	_render_world()
 	_animate_page_transition(_active_region_accent(), Color8(171, 132, 196))
+
+
+func _on_directive_selected(directive_key: String) -> void:
+	selected_directive_key = directive_key
+	selected_activation_preset_key = directive_key
+	selected_formation_key = directive_key
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	_apply_directive_profile(active_region)
+	var active_directive := _active_directive_profile(active_region)
+	status_label.text = "系统栏 · 已切换战区指令：%s · 当前分页：%s" % [
+		str(active_directive.get("directive_band", directive_key)),
+		_tab_title(selected_tab)
+	]
+	_render_world()
+	_animate_page_transition(_active_region_accent(), Color8(104, 171, 144))
 
 
 func _on_schedule_route_selected(route_key: String) -> void:
