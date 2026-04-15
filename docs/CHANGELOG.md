@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha144 (2026-04-15 01:18)
+
+- ✅ Godot 前端这轮把 `预案激活层` 继续推进成了 `预案回路层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_activation_feedbacks`
+  - 每套回路的 `recommended_filter / recommended_stage_index / priority_target_id`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `预案回路终端`
+  - 激活预案后自动回灌当前筛选、推进阶段与优先落点
+  - 主视区显式显示当前回路筛选 / 回路阶段 / 回路落点
+- ✅ 这意味着当前 Godot 世界入口已经不只是把某套预案设为现行计划，而开始让这套预案反向改写战区推进逻辑。
+
 ### v4.0-alpha143 (2026-04-15 01:05)
 
 - ✅ Godot 前端这轮把 `编成预案层` 继续推进成了 `预案激活层`。

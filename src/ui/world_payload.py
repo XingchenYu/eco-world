@@ -721,6 +721,15 @@ def _build_frontier_formation_presets(
     return presets
 
 
+def _humanize_filter_key(filter_key: str) -> str:
+    return {
+        "balanced": "综合",
+        "safe": "稳态",
+        "rich": "高繁荣",
+        "risk": "高风险",
+    }.get(filter_key, "综合")
+
+
 def _build_frontier_activation_profiles(
     region_id: str,
     region_details: dict[str, dict[str, Any]],
@@ -758,6 +767,83 @@ def _build_frontier_activation_profiles(
             }
         )
     return activations
+
+
+def _build_frontier_activation_feedbacks(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    activations: list[dict[str, Any]] = list(region_detail.get("frontier_activation_profiles", []))
+    campaigns: list[dict[str, Any]] = list(region_detail.get("frontier_campaigns", []))
+    feedbacks: list[dict[str, Any]] = []
+
+    for activation in activations:
+        activation_key = str(activation.get("activation_key", ""))
+        active_route = dict(activation.get("active_route", {}))
+        target_region_id = str(active_route.get("target_region_id", ""))
+        target_detail = region_details.get(target_region_id, {})
+
+        recommended_filter = "balanced"
+        recommended_stage_index = 0
+        feedback_band = "稳态回路"
+        if activation_key == "assault":
+            recommended_filter = "rich"
+            feedback_band = "高繁荣回路"
+        elif activation_key == "safe":
+            recommended_filter = "safe"
+            recommended_stage_index = 1
+            feedback_band = "稳态回退回路"
+
+        if target_detail:
+            prosperity = float(target_detail.get("health_state", {}).get("prosperity", 0.0))
+            risk = float(target_detail.get("health_state", {}).get("collapse_risk", 0.0))
+            if risk >= 0.62:
+                recommended_filter = "risk"
+                feedback_band = "高风险回路"
+            elif prosperity >= 0.68 and activation_key != "safe":
+                recommended_filter = "rich"
+                feedback_band = "高繁荣回路"
+
+        campaign_name = str(activation.get("activation_name", "战区预案"))
+        route_titles: list[str] = []
+        for campaign in campaigns:
+            if str(campaign.get("target_region_id", "")) == target_region_id:
+                route_titles = [str(item) for item in campaign.get("route_titles", [])]
+                break
+
+        route_stage_title = "第一阶段"
+        if route_titles:
+            clamped_index = min(recommended_stage_index, len(route_titles) - 1)
+            recommended_stage_index = clamped_index
+            route_stage_title = route_titles[clamped_index]
+
+        feedbacks.append(
+            {
+                "activation_key": activation_key,
+                "feedback_name": f"{campaign_name} · {feedback_band}",
+                "feedback_band": feedback_band,
+                "recommended_filter": recommended_filter,
+                "recommended_stage_index": recommended_stage_index,
+                "recommended_stage_title": route_stage_title,
+                "priority_target_id": target_region_id,
+                "priority_target_name": str(target_detail.get("name", target_region_id or "待命")),
+                "priority_role": str(target_detail.get("region_role", "生态观测区")),
+                "summary": (
+                    f"{campaign_name} 当前建议切到 {_humanize_filter_key(recommended_filter)} 筛选，"
+                    f"推进 {route_stage_title}，优先围绕 "
+                    f"{str(target_detail.get('name', target_region_id or '待命'))} 重排战区。"
+                ),
+                "badges": [
+                    f"筛选：{_humanize_filter_key(recommended_filter)}",
+                    f"阶段：{route_stage_title}",
+                    f"优先落点：{str(target_detail.get('name', target_region_id or '待命'))}",
+                    f"回路：{feedback_band}",
+                ],
+            }
+        )
+
+    return feedbacks
 
 
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
@@ -894,6 +980,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_formation_profiles"] = _build_frontier_formation_profiles(region_id, region_details)
         region_detail["frontier_formation_presets"] = _build_frontier_formation_presets(region_id, region_details)
         region_detail["frontier_activation_profiles"] = _build_frontier_activation_profiles(region_id, region_details)
+        region_detail["frontier_activation_feedbacks"] = _build_frontier_activation_feedbacks(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
