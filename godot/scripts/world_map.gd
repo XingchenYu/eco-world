@@ -809,6 +809,11 @@ func _active_directive_preview(active_region: Dictionary) -> Dictionary:
 	return previews[0]
 
 
+func _directive_sandbox_rows(active_region: Dictionary) -> Array:
+	var rows: Array = active_region.get("frontier_directive_sandbox", [])
+	return rows
+
+
 func _active_schedule_route(active_region: Dictionary) -> Dictionary:
 	var active_formation := _active_formation_profile(active_region)
 	if active_formation.is_empty():
@@ -1124,6 +1129,7 @@ func _build_focus_stage(regions: Array) -> void:
 	var active_activation_feedback := _active_activation_feedback(active_region)
 	var active_directive := _active_directive_profile(active_region)
 	var active_directive_preview := _active_directive_preview(active_region)
+	var directive_sandbox := _directive_sandbox_rows(active_region)
 	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
@@ -1242,6 +1248,12 @@ func _build_focus_stage(regions: Array) -> void:
 	preview_row.add_child(_make_hero_chip("预演一阶", str((preview_stages[0] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 0 else "待命", Color8(210, 182, 96)))
 	preview_row.add_child(_make_hero_chip("预演二阶", str((preview_stages[1] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 1 else "待命", Color8(104, 171, 144)))
 	preview_row.add_child(_make_hero_chip("预演回退", str((preview_stages[2] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 2 else "待命", Color8(171, 132, 196)))
+
+	var sandbox_row := HBoxContainer.new()
+	sandbox_row.add_theme_constant_override("separation", 8)
+	root.add_child(sandbox_row)
+	sandbox_row.add_child(_make_hero_chip("沙盘优选", str((directive_sandbox[0] as Dictionary).get("sandbox_name", "待命")) if directive_sandbox.size() > 0 else "待命", Color8(210, 182, 96)))
+	sandbox_row.add_child(_make_hero_chip("沙盘总分", "%.2f" % float((directive_sandbox[0] as Dictionary).get("sandbox_score", 0.0)) if directive_sandbox.size() > 0 else "0.00", Color8(104, 171, 144)))
 
 	var footer := Label.new()
 	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 激活 %s · 回路 %s · 指令 %s · 调度带 %s · 筛选 %s" % [
@@ -2631,6 +2643,7 @@ func _build_side_panel() -> void:
 			tab_content.add_child(_make_campaign_activation_feedback_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_directive_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_directive_preview_card(active_region, region_accent))
+			tab_content.add_child(_make_campaign_directive_sandbox_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
 			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
 			tab_content.add_child(_make_focus_card(active_region))
@@ -3557,6 +3570,37 @@ func _make_campaign_directive_preview_card(active_region: Dictionary, region_acc
 		badge_row.add_child(_make_hero_chip("预演信号", str(badge_variant), Color8(102, 152, 204)))
 
 	return _wrap_menu_card(box, Color8(102, 152, 204))
+
+
+func _make_campaign_directive_sandbox_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var sandbox_rows := _directive_sandbox_rows(active_region)
+
+	var title := Label.new()
+	title.text = "%s · 指令沙盘终端" % _region_type_chip(active_region)
+	_style_primary_title(title, 22)
+	box.add_child(title)
+
+	if not sandbox_rows.is_empty():
+		var top_row: Dictionary = sandbox_rows[0]
+		box.add_child(_make_feature_panel(
+			"沙盘优选",
+			str(top_row.get("sandbox_name", "等待当前沙盘")),
+			str(top_row.get("summary", "当前暂无沙盘推演摘要。")),
+			region_accent
+		))
+
+	for row_variant in sandbox_rows.slice(0, 3):
+		var row: Dictionary = row_variant
+		var row_box := HBoxContainer.new()
+		row_box.add_theme_constant_override("separation", 8)
+		box.add_child(row_box)
+		row_box.add_child(_make_hero_chip(str(row.get("comparison_focus", "综合推进")), str(row.get("primary_target_name", "待命")), Color8(210, 182, 96)))
+		row_box.add_child(_make_hero_chip("总分", "%.2f" % float(row.get("sandbox_score", 0.0)), Color8(104, 171, 144)))
+		row_box.add_child(_make_hero_chip("回退", str(row.get("fallback_target_name", "待命")), Color8(171, 132, 196)))
+
+	return _wrap_menu_card(box, Color8(171, 132, 196))
 
 
 func _make_campaign_landing_network_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:

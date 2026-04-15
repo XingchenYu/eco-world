@@ -2,6 +2,18 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha148 (2026-04-15 02:08)
+
+- ✅ Godot 前端这轮把 `指令预演层` 继续推进成了 `指令沙盘层`。
+- ✅ [src/ui/world_payload.py](/Users/yumini/Projects/eco-world/src/ui/world_payload.py) 现在新增：
+  - `frontier_directive_sandbox`
+  - 每套沙盘的 `sandbox_name / sandbox_score`
+- ✅ [godot/scripts/world_map.gd](/Users/yumini/Projects/eco-world/godot/scripts/world_map.gd) 现在新增：
+  - `指令沙盘终端`
+  - 主视区显式显示当前沙盘优选和总分
+  - 右侧总览可并排比较三套指令的沙盘结果
+- ✅ 这意味着当前 Godot 世界入口已经不只是看某套指令的预演，而开始能比较三套指令的整体沙盘结果。
+
 ### v4.0-alpha147 (2026-04-15 01:57)
 
 - ✅ Godot 前端这轮把 `战区指令层` 继续推进成了 `指令预演层`。

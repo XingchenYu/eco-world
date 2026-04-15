@@ -981,6 +981,49 @@ def _build_frontier_directive_previews(
     return previews
 
 
+def _build_frontier_directive_sandbox(
+    region_id: str,
+    region_details: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    region_detail = region_details.get(region_id, {})
+    directives: list[dict[str, Any]] = list(region_detail.get("frontier_directive_profiles", []))
+    sandbox_rows: list[dict[str, Any]] = []
+    for directive in directives:
+        active_route = dict(directive.get("active_route", {}))
+        support_route = dict(directive.get("support_route", {}))
+        fallback_route = dict(directive.get("fallback_route", {}))
+        score = 0.0
+        for weight, route in [(0.55, active_route), (0.3, support_route), (0.15, fallback_route)]:
+            target_id = str(route.get("target_region_id", ""))
+            target_detail = region_details.get(target_id, {})
+            prosperity = float(target_detail.get("health_state", {}).get("prosperity", 0.0))
+            risk = float(target_detail.get("health_state", {}).get("collapse_risk", 0.0))
+            score += weight * (prosperity * 0.64 + (1.0 - risk) * 0.36)
+        sandbox_rows.append(
+            {
+                "directive_key": str(directive.get("directive_key", "")),
+                "sandbox_name": f"{str(directive.get('directive_band', '战区指令'))} · 沙盘推演",
+                "sandbox_score": round(score, 4),
+                "comparison_focus": str(directive.get("comparison_focus", "综合推进")),
+                "primary_target_name": str(active_route.get("landing_name", "待命")),
+                "support_target_name": str(support_route.get("landing_name", "待命")),
+                "fallback_target_name": str(fallback_route.get("landing_name", "待命")),
+                "summary": (
+                    f"{str(directive.get('directive_band', '战区指令'))} 在沙盘里当前总分 {score:.2f}，"
+                    f"主轴为 {str(active_route.get('landing_name', '待命'))}。"
+                ),
+                "badges": [
+                    f"主轴：{str(active_route.get('landing_name', '待命'))}",
+                    f"支援：{str(support_route.get('landing_name', '待命'))}",
+                    f"回退：{str(fallback_route.get('landing_name', '待命'))}",
+                    f"总分：{score:.2f}",
+                ],
+            }
+        )
+    sandbox_rows.sort(key=lambda row: float(row["sandbox_score"]), reverse=True)
+    return sandbox_rows
+
+
 def _build_world_bulletin(active_region: dict[str, Any], chains: dict[str, Any], narrative: dict[str, Any]) -> list[str]:
     bulletins: list[str] = []
     top_pressure_items = sorted(
@@ -1118,6 +1161,7 @@ def build_world_ui_payload(world: WorldSimulation) -> dict[str, Any]:
         region_detail["frontier_activation_feedbacks"] = _build_frontier_activation_feedbacks(region_id, region_details)
         region_detail["frontier_directive_profiles"] = _build_frontier_directive_profiles(region_id, region_details)
         region_detail["frontier_directive_previews"] = _build_frontier_directive_previews(region_id, region_details)
+        region_detail["frontier_directive_sandbox"] = _build_frontier_directive_sandbox(region_id, region_details)
 
     chain_highlights = {
         "social_phases": _top_mapping_items(stats["social_trends"]["phase_scores"], 5),
