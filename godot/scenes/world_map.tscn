@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://ceufhwoqkfhvt"]
 
 [ext_resource type="Script" path="res://scripts/world_map.gd" id="1_wm"]
 
-[node name="WorldMap" type="Control"]
+[node name="WorldMap" type="Control" unique_id=1625315418]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
