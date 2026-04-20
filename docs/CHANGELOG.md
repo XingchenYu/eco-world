@@ -2,6 +2,13 @@
 
 本文档记录所有代码和文档的更新历史。
 
+### v4.0-alpha153 (2026-04-18 13:53)
+
+- ✅ 新增 [docs/MASTER-PLAN.md](/Users/yumini/Projects/eco-world/docs/MASTER-PLAN.md)，把旧的 `v4` 世界计划、Godot 可探索主线、内容扩张主线统一成一份总主线计划。
+- ✅ 明确项目原始目标没有变：仍然是“可探索、可观察、可长期管理的活生态世界”。
+- ✅ 明确后续统一按 `M1 -> M8` 的里程碑推进，不再临时跳步开发。
+- ✅ [README.md](/Users/yumini/Projects/eco-world/README.md) 也补了总主线计划入口。
+
 ### v4.0-alpha152 (2026-04-15 03:39)
 
 - ✅ 新增 [docs/GAMEPLAY-LOOP.md](/Users/yumini/Projects/eco-world/docs/GAMEPLAY-LOOP.md)，把当前 `v4` 设计正式整理成中文玩法循环说明。

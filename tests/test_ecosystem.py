@@ -443,6 +443,50 @@ def test_v4_world_ui_payload():
     assert payload["region_details"]["temperate_grassland"]["frontier_campaigns"]
     assert "campaign_name" in payload["region_details"]["temperate_grassland"]["frontier_campaigns"][0]
     assert "campaign_band" in payload["region_details"]["temperate_grassland"]["frontier_campaigns"][0]
+    assert "dynamic_region_state" in payload["region_details"]["temperate_grassland"]
+    dynamic_state = payload["region_details"]["temperate_grassland"]["dynamic_region_state"]
+    assert "hotspot_activity" in dynamic_state
+    assert "waterhole" in dynamic_state["hotspot_activity"]
+    assert "species_clusters" in dynamic_state
+    assert dynamic_state["species_clusters"]
+    assert "pressure_window" in dynamic_state
+    assert "primary_pressure" in dynamic_state["pressure_window"]
+    assert "interaction_state" in dynamic_state
+    assert "dominant_interaction" in dynamic_state["interaction_state"]
+    assert "event_state" in dynamic_state
+    assert "active_event_band" in dynamic_state["event_state"]
+    assert "objective_state" in dynamic_state
+    assert "primary_hotspot" in dynamic_state["objective_state"]
+    assert "task_time_scale" in dynamic_state["objective_state"]
+    assert "chase_state" in dynamic_state
+    assert "pressure_hotspot" in dynamic_state["chase_state"]
+    assert "result_radius_scale" in dynamic_state["chase_state"]
+    assert "hotspot_windows" in dynamic_state
+    assert "waterhole" in dynamic_state["hotspot_windows"]
+    assert "completion_state" in dynamic_state
+    assert "readiness_band" in dynamic_state["completion_state"]
+    assert "exit_state" in dynamic_state
+    assert "exit_bias_scale" in dynamic_state["exit_state"]
+    assert "recommended_gate_id" in dynamic_state["exit_state"]
+    assert "recommended_gate_reason" in dynamic_state["exit_state"]
+    assert "recommended_gate_scale" in dynamic_state["exit_state"]
+    assert "recommended_gate_band" in dynamic_state["exit_state"]
+    assert "recommended_terminal_band" in dynamic_state["exit_state"]
+    assert "recommended_terminal_reason" in dynamic_state["exit_state"]
+    assert "recommended_terminal_scale" in dynamic_state["exit_state"]
+    assert "recommended_route_focus_kind" in dynamic_state["exit_state"]
+    assert "focus_switch_scale" in dynamic_state["exit_state"]
+    assert "recommended_gate_source_hotspot" in dynamic_state["exit_state"]
+    assert "recommended_gate_trigger_band" in dynamic_state["exit_state"]
+    assert "force_exit_push_scale" in dynamic_state["exit_state"]
+    assert "force_progress_stage" in dynamic_state["exit_state"]
+    assert "terminal_focus_scale" in dynamic_state["exit_state"]
+    assert "transition_push_scale" in dynamic_state["exit_state"]
+    assert "recommended_transition_title" in dynamic_state["exit_state"]
+    assert "recommended_arrival_title" in dynamic_state["exit_state"]
+    first_cluster = next(iter(dynamic_state["species_clusters"].values()))
+    assert "spread_scale" in first_cluster
+    assert "group_scale" in first_cluster
     assert "frontier_route_profiles" in payload["region_details"]["temperate_grassland"]
     assert payload["region_details"]["temperate_grassland"]["frontier_route_profiles"]
     assert "confirmation_band" in payload["region_details"]["temperate_grassland"]["frontier_route_profiles"][0]
@@ -499,6 +543,10 @@ def test_v4_world_ui_payload():
     assert payload["region_details"]["temperate_grassland"]["pressure_headlines"]
     assert payload["region_details"]["temperate_grassland"]["chain_focus"]
     assert "label" in payload["region_details"]["temperate_grassland"]["top_species"][0]
+    assert payload["region_details"]["temperate_grassland"]["species_manifest"]
+    assert "category" in payload["region_details"]["temperate_grassland"]["species_manifest"][0]
+    assert payload["region_details"]["temperate_grassland"]["exploration_hotspots"]
+    assert "hotspot_id" in payload["region_details"]["temperate_grassland"]["exploration_hotspots"][0]
     assert payload["ui_meta"]["refresh_mode"] == "manual_or_timer"
     assert "social_phases" in payload["chains"]
     assert "territory" in payload["narrative"]

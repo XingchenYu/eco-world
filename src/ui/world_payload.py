@@ -112,6 +112,686 @@ def _species_label(species_id: str) -> str:
     return species_id.replace("_", " ").title()
 
 
+def _species_category(species_id: str) -> str:
+    if species_id in {"lion", "hyena", "nile_crocodile", "wolf", "fox", "eagle"}:
+        return "掠食者"
+    if species_id in {"vulture", "owl", "bat_v4", "sparrow", "woodpecker", "duck", "kingfisher_v4"}:
+        return "飞行动物"
+    if species_id in {"antelope", "zebra", "giraffe", "white_rhino", "african_elephant", "hippopotamus", "deer", "rabbit", "boar", "wild_boar"}:
+        return "草食动物"
+    if species_id in {"small_fish", "minnow", "carp", "catfish", "blackfish", "pike", "pufferfish", "shrimp", "crab", "frog"}:
+        return "水域动物"
+    return "区域生物"
+
+
+def _build_species_manifest(region_species_pool: dict[str, Any]) -> list[dict[str, Any]]:
+    manifest: list[dict[str, Any]] = []
+    for species_id, count in sorted(region_species_pool.items(), key=lambda item: int(item[1]), reverse=True):
+        manifest.append(
+            {
+                "species_id": species_id,
+                "label": _species_label(species_id),
+                "category": _species_category(species_id),
+                "count": int(count),
+            }
+        )
+    return manifest
+
+
+def _build_exploration_hotspots(active_region: dict[str, Any], chains: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    resource_state = active_region["resource_state"]
+    pressure_state = active_region["ecological_pressures"]
+    hotspots = [
+        {
+            "hotspot_id": "waterhole",
+            "label": "主水源地",
+            "summary": f"地表水 {float(resource_state.get('surface_water', 0.0)):.2f}",
+            "intensity": round(float(resource_state.get("surface_water", 0.0)), 4),
+            "biome": "water",
+        },
+        {
+            "hotspot_id": "migration_corridor",
+            "label": "高草迁徙带",
+            "summary": _build_chain_focus(chains)[0] if _build_chain_focus(chains) else "草食群迁徙正在进行。",
+            "intensity": round(float(resource_state.get("grazing_pressure", 0.0)), 4),
+            "biome": "grass",
+        },
+        {
+            "hotspot_id": "predator_ridge",
+            "label": "伏击断崖",
+            "summary": f"捕食压力 {float(pressure_state.get('predation_pressure', 0.0)):.2f}",
+            "intensity": round(float(pressure_state.get("predation_pressure", 0.0)), 4),
+            "biome": "ridge",
+        },
+        {
+            "hotspot_id": "carrion_field",
+            "label": "腐食盘旋区",
+            "summary": f"尸体资源 {float(resource_state.get('carcass_availability', 0.0)):.2f}",
+            "intensity": round(float(resource_state.get("carcass_availability", 0.0)), 4),
+            "biome": "carrion",
+        },
+        {
+            "hotspot_id": "shade_grove",
+            "label": "林荫歇息带",
+            "summary": f"生态韧性 {float(active_region['health_state'].get('resilience', 0.0)):.2f}",
+            "intensity": round(float(active_region["health_state"].get("resilience", 0.0)), 4),
+            "biome": "grove",
+        },
+    ]
+    return hotspots
+
+
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
+
+def _build_dynamic_hotspot_activity(
+    active_region: dict[str, Any],
+    species_manifest: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    resource_state = active_region["resource_state"]
+    pressure_state = active_region["ecological_pressures"]
+    health_state = active_region["health_state"]
+    category_totals = {
+        "掠食者": 0,
+        "草食动物": 0,
+        "飞行动物": 0,
+        "水域动物": 0,
+    }
+    total_population = max(1, sum(int(entry.get("count", 0)) for entry in species_manifest))
+    for entry in species_manifest:
+        category = str(entry.get("category", ""))
+        if category in category_totals:
+            category_totals[category] += int(entry.get("count", 0))
+
+    predator_density = category_totals["掠食者"] / total_population
+    herbivore_density = category_totals["草食动物"] / total_population
+    avian_density = category_totals["飞行动物"] / total_population
+    aquatic_density = category_totals["水域动物"] / total_population
+
+    hotspot_specs = {
+        "waterhole": {
+            "activity": _clamp01(
+                float(resource_state.get("surface_water", 0.0)) * 0.58
+                + aquatic_density * 0.26
+                + float(health_state.get("resilience", 0.0)) * 0.16
+            ),
+            "focus_category": "水域动物",
+            "cue_band": "近水活跃",
+        },
+        "migration_corridor": {
+            "activity": _clamp01(
+                float(resource_state.get("grazing_pressure", 0.0)) * 0.48
+                + herbivore_density * 0.34
+                + float(health_state.get("prosperity", 0.0)) * 0.18
+            ),
+            "focus_category": "草食动物",
+            "cue_band": "迁徙活跃",
+        },
+        "predator_ridge": {
+            "activity": _clamp01(
+                float(pressure_state.get("predation_pressure", 0.0)) * 0.56
+                + predator_density * 0.28
+                + float(health_state.get("collapse_risk", 0.0)) * 0.16
+            ),
+            "focus_category": "掠食者",
+            "cue_band": "压迫活跃",
+        },
+        "carrion_field": {
+            "activity": _clamp01(
+                float(resource_state.get("carcass_availability", 0.0)) * 0.58
+                + avian_density * 0.24
+                + predator_density * 0.18
+            ),
+            "focus_category": "飞行动物",
+            "cue_band": "腐食活跃",
+        },
+        "shade_grove": {
+            "activity": _clamp01(
+                float(health_state.get("resilience", 0.0)) * 0.54
+                + herbivore_density * 0.22
+                + float(resource_state.get("canopy_cover", 0.0)) * 0.24
+            ),
+            "focus_category": "草食动物",
+            "cue_band": "遮蔽活跃",
+        },
+    }
+    activity_rows: dict[str, dict[str, Any]] = {}
+    for hotspot_id, entry in hotspot_specs.items():
+        activity = float(entry["activity"])
+        activity_rows[hotspot_id] = {
+            "activity": round(activity, 4),
+            "focus_category": entry["focus_category"],
+            "cue_band": entry["cue_band"],
+            "reveal_scale": round(0.88 + activity * 0.34, 4),
+            "active_scale": round(0.92 + activity * 0.3, 4),
+            "beacon_scale": round(0.9 + activity * 0.36, 4),
+        }
+    return activity_rows
+
+
+def _build_dynamic_species_clusters(
+    dominant_biomes: list[str],
+    species_manifest: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    category_totals: dict[str, int] = {}
+    total_population = max(1, sum(int(entry.get("count", 0)) for entry in species_manifest))
+    for entry in species_manifest:
+        category = str(entry.get("category", "区域生物"))
+        category_totals[category] = category_totals.get(category, 0) + int(entry.get("count", 0))
+
+    biome_key = "grassland"
+    if any(biome in dominant_biomes for biome in {"wetland", "lake_shore", "floodplain"}):
+        biome_key = "wetland"
+    elif any(biome in dominant_biomes for biome in {"temperate_forest", "mixed_forest", "tropical_rainforest"}):
+        biome_key = "forest"
+    elif any(biome in dominant_biomes for biome in {"coast", "estuary", "coral_reef", "seagrass"}):
+        biome_key = "coast"
+
+    anchor_map = {
+        "grassland": {
+            "掠食者": ("predator_ridge", "carrion_field"),
+            "草食动物": ("migration_corridor", "shade_grove"),
+            "飞行动物": ("carrion_field", "predator_ridge"),
+            "水域动物": ("waterhole", "migration_corridor"),
+        },
+        "wetland": {
+            "掠食者": ("carrion_field", "predator_ridge"),
+            "草食动物": ("waterhole", "migration_corridor"),
+            "飞行动物": ("waterhole", "carrion_field"),
+            "水域动物": ("waterhole", "shade_grove"),
+        },
+        "forest": {
+            "掠食者": ("shade_grove", "predator_ridge"),
+            "草食动物": ("shade_grove", "waterhole"),
+            "飞行动物": ("carrion_field", "shade_grove"),
+            "水域动物": ("waterhole", "shade_grove"),
+        },
+        "coast": {
+            "掠食者": ("predator_ridge", "carrion_field"),
+            "草食动物": ("migration_corridor", "waterhole"),
+            "飞行动物": ("migration_corridor", "carrion_field"),
+            "水域动物": ("waterhole", "migration_corridor"),
+        },
+    }
+
+    clusters: dict[str, dict[str, Any]] = {}
+    for category, count in category_totals.items():
+        preferred_anchor, secondary_anchor = anchor_map[biome_key].get(category, ("shade_grove", "waterhole"))
+        density = count / total_population
+        clusters[category] = {
+            "count": count,
+            "density": round(density, 4),
+            "preferred_anchor": preferred_anchor,
+            "secondary_anchor": secondary_anchor,
+            "focus_hotspot": preferred_anchor,
+            "visibility_scale": round(0.9 + density * 0.42, 4),
+            "alert_scale": round(0.92 + density * 0.34, 4),
+            "spread_scale": round(0.92 + density * 0.3, 4),
+            "group_scale": round(0.94 + density * 0.28, 4),
+        }
+    return clusters
+
+
+def _build_dynamic_pressure_window(active_region: dict[str, Any]) -> dict[str, Any]:
+    pressure_state = active_region["ecological_pressures"]
+    top_pressure_items = sorted(
+        pressure_state.items(),
+        key=lambda item: float(item[1]),
+        reverse=True,
+    )
+    primary_key, primary_value = top_pressure_items[0]
+    predation_pressure = float(pressure_state.get("predation_pressure", 0.0))
+    resource_pressure = float(pressure_state.get("runtime_resource_pressure", 0.0))
+    prosperity_pressure = float(pressure_state.get("prosperity_pressure", 0.0))
+    event_bias = "pressure"
+    if resource_pressure > predation_pressure and resource_pressure >= prosperity_pressure:
+        event_bias = "resource"
+    elif prosperity_pressure > predation_pressure and prosperity_pressure > resource_pressure:
+        event_bias = "stability"
+    return {
+        "primary_pressure": primary_key,
+        "primary_value": round(float(primary_value), 4),
+        "event_bias": event_bias,
+        "encounter_scale": round(0.94 + predation_pressure * 0.3, 4),
+        "hotspot_scale": round(0.9 + resource_pressure * 0.32, 4),
+        "exit_scale": round(0.9 + prosperity_pressure * 0.28, 4),
+    }
+
+
+def _build_dynamic_interaction_state(
+    active_region: dict[str, Any],
+    chains: dict[str, list[dict[str, Any]]],
+    species_manifest: list[dict[str, Any]],
+) -> dict[str, Any]:
+    pressure_state = active_region["ecological_pressures"]
+    resource_state = active_region["resource_state"]
+    total_population = max(1, sum(int(entry.get("count", 0)) for entry in species_manifest))
+    predator_count = sum(int(entry.get("count", 0)) for entry in species_manifest if str(entry.get("category", "")) == "掠食者")
+    herbivore_count = sum(int(entry.get("count", 0)) for entry in species_manifest if str(entry.get("category", "")) == "草食动物")
+    avian_count = sum(int(entry.get("count", 0)) for entry in species_manifest if str(entry.get("category", "")) == "飞行动物")
+
+    predation_scale = _clamp01(
+        float(pressure_state.get("predation_pressure", 0.0)) * 0.58 + (predator_count / total_population) * 0.24
+    )
+    competition_scale = _clamp01(
+        float(pressure_state.get("runtime_resource_pressure", 0.0)) * 0.44
+        + float(pressure_state.get("prosperity_pressure", 0.0)) * 0.18
+        + len(chains.get("competition", [])) * 0.04
+    )
+    migration_scale = _clamp01(
+        float(resource_state.get("grazing_pressure", 0.0)) * 0.54 + (herbivore_count / total_population) * 0.24
+    )
+    carrion_scale = _clamp01(
+        float(resource_state.get("carcass_availability", 0.0)) * 0.6 + (avian_count / total_population) * 0.22
+    )
+    water_dependence_scale = _clamp01(float(resource_state.get("surface_water", 0.0)) * 0.66)
+
+    focus_rows = {
+        "predation": predation_scale,
+        "competition": competition_scale,
+        "migration": migration_scale,
+        "carrion": carrion_scale,
+        "water": water_dependence_scale,
+    }
+    dominant_interaction = max(focus_rows.items(), key=lambda item: item[1])[0]
+    encounter_bias = "predation" if dominant_interaction in {"predation", "competition"} else "observation"
+    if dominant_interaction in {"carrion", "water"}:
+        encounter_bias = "resource"
+
+    return {
+        "dominant_interaction": dominant_interaction,
+        "encounter_bias": encounter_bias,
+        "predation_scale": round(0.92 + predation_scale * 0.36, 4),
+        "competition_scale": round(0.92 + competition_scale * 0.28, 4),
+        "migration_scale": round(0.92 + migration_scale * 0.34, 4),
+        "carrion_scale": round(0.92 + carrion_scale * 0.34, 4),
+        "water_dependence_scale": round(0.92 + water_dependence_scale * 0.3, 4),
+    }
+
+
+def _build_dynamic_event_state(
+    active_region: dict[str, Any],
+    species_manifest: list[dict[str, Any]],
+) -> dict[str, Any]:
+    pressure_state = active_region["ecological_pressures"]
+    resource_state = active_region["resource_state"]
+    health_state = active_region["health_state"]
+    total_population = max(1, sum(int(entry.get("count", 0)) for entry in species_manifest))
+    predator_count = sum(int(entry.get("count", 0)) for entry in species_manifest if str(entry.get("category", "")) == "掠食者")
+    avian_count = sum(int(entry.get("count", 0)) for entry in species_manifest if str(entry.get("category", "")) == "飞行动物")
+    herbivore_count = sum(int(entry.get("count", 0)) for entry in species_manifest if str(entry.get("category", "")) == "草食动物")
+
+    chase_window = _clamp01(
+        float(pressure_state.get("predation_pressure", 0.0)) * 0.58
+        + (predator_count / total_population) * 0.24
+        + float(health_state.get("collapse_risk", 0.0)) * 0.12
+    )
+    aftermath_window = _clamp01(
+        float(resource_state.get("carcass_availability", 0.0)) * 0.58
+        + (avian_count / total_population) * 0.22
+        + float(pressure_state.get("predation_pressure", 0.0)) * 0.12
+    )
+    migration_window = _clamp01(
+        float(resource_state.get("grazing_pressure", 0.0)) * 0.56
+        + (herbivore_count / total_population) * 0.24
+        + float(health_state.get("prosperity", 0.0)) * 0.1
+    )
+    water_window = _clamp01(
+        float(resource_state.get("surface_water", 0.0)) * 0.62
+        + float(health_state.get("resilience", 0.0)) * 0.18
+    )
+
+    event_rows = {
+        "chase": chase_window,
+        "aftermath": aftermath_window,
+        "migration": migration_window,
+        "water": water_window,
+    }
+    active_event_band = max(event_rows.items(), key=lambda item: item[1])[0]
+
+    return {
+        "active_event_band": active_event_band,
+        "chase_scale": round(0.92 + chase_window * 0.42, 4),
+        "aftermath_scale": round(0.92 + aftermath_window * 0.42, 4),
+        "migration_scale": round(0.92 + migration_window * 0.34, 4),
+        "water_scale": round(0.92 + water_window * 0.32, 4),
+        "exit_push_scale": round(0.9 + max(aftermath_window, migration_window) * 0.28, 4),
+    }
+
+
+def _build_dynamic_objective_state(
+    hotspot_activity: dict[str, dict[str, Any]],
+    interaction_state: dict[str, Any],
+    event_state: dict[str, Any],
+) -> dict[str, Any]:
+    sorted_hotspots = sorted(
+        hotspot_activity.items(),
+        key=lambda item: float(item[1].get("activity", 0.0)),
+        reverse=True,
+    )
+    primary_hotspot = sorted_hotspots[0][0] if sorted_hotspots else "waterhole"
+    secondary_hotspot = sorted_hotspots[1][0] if len(sorted_hotspots) > 1 else primary_hotspot
+    dominant_interaction = str(interaction_state.get("dominant_interaction", "migration"))
+    active_event_band = str(event_state.get("active_event_band", "migration"))
+    priority_category = str(hotspot_activity.get(primary_hotspot, {}).get("focus_category", "草食动物"))
+    completion_hint = f"优先沿 {primary_hotspot} 建立观察，再转向 {secondary_hotspot}。"
+    if active_event_band == "chase":
+        completion_hint = "当前更适合先立住压迫链，再补观察。"
+    elif active_event_band == "aftermath":
+        completion_hint = "当前更适合盯住余波去向，再决定是否切区。"
+    elif dominant_interaction == "water":
+        completion_hint = "当前更适合先补近水观察，再扩到迁徙和腐食。"
+    return {
+        "primary_hotspot": primary_hotspot,
+        "secondary_hotspot": secondary_hotspot,
+        "priority_category": priority_category,
+        "completion_hint": completion_hint,
+        "task_time_scale": round(0.9 + float(hotspot_activity.get(primary_hotspot, {}).get("activity", 0.0)) * 0.3, 4),
+        "task_radius_scale": round(0.92 + float(interaction_state.get("migration_scale", 1.0)) * 0.12, 4),
+    }
+
+
+def _build_dynamic_chase_state(
+    interaction_state: dict[str, Any],
+    event_state: dict[str, Any],
+) -> dict[str, Any]:
+    dominant_interaction = str(interaction_state.get("dominant_interaction", "predation"))
+    active_event_band = str(event_state.get("active_event_band", "chase"))
+    pressure_hotspot = "predator_ridge"
+    aftermath_hotspot = "carrion_field"
+    migration_hotspot = "migration_corridor"
+    if dominant_interaction == "water":
+        pressure_hotspot = "waterhole"
+    elif dominant_interaction == "migration":
+        pressure_hotspot = "migration_corridor"
+    if active_event_band == "water":
+        migration_hotspot = "waterhole"
+    elif active_event_band == "migration":
+        aftermath_hotspot = "migration_corridor"
+    return {
+        "pressure_hotspot": pressure_hotspot,
+        "aftermath_hotspot": aftermath_hotspot,
+        "migration_hotspot": migration_hotspot,
+        "pressure_pull_scale": round(max(1.0, float(event_state.get("chase_scale", 1.0))), 4),
+        "aftermath_pull_scale": round(max(1.0, float(event_state.get("aftermath_scale", 1.0))), 4),
+        "result_radius_scale": round(0.94 + max(0.0, float(event_state.get("chase_scale", 1.0)) - 0.92) * 0.5, 4),
+    }
+
+
+def _build_dynamic_hotspot_windows(
+    hotspot_activity: dict[str, dict[str, Any]],
+    objective_state: dict[str, Any],
+    chase_state: dict[str, Any],
+    event_state: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    windows: dict[str, dict[str, Any]] = {}
+    primary_hotspot = str(objective_state.get("primary_hotspot", ""))
+    secondary_hotspot = str(objective_state.get("secondary_hotspot", ""))
+    pressure_hotspot = str(chase_state.get("pressure_hotspot", ""))
+    aftermath_hotspot = str(chase_state.get("aftermath_hotspot", ""))
+    migration_hotspot = str(chase_state.get("migration_hotspot", ""))
+    active_event_band = str(event_state.get("active_event_band", ""))
+
+    for hotspot_id, entry in hotspot_activity.items():
+        task_scale = 1.0
+        reveal_scale = 1.0
+        active_scale = 1.0
+        event_band = "stable"
+        if hotspot_id == primary_hotspot:
+            task_scale += 0.16
+            reveal_scale += 0.12
+            active_scale += 0.14
+            event_band = "objective"
+        elif hotspot_id == secondary_hotspot:
+            task_scale += 0.08
+            reveal_scale += 0.06
+            event_band = "secondary"
+        if hotspot_id == pressure_hotspot and active_event_band == "chase":
+            active_scale += 0.18
+            reveal_scale += 0.08
+            event_band = "pressure"
+        if hotspot_id == aftermath_hotspot and active_event_band == "aftermath":
+            active_scale += 0.2
+            reveal_scale += 0.1
+            event_band = "aftermath"
+        if hotspot_id == migration_hotspot and active_event_band == "migration":
+            task_scale += 0.12
+            reveal_scale += 0.08
+            event_band = "migration"
+        windows[hotspot_id] = {
+            "event_band": event_band,
+            "task_scale": round(task_scale, 4),
+            "reveal_scale": round(reveal_scale, 4),
+            "active_scale": round(active_scale, 4),
+        }
+    return windows
+
+
+def _build_dynamic_exit_state(
+    interaction_state: dict[str, Any],
+    event_state: dict[str, Any],
+    objective_state: dict[str, Any],
+    chase_state: dict[str, Any],
+    hotspot_windows: dict[str, dict[str, Any]],
+    completion_state_hint: str,
+) -> dict[str, Any]:
+    dominant_interaction = str(interaction_state.get("dominant_interaction", "migration"))
+    active_event_band = str(event_state.get("active_event_band", "migration"))
+    exit_bias_scale = 1.0
+    reveal_scale = 1.0
+    visual_scale = 1.0
+    readiness_band = completion_state_hint
+    if active_event_band == "aftermath":
+        exit_bias_scale += 0.14
+        reveal_scale += 0.1
+        visual_scale += 0.12
+    elif active_event_band == "migration":
+        exit_bias_scale += 0.1
+        reveal_scale += 0.08
+    elif active_event_band == "water":
+        reveal_scale += 0.06
+    if dominant_interaction == "predation":
+        exit_bias_scale += 0.08
+    summary = "当前更适合继续观察。"
+    if exit_bias_scale >= 1.16:
+        summary = "当前更适合沿出口链准备切区。"
+    elif reveal_scale >= 1.08:
+        summary = "当前更适合先把出口和并入口读清。"
+    gate_source = str(objective_state.get("primary_hotspot", "migration_corridor"))
+    if active_event_band == "chase":
+        gate_source = str(chase_state.get("pressure_hotspot", gate_source))
+    elif active_event_band == "aftermath":
+        gate_source = str(chase_state.get("aftermath_hotspot", gate_source))
+    elif active_event_band == "migration":
+        gate_source = str(chase_state.get("migration_hotspot", gate_source))
+    strongest_hotspot_id = gate_source
+    strongest_hotspot_band = "objective"
+    strongest_hotspot_score = float("-inf")
+    for hotspot_id, window in hotspot_windows.items():
+        score = float(window.get("active_scale", 1.0)) + float(window.get("reveal_scale", 1.0)) * 0.35
+        if score > strongest_hotspot_score:
+            strongest_hotspot_score = score
+            strongest_hotspot_id = hotspot_id
+            strongest_hotspot_band = str(window.get("event_band", "stable"))
+    if strongest_hotspot_band in {"objective", "pressure", "aftermath", "migration"}:
+        gate_source = strongest_hotspot_id
+    gate_map = {
+        "waterhole": "west_gate",
+        "shade_grove": "west_gate",
+        "predator_ridge": "north_gate",
+        "migration_corridor": "east_gate",
+        "carrion_field": "east_gate",
+    }
+    recommended_gate_id = gate_map.get(gate_source, "east_gate")
+    gate_reason_map = {
+        "west_gate": "当前更适合沿西侧入口链继续读近水或遮蔽带。",
+        "north_gate": "当前更适合沿北侧高地门继续盯压迫和高点链。",
+        "east_gate": "当前更适合沿东侧主通路继续推进迁徙或余波链。",
+    }
+    gate_focus_kind_map = {
+        "west_gate": "entry_route",
+        "north_gate": "chokepoint",
+        "east_gate": "trunk_route",
+    }
+    recommended_gate_scale = 1.04
+    gate_band = "observe"
+    if readiness_band == "transition":
+        recommended_gate_scale += 0.16
+        gate_band = "commit"
+    elif readiness_band == "prepare":
+        recommended_gate_scale += 0.08
+        gate_band = "prepare"
+    if active_event_band in {"aftermath", "migration"}:
+        recommended_gate_scale += 0.06
+    if dominant_interaction == "predation" and recommended_gate_id == "north_gate":
+        recommended_gate_scale += 0.04
+    elif dominant_interaction in {"migration", "water"} and recommended_gate_id != "north_gate":
+        recommended_gate_scale += 0.04
+    if strongest_hotspot_band == "pressure" and recommended_gate_id == "north_gate":
+        recommended_gate_scale += 0.06
+    elif strongest_hotspot_band == "aftermath" and recommended_gate_id == "east_gate":
+        recommended_gate_scale += 0.06
+    elif strongest_hotspot_band == "objective" and recommended_gate_id == "west_gate":
+        recommended_gate_scale += 0.04
+    recommended_terminal_band = "exit"
+    if active_event_band == "aftermath" or strongest_hotspot_band == "aftermath":
+        recommended_terminal_band = "aftermath"
+    elif (
+        active_event_band == "chase"
+        or strongest_hotspot_band == "pressure"
+        or dominant_interaction == "predation"
+    ):
+        recommended_terminal_band = "pressure"
+    elif readiness_band in {"prepare", "transition"} or gate_band in {"prepare", "commit"}:
+        recommended_terminal_band = "exit"
+    terminal_reason_map = {
+        "pressure": "当前终端更适合先盯压迫热点，再确认结果链和离场门。",
+        "aftermath": "当前终端更适合先盯余波落点，再确认回聚链和离场门。",
+        "exit": "当前终端更适合先收束到离场门，再判断是否切区。",
+    }
+    recommended_terminal_scale = 1.0
+    if recommended_terminal_band == "pressure":
+        recommended_terminal_scale += 0.08
+        if active_event_band == "chase":
+            recommended_terminal_scale += 0.06
+        if strongest_hotspot_band == "pressure":
+            recommended_terminal_scale += 0.06
+        if dominant_interaction == "predation":
+            recommended_terminal_scale += 0.04
+    elif recommended_terminal_band == "aftermath":
+        recommended_terminal_scale += 0.1
+        if active_event_band == "aftermath":
+            recommended_terminal_scale += 0.06
+        if strongest_hotspot_band == "aftermath":
+            recommended_terminal_scale += 0.06
+    else:
+        recommended_terminal_scale += 0.08
+        if readiness_band == "prepare":
+            recommended_terminal_scale += 0.04
+        elif readiness_band == "transition":
+            recommended_terminal_scale += 0.08
+        if gate_band == "prepare":
+            recommended_terminal_scale += 0.04
+        elif gate_band == "commit":
+            recommended_terminal_scale += 0.08
+    recommended_terminal_scale += max(0.0, recommended_gate_scale - 1.0) * 0.72
+    force_exit_push_scale = 0.92 + (recommended_gate_scale - 1.0) * 0.9
+    if readiness_band == "transition":
+        force_exit_push_scale += 0.12
+    elif readiness_band == "prepare":
+        force_exit_push_scale += 0.06
+    focus_switch_scale = 0.96 + max(0.0, recommended_gate_scale - 1.0) * 1.08
+    if gate_band == "prepare":
+        focus_switch_scale += 0.04
+    elif gate_band == "commit":
+        focus_switch_scale += 0.1
+    force_progress_stage = 1
+    if readiness_band == "prepare" or strongest_hotspot_band in {"pressure", "migration"}:
+        force_progress_stage = 2
+    if readiness_band == "transition" or strongest_hotspot_band == "aftermath":
+        force_progress_stage = 3
+    terminal_focus_scale = 0.94 + max(0.0, recommended_gate_scale - 1.0) * 1.24
+    if gate_band == "prepare":
+        terminal_focus_scale += 0.08
+    elif gate_band == "commit":
+        terminal_focus_scale += 0.18
+    transition_push_scale = 0.92 + max(0.0, force_exit_push_scale - 1.0) * 1.08
+    if strongest_hotspot_band == "pressure":
+        transition_push_scale += 0.04
+    elif strongest_hotspot_band == "aftermath":
+        transition_push_scale += 0.08
+    elif strongest_hotspot_band == "migration":
+        transition_push_scale += 0.06
+    gate_title_map = {
+        "west_gate": ("西侧观察离场", "西侧入口导入"),
+        "north_gate": ("北侧高地离场", "北侧高地导入"),
+        "east_gate": ("东侧主线离场", "东侧主线导入"),
+    }
+    base_transition_title, base_arrival_title = gate_title_map.get(recommended_gate_id, gate_title_map["east_gate"])
+    if strongest_hotspot_band == "pressure":
+        base_transition_title = "压迫线离场"
+    elif strongest_hotspot_band == "aftermath":
+        base_transition_title = "余波线离场"
+    elif strongest_hotspot_band == "migration":
+        base_transition_title = "迁徙线离场"
+    return {
+        "exit_bias_scale": round(exit_bias_scale, 4),
+        "reveal_scale": round(reveal_scale, 4),
+        "visual_scale": round(visual_scale, 4),
+        "readiness_band": readiness_band,
+        "summary": summary,
+        "recommended_gate_id": recommended_gate_id,
+        "recommended_gate_reason": gate_reason_map.get(recommended_gate_id, gate_reason_map["east_gate"]),
+        "recommended_gate_scale": round(recommended_gate_scale, 4),
+        "recommended_gate_band": gate_band,
+        "recommended_terminal_band": recommended_terminal_band,
+        "recommended_terminal_reason": terminal_reason_map.get(recommended_terminal_band, terminal_reason_map["exit"]),
+        "recommended_terminal_scale": round(recommended_terminal_scale, 4),
+        "recommended_route_focus_kind": gate_focus_kind_map.get(recommended_gate_id, "trunk_route"),
+        "focus_switch_scale": round(focus_switch_scale, 4),
+        "recommended_gate_source_hotspot": gate_source,
+        "recommended_gate_trigger_band": strongest_hotspot_band,
+        "force_exit_push_scale": round(force_exit_push_scale, 4),
+        "force_progress_stage": int(force_progress_stage),
+        "terminal_focus_scale": round(terminal_focus_scale, 4),
+        "transition_push_scale": round(transition_push_scale, 4),
+        "recommended_transition_title": base_transition_title,
+        "recommended_arrival_title": base_arrival_title,
+    }
+
+
+def _build_dynamic_completion_state(
+    active_region: dict[str, Any],
+    event_state: dict[str, Any],
+    objective_state: dict[str, Any],
+) -> dict[str, Any]:
+    health_state = active_region["health_state"]
+    readiness_score = _clamp01(
+        float(health_state.get("stability", 0.0)) * 0.42
+        + float(health_state.get("resilience", 0.0)) * 0.28
+        + max(0.0, 1.08 - float(event_state.get("exit_push_scale", 1.0))) * 0.16
+        + float(objective_state.get("task_radius_scale", 1.0)) * 0.08
+    )
+    observation_bias_scale = round(1.18 - readiness_score * 0.18, 4)
+    exit_bias_scale = round(0.92 + readiness_score * 0.28, 4)
+    readiness_band = "observe"
+    summary = "当前更适合继续建立观察链。"
+    if readiness_score >= 0.74:
+        readiness_band = "transition"
+        summary = "当前区域已经接近完成态，可以准备沿出口切区。"
+    elif readiness_score >= 0.58:
+        readiness_band = "prepare"
+        summary = "当前区域已进入收束段，先补终端观察，再准备出口。"
+    return {
+        "readiness_score": round(readiness_score, 4),
+        "readiness_band": readiness_band,
+        "observation_bias_scale": observation_bias_scale,
+        "exit_bias_scale": exit_bias_scale,
+        "summary": summary,
+    }
+
+
 def _build_region_role(region_id: str, climate_zone: str, dominant_biomes: list[str]) -> str:
     role_map = {
         "temperate_forest": "林地观测区",
@@ -1205,6 +1885,7 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
     world.set_active_region(region_id)
     stats = world.get_statistics()
     active_region = stats["active_region"]
+    species_manifest = _build_species_manifest(world.get_active_region().species_pool)
 
     chains = {
         "social_phases": _collect_top_list(stats["social_trends"]["phase_scores"], 6),
@@ -1222,6 +1903,35 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
         key=lambda item: float(item[1]),
         reverse=True,
     )[:3]
+    exploration_hotspots = _build_exploration_hotspots(active_region, chains)
+    hotspot_activity = _build_dynamic_hotspot_activity(active_region, species_manifest)
+    species_clusters = _build_dynamic_species_clusters(list(active_region["dominant_biomes"]), species_manifest)
+    pressure_window = _build_dynamic_pressure_window(active_region)
+    interaction_state = _build_dynamic_interaction_state(active_region, chains, species_manifest)
+    event_state = _build_dynamic_event_state(active_region, species_manifest)
+    objective_state = _build_dynamic_objective_state(hotspot_activity, interaction_state, event_state)
+    chase_state = _build_dynamic_chase_state(interaction_state, event_state)
+    completion_state = _build_dynamic_completion_state(active_region, event_state, objective_state)
+    hotspot_windows = _build_dynamic_hotspot_windows(hotspot_activity, objective_state, chase_state, event_state)
+    dynamic_region_state = {
+        "hotspot_activity": hotspot_activity,
+        "species_clusters": species_clusters,
+        "pressure_window": pressure_window,
+        "interaction_state": interaction_state,
+        "event_state": event_state,
+        "objective_state": objective_state,
+        "chase_state": chase_state,
+        "hotspot_windows": hotspot_windows,
+        "completion_state": completion_state,
+        "exit_state": _build_dynamic_exit_state(
+            interaction_state,
+            event_state,
+            objective_state,
+            chase_state,
+            hotspot_windows,
+            str(completion_state.get("readiness_band", "observe")),
+        ),
+    }
 
     payload = {
         "id": active_region["id"],
@@ -1257,12 +1967,15 @@ def _build_region_detail_payload(world: WorldSimulation, region_id: str) -> dict
             }
             for entry in _collect_top_species(world.get_active_region().species_pool, 8)
         ],
+        "species_manifest": species_manifest,
         "connectors": _region_connectors(world, region_id),
         "route_summary": _build_route_summary(_region_connectors(world, region_id)),
         "pressure_headlines": [
             f"{key}（{float(value):.2f}）" for key, value in top_pressure_items
         ],
         "chain_focus": _build_chain_focus(chains),
+        "exploration_hotspots": exploration_hotspots,
+        "dynamic_region_state": dynamic_region_state,
         "chains": chains,
         "narrative": {
             "territory": list(stats["territory"]["narrative_territory"][:3]),

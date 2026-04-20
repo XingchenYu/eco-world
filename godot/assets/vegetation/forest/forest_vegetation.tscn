@@ -1,0 +1,144 @@
+[gd_scene load_steps=8 format=3]
+
+[sub_resource type="StandardMaterial3D" id="1"]
+albedo_color = Color(0.231373, 0.321569, 0.215686, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.352941, 0.262745, 0.172549, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.376471, 0.466667, 0.282353, 1)
+roughness = 1.0
+
+[sub_resource type="SphereMesh" id="4"]
+radius = 0.5
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="5"]
+top_radius = 0.18
+bottom_radius = 0.28
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="6"]
+top_radius = 0.06
+bottom_radius = 0.1
+height = 1.0
+
+[sub_resource type="BoxMesh" id="7"]
+size = Vector3(0.14, 0.5, 0.14)
+
+[node name="ForestVegetation" type="Node3D"]
+
+[node name="TreeA" type="Node3D" parent="."]
+position = Vector3(-26, 0, 18)
+
+[node name="Trunk" type="MeshInstance3D" parent="TreeA"]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(0, 2.4, 0)
+scale = Vector3(1.2, 4.8, 1.2)
+
+[node name="CanopyCore" type="MeshInstance3D" parent="TreeA"]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(0, 6.6, 0)
+scale = Vector3(3.4, 2.4, 3.0)
+
+[node name="CanopySideA" type="MeshInstance3D" parent="TreeA"]
+mesh = SubResource("4")
+material_override = SubResource("3")
+position = Vector3(1.4, 6.2, 0.6)
+scale = Vector3(2.0, 1.5, 1.8)
+
+[node name="CanopySideB" type="MeshInstance3D" parent="TreeA"]
+mesh = SubResource("4")
+material_override = SubResource("3")
+position = Vector3(-1.2, 6.1, -0.4)
+scale = Vector3(1.8, 1.4, 1.7)
+
+[node name="TreeB" type="Node3D" parent="."]
+position = Vector3(10, 0, 10)
+
+[node name="Trunk" type="MeshInstance3D" parent="TreeB"]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(0, 2.2, 0)
+scale = Vector3(1.1, 4.4, 1.1)
+
+[node name="CanopyCore" type="MeshInstance3D" parent="TreeB"]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(0.1, 6.2, 0.2)
+scale = Vector3(3.0, 2.1, 2.7)
+
+[node name="TreeC" type="Node3D" parent="."]
+position = Vector3(24, 0, -6)
+
+[node name="Trunk" type="MeshInstance3D" parent="TreeC"]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(0, 2.6, 0)
+scale = Vector3(1.25, 5.0, 1.25)
+
+[node name="CanopyCore" type="MeshInstance3D" parent="TreeC"]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(0.2, 6.9, 0.1)
+scale = Vector3(3.6, 2.5, 3.2)
+
+[node name="UndergrowthA" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("3")
+position = Vector3(-12, 0.82, 8)
+scale = Vector3(1.9, 1.0, 1.5)
+
+[node name="UndergrowthB" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("3")
+position = Vector3(16, 0.74, 4)
+scale = Vector3(1.6, 0.92, 1.4)
+
+[node name="StemClusterA" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(-18, 0.5, 2)
+scale = Vector3(1, 2.4, 1)
+
+[node name="StemClusterB" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(4, 0.46, -10)
+scale = Vector3(1, 2.0, 1)
+
+[node name="SaplingA" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("3")
+position = Vector3(2, 0.26, 16)
+scale = Vector3(1.1, 1.8, 1.1)
+
+[node name="RavineShrubA" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("3")
+position = Vector3(-24, 0.58, -10)
+scale = Vector3(1.2, 0.68, 1.0)
+
+[node name="RavineShrubB" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("3")
+position = Vector3(14, 0.56, -20)
+scale = Vector3(1.1, 0.64, 0.96)
+
+[node name="RootStemA" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(26, 0.42, 10)
+rotation = Vector3(0.0, 0.26, 0.0)
+scale = Vector3(1.0, 2.0, 1.0)
+
+[node name="LeafEdgePatch" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(-16, 0.44, 10)
+scale = Vector3(1.4, 0.62, 1.1)

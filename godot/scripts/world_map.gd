@@ -37,6 +37,8 @@ var map_layer: Control
 var side_panel: PanelContainer
 var side_scroll: ScrollContainer
 var side_box: VBoxContainer
+var footer_box: VBoxContainer
+var footer_command_holder: HBoxContainer
 var selected_tab := "overview"
 var selected_campaign_target_id := ""
 var selected_campaign_stage_index := 0
@@ -156,6 +158,15 @@ func _species_category(species_id: String) -> String:
 	return "区域种"
 
 
+func _species_category_icon(species_id: String) -> String:
+	return {
+		"顶层种": "✦",
+		"草食群": "◎",
+		"岸带种": "≈",
+		"水域种": "◌",
+	}.get(_species_category(species_id), "◉")
+
+
 func _animate_side_panel_refresh() -> void:
 	if side_panel == null:
 		return
@@ -244,7 +255,7 @@ func _animate_focus_glow(glow: ColorRect, focus_frame: ColorRect) -> void:
 	tween.parallel().tween_property(focus_frame, "modulate:a", 0.38, 0.75)
 
 
-func _animate_region_focus_entry(shell: PanelContainer, outer_ring: ColorRect, shadow: ColorRect, shell_base: Vector2, shadow_base: Vector2) -> void:
+func _animate_region_focus_entry(shell: Control, outer_ring: ColorRect, shadow: ColorRect, shell_base: Vector2, shadow_base: Vector2) -> void:
 	shell.scale = Vector2(0.94, 0.94)
 	shell.position = shell_base + Vector2(0, 12)
 	shell.modulate = Color(1.0, 1.0, 1.0, 0.78)
@@ -258,7 +269,7 @@ func _animate_region_focus_entry(shell: PanelContainer, outer_ring: ColorRect, s
 	tween.parallel().tween_property(shadow, "position", shadow_base, 0.22)
 
 
-func _animate_region_hover(shell: PanelContainer, outer_ring: ColorRect, shadow: ColorRect, entering: bool) -> void:
+func _animate_region_hover(shell: Control, outer_ring: ColorRect, shadow: ColorRect, entering: bool) -> void:
 	var tween := create_tween()
 	if entering:
 		tween.tween_property(shell, "scale", Vector2(1.03, 1.03), 0.12)
@@ -272,7 +283,7 @@ func _animate_region_hover(shell: PanelContainer, outer_ring: ColorRect, shadow:
 		tween.parallel().tween_property(shell, "position:y", floor(shell.position.y / 1.0), 0.14)
 
 
-func _animate_region_press(shell: PanelContainer, pressed: bool) -> void:
+func _animate_region_press(shell: Control, pressed: bool) -> void:
 	var tween := create_tween()
 	if pressed:
 		tween.tween_property(shell, "scale", Vector2(0.985, 0.985), 0.07)
@@ -390,10 +401,10 @@ func _build_ui() -> void:
 
 	var root_margin := MarginContainer.new()
 	root_margin.set_anchors_preset(PRESET_FULL_RECT)
-	root_margin.add_theme_constant_override("margin_left", 20)
-	root_margin.add_theme_constant_override("margin_top", 18)
-	root_margin.add_theme_constant_override("margin_right", 20)
-	root_margin.add_theme_constant_override("margin_bottom", 18)
+	root_margin.add_theme_constant_override("margin_left", 14)
+	root_margin.add_theme_constant_override("margin_top", 14)
+	root_margin.add_theme_constant_override("margin_right", 14)
+	root_margin.add_theme_constant_override("margin_bottom", 14)
 	add_child(root_margin)
 
 	var root_vbox := VBoxContainer.new()
@@ -401,7 +412,7 @@ func _build_ui() -> void:
 	root_margin.add_child(root_vbox)
 
 	var header_panel := PanelContainer.new()
-	header_panel.custom_minimum_size = Vector2(0, 112)
+	header_panel.custom_minimum_size = Vector2(0, 82)
 	root_vbox.add_child(header_panel)
 
 	var header_box := VBoxContainer.new()
@@ -424,12 +435,12 @@ func _build_ui() -> void:
 
 	title_label = Label.new()
 	title_label.text = "阿瑞利亚生态世界"
-	_style_primary_title(title_label, 34)
+	_style_primary_title(title_label, 30)
 	title_col.add_child(title_label)
 
 	subtitle_label = Label.new()
-	subtitle_label.text = "世界地图总控台"
-	_style_secondary_title(subtitle_label, 18)
+	subtitle_label.text = "世界地图"
+	_style_secondary_title(subtitle_label, 15)
 	title_col.add_child(subtitle_label)
 
 	var control_row := HBoxContainer.new()
@@ -437,8 +448,8 @@ func _build_ui() -> void:
 	title_row.add_child(control_row)
 
 	refresh_button = Button.new()
-	refresh_button.text = "刷新世界"
-	refresh_button.custom_minimum_size = Vector2(138, 38)
+	refresh_button.text = "刷新"
+	refresh_button.custom_minimum_size = Vector2(110, 36)
 	refresh_button.pressed.connect(_load_world_data)
 	control_row.add_child(refresh_button)
 
@@ -449,7 +460,7 @@ func _build_ui() -> void:
 
 	var content := HBoxContainer.new()
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 18)
+	content.add_theme_constant_override("separation", 10)
 	root_vbox.add_child(content)
 
 	var map_panel := PanelContainer.new()
@@ -458,13 +469,13 @@ func _build_ui() -> void:
 	content.add_child(map_panel)
 
 	map_layer = Control.new()
-	map_layer.custom_minimum_size = Vector2(1040, 720)
+	map_layer.custom_minimum_size = Vector2(1120, 760)
 	map_layer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_layer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map_panel.add_child(map_layer)
 
 	side_panel = PanelContainer.new()
-	side_panel.custom_minimum_size = Vector2(390, 0)
+	side_panel.custom_minimum_size = Vector2(208, 0)
 	side_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(side_panel)
 
@@ -477,10 +488,10 @@ func _build_ui() -> void:
 	side_scroll.add_child(side_box)
 
 	var footer_panel := PanelContainer.new()
-	footer_panel.custom_minimum_size = Vector2(0, 46)
+	footer_panel.custom_minimum_size = Vector2(0, 78)
 	root_vbox.add_child(footer_panel)
 
-	var footer_box := VBoxContainer.new()
+	footer_box = VBoxContainer.new()
 	footer_box.add_theme_constant_override("separation", 4)
 	footer_panel.add_child(footer_box)
 
@@ -488,6 +499,10 @@ func _build_ui() -> void:
 	footer_ribbon.color = Color8(210, 182, 96)
 	footer_ribbon.custom_minimum_size = Vector2(0, 6)
 	footer_box.add_child(footer_ribbon)
+
+	footer_command_holder = HBoxContainer.new()
+	footer_command_holder.add_theme_constant_override("separation", 10)
+	footer_box.add_child(footer_command_holder)
 
 	status_label = Label.new()
 	status_label.text = "系统栏 · 先运行 Python 导出脚本生成 world_state.json"
@@ -541,6 +556,10 @@ func _render_world() -> void:
 	status_label.text = "系统栏 · Godot 世界地图前端 · 中文界面 · 读取 Python 导出的世界状态"
 	queue_redraw()
 	_sync_frontier_focus()
+
+	for child in footer_command_holder.get_children():
+		child.queue_free()
+	footer_command_holder.add_child(_make_tabs(_active_region_accent()))
 
 	for child in map_layer.get_children():
 		child.queue_free()
@@ -1061,52 +1080,45 @@ func _build_world_backdrop() -> void:
 		map_size = Vector2(1040, 720)
 
 	var ocean := ColorRect.new()
-	ocean.color = Color8(16, 37, 60, 255)
+	ocean.color = Color8(12, 28, 44, 255)
 	ocean.position = Vector2.ZERO
 	ocean.custom_minimum_size = map_size
 	map_layer.add_child(ocean)
 
-	var west_land := ColorRect.new()
-	west_land.color = Color8(44, 74, 52, 180)
-	west_land.position = Vector2(map_size.x * 0.06, map_size.y * 0.12)
-	west_land.custom_minimum_size = Vector2(map_size.x * 0.47, map_size.y * 0.62)
-	map_layer.add_child(west_land)
+	for band_variant in [
+		{"color": Color8(18, 45, 71, 138), "pos": Vector2(map_size.x * 0.00, map_size.y * 0.08), "size": Vector2(map_size.x * 1.00, map_size.y * 0.18)},
+		{"color": Color8(26, 56, 84, 120), "pos": Vector2(map_size.x * 0.00, map_size.y * 0.34), "size": Vector2(map_size.x * 1.00, map_size.y * 0.16)},
+		{"color": Color8(15, 39, 62, 132), "pos": Vector2(map_size.x * 0.00, map_size.y * 0.64), "size": Vector2(map_size.x * 1.00, map_size.y * 0.22)},
+	]:
+		var sea_band := ColorRect.new()
+		sea_band.color = band_variant["color"]
+		sea_band.position = band_variant["pos"]
+		sea_band.custom_minimum_size = band_variant["size"]
+		map_layer.add_child(sea_band)
 
-	var south_land := ColorRect.new()
-	south_land.color = Color8(48, 86, 70, 168)
-	south_land.position = Vector2(map_size.x * 0.30, map_size.y * 0.42)
-	south_land.custom_minimum_size = Vector2(map_size.x * 0.28, map_size.y * 0.26)
-	map_layer.add_child(south_land)
+	for land_variant in [
+		{"color": Color8(54, 94, 66, 170), "pos": Vector2(map_size.x * 0.07, map_size.y * 0.12), "size": Vector2(map_size.x * 0.34, map_size.y * 0.32)},
+		{"color": Color8(63, 103, 72, 176), "pos": Vector2(map_size.x * 0.22, map_size.y * 0.36), "size": Vector2(map_size.x * 0.28, map_size.y * 0.24)},
+		{"color": Color8(57, 98, 82, 164), "pos": Vector2(map_size.x * 0.47, map_size.y * 0.18), "size": Vector2(map_size.x * 0.18, map_size.y * 0.20)},
+		{"color": Color8(46, 81, 96, 156), "pos": Vector2(map_size.x * 0.67, map_size.y * 0.28), "size": Vector2(map_size.x * 0.18, map_size.y * 0.26)},
+		{"color": Color8(97, 72, 103, 152), "pos": Vector2(map_size.x * 0.73, map_size.y * 0.64), "size": Vector2(map_size.x * 0.15, map_size.y * 0.12)},
+	]:
+		var land_block := ColorRect.new()
+		land_block.color = land_variant["color"]
+		land_block.position = land_variant["pos"]
+		land_block.custom_minimum_size = land_variant["size"]
+		map_layer.add_child(land_block)
 
-	var east_shelf := ColorRect.new()
-	east_shelf.color = Color8(41, 73, 92, 165)
-	east_shelf.position = Vector2(map_size.x * 0.66, map_size.y * 0.28)
-	east_shelf.custom_minimum_size = Vector2(map_size.x * 0.23, map_size.y * 0.36)
-	map_layer.add_child(east_shelf)
-
-	var coral_band := ColorRect.new()
-	coral_band.color = Color8(83, 58, 89, 150)
-	coral_band.position = Vector2(map_size.x * 0.72, map_size.y * 0.64)
-	coral_band.custom_minimum_size = Vector2(map_size.x * 0.20, map_size.y * 0.18)
-	map_layer.add_child(coral_band)
-
-	var west_label := Label.new()
-	west_label.text = "西境大陆"
-	west_label.position = Vector2(map_size.x * 0.12, map_size.y * 0.10)
-	_style_primary_title(west_label, 28)
-	map_layer.add_child(west_label)
-
-	var sea_label := Label.new()
-	sea_label.text = "东岸航海带"
-	sea_label.position = Vector2(map_size.x * 0.70, map_size.y * 0.16)
-	_style_secondary_title(sea_label, 24)
-	map_layer.add_child(sea_label)
-
-	var coral_label := Label.new()
-	coral_label.text = "珊瑚群岛海"
-	coral_label.position = Vector2(map_size.x * 0.73, map_size.y * 0.61)
-	_style_secondary_title(coral_label, 22)
-	map_layer.add_child(coral_label)
+	for coast_variant in [
+		{"color": Color(1.0, 0.92, 0.60, 0.10), "pos": Vector2(map_size.x * 0.06, map_size.y * 0.11), "size": Vector2(map_size.x * 0.36, 3)},
+		{"color": Color(1.0, 0.92, 0.60, 0.10), "pos": Vector2(map_size.x * 0.21, map_size.y * 0.35), "size": Vector2(map_size.x * 0.30, 3)},
+		{"color": Color(1.0, 0.92, 0.60, 0.08), "pos": Vector2(map_size.x * 0.67, map_size.y * 0.27), "size": Vector2(map_size.x * 0.19, 3)},
+	]:
+		var coast_line := ColorRect.new()
+		coast_line.color = coast_variant["color"]
+		coast_line.position = coast_variant["pos"]
+		coast_line.custom_minimum_size = coast_variant["size"]
+		map_layer.add_child(coast_line)
 
 
 func _build_world_ambience() -> void:
@@ -1117,23 +1129,16 @@ func _build_world_ambience() -> void:
 	var active_pos := Vector2(map_size.x * active_rel.x, map_size.y * active_rel.y)
 	var accent := _active_region_accent()
 
-	var x := 0.0
-	while x < map_size.x:
-		var grid := ColorRect.new()
-		grid.color = Color(1.0, 1.0, 1.0, 0.04)
-		grid.position = Vector2(x, 0)
-		grid.custom_minimum_size = Vector2(1, map_size.y)
-		map_layer.add_child(grid)
-		x += 96.0
-
-	var y := 0.0
-	while y < map_size.y:
-		var grid := ColorRect.new()
-		grid.color = Color(1.0, 1.0, 1.0, 0.035)
-		grid.position = Vector2(0, y)
-		grid.custom_minimum_size = Vector2(map_size.x, 1)
-		map_layer.add_child(grid)
-		y += 88.0
+	for horizon_variant in [
+		{"color": Color(1.0, 1.0, 1.0, 0.03), "pos": Vector2(map_size.x * 0.03, map_size.y * 0.18), "size": Vector2(map_size.x * 0.94, 2)},
+		{"color": Color(1.0, 1.0, 1.0, 0.025), "pos": Vector2(map_size.x * 0.08, map_size.y * 0.46), "size": Vector2(map_size.x * 0.84, 2)},
+		{"color": Color(1.0, 1.0, 1.0, 0.02), "pos": Vector2(map_size.x * 0.12, map_size.y * 0.73), "size": Vector2(map_size.x * 0.76, 2)},
+	]:
+		var horizon_band := ColorRect.new()
+		horizon_band.color = horizon_variant["color"]
+		horizon_band.position = horizon_variant["pos"]
+		horizon_band.custom_minimum_size = horizon_variant["size"]
+		map_layer.add_child(horizon_band)
 
 	for current in [
 		{"from": Vector2(map_size.x * 0.63, map_size.y * 0.22), "to": Vector2(map_size.x * 0.82, map_size.y * 0.30)},
@@ -1144,6 +1149,17 @@ func _build_world_ambience() -> void:
 		flow.color = Color(0.70, 0.86, 0.97, 0.14)
 		flow.custom_minimum_size = Vector2(flow.custom_minimum_size.x, 3.0)
 		map_layer.add_child(flow)
+
+	for route in [
+		{"from": Vector2(map_size.x * 0.18, map_size.y * 0.28), "to": Vector2(map_size.x * 0.34, map_size.y * 0.42), "strength": 0.62},
+		{"from": Vector2(map_size.x * 0.34, map_size.y * 0.42), "to": Vector2(map_size.x * 0.50, map_size.y * 0.34), "strength": 0.58},
+		{"from": Vector2(map_size.x * 0.50, map_size.y * 0.34), "to": Vector2(map_size.x * 0.68, map_size.y * 0.40), "strength": 0.66},
+		{"from": Vector2(map_size.x * 0.68, map_size.y * 0.40), "to": Vector2(map_size.x * 0.79, map_size.y * 0.62), "strength": 0.54},
+	]:
+		var trunk := _make_route_line(route["from"], route["to"], route["strength"])
+		trunk.color = Color(0.96, 0.88, 0.58, 0.16)
+		trunk.custom_minimum_size = Vector2(trunk.custom_minimum_size.x, 5.0)
+		map_layer.add_child(trunk)
 
 	var horizon := ColorRect.new()
 	horizon.color = Color(accent.r, accent.g, accent.b, 0.10)
@@ -1162,6 +1178,17 @@ func _build_world_ambience() -> void:
 	aura.position = active_pos - Vector2(118, 52)
 	aura.custom_minimum_size = Vector2(236, 104)
 	map_layer.add_child(aura)
+
+	for spark_variant in [
+		Vector2(map_size.x * 0.18, map_size.y * 0.22),
+		Vector2(map_size.x * 0.59, map_size.y * 0.28),
+		Vector2(map_size.x * 0.82, map_size.y * 0.67),
+	]:
+		var spark := ColorRect.new()
+		spark.color = Color(1.0, 0.94, 0.72, 0.16)
+		spark.position = spark_variant
+		spark.custom_minimum_size = Vector2(12, 12)
+		map_layer.add_child(spark)
 
 
 func _campaign_accent(campaign_band: String) -> Color:
@@ -1191,285 +1218,87 @@ func _build_focus_stage(regions: Array) -> void:
 
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	var accent := _active_region_accent()
-	var chain_focus: Array = active_region.get("chain_focus", [])
-	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
-	var route_summary: Array = active_region.get("route_summary", [])
-	var top_species: Array = active_region.get("top_species", [])
 	var active_frontier := _active_frontier_link(active_region)
-	var active_frontier_network := _active_frontier_network(active_region)
-	var active_operation := _active_frontier_operation(active_region)
 	var active_campaign := _active_frontier_campaign(active_region)
 	var active_route_profile := _active_route_profile(active_region)
-	var active_execution_plan := _active_execution_plan(active_region)
-	var active_schedule_profile := _active_schedule_profile(active_region)
-	var active_formation_profile := _active_formation_profile(active_region)
-	var active_formation_preset := _active_formation_preset(active_region)
-	var active_activation_profile := _active_activation_profile(active_region)
-	var active_activation_feedback := _active_activation_feedback(active_region)
-	var active_directive := _active_directive_profile(active_region)
-	var active_directive_preview := _active_directive_preview(active_region)
-	var directive_sandbox := _directive_sandbox_rows(active_region)
-	var directive_comparison := _directive_comparison(active_region)
-	var directive_decisions := _directive_decisions(active_region)
-	var active_lock := _active_directive_lock(active_region)
-	var active_confirmation := _active_directive_confirmation(active_region)
-	var active_schedule_route := _active_schedule_route(active_region)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
-	var landing_candidates: Array = _campaign_landing_candidates(active_region)
-	var header_copy := _region_command_header(active_region)
-	var stage_profile := _focus_stage_profile(active_region, active_frontier, active_frontier_network, active_operation, active_campaign, active_stage)
-	var stage := PanelContainer.new()
-	stage.custom_minimum_size = Vector2(360, 150)
-	stage.position = Vector2(map_size.x * 0.34, map_size.y * 0.38)
+	var stage := VBoxContainer.new()
+	stage.custom_minimum_size = Vector2(244, 48)
+	stage.position = Vector2(map_size.x * 0.42, map_size.y * 0.50)
 	map_layer.add_child(stage)
 
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 8)
-	stage.add_child(root)
-
-	var ribbon := ColorRect.new()
-	ribbon.color = accent.lightened(0.06)
-	ribbon.custom_minimum_size = Vector2(0, 10)
-	root.add_child(ribbon)
+	var root := stage
+	root.add_theme_constant_override("separation", 1)
 
 	var eyebrow := Label.new()
-	eyebrow.text = "%s · %s · %s · %s · %s筛选" % [_region_type_chip(active_region), header_copy["eyebrow"], str(stage_profile["mode"]), str(stage_profile["stage_mode"]), _campaign_filter_label()]
-	_style_dim(eyebrow, 13)
+	eyebrow.text = _region_type_chip(active_region)
+	_style_dim(eyebrow, 7)
 	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(eyebrow)
 
+	var hero_row := HBoxContainer.new()
+	hero_row.add_theme_constant_override("separation", 3)
+	root.add_child(hero_row)
+
+	var emblem_icon := Label.new()
+	emblem_icon.text = REGION_ICONS.get(str(active_region.get("id", active_region_id)), "区")
+	emblem_icon.custom_minimum_size = Vector2(22, 22)
+	emblem_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	emblem_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	emblem_icon.add_theme_font_size_override("font_size", 14)
+	emblem_icon.modulate = accent.lightened(0.34)
+	hero_row.add_child(emblem_icon)
+
+	var stage_col := VBoxContainer.new()
+	stage_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stage_col.add_theme_constant_override("separation", 1)
+	hero_row.add_child(stage_col)
+
 	var title := Label.new()
-	title.text = str(active_region.get("name", "未选择"))
-	_style_primary_title(title, 28)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.text = str(active_landing.get("name", active_region.get("name", "未选择")))
+	_style_primary_title(title, 12)
 	title.modulate = accent.lightened(0.26)
-	root.add_child(title)
+	stage_col.add_child(title)
 
-	var role := Label.new()
-	role.text = "%s · %s" % [str(header_copy["subtitle"]), str(stage_profile["stage_title"])]
-	_style_secondary_title(role, 17)
-	role.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	role.modulate = accent.lightened(0.16)
-	root.add_child(role)
+	var route_line := Label.new()
+	route_line.text = "→ %s" % str(active_frontier.get("target_name", "待命"))
+	_style_dim(route_line, 7)
+	route_line.modulate = accent.lightened(0.16)
+	stage_col.add_child(route_line)
 
-	var health_state: Dictionary = active_region.get("health_state", {})
-	var resource_state: Dictionary = active_region.get("resource_state", {})
-	var meter_row := HBoxContainer.new()
-	meter_row.add_theme_constant_override("separation", 8)
-	root.add_child(meter_row)
-	meter_row.add_child(_make_meter_chip("繁荣", float(health_state.get("prosperity", 0.0)), Color8(210, 182, 96), "◎"))
-	meter_row.add_child(_make_meter_chip("稳定", float(health_state.get("stability", 0.0)), Color8(104, 171, 144), "▲"))
-	meter_row.add_child(_make_meter_chip("风险", float(health_state.get("collapse_risk", 0.0)), Color8(171, 132, 196), "◆"))
-	meter_row.add_child(_make_meter_chip("水源", float(resource_state.get("surface_water", 0.0)), Color8(102, 152, 204), "≈"))
-
-	var center_row := HBoxContainer.new()
-	center_row.add_theme_constant_override("separation", 8)
-	root.add_child(center_row)
-	for item_variant in stage_profile["hero_rows"]:
-		var item: Dictionary = item_variant
-		center_row.add_child(_make_hero_chip(str(item["label"]), str(item["value"]), item["color"]))
-
-	var landing_row := HBoxContainer.new()
-	landing_row.add_theme_constant_override("separation", 8)
-	root.add_child(landing_row)
-	landing_row.add_child(_make_hero_chip("当前落点", str(active_landing.get("name", active_stage.get("title", "等待落点"))), accent))
-	landing_row.add_child(_make_hero_chip("落点定位", str(active_landing.get("region_role", active_stage.get("detail", "等待落点情报"))), Color8(102, 152, 204)))
-	if not landing_candidates.is_empty():
-		landing_row.add_child(_make_hero_chip("优选落点", str((landing_candidates[0] as Dictionary).get("name", "等待优选分支")), Color8(104, 171, 144)))
-
-	var route_row := HBoxContainer.new()
-	route_row.add_theme_constant_override("separation", 8)
-	root.add_child(route_row)
-	route_row.add_child(_make_hero_chip("确认姿态", str(active_route_profile.get("confirmation_band", "等待路线确认")), Color8(210, 182, 96)))
-	route_row.add_child(_make_hero_chip("主走廊", str(active_route_profile.get("primary_stage_title", active_stage.get("title", "等待主走廊"))), Color8(102, 152, 204)))
-	route_row.add_child(_make_hero_chip("二阶段", str(active_route_profile.get("secondary_stage_title", "等待二阶段分支")), Color8(171, 132, 196)))
-
-	var route_strip := _make_route_stage_strip(active_route_profile, accent)
-	root.add_child(route_strip)
-
-	var execution_row := HBoxContainer.new()
-	execution_row.add_theme_constant_override("separation", 8)
-	root.add_child(execution_row)
-	execution_row.add_child(_make_hero_chip("执行层", str(active_execution_plan.get("execution_mode", "等待执行层")), Color8(104, 171, 144)))
-	execution_row.add_child(_make_hero_chip("就绪带", str(active_execution_plan.get("ready_band", "待命")), Color8(102, 152, 204)))
-	execution_row.add_child(_make_hero_chip("压力带", str(active_execution_plan.get("pressure_band", "待命")), Color8(171, 132, 196)))
-
-	var schedule_row := HBoxContainer.new()
-	schedule_row.add_theme_constant_override("separation", 8)
-	root.add_child(schedule_row)
-	schedule_row.add_child(_make_hero_chip("编成", str(active_formation_profile.get("formation_name", "等待编成")), Color8(210, 182, 96)))
-	schedule_row.add_child(_make_hero_chip("调度带", str(active_schedule_profile.get("dispatch_band", "等待调度")), Color8(104, 171, 144)))
-	schedule_row.add_child(_make_hero_chip("当前调度", str(active_schedule_route.get("label", "主执行")), Color8(104, 171, 144)))
-	schedule_row.add_child(_make_hero_chip("调度落点", str(active_schedule_route.get("landing_name", "待命")), Color8(102, 152, 204)))
-	schedule_row.add_child(_make_hero_chip("调度就绪", str(active_schedule_route.get("ready_band", "待命")), Color8(171, 132, 196)))
-
-	var preset_row := HBoxContainer.new()
-	preset_row.add_theme_constant_override("separation", 8)
-	root.add_child(preset_row)
-	preset_row.add_child(_make_hero_chip("当前预案", str(active_formation_preset.get("preset_name", "等待预案")), Color8(210, 182, 96)))
-	var route_order: Array = active_formation_preset.get("route_order", [])
-	preset_row.add_child(_make_hero_chip("序列一", str(route_order[0]) if route_order.size() > 0 else "待命", Color8(104, 171, 144)))
-	preset_row.add_child(_make_hero_chip("序列二", str(route_order[1]) if route_order.size() > 1 else "待命", Color8(102, 152, 204)))
-	preset_row.add_child(_make_hero_chip("序列三", str(route_order[2]) if route_order.size() > 2 else "待命", Color8(171, 132, 196)))
-
-	var activation_row := HBoxContainer.new()
-	activation_row.add_theme_constant_override("separation", 8)
-	root.add_child(activation_row)
-	activation_row.add_child(_make_hero_chip("激活预案", str(active_activation_profile.get("preset_name", "待命")), Color8(210, 182, 96)))
-	activation_row.add_child(_make_hero_chip("激活带", str(active_activation_profile.get("activation_band", "待命")), Color8(104, 171, 144)))
-	var active_activation_route: Dictionary = active_activation_profile.get("active_route", {})
-	activation_row.add_child(_make_hero_chip("激活主轴", str(active_activation_route.get("landing_name", "待命")), Color8(102, 152, 204)))
-
-	var feedback_row := HBoxContainer.new()
-	feedback_row.add_theme_constant_override("separation", 8)
-	root.add_child(feedback_row)
-	feedback_row.add_child(_make_hero_chip("回路筛选", _campaign_filter_label(), Color8(171, 132, 196)))
-	feedback_row.add_child(_make_hero_chip("回路阶段", str(active_activation_feedback.get("recommended_stage_title", "待命")), Color8(104, 171, 144)))
-	feedback_row.add_child(_make_hero_chip("回路落点", str(active_activation_feedback.get("priority_target_name", "待命")), Color8(102, 152, 204)))
-	feedback_row.add_child(_make_hero_chip("回路带", str(active_activation_feedback.get("feedback_band", "待命")), Color8(210, 182, 96)))
-
-	var directive_row := HBoxContainer.new()
-	directive_row.add_theme_constant_override("separation", 8)
-	root.add_child(directive_row)
-	directive_row.add_child(_make_hero_chip("当前指令", str(active_directive.get("directive_band", "待命")), Color8(210, 182, 96)))
-	directive_row.add_child(_make_hero_chip("指令主轴", str((active_directive.get("active_route", {}) as Dictionary).get("landing_name", "待命")), Color8(104, 171, 144)))
-	directive_row.add_child(_make_hero_chip("指令编排", str(active_directive.get("comparison_focus", "综合推进")), Color8(102, 152, 204)))
-	directive_row.add_child(_make_hero_chip("指令筛选", _campaign_filter_label(), Color8(171, 132, 196)))
-
-	var preview_row := HBoxContainer.new()
-	preview_row.add_theme_constant_override("separation", 8)
-	root.add_child(preview_row)
-	var preview_stages: Array = active_directive_preview.get("preview_stages", [])
-	preview_row.add_child(_make_hero_chip("预演一阶", str((preview_stages[0] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 0 else "待命", Color8(210, 182, 96)))
-	preview_row.add_child(_make_hero_chip("预演二阶", str((preview_stages[1] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 1 else "待命", Color8(104, 171, 144)))
-	preview_row.add_child(_make_hero_chip("预演回退", str((preview_stages[2] as Dictionary).get("target_name", "待命")) if preview_stages.size() > 2 else "待命", Color8(171, 132, 196)))
-
-	var sandbox_row := HBoxContainer.new()
-	sandbox_row.add_theme_constant_override("separation", 8)
-	root.add_child(sandbox_row)
-	sandbox_row.add_child(_make_hero_chip("沙盘优选", str((directive_sandbox[0] as Dictionary).get("sandbox_name", "待命")) if directive_sandbox.size() > 0 else "待命", Color8(210, 182, 96)))
-	sandbox_row.add_child(_make_hero_chip("沙盘总分", "%.2f" % float((directive_sandbox[0] as Dictionary).get("sandbox_score", 0.0)) if directive_sandbox.size() > 0 else "0.00", Color8(104, 171, 144)))
-
-	var comparison_row := HBoxContainer.new()
-	comparison_row.add_theme_constant_override("separation", 8)
-	root.add_child(comparison_row)
-	comparison_row.add_child(_make_hero_chip("比选优选", str((directive_comparison.get("best_directive", {}) as Dictionary).get("directive_name", "待命")), Color8(210, 182, 96)))
-	comparison_row.add_child(_make_hero_chip("当前指令", str((directive_comparison.get("active_directive", {}) as Dictionary).get("directive_name", "待命")), Color8(104, 171, 144)))
-	comparison_row.add_child(_make_hero_chip("高风险指令", str((directive_comparison.get("risk_directive", {}) as Dictionary).get("directive_name", "待命")), Color8(171, 132, 196)))
-
-	var decision_row := HBoxContainer.new()
-	decision_row.add_theme_constant_override("separation", 8)
-	root.add_child(decision_row)
-	decision_row.add_child(_make_hero_chip("当前定案", str((directive_decisions[0] as Dictionary).get("decision_name", "待命")) if directive_decisions.size() > 0 else "待命", Color8(210, 182, 96)))
-	decision_row.add_child(_make_hero_chip("定案主轴", str((directive_decisions[0] as Dictionary).get("primary_target_name", "待命")) if directive_decisions.size() > 0 else "待命", Color8(104, 171, 144)))
-	decision_row.add_child(_make_hero_chip("锁定结论", str(active_lock.get("lock_name", "待命")), Color8(171, 132, 196)))
-
-	var confirmation_row := HBoxContainer.new()
-	confirmation_row.add_theme_constant_override("separation", 8)
-	root.add_child(confirmation_row)
-	confirmation_row.add_child(_make_hero_chip("当前确认", str(active_confirmation.get("confirmation_name", "待命")), Color8(210, 182, 96)))
-	confirmation_row.add_child(_make_hero_chip("确认主轴", str(active_confirmation.get("primary_target_name", "待命")), Color8(104, 171, 144)))
-	confirmation_row.add_child(_make_hero_chip("确认带", str(active_confirmation.get("confirmation_band", "待命")), Color8(171, 132, 196)))
-
-	var species_strip := _make_species_signal_strip(top_species, accent)
-	root.add_child(species_strip)
-
-	var footer := Label.new()
-	footer.text = "已加载区域 %s · 地图节点 %s · 当前战区 %s · 当前阶段 %s · 确认姿态 %s · 执行层 %s · 编成 %s · 预案 %s · 激活 %s · 回路 %s · 指令 %s · 调度带 %s · 筛选 %s" % [
-		str(world_data.get("world", {}).get("loaded_regions", 0)),
-		str(regions.size()),
-		str(active_campaign.get("campaign_band", "等待战区模式")),
-		str(stage_profile["stage_mode"]),
-		str(active_route_profile.get("confirmation_band", "待命")),
-		str(active_execution_plan.get("execution_mode", "待命")),
-		str(active_formation_profile.get("formation_name", "待命")),
-		str(active_formation_preset.get("preset_name", "待命")),
-		str(active_activation_profile.get("activation_band", "待命")),
-		str(active_activation_feedback.get("feedback_band", "待命")),
-		str(active_directive.get("directive_band", "待命")),
-		str(active_schedule_profile.get("dispatch_band", "待命")),
-		_campaign_filter_label(),
-	]
-	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_dim(footer, 13)
-	root.add_child(footer)
-
-	var sub_stage := PanelContainer.new()
-	sub_stage.custom_minimum_size = Vector2(260, 112)
-	sub_stage.position = stage.position + Vector2(32, 166)
-	map_layer.add_child(sub_stage)
-
-	var sub_box := VBoxContainer.new()
-	sub_box.add_theme_constant_override("separation", 6)
-	sub_stage.add_child(sub_box)
-
-	var sub_ribbon := ColorRect.new()
-	sub_ribbon.color = Color8(104, 171, 144)
-	sub_ribbon.custom_minimum_size = Vector2(0, 8)
-	sub_box.add_child(sub_ribbon)
-
-	var sub_title := Label.new()
-	sub_title.text = "%s · %s" % [_region_type_chip(active_region), str(stage_profile["substage_title"])]
-	_style_secondary_title(sub_title, 18)
-	sub_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub_box.add_child(sub_title)
-
-	sub_box.add_child(_make_hero_chip(str(stage_profile["sub_primary"]["label"]), str(stage_profile["sub_primary"]["value"]), stage_profile["sub_primary"]["color"]))
-	sub_box.add_child(_make_hero_chip(str(stage_profile["sub_secondary"]["label"]), str(stage_profile["sub_secondary"]["value"]), stage_profile["sub_secondary"]["color"]))
-
-	var signal_strip := PanelContainer.new()
-	signal_strip.custom_minimum_size = Vector2(420, 72)
-	signal_strip.position = stage.position + Vector2(-22, 286)
-	map_layer.add_child(signal_strip)
-
-	var signal_row := HBoxContainer.new()
-	signal_row.add_theme_constant_override("separation", 8)
-	signal_strip.add_child(signal_row)
-	for item_variant in stage_profile["strip_rows"]:
-		var item: Dictionary = item_variant
-		signal_row.add_child(_make_hero_chip(str(item["label"]), str(item["value"]), item["color"]))
-
-	var left_panel := _make_stage_info_panel(
-		str(stage_profile["left_title"]),
-		stage_profile["left_rows"],
-		Color8(102, 152, 204)
-	)
-	left_panel.position = stage.position + Vector2(-286, 76)
-	map_layer.add_child(left_panel)
-
-	var right_panel := _make_stage_info_panel(
-		str(stage_profile["right_title"]),
-		stage_profile["right_rows"],
-		Color8(171, 132, 196)
-	)
-	right_panel.position = stage.position + Vector2(382, 76)
-	map_layer.add_child(right_panel)
+	var signal_label := Label.new()
+	signal_label.text = "前线 · %s" % str(active_stage.get("stage", "待命"))
+	signal_label.position = stage.position + Vector2(54, 46)
+	_style_dim(signal_label, 7)
+	signal_label.modulate = accent.lightened(0.14)
+	map_layer.add_child(signal_label)
 
 
 func _make_stage_info_panel(title_text: String, rows: Array, accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(240, 132)
+	panel.custom_minimum_size = Vector2(152, 78)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 4)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = accent.lightened(0.06)
-	ribbon.custom_minimum_size = Vector2(0, 8)
+	ribbon.custom_minimum_size = Vector2(0, 6)
 	box.add_child(ribbon)
 
 	var title := Label.new()
 	title.text = title_text
-	_style_secondary_title(title, 18)
+	_style_secondary_title(title, 13)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
-	for line in rows:
+	for line in rows.slice(0, 2):
 		var item := Label.new()
-		item.text = "• %s" % str(line)
+		item.text = str(line)
 		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_style_body(item, 14)
+		_style_dim(item, 11)
+		item.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(item)
 	return panel
 
@@ -1973,9 +1802,9 @@ func _make_route_line(from_pos: Vector2, to_pos: Vector2, strength: float) -> Co
 	var length: float = max(1.0, delta.length())
 	var angle: float = delta.angle()
 	var line := ColorRect.new()
-	line.color = Color(0.88, 0.89, 0.70, clamp(0.16 + strength * 0.24, 0.18, 0.42))
-	line.position = from_pos.lerp(to_pos, 0.5) - Vector2(length * 0.5, 2.0)
-	line.custom_minimum_size = Vector2(length, 4.0)
+	line.color = Color(0.88, 0.89, 0.70, clamp(0.18 + strength * 0.24, 0.20, 0.46))
+	line.position = from_pos.lerp(to_pos, 0.5) - Vector2(length * 0.5, 2.5)
+	line.custom_minimum_size = Vector2(length, 5.0)
 	line.rotation = angle
 	return line
 
@@ -1994,100 +1823,72 @@ func _build_map_nodes(regions: Array) -> void:
 		var is_active: bool = region_id == active_region_id
 
 		var shadow := ColorRect.new()
-		shadow.color = Color(0.03, 0.06, 0.09, 0.45 if is_active else 0.28)
-		var shadow_base := pos - Vector2(126, 54) + Vector2(8, 8)
+		shadow.color = Color(0.03, 0.06, 0.09, 0.28 if is_active else 0.05)
+		var shadow_base := pos - Vector2(14, 14) + Vector2(3, 4)
 		shadow.position = shadow_base
-		shadow.custom_minimum_size = Vector2(252, 112)
+		shadow.custom_minimum_size = Vector2(28, 28)
 		map_layer.add_child(shadow)
 
 		var outer_ring := ColorRect.new()
-		outer_ring.color = Color(accent.r, accent.g, accent.b, 0.18 if is_active else 0.10)
-		outer_ring.position = pos - Vector2(132, 60)
-		outer_ring.custom_minimum_size = Vector2(264, 124)
+		outer_ring.color = Color(accent.r, accent.g, accent.b, 0.16 if is_active else 0.03)
+		outer_ring.position = pos - Vector2(15, 15)
+		outer_ring.custom_minimum_size = Vector2(30, 30)
 		map_layer.add_child(outer_ring)
 
-		var shell := PanelContainer.new()
-		var shell_base := pos - Vector2(126, 54)
+		var shell := ColorRect.new()
+		var shell_base := pos - Vector2(12, 12)
 		shell.position = shell_base
-		shell.custom_minimum_size = Vector2(252, 112)
-		shell.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active else 0.76)
+		shell.custom_minimum_size = Vector2(24, 24)
+		shell.color = Color(accent.r, accent.g, accent.b, 0.18 if is_active else 0.08)
 		map_layer.add_child(shell)
+
+		var stem := ColorRect.new()
+		stem.color = Color(accent.r, accent.g, accent.b, 0.20 if is_active else 0.08)
+		stem.position = pos + Vector2(-1, 12)
+		stem.custom_minimum_size = Vector2(2, 10)
+		map_layer.add_child(stem)
 
 		if is_active:
 			var glow := ColorRect.new()
-			glow.color = Color(1.0, 0.92, 0.58, 0.16)
-			glow.position = shell.position - Vector2(14, 12)
-			glow.custom_minimum_size = shell.custom_minimum_size + Vector2(28, 24)
+			glow.color = Color(1.0, 0.92, 0.58, 0.14)
+			glow.position = shell.position - Vector2(6, 6)
+			glow.custom_minimum_size = shell.custom_minimum_size + Vector2(12, 12)
 			map_layer.add_child(glow)
 			map_layer.move_child(glow, map_layer.get_child_count() - 2)
 
 			var focus_frame := ColorRect.new()
-			focus_frame.color = Color(1.0, 0.92, 0.58, 0.28)
-			focus_frame.position = shell.position - Vector2(4, 4)
-			focus_frame.custom_minimum_size = shell.custom_minimum_size + Vector2(8, 8)
+			focus_frame.color = Color(1.0, 0.92, 0.58, 0.22)
+			focus_frame.position = shell.position - Vector2(2, 2)
+			focus_frame.custom_minimum_size = shell.custom_minimum_size + Vector2(4, 4)
 			map_layer.add_child(focus_frame)
 			map_layer.move_child(focus_frame, map_layer.get_child_count() - 2)
 			_animate_region_focus_entry(shell, outer_ring, shadow, shell_base, shadow_base)
 			_animate_focus_glow(glow, focus_frame)
 
-		var shell_box := VBoxContainer.new()
-		shell_box.add_theme_constant_override("separation", 4)
-		shell.add_child(shell_box)
-
-		var header := HBoxContainer.new()
-		header.add_theme_constant_override("separation", 10)
-		shell_box.add_child(header)
-
-		var icon_panel := PanelContainer.new()
-		icon_panel.custom_minimum_size = Vector2(58, 58)
-		header.add_child(icon_panel)
-
 		var icon := Label.new()
 		icon.text = REGION_ICONS.get(region_id, "区")
 		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		icon.custom_minimum_size = Vector2(58, 58)
-		icon.add_theme_font_size_override("font_size", 30)
-		icon_panel.add_child(icon)
+		icon.custom_minimum_size = Vector2(24, 24)
+		icon.position = shell.position
+		icon.add_theme_font_size_override("font_size", 14)
+		icon.modulate = accent.lightened(0.34)
+		map_layer.add_child(icon)
 
-		var text_box := VBoxContainer.new()
-		text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		header.add_child(text_box)
-
-		var name := Label.new()
-		name.text = str(region.get("name", region_id))
-		_style_primary_title(name, 20)
-		text_box.add_child(name)
-
-		var role := Label.new()
-		role.text = "繁荣 %.2f · 风险 %.2f" % [
-			float(region.get("prosperity", 0.0)),
-			float(region.get("collapse_risk", 0.0)),
-		]
-		_style_body(role, 15)
-		text_box.add_child(role)
-
-		var state_chip := Label.new()
-		state_chip.text = "当前焦点" if region_id == active_region_id else "可进入"
-		_style_dim(state_chip, 13)
-		text_box.add_child(state_chip)
-
-		var footer := Label.new()
-		footer.text = "种群 %s · %s" % [
-			str(region.get("species_population", 0)),
-			"已锁定情报" if region_id == active_region_id else "点击进入区域情报",
-		]
-		_style_dim(footer, 15)
-		shell_box.add_child(footer)
+		var pip := ColorRect.new()
+		pip.color = accent.lightened(0.16) if is_active else Color8(112, 132, 156)
+		pip.custom_minimum_size = Vector2(3, 3)
+		pip.position = shell.position + Vector2(10, 20)
+		map_layer.add_child(pip)
 
 		var button := Button.new()
 		button.text = ""
 		button.flat = true
-		button.custom_minimum_size = shell.custom_minimum_size
-		button.position = shell.position
+		button.custom_minimum_size = Vector2(36, 42)
+		button.position = shell.position - Vector2(6, 5)
 		button.pressed.connect(_on_region_pressed.bind(region_id))
 		button.mouse_entered.connect(func() -> void:
-			shadow.position = shadow_base + Vector2(12, 11)
+			shadow.position = shadow_base + Vector2(6, 8)
 			_animate_region_hover(shell, outer_ring, shadow, true)
 		)
 		button.mouse_exited.connect(func() -> void:
@@ -2103,23 +1904,15 @@ func _build_map_nodes(regions: Array) -> void:
 		)
 		map_layer.add_child(button)
 
-		var badge := Label.new()
-		badge.text = REGION_ICONS.get(region_id, "区")
-		badge.position = shell.position + Vector2(16, 12)
-		badge.add_theme_font_size_override("font_size", 30)
-		badge.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active else 0.72)
-		map_layer.add_child(badge)
-
-		var plaque := PanelContainer.new()
-		plaque.position = shell.position + Vector2(12, 78)
-		plaque.custom_minimum_size = Vector2(116, 22)
-		map_layer.add_child(plaque)
-
 		var plaque_label := Label.new()
 		plaque_label.text = str(region.get("name", region_id))
-		_style_dim(plaque_label, 13)
-		plaque_label.modulate = Color(0.78, 0.82, 0.86, 1.0 if is_active else 0.72)
-		plaque.add_child(plaque_label)
+		_style_secondary_title(plaque_label, 5)
+		plaque_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		plaque_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		plaque_label.position = shell.position + Vector2(-12, 35)
+		plaque_label.custom_minimum_size = Vector2(44, 8)
+		plaque_label.modulate = accent.lightened(0.22) if is_active else Color(accent.r, accent.g, accent.b, 0.12)
+		map_layer.add_child(plaque_label)
 
 
 func _build_map_command_layer() -> void:
@@ -2127,185 +1920,135 @@ func _build_map_command_layer() -> void:
 	if map_size.x <= 0.0 or map_size.y <= 0.0:
 		map_size = Vector2(1040, 720)
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
-	var bulletin_panel := _make_world_bulletin_panel(active_region)
-	bulletin_panel.position = Vector2(24, 20)
-	map_layer.add_child(bulletin_panel)
-
-	var focus_strip := _make_focus_command_strip(active_region)
-	focus_strip.position = Vector2(max(220, map_layer.size.x * 0.34), 20)
-	map_layer.add_child(focus_strip)
-
-	var campaign_bar := _make_frontier_campaign_bar(active_region)
-	campaign_bar.position = Vector2(max(180, map_layer.size.x * 0.30), 112)
-	map_layer.add_child(campaign_bar)
-
-	var legend_panel := _make_map_legend_panel(active_region)
-	legend_panel.position = Vector2(max(24, map_layer.size.x - 250), 20)
-	map_layer.add_child(legend_panel)
+	var header_bar := _make_world_header_bar(active_region, map_size)
+	header_bar.position = Vector2(20, 18)
+	map_layer.add_child(header_bar)
 
 	var frontier_belt := _make_frontier_transfer_belt(active_region)
-	frontier_belt.position = Vector2(max(36, map_size.x * 0.16), map_size.y - 182)
+	frontier_belt.position = Vector2(max(48, map_size.x * 0.18), map_size.y - 142)
 	map_layer.add_child(frontier_belt)
+
+
+func _make_world_header_bar(active_region: Dictionary, map_size: Vector2) -> PanelContainer:
+	var shell := PanelContainer.new()
+	shell.custom_minimum_size = Vector2(min(map_size.x - 40.0, 1180.0), 84)
+
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 4)
+	shell.add_child(root)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = _active_region_accent().lightened(0.08)
+	ribbon.custom_minimum_size = Vector2(0, 4)
+	root.add_child(ribbon)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	root.add_child(row)
+
+	var left := _make_world_bulletin_panel(active_region)
+	row.add_child(left)
+
+	var center := HBoxContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.add_theme_constant_override("separation", 6)
+	row.add_child(center)
+	center.add_child(_make_focus_command_strip(active_region))
+	center.add_child(_make_frontier_campaign_bar(active_region))
+
+	var right := _make_map_legend_panel(active_region)
+	row.add_child(right)
+	return shell
 
 
 func _make_world_bulletin_panel(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(320, 0)
+	panel.custom_minimum_size = Vector2(188, 56)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = Color8(102, 152, 204)
-	ribbon.custom_minimum_size = Vector2(0, 8)
+	ribbon.custom_minimum_size = Vector2(0, 4)
 	box.add_child(ribbon)
 
 	var title := Label.new()
-	title.text = "世界播报 · 指挥台"
-	_style_primary_title(title, 22)
+	title.text = "世界图抬头"
+	_style_secondary_title(title, 11)
 	box.add_child(title)
-
-	var focus_card := PanelContainer.new()
-	box.add_child(focus_card)
-
-	var focus_box := VBoxContainer.new()
-	focus_box.add_theme_constant_override("separation", 4)
-	focus_card.add_child(focus_box)
-
-	var focus_tag := Label.new()
-	focus_tag.text = "焦点区域提示"
-	_style_secondary_title(focus_tag, 16)
-	focus_box.add_child(focus_tag)
 
 	var focus_line := Label.new()
 	focus_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	focus_line.text = "%s · %s" % [
-		str(active_region.get("name", "未选择区域")),
-		str(active_region.get("region_role", "生态观测区")),
-	]
-	_style_body(focus_line, 15)
-	focus_box.add_child(focus_line)
+	focus_line.text = str(active_region.get("name", "未选择区域"))
+	_style_dim(focus_line, 9)
+	box.add_child(focus_line)
 
-	if not bulletin_cache.is_empty():
-		var lead_card := PanelContainer.new()
-		box.add_child(lead_card)
-
-		var lead_box := VBoxContainer.new()
-		lead_box.add_theme_constant_override("separation", 4)
-		lead_card.add_child(lead_box)
-
-		var lead_tag := Label.new()
-		lead_tag.text = "主主播报"
-		_style_secondary_title(lead_tag, 16)
-		lead_box.add_child(lead_tag)
-
-		var lead_item := Label.new()
-		lead_item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lead_item.text = str(bulletin_cache[0])
-		_style_body(lead_item, 16)
-		lead_box.add_child(lead_item)
-
-	if bulletin_cache.size() > 1:
-		var digest_card := PanelContainer.new()
-		box.add_child(digest_card)
-
-		var digest_box := VBoxContainer.new()
-		digest_box.add_theme_constant_override("separation", 4)
-		digest_card.add_child(digest_box)
-
-		var digest_tag := Label.new()
-		digest_tag.text = "动态简报"
-		_style_secondary_title(digest_tag, 16)
-		digest_box.add_child(digest_tag)
-
-		for line in bulletin_cache.slice(1, 4):
-			var item := Label.new()
-			item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			item.text = "• %s" % str(line)
-			_style_body(item, 15)
-			digest_box.add_child(item)
 	return panel
 
 
 func _make_focus_command_strip(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(420, 0)
-	var active_frontier := _active_frontier_link(active_region)
-	var active_frontier_network := _active_frontier_network(active_region)
-	var active_branch := _active_frontier_branch(active_region)
-	var active_operation := _active_frontier_operation(active_region)
-	var active_campaign := _active_frontier_campaign(active_region)
-	var active_landing := _active_campaign_landing(active_region)
+	panel.custom_minimum_size = Vector2(0, 56)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = _active_region_accent().lightened(0.04)
-	ribbon.custom_minimum_size = Vector2(0, 8)
+	ribbon.custom_minimum_size = Vector2(0, 4)
 	box.add_child(ribbon)
 
 	var title := Label.new()
-	title.text = "%s · 世界战情层" % _region_type_chip(active_region)
-	_style_primary_title(title, 20)
+	title.text = "%s · 当前区域" % _region_type_chip(active_region)
+	_style_secondary_title(title, 11)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 2)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(row)
-	row.add_child(_make_hero_chip("焦点区域", str(active_region.get("name", "未选择")), _active_region_accent()))
-	row.add_child(_make_hero_chip("战区模式", str(active_campaign.get("campaign_band", "等待战区模式")), Color8(102, 152, 204)))
-	row.add_child(_make_hero_chip("当前落点", str(active_landing.get("name", active_branch.get("target_name", "等待分支目标"))), Color8(210, 182, 96)))
-
-	var footer := Label.new()
-	footer.text = "连接 %s · 种群 %s · 分支 %s · %s / %s · %s" % [
-		str(active_region.get("connector_count", active_region.get("connectors", []).size())),
-		str(active_region.get("species_population", 0)),
-		str(active_frontier_network.get("branch_count", 0)),
-		str(active_operation.get("threat_band", "等待威胁判断")),
-		str(active_operation.get("opportunity_band", "等待机会判断")),
-		str(active_campaign.get("campaign_name", "等待战区推演")),
-	]
-	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_dim(footer, 13)
-	box.add_child(footer)
+	row.add_child(_make_hero_chip("区", str(active_region.get("name", "未选择")), _active_region_accent()))
 	return panel
 
 
 func _make_frontier_campaign_bar(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(520, 84)
+	panel.custom_minimum_size = Vector2(0, 56)
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = Color8(171, 132, 196)
-	ribbon.custom_minimum_size = Vector2(0, 8)
+	ribbon.custom_minimum_size = Vector2(0, 5)
 	box.add_child(ribbon)
 
 	var title_row := HBoxContainer.new()
-	title_row.add_theme_constant_override("separation", 8)
+	title_row.add_theme_constant_override("separation", 6)
 	box.add_child(title_row)
 
 	var title := Label.new()
-	title.text = "%s · 战区推进模式" % _region_type_chip(active_region)
-	_style_secondary_title(title, 19)
+	title.text = "战区模式"
+	_style_secondary_title(title, 11)
 	title_row.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "切换编成与筛选模式"
+	hint.text = "切换"
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_style_dim(hint, 12)
+	_style_dim(hint, 9)
 	title_row.add_child(hint)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 4)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(row)
 
 	var campaigns: Array = active_region.get("frontier_campaigns", [])
@@ -2313,61 +2056,41 @@ func _make_frontier_campaign_bar(active_region: Dictionary) -> PanelContainer:
 		row.add_child(_make_hero_chip("战区模式", "当前暂无前线编成", Color8(102, 152, 204)))
 		return panel
 
-	for campaign_variant in campaigns.slice(0, 3):
+	for campaign_variant in campaigns.slice(0, 2):
 		var campaign: Dictionary = campaign_variant
 		row.add_child(_make_frontier_campaign_card(campaign))
 
-	var stage_row := HBoxContainer.new()
-	stage_row.add_theme_constant_override("separation", 8)
-	box.add_child(stage_row)
-	stage_row.add_child(_make_campaign_stage_button(active_region, 0, "第一阶段"))
-	stage_row.add_child(_make_campaign_stage_button(active_region, 1, "第二阶段"))
-
-	var filter_row := HBoxContainer.new()
-	filter_row.add_theme_constant_override("separation", 8)
-	box.add_child(filter_row)
-	filter_row.add_child(_make_campaign_filter_button("综合", "balanced"))
-	filter_row.add_child(_make_campaign_filter_button("稳态", "safe"))
-	filter_row.add_child(_make_campaign_filter_button("高繁荣", "rich"))
-	filter_row.add_child(_make_campaign_filter_button("高风险", "risk"))
 	return panel
 
 
 func _make_frontier_campaign_card(campaign: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(162, 0)
+	panel.custom_minimum_size = Vector2(132, 34)
 	var is_selected := str(campaign.get("target_region_id", "")) == selected_campaign_target_id
 	panel.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_selected else 0.92)
 
 	var target_region_id := str(campaign.get("target_region_id", ""))
 	var accent: Color = REGION_COLORS.get(target_region_id, Color8(171, 132, 196))
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 1)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = accent.lightened(0.06)
-	ribbon.custom_minimum_size = Vector2(0, 6)
+	ribbon.custom_minimum_size = Vector2(0, 3)
 	box.add_child(ribbon)
 
 	var title := Label.new()
-	title.text = "%s%s" % ["当前 · " if is_selected else "", str(campaign.get("campaign_band", "战区推进令"))]
-	_style_secondary_title(title, 15)
+	title.text = str(campaign.get("campaign_band", "战区推进令"))
+	_style_secondary_title(title, 9)
 	title.modulate = accent.lightened(0.22)
 	box.add_child(title)
 
 	var body := Label.new()
 	body.text = str(campaign.get("campaign_name", "等待前线方案"))
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_body(body, 13)
+	_style_body(body, 8)
 	box.add_child(body)
-
-	var footer := Label.new()
-	var route_titles: Array = campaign.get("route_titles", [])
-	footer.text = " / ".join(route_titles.slice(0, 2))
-	footer.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_dim(footer, 12)
-	box.add_child(footer)
 
 	panel.mouse_entered.connect(func() -> void:
 		_animate_card_hover(panel, true)
@@ -2389,11 +2112,11 @@ func _make_campaign_stage_button(active_region: Dictionary, stage_index: int, la
 	var button := Button.new()
 	button.toggle_mode = true
 	button.button_pressed = selected_campaign_stage_index == stage_index
-	button.custom_minimum_size = Vector2(120, 34)
+	button.custom_minimum_size = Vector2(92, 26)
 	var active_operation := _active_frontier_operation(active_region)
 	var route_stages: Array = active_operation.get("route_stages", [])
 	if selected_campaign_stage_index == stage_index:
-		button.text = "%s · 当前" % label_text
+		button.text = "%s" % label_text
 	else:
 		button.text = label_text
 	if stage_index >= route_stages.size():
@@ -2406,7 +2129,7 @@ func _make_campaign_filter_button(label_text: String, filter_key: String) -> But
 	var button := Button.new()
 	button.toggle_mode = true
 	button.button_pressed = selected_campaign_filter == filter_key
-	button.custom_minimum_size = Vector2(88, 30)
+	button.custom_minimum_size = Vector2(72, 28)
 	button.text = "%s%s" % [label_text, " · 当前" if selected_campaign_filter == filter_key else ""]
 	button.pressed.connect(_on_campaign_filter_selected.bind(filter_key))
 	return button
@@ -2414,20 +2137,20 @@ func _make_campaign_filter_button(label_text: String, filter_key: String) -> But
 
 func _make_map_legend_panel(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(220, 0)
+	panel.custom_minimum_size = Vector2(118, 56)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = Color8(210, 182, 96)
-	ribbon.custom_minimum_size = Vector2(0, 8)
+	ribbon.custom_minimum_size = Vector2(0, 4)
 	box.add_child(ribbon)
 
 	var title := Label.new()
-	title.text = "地图图例 · 航线层"
-	_style_primary_title(title, 20)
+	title.text = "图例"
+	_style_primary_title(title, 11)
 	box.add_child(title)
 
 	var focus_row := HBoxContainer.new()
@@ -2436,19 +2159,19 @@ func _make_map_legend_panel(active_region: Dictionary) -> PanelContainer:
 
 	var focus_swatch := ColorRect.new()
 	focus_swatch.color = _active_region_accent()
-	focus_swatch.custom_minimum_size = Vector2(14, 14)
+	focus_swatch.custom_minimum_size = Vector2(12, 12)
 	focus_row.add_child(focus_swatch)
 
 	var focus_label := Label.new()
 	var biome_text := " / ".join(active_region.get("dominant_biomes", []).slice(0, 2))
-	focus_label.text = "焦点地貌 · %s" % (biome_text if biome_text != "" else str(active_region.get("name", "未选择")))
-	_style_body(focus_label, 15)
+	focus_label.text = biome_text if biome_text != "" else str(active_region.get("name", "未选择"))
+	_style_body(focus_label, 11)
 	focus_row.add_child(focus_label)
 
-	for entry_variant in legend_cache.slice(0, 5):
+	for entry_variant in legend_cache.slice(0, 1):
 		var entry: Dictionary = entry_variant
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
+		row.add_theme_constant_override("separation", 6)
 		box.add_child(row)
 
 		var swatch := ColorRect.new()
@@ -2459,58 +2182,46 @@ func _make_map_legend_panel(active_region: Dictionary) -> PanelContainer:
 			"coast": Color8(80, 141, 191),
 			"coral": Color8(203, 132, 177),
 		}.get(str(entry.get("color", "")), Color8(210, 210, 210))
-		swatch.custom_minimum_size = Vector2(14, 14)
+		swatch.custom_minimum_size = Vector2(10, 10)
 		row.add_child(swatch)
 
 		var label := Label.new()
 		label.text = str(entry.get("label", ""))
-		_style_body(label, 15)
+		_style_body(label, 9)
 		row.add_child(label)
 	return panel
 
 
 func _make_frontier_transfer_belt(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(860, 184)
+	panel.custom_minimum_size = Vector2(720, 58)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 2)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = _active_region_accent().lightened(0.04)
-	ribbon.custom_minimum_size = Vector2(0, 8)
+	ribbon.custom_minimum_size = Vector2(0, 4)
 	box.add_child(ribbon)
 
-	var title_row := HBoxContainer.new()
-	title_row.add_theme_constant_override("separation", 10)
-	box.add_child(title_row)
-
-	var title := Label.new()
-	title.text = "%s · 前线转运带" % _region_type_chip(active_region)
-	_style_primary_title(title, 22)
-	title.modulate = _active_region_accent().lightened(0.24)
-	title_row.add_child(title)
-
-	var tip := Label.new()
-	tip.text = "点击相邻区域可直接切换焦点"
-	tip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_style_dim(tip, 13)
-	title_row.add_child(tip)
+	var dock_label := Label.new()
+	dock_label.text = "%s · 路径坞" % _region_type_chip(active_region)
+	dock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_dim(dock_label, 8)
+	box.add_child(dock_label)
 
 	var frontier_links: Array = active_region.get("frontier_links", [])
 	if frontier_links.is_empty():
 		var empty := Label.new()
 		empty.text = "当前没有可用前线通道。"
-		_style_dim(empty, 15)
+		_style_dim(empty, 11)
 		box.add_child(empty)
 		return panel
 
-	box.add_child(_make_frontier_command_stage(active_region))
-
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	row.add_theme_constant_override("separation", 4)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(row)
 
 	for link_variant in frontier_links:
@@ -2623,74 +2334,41 @@ func _make_frontier_command_stage(active_region: Dictionary) -> PanelContainer:
 
 func _make_frontier_card(frontier_link: Dictionary, is_selected: bool) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(176, 100)
+	panel.custom_minimum_size = Vector2(74, 46)
 	panel.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_selected else 0.92)
 
 	var target_region_id := str(frontier_link.get("target_region_id", ""))
 	var target_accent: Color = REGION_COLORS.get(target_region_id, Color8(102, 152, 204))
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
-	var frontier_network: Dictionary = _active_frontier_network(active_region) if is_selected else _frontier_network_for_target(active_region, target_region_id)
-	var branches: Array = frontier_network.get("branches", [])
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 2)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = target_accent.lightened(0.06)
-	ribbon.custom_minimum_size = Vector2(0, 6)
+	ribbon.custom_minimum_size = Vector2(0, 3)
 	box.add_child(ribbon)
 
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 8)
-	box.add_child(header)
-
 	var icon := Label.new()
-	icon.text = _connection_type_icon(str(frontier_link.get("connection_type", "")))
-	_style_secondary_title(icon, 20)
+	icon.text = REGION_ICONS.get(target_region_id, "区")
+	_style_secondary_title(icon, 14)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon.modulate = target_accent.lightened(0.18)
-	header.add_child(icon)
+	box.add_child(icon)
 
 	var name := Label.new()
 	name.text = str(frontier_link.get("target_name", target_region_id))
-	name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_style_secondary_title(name, 17)
+	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_secondary_title(name, 8)
 	name.modulate = target_accent.lightened(0.22)
-	header.add_child(name)
+	box.add_child(name)
 
-	var strength := Label.new()
-	strength.text = "%.2f" % float(frontier_link.get("strength", 0.0))
-	_style_primary_title(strength, 18)
-	strength.modulate = target_accent.lightened(0.28)
-	header.add_child(strength)
-
-	var route := Label.new()
-	route.text = "%s%s · %s" % [
-		"当前锁定 · " if is_selected else "",
-		str(frontier_link.get("connection_label", "区域通道")),
-		str(frontier_link.get("target_role", "生态观测区")),
-	]
-	route.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_dim(route, 13)
-	box.add_child(route)
-
-	var meter_row := HBoxContainer.new()
-	meter_row.add_theme_constant_override("separation", 8)
-	box.add_child(meter_row)
-	meter_row.add_child(_make_hero_chip("繁荣", "%.2f" % float(frontier_link.get("target_prosperity", 0.0)), target_accent))
-	meter_row.add_child(_make_hero_chip("风险", "%.2f" % float(frontier_link.get("target_risk", 0.0)), Color8(171, 132, 196)))
-
-	var species := Label.new()
-	species.text = _frontier_species_summary(frontier_link.get("target_species", []))
-	species.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_body(species, 13)
-	box.add_child(species)
-
-	var branch := Label.new()
-	branch.text = "网络分支 · %s" % _frontier_branch_line(branches)
-	branch.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_dim(branch, 12)
-	box.add_child(branch)
+	var route_kind := Label.new()
+	route_kind.text = "→"
+	route_kind.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_style_dim(route_kind, 8)
+	box.add_child(route_kind)
 
 	panel.mouse_entered.connect(func() -> void:
 		_animate_card_hover(panel, true)
@@ -2750,90 +2428,50 @@ func _build_side_panel() -> void:
 
 	match selected_tab:
 		"overview":
-			tab_content.add_child(_make_tab_banner("总览指挥台", "查看区域定位、健康、资源与当前风险。", _tab_accent_color("overview"), region_accent, active_region))
-			tab_content.add_child(_make_overview_dashboard(active_region, pressure_headlines, chain_focus, route_summary, region_accent))
-			tab_content.add_child(_make_frontier_overview_card(active_region, region_accent))
-			tab_content.add_child(_make_frontier_operation_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_atlas_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_route_confirmation_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_execution_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_schedule_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_formation_preset_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_activation_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_activation_feedback_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_directive_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_directive_preview_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_directive_sandbox_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_directive_comparison_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_directive_decision_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_directive_lock_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_directive_confirmation_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_landing_card(active_region, region_accent))
-			tab_content.add_child(_make_campaign_landing_network_card(active_region, region_accent))
-			tab_content.add_child(_make_focus_card(active_region))
-			tab_content.add_child(_make_region_summary_card(active_region))
-			tab_content.add_child(_make_badge_list("风险焦点", pressure_headlines, active_region))
-			tab_content.add_child(_make_badge_list("主导生态链", chain_focus, active_region))
-			tab_content.add_child(_make_section("健康状态", active_region.get("health_state", {})))
-			tab_content.add_child(_make_section("资源状态", active_region.get("resource_state", {})))
-			tab_content.add_child(_make_section("生态压力", active_region.get("ecological_pressures", {})))
-			tab_content.add_child(_make_section("区域连接", active_region.get("connectors", []), true, "target_region_id", "strength"))
-			tab_content.add_child(_make_route_section(route_summary, active_region))
-			tab_content.add_child(_make_intro_section(active_region))
+			tab_content.add_child(_make_tab_banner("地图首页", "当前区域的最短入口。", _tab_accent_color("overview"), region_accent, active_region))
+			tab_content.add_child(_make_overview_cover(active_region, pressure_headlines, route_summary, region_accent))
 		"chains":
-			tab_content.add_child(_make_tab_banner("生态链监测", "读取社会相位、草原主链、尸体资源链与竞争压力。", _tab_accent_color("chains"), region_accent, active_region))
-			tab_content.add_child(_make_chain_command_deck(chains, active_region, region_accent))
-			tab_content.add_child(_make_section("社会相位", chains.get("social_phases", []), true))
-			tab_content.add_child(_make_section("草原主链", chains.get("grassland_chain", []), true))
-			tab_content.add_child(_make_section("尸体资源链", chains.get("carrion_chain", []), true))
-			tab_content.add_child(_make_section("湿地主链", chains.get("wetland_chain", []), true))
-			tab_content.add_child(_make_section("领地压力", chains.get("territory", []), true))
-			tab_content.add_child(_make_section("竞争压力", chains.get("competition", []), true))
-			tab_content.add_child(_make_section("捕食压力", chains.get("predation", []), true))
+			tab_content.add_child(_make_tab_banner("生态链菜单", "读取当前区域最强的三组生态信号。", _tab_accent_color("chains"), region_accent, active_region))
+			tab_content.add_child(_make_chains_cover(active_region, chains, chain_focus, pressure_headlines, region_accent))
 		"species":
-			tab_content.add_child(_make_tab_banner("物种图鉴", "查看%s当前最核心的关键物种与数量。" % _region_type_label(active_region), _tab_accent_color("species"), region_accent, active_region))
-			tab_content.add_child(_make_species_codex_header(top_species, active_region, region_accent))
-			tab_content.add_child(_make_species_section(top_species, active_region))
+			tab_content.add_child(_make_tab_banner("物种图鉴", "只显示当前区域的领衔物种阵容。", _tab_accent_color("species"), region_accent, active_region))
+			tab_content.add_child(_make_species_cover(active_region, top_species, region_accent))
 		"story":
-			tab_content.add_child(_make_tab_banner("区域播报室", "汇总%s中的领地、趋势、链路和关系层即时叙事。" % _region_type_label(active_region), _tab_accent_color("story"), region_accent, active_region))
-			tab_content.add_child(_make_story_command_deck(narrative, active_region, region_accent))
-			tab_content.add_child(_make_story_section(narrative, active_region))
+			tab_content.add_child(_make_tab_banner("区域播报", "只保留当前区域最重要的即时播报。", _tab_accent_color("story"), region_accent, active_region))
+			tab_content.add_child(_make_story_cover(active_region, narrative, region_accent))
 
 	side_box.add_child(_make_dossier_shell(active_region, region_accent, tab_content))
 
 
 func _make_dossier_shell(active_region: Dictionary, region_accent: Color, content: Control) -> PanelContainer:
-	var header_copy := _region_command_header(active_region)
 	var shell := PanelContainer.new()
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 12)
+	root.add_theme_constant_override("separation", 8)
 	shell.add_child(root)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = region_accent.lightened(0.04)
-	ribbon.custom_minimum_size = Vector2(0, 10)
+	ribbon.custom_minimum_size = Vector2(0, 5)
 	root.add_child(ribbon)
 
 	var terminal_row := HBoxContainer.new()
-	terminal_row.add_theme_constant_override("separation", 8)
+	terminal_row.add_theme_constant_override("separation", 6)
 	root.add_child(terminal_row)
 
 	var terminal_label := Label.new()
-	terminal_label.text = "%s · %s" % [_region_type_chip(active_region), str(header_copy["dossier"])]
-	_style_secondary_title(terminal_label, 18)
+	terminal_label.text = "%s · 菜单" % str(active_region.get("name", "未选择"))
+	_style_secondary_title(terminal_label, 13)
 	terminal_label.modulate = region_accent.lightened(0.22)
 	terminal_row.add_child(terminal_label)
 
 	var terminal_status := Label.new()
-	terminal_status.text = "焦点锁定 · %s · %s" % [str(active_region.get("name", "未选择")), _tab_title(selected_tab)]
+	terminal_status.text = _tab_title(selected_tab)
 	terminal_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	terminal_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_style_dim(terminal_status, 13)
+	_style_dim(terminal_status, 9)
 	terminal_row.add_child(terminal_status)
 
-	root.add_child(_make_tabs(region_accent))
 	root.add_child(content)
-	root.add_child(_make_terminal_footer(active_region, region_accent))
 	return shell
 
 
@@ -2854,18 +2492,18 @@ func _make_tabs(region_accent: Color) -> HBoxContainer:
 	for tab_id in ["overview", "chains", "species", "story"]:
 		var button := Button.new()
 		var is_active: bool = tab_id == selected_tab
-		button.text = "%s %s%s" % [
+		button.text = "%s %s" % [
 			_tab_icon(tab_id),
 			_tab_title(tab_id),
-			" · 当前" if is_active else "",
 		]
 		button.toggle_mode = true
 		button.button_pressed = is_active
-		button.custom_minimum_size = Vector2(112, 40)
+		button.custom_minimum_size = Vector2(126, 44)
 		var tab_color := _tab_accent_color(tab_id)
 		var rest_color := region_accent.lightened(0.12) if is_active else tab_color.darkened(0.12)
 		var hover_color := region_accent.lightened(0.24) if is_active else tab_color.lightened(0.12)
 		button.modulate = rest_color
+		button.add_theme_font_size_override("font_size", 17)
 		button.mouse_entered.connect(func() -> void:
 			_animate_tab_hover(button, hover_color, rest_color, true)
 		)
@@ -2897,42 +2535,36 @@ func _make_status_strip(active_region: Dictionary, region_accent: Color) -> Pane
 func _make_tab_banner(title_text: String, description: String, accent: Color, region_accent: Color, active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 2)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = _blend_ui_accent(accent, region_accent)
-	ribbon.custom_minimum_size = Vector2(0, 8)
+	ribbon.custom_minimum_size = Vector2(0, 5)
 	box.add_child(ribbon)
 
 	var title := Label.new()
 	title.text = "%s %s" % [_region_type_icon(active_region), title_text]
-	_style_primary_title(title, 24)
+	_style_primary_title(title, 18)
 	title.modulate = region_accent.lightened(0.24)
 	box.add_child(title)
-
-	var body := Label.new()
-	body.text = description
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_dim(body, 15)
-	box.add_child(body)
 	return panel
 
 
 func _make_status_chip(title_text: String, icon_text: String, value_text: String, numeric_value: float, region_accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(108, 56)
+	panel.custom_minimum_size = Vector2(92, 46)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
 
 	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 8)
+	header.add_theme_constant_override("separation", 5)
 	box.add_child(header)
 
 	var icon := Label.new()
 	icon.text = icon_text
-	_style_secondary_title(icon, 20)
+	_style_secondary_title(icon, 15)
 	icon.modulate = region_accent.lightened(0.22)
 	header.add_child(icon)
 
@@ -2942,23 +2574,23 @@ func _make_status_chip(title_text: String, icon_text: String, value_text: String
 
 	var title := Label.new()
 	title.text = title_text
-	_style_dim(title, 14)
+	_style_dim(title, 10)
 	text_box.add_child(title)
 
 	var value := Label.new()
 	value.text = value_text
-	_style_primary_title(value, 22)
+	_style_primary_title(value, 16)
 	value.modulate = region_accent.lightened(0.30)
 	text_box.add_child(value)
 
 	var meter_bg := ColorRect.new()
 	meter_bg.color = Color(1.0, 1.0, 1.0, 0.08)
-	meter_bg.custom_minimum_size = Vector2(0, 5)
+	meter_bg.custom_minimum_size = Vector2(0, 3)
 	box.add_child(meter_bg)
 
 	var meter := ColorRect.new()
 	meter.color = Color(region_accent.r, region_accent.g, region_accent.b, 0.78)
-	meter.custom_minimum_size = Vector2(88.0 * clamp(numeric_value, 0.0, 1.0), 5)
+	meter.custom_minimum_size = Vector2(72.0 * clamp(numeric_value, 0.0, 1.0), 3)
 	box.add_child(meter)
 	return panel
 
@@ -2966,72 +2598,50 @@ func _make_status_chip(title_text: String, icon_text: String, value_text: String
 func _make_region_hero(active_region: Dictionary, pressure_headlines: Array, chain_focus: Array, region_accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 8)
+	root.add_theme_constant_override("separation", 4)
 	panel.add_child(root)
 
 	var ribbon := ColorRect.new()
 	ribbon.color = region_accent.lightened(0.08)
-	ribbon.custom_minimum_size = Vector2(0, 10)
+	ribbon.custom_minimum_size = Vector2(0, 6)
 	root.add_child(ribbon)
 
 	var top_row := HBoxContainer.new()
-	top_row.add_theme_constant_override("separation", 12)
+	top_row.add_theme_constant_override("separation", 8)
 	root.add_child(top_row)
-
-	var emblem := PanelContainer.new()
-	emblem.custom_minimum_size = Vector2(72, 72)
-	top_row.add_child(emblem)
 
 	var emblem_label := Label.new()
 	emblem_label.text = REGION_ICONS.get(str(active_region.get("id", active_region_id)), "区")
 	emblem_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	emblem_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	emblem_label.custom_minimum_size = Vector2(72, 72)
-	emblem_label.add_theme_font_size_override("font_size", 34)
+	emblem_label.custom_minimum_size = Vector2(34, 34)
+	emblem_label.add_theme_font_size_override("font_size", 22)
 	emblem_label.modulate = region_accent.lightened(0.34)
-	emblem.add_child(emblem_label)
+	top_row.add_child(emblem_label)
 
 	var text_col := VBoxContainer.new()
 	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_col.add_theme_constant_override("separation", 4)
+	text_col.add_theme_constant_override("separation", 2)
 	top_row.add_child(text_col)
 
 	var eyebrow := Label.new()
-	eyebrow.text = "%s · 焦点区域" % _region_type_chip(active_region)
-	_style_dim(eyebrow, 14)
+	eyebrow.text = _region_type_chip(active_region)
+	_style_dim(eyebrow, 10)
 	text_col.add_child(eyebrow)
 
 	var title := Label.new()
 	title.text = str(active_region.get("name", "未选择"))
-	_style_primary_title(title, 30)
+	_style_primary_title(title, 18)
 	title.modulate = region_accent.lightened(0.35)
 	text_col.add_child(title)
-
-	var role := Label.new()
-	role.text = str(active_region.get("region_role", "生态观测区"))
-	_style_secondary_title(role, 18)
-	role.modulate = region_accent.lightened(0.18)
-	role.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text_col.add_child(role)
-
-	var intro := Label.new()
-	intro.text = str(active_region.get("region_intro", ""))
-	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_dim(intro, 14)
-	text_col.add_child(intro)
 
 	root.add_child(_make_status_strip(active_region, region_accent))
 
 	var badge_row := HBoxContainer.new()
-	badge_row.add_theme_constant_override("separation", 8)
+	badge_row.add_theme_constant_override("separation", 4)
 	root.add_child(badge_row)
-
-	for line in pressure_headlines.slice(0, 1):
-		badge_row.add_child(_make_hero_chip("风险", str(line), Color8(171, 132, 196)))
-	for line in chain_focus.slice(0, 1):
-		badge_row.add_child(_make_hero_chip("主链", str(line), Color8(104, 171, 144)))
-	for biome in active_region.get("dominant_biomes", []).slice(0, 1):
-		badge_row.add_child(_make_hero_chip("地貌", str(biome), region_accent))
+	badge_row.add_child(_make_hero_chip("地貌", " / ".join(active_region.get("dominant_biomes", []).slice(0, 2)), region_accent))
+	badge_row.add_child(_make_hero_chip("通道", str(active_region.get("connector_count", active_region.get("connectors", []).size())), Color8(102, 152, 204)))
 
 	return panel
 
@@ -3044,12 +2654,12 @@ func _make_hero_chip(label_text: String, value_text: String, accent: Color) -> P
 
 	var label := Label.new()
 	label.text = label_text
-	_style_dim(label, 12)
+	_style_dim(label, 10)
 	box.add_child(label)
 
 	var value := Label.new()
 	value.text = value_text
-	_style_secondary_title(value, 15)
+	_style_secondary_title(value, 13)
 	value.modulate = accent.lightened(0.20)
 	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(value)
@@ -3058,9 +2668,9 @@ func _make_hero_chip(label_text: String, value_text: String, accent: Color) -> P
 
 func _make_meter_chip(label_text: String, value: float, accent: Color, icon_text: String = "◎") -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(132, 72)
+	panel.custom_minimum_size = Vector2(112, 58)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 3)
 	panel.add_child(box)
 
 	var header := HBoxContainer.new()
@@ -3069,30 +2679,30 @@ func _make_meter_chip(label_text: String, value: float, accent: Color, icon_text
 
 	var icon := Label.new()
 	icon.text = icon_text
-	_style_secondary_title(icon, 16)
+	_style_secondary_title(icon, 14)
 	icon.modulate = accent.lightened(0.18)
 	header.add_child(icon)
 
 	var title := Label.new()
 	title.text = label_text
-	_style_dim(title, 12)
+	_style_dim(title, 11)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 
 	var readout := Label.new()
 	readout.text = "%d%%" % int(clamp(value, 0.0, 1.0) * 100.0)
-	_style_secondary_title(readout, 15)
+	_style_secondary_title(readout, 14)
 	readout.modulate = accent.lightened(0.22)
 	header.add_child(readout)
 
 	var meter_bg := ColorRect.new()
 	meter_bg.color = Color(1.0, 1.0, 1.0, 0.10)
-	meter_bg.custom_minimum_size = Vector2(0, 8)
+	meter_bg.custom_minimum_size = Vector2(0, 6)
 	box.add_child(meter_bg)
 
 	var meter := ColorRect.new()
 	meter.color = Color(accent.r, accent.g, accent.b, 0.82)
-	meter.custom_minimum_size = Vector2(108.0 * clamp(value, 0.0, 1.0), 8)
+	meter.custom_minimum_size = Vector2(92.0 * clamp(value, 0.0, 1.0), 6)
 	box.add_child(meter)
 	return panel
 
@@ -3100,7 +2710,7 @@ func _make_meter_chip(label_text: String, value: float, accent: Color, icon_text
 func _make_route_stage_strip(active_route_profile: Dictionary, accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 6)
 	panel.add_child(row)
 
 	var stage_titles: Array = active_route_profile.get("route_stage_titles", [])
@@ -3115,37 +2725,37 @@ func _make_route_stage_strip(active_route_profile: Dictionary, accent: Color) ->
 	for index in items.size():
 		var item: Dictionary = items[index]
 		var stage_panel := PanelContainer.new()
-		stage_panel.custom_minimum_size = Vector2(168, 60)
+		stage_panel.custom_minimum_size = Vector2(188, 52)
 		row.add_child(stage_panel)
 
-		var stage_box := VBoxContainer.new()
-		stage_box.add_theme_constant_override("separation", 4)
+		var stage_box := HBoxContainer.new()
+		stage_box.add_theme_constant_override("separation", 8)
 		stage_panel.add_child(stage_box)
-
-		var top_row := HBoxContainer.new()
-		top_row.add_theme_constant_override("separation", 6)
-		stage_box.add_child(top_row)
 
 		var dot := ColorRect.new()
 		dot.color = Color(accent.r, accent.g, accent.b, 0.9 if index == 0 else 0.6)
-		dot.custom_minimum_size = Vector2(12, 12)
-		top_row.add_child(dot)
+		dot.custom_minimum_size = Vector2(16, 16)
+		stage_box.add_child(dot)
+
+		var text_box := VBoxContainer.new()
+		text_box.add_theme_constant_override("separation", 2)
+		stage_box.add_child(text_box)
 
 		var stage_title := Label.new()
 		stage_title.text = str(item.get("label", "阶段"))
-		_style_dim(stage_title, 12)
-		top_row.add_child(stage_title)
+		_style_dim(stage_title, 11)
+		text_box.add_child(stage_title)
 
 		var value := Label.new()
 		value.text = str(item.get("value", "待命"))
-		_style_body(value, 13)
+		_style_body(value, 12)
 		value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		stage_box.add_child(value)
+		text_box.add_child(value)
 
 		if index < items.size() - 1:
 			var link := ColorRect.new()
 			link.color = Color(accent.r, accent.g, accent.b, 0.24)
-			link.custom_minimum_size = Vector2(28, 4)
+			link.custom_minimum_size = Vector2(20, 3)
 			row.add_child(link)
 
 	return panel
@@ -3154,105 +2764,266 @@ func _make_route_stage_strip(active_route_profile: Dictionary, accent: Color) ->
 func _make_species_signal_strip(top_species: Array, accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 6)
 	panel.add_child(row)
 	if top_species.is_empty():
 		row.add_child(_make_hero_chip("核心物种", "当前暂无物种快照", accent))
 		return panel
 
-	var max_count := 1.0
-	for species_variant in top_species.slice(0, 4):
-		var species: Dictionary = species_variant
-		max_count = max(max_count, float(species.get("count", 0)))
-
-	for species_variant in top_species.slice(0, 4):
+	for species_variant in top_species.slice(0, 3):
 		var species: Dictionary = species_variant
 		var item_panel := PanelContainer.new()
-		item_panel.custom_minimum_size = Vector2(120, 64)
+		item_panel.custom_minimum_size = Vector2(146, 52)
 		row.add_child(item_panel)
 
-		var item_box := VBoxContainer.new()
-		item_box.add_theme_constant_override("separation", 4)
+		var item_box := HBoxContainer.new()
+		item_box.add_theme_constant_override("separation", 8)
 		item_panel.add_child(item_box)
+
+		var species_icon := Label.new()
+		species_icon.text = _species_category_icon(str(species.get("species_id", "")))
+		_style_secondary_title(species_icon, 18)
+		species_icon.modulate = accent.lightened(0.22)
+		item_box.add_child(species_icon)
+
+		var text_box := VBoxContainer.new()
+		text_box.add_theme_constant_override("separation", 2)
+		item_box.add_child(text_box)
 
 		var name := Label.new()
 		name.text = str(species.get("label", species.get("species_id", "物种")))
-		_style_body(name, 13)
-		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		item_box.add_child(name)
+		_style_body(name, 12)
+		text_box.add_child(name)
 
 		var count := Label.new()
 		count.text = "× %s" % str(species.get("count", 0))
-		_style_secondary_title(count, 14)
-		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_style_dim(count, 11)
 		count.modulate = accent.lightened(0.18)
-		item_box.add_child(count)
-
-		var bar_bg := ColorRect.new()
-		bar_bg.color = Color(1.0, 1.0, 1.0, 0.08)
-		bar_bg.custom_minimum_size = Vector2(0, 6)
-		item_box.add_child(bar_bg)
-
-		var ratio := float(species.get("count", 0)) / max_count
-		var bar := ColorRect.new()
-		bar.color = Color(accent.r, accent.g, accent.b, 0.78)
-		bar.custom_minimum_size = Vector2(88.0 * clamp(ratio, 0.0, 1.0), 6)
-		item_box.add_child(bar)
+		text_box.add_child(count)
 
 	return panel
 
 
 func _make_overview_dashboard(active_region: Dictionary, pressure_headlines: Array, chain_focus: Array, route_summary: Array, region_accent: Color) -> PanelContainer:
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-
-	var title := Label.new()
-	title.text = "%s · 区域总控板" % _region_type_chip(active_region)
-	_style_primary_title(title, 22)
-	box.add_child(title)
+	box.add_theme_constant_override("separation", 6)
 
 	var summary: Dictionary = active_region.get("region_summary", {})
-	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 10)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 4)
 	box.add_child(body)
 
 	body.add_child(_make_feature_panel(
-		"当前战略摘要",
-		str(active_region.get("region_role", "生态观测区")),
-		"群系块 %s · 栖息地 %s · 物种池 %s" % [
+		"当前区域",
+		str(active_region.get("name", "未选择")),
+		"%s · 群系 %s" % [
+			str(active_region.get("region_role", "生态观测区")),
 			str(summary.get("biome_count", 0)),
-			str(summary.get("habitat_count", 0)),
-			str(summary.get("species_pool_count", 0)),
 		],
 		region_accent
 	))
 
-	var stack := VBoxContainer.new()
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 8)
-	body.add_child(stack)
-	stack.add_child(_make_hero_chip("警报", str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "当前暂无异常风险焦点", Color8(171, 132, 196)))
-	stack.add_child(_make_hero_chip("主链", str(chain_focus[0]) if chain_focus.size() > 0 else "当前暂无主导链路信号", Color8(104, 171, 144)))
-	stack.add_child(_make_hero_chip("通道", str(route_summary[0]) if route_summary.size() > 0 else "当前暂无显著通道情报", region_accent))
+	var chip_row := HBoxContainer.new()
+	chip_row.add_theme_constant_override("separation", 4)
+	body.add_child(chip_row)
+	chip_row.add_child(_make_hero_chip("警报", str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "暂无", Color8(171, 132, 196)))
+	chip_row.add_child(_make_hero_chip("路线", str(route_summary[0]) if route_summary.size() > 0 else "暂无", region_accent))
 	return _wrap_menu_card(box, Color8(210, 182, 96))
+
+
+func _make_menu_entry_card(title_text: String, main_text: String, sub_text: String, accent: Color, icon_text: String) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(0, 84)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	panel.add_child(row)
+
+	var icon_box := VBoxContainer.new()
+	icon_box.custom_minimum_size = Vector2(34, 0)
+	row.add_child(icon_box)
+
+	var icon := Label.new()
+	icon.text = icon_text
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.custom_minimum_size = Vector2(34, 34)
+	icon.add_theme_font_size_override("font_size", 22)
+	icon.modulate = accent.lightened(0.22)
+	icon_box.add_child(icon)
+
+	var text_box := VBoxContainer.new()
+	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_box.add_theme_constant_override("separation", 3)
+	row.add_child(text_box)
+
+	var title := Label.new()
+	title.text = title_text
+	_style_dim(title, 10)
+	text_box.add_child(title)
+
+	var main := Label.new()
+	main.text = main_text
+	main.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_primary_title(main, 16)
+	main.modulate = accent.lightened(0.24)
+	text_box.add_child(main)
+
+	var sub := Label.new()
+	sub.text = sub_text
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_dim(sub, 10)
+	text_box.add_child(sub)
+	return panel
+
+
+func _make_overview_cover(active_region: Dictionary, pressure_headlines: Array, route_summary: Array, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	var active_frontier := _active_frontier_link(active_region)
+	var active_stage := _active_campaign_stage(active_region)
+	var active_landing := _active_campaign_landing(active_region)
+	var summary: Dictionary = active_region.get("region_summary", {})
+
+	box.add_child(_make_menu_entry_card(
+		"当前区域",
+		str(active_region.get("name", "未选择")),
+		str(summary.get("one_liner", active_region.get("region_role", "生态观测区"))),
+		region_accent,
+		REGION_ICONS.get(str(active_region.get("id", active_region_id)), "区")
+	))
+
+	box.add_child(_make_menu_entry_card(
+		"路线入口",
+		str(active_frontier.get("target_name", "待命")),
+		str(active_frontier.get("connection_label", "区域通道")),
+		Color8(102, 152, 204),
+		"➜"
+	))
+
+	box.add_child(_make_menu_entry_card(
+		"推进目标",
+		str(active_landing.get("name", active_stage.get("title", "待命"))),
+		"%s · %s" % [
+			str(active_stage.get("stage", "阶段待命")),
+			str(pressure_headlines[0]) if pressure_headlines.size() > 0 else (str(route_summary[0]) if route_summary.size() > 0 else "暂无")
+		],
+		Color8(171, 132, 196),
+		"✦"
+	))
+
+	return _wrap_menu_card(box, Color8(210, 182, 96))
+
+
+func _make_chains_cover(active_region: Dictionary, chains: Dictionary, chain_focus: Array, pressure_headlines: Array, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	box.add_child(_make_menu_entry_card(
+		"主导生态链",
+		_lead_chain_line(chains.get("grassland_chain", chains.get("wetland_chain", []))),
+		str(chain_focus[0]) if chain_focus.size() > 0 else "当前暂无主链摘要",
+		region_accent,
+		"≈"
+	))
+
+	box.add_child(_make_menu_entry_card(
+		"社会相位",
+		_lead_chain_line(chains.get("social_phases", [])),
+		_lead_chain_line(chains.get("territory", [])),
+		Color8(102, 152, 204),
+		"◌"
+	))
+
+	box.add_child(_make_menu_entry_card(
+		"风险焦点",
+		str(pressure_headlines[0]) if pressure_headlines.size() > 0 else "当前暂无风险焦点",
+		_lead_chain_line(chains.get("competition", [])),
+		Color8(171, 132, 196),
+		"⚑"
+	))
+
+	return _wrap_menu_card(box, Color8(104, 171, 144))
+
+
+func _make_species_cover(active_region: Dictionary, top_species: Array, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	var lead_one := _species_entry_label(top_species[0]) if top_species.size() > 0 else "当前暂无领衔物种"
+	var lead_two := _species_entry_label(top_species[1]) if top_species.size() > 1 else "等待次位物种"
+	var lead_three := _species_entry_label(top_species[2]) if top_species.size() > 2 else "等待第三位物种"
+
+	box.add_child(_make_menu_entry_card(
+		"领衔物种",
+		lead_one,
+		_region_type_label(active_region),
+		region_accent,
+		_species_category_icon(str((top_species[0] as Dictionary).get("species_id", ""))) if top_species.size() > 0 else "◉"
+	))
+
+	box.add_child(_make_menu_entry_card(
+		"次位记录",
+		lead_two,
+		"总种群 %s" % str(active_region.get("species_population", 0)),
+		Color8(102, 152, 204),
+		_species_category_icon(str((top_species[1] as Dictionary).get("species_id", ""))) if top_species.size() > 1 else "◎"
+	))
+
+	box.add_child(_make_menu_entry_card(
+		"第三位记录",
+		lead_three,
+		"核心队列 %s" % str(min(top_species.size(), 3)),
+		Color8(171, 132, 196),
+		_species_category_icon(str((top_species[2] as Dictionary).get("species_id", ""))) if top_species.size() > 2 else "✦"
+	))
+
+	return _wrap_menu_card(box, Color8(171, 132, 196))
+
+
+func _make_story_cover(active_region: Dictionary, narrative: Dictionary, region_accent: Color) -> PanelContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+
+	box.add_child(_make_menu_entry_card(
+		"主主播报",
+		_lead_story_line(narrative.get("territory", [])),
+		_lead_story_line(narrative.get("social_trends", [])),
+		region_accent,
+		"✦"
+	))
+
+	box.add_child(_make_menu_entry_card(
+		"主链播报",
+		_lead_story_line(narrative.get("grassland_chain", narrative.get("wetland_chain", []))),
+		_lead_story_line(narrative.get("predation", [])),
+		Color8(102, 152, 204),
+		"≈"
+	))
+
+	box.add_child(_make_menu_entry_card(
+		"关系播报",
+		_lead_story_line(narrative.get("symbiosis", [])),
+		_lead_story_line(narrative.get("carrion_chain", [])),
+		Color8(210, 182, 96),
+		"◌"
+	))
+
+	return _wrap_menu_card(box, Color8(102, 152, 204))
 
 
 func _make_frontier_overview_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 4)
 	var active_frontier := _active_frontier_link(active_region)
 	var active_frontier_network := _active_frontier_network(active_region)
 	var active_operation := _active_frontier_operation(active_region)
 	var active_campaign := _active_frontier_campaign(active_region)
 	var branches: Array = active_frontier_network.get("branches", [])
 
-	var title := Label.new()
-	title.text = "%s · 前线转运情报" % _region_type_chip(active_region)
-	_style_primary_title(title, 22)
-	box.add_child(title)
-
-	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 10)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 4)
 	box.add_child(body)
 
 	var frontier_links: Array = active_region.get("frontier_links", [])
@@ -3270,33 +3041,23 @@ func _make_frontier_overview_card(active_region: Dictionary, region_accent: Colo
 		]
 
 	body.add_child(_make_feature_panel(
-		"当前前线节点",
+		"路线",
 		lead_text,
 		sub_text,
 		region_accent
 	))
 
-	var stack := VBoxContainer.new()
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 8)
-	body.add_child(stack)
-
-	for link_variant in frontier_links.slice(0, 2):
-		var link: Dictionary = link_variant
-		stack.add_child(_make_hero_chip(
-			("%s%s" % ["当前 · " if str(link.get("target_region_id", "")) == selected_frontier_target_id else "", str(link.get("target_name", link.get("target_region_id", "")))]),
-			"%s · %.2f" % [str(link.get("connection_label", "区域通道")), float(link.get("strength", 0.0))],
-			REGION_COLORS.get(str(link.get("target_region_id", "")), Color8(102, 152, 204))
-		))
-	stack.add_child(_make_hero_chip("战区模式", str(active_campaign.get("campaign_band", "等待战区模式")), Color8(171, 132, 196)))
-	stack.add_child(_make_hero_chip("战区判断", "%s / %s" % [
-		str(active_operation.get("threat_band", "等待威胁判断")),
-		str(active_operation.get("opportunity_band", "等待机会判断")),
+	var footer_row := HBoxContainer.new()
+	footer_row.add_theme_constant_override("separation", 4)
+	body.add_child(footer_row)
+	footer_row.add_child(_make_hero_chip("模式", str(active_campaign.get("campaign_band", "待命")), Color8(171, 132, 196)))
+	footer_row.add_child(_make_hero_chip("态势", "%s/%s" % [
+		str(active_operation.get("threat_band", "待命")),
+		str(active_operation.get("opportunity_band", "待命")),
 	], Color8(104, 171, 144)))
-	stack.add_child(_make_hero_chip("网络分支", _frontier_branch_line(branches), Color8(171, 132, 196)))
 
 	if frontier_links.is_empty():
-		stack.add_child(_make_hero_chip("前线转运带", "当前暂无前线邻区", Color8(102, 152, 204)))
+		body.add_child(_make_hero_chip("前线", "当前暂无前线邻区", Color8(102, 152, 204)))
 
 	return _wrap_menu_card(box, Color8(102, 152, 204))
 
@@ -3407,34 +3168,26 @@ func _make_campaign_atlas_card(active_region: Dictionary, region_accent: Color) 
 
 func _make_campaign_landing_card(active_region: Dictionary, region_accent: Color) -> PanelContainer:
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 4)
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
 
-	var title := Label.new()
-	title.text = "%s · 推进落点终端" % _region_type_chip(active_region)
-	_style_primary_title(title, 22)
-	box.add_child(title)
-
-	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 10)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 4)
 	box.add_child(body)
 
 	body.add_child(_make_feature_panel(
-		"当前落点",
+		"目标",
 		str(active_landing.get("name", active_stage.get("title", "等待落点"))),
-		str(active_landing.get("region_intro", active_stage.get("detail", "当前暂无推进落点说明。"))),
+		str(active_landing.get("region_role", active_stage.get("detail", "当前暂无推进落点说明。"))),
 		region_accent
 	))
 
-	var stack := VBoxContainer.new()
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stack.add_theme_constant_override("separation", 8)
+	var stack := HBoxContainer.new()
+	stack.add_theme_constant_override("separation", 4)
 	body.add_child(stack)
-	stack.add_child(_make_hero_chip("推进阶段", str(active_stage.get("stage", "阶段待命")), Color8(210, 182, 96)))
-	stack.add_child(_make_hero_chip("落点定位", str(active_landing.get("region_role", "等待落点定位")), Color8(102, 152, 204)))
-	stack.add_child(_make_hero_chip("落点繁荣", "%.2f" % float(active_landing.get("health_state", {}).get("prosperity", 0.0)), Color8(104, 171, 144)))
-	stack.add_child(_make_hero_chip("落点风险", "%.2f" % float(active_landing.get("health_state", {}).get("collapse_risk", 0.0)), Color8(171, 132, 196)))
+	stack.add_child(_make_hero_chip("阶段", str(active_stage.get("stage", "阶段待命")), Color8(210, 182, 96)))
+	stack.add_child(_make_hero_chip("风险", "%.2f" % float(active_landing.get("health_state", {}).get("collapse_risk", 0.0)), Color8(171, 132, 196)))
 
 	return _wrap_menu_card(box, Color8(102, 152, 204))
 
@@ -4212,7 +3965,7 @@ func _make_feature_panel(title_text: String, main_text: String, description: Str
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
+	box.add_theme_constant_override("separation", 4)
 	panel.add_child(box)
 
 	var ribbon := ColorRect.new()
@@ -4222,20 +3975,20 @@ func _make_feature_panel(title_text: String, main_text: String, description: Str
 
 	var title := Label.new()
 	title.text = title_text
-	_style_dim(title, 13)
+	_style_dim(title, 10)
 	box.add_child(title)
 
 	var main := Label.new()
 	main.text = main_text
 	main.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_primary_title(main, 20)
+	_style_primary_title(main, 14)
 	main.modulate = accent.lightened(0.24)
 	box.add_child(main)
 
 	var body := Label.new()
 	body.text = description
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_dim(body, 13)
+	_style_dim(body, 9)
 	box.add_child(body)
 	return panel
 
@@ -4361,48 +4114,62 @@ func _make_species_section(top_species: Array, active_region: Dictionary) -> VBo
 	title.text = "核心物种"
 	_style_primary_title(title, 22)
 	box.add_child(title)
-	for row_variant in top_species:
+
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	box.add_child(grid)
+
+	for row_variant in top_species.slice(0, 6):
 		var row: Dictionary = row_variant
 		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(0, 92)
+		grid.add_child(card)
+
 		var row_box := VBoxContainer.new()
 		row_box.add_theme_constant_override("separation", 4)
 		card.add_child(row_box)
 
 		var header := HBoxContainer.new()
-		header.add_theme_constant_override("separation", 10)
+		header.add_theme_constant_override("separation", 8)
 		row_box.add_child(header)
 
 		var chip := Label.new()
-		chip.text = "◉"
-		_style_secondary_title(chip, 20)
+		chip.text = {
+			"顶层种": "✦",
+			"草食群": "◎",
+			"岸带种": "≈",
+			"水域种": "◌",
+		}.get(_species_category(str(row.get("species_id", ""))), "◉")
+		_style_secondary_title(chip, 22)
 		header.add_child(chip)
 
 		var name := Label.new()
 		name.text = str(row.get("label", row.get("species_id", "")))
 		name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_style_body(name, 18)
+		_style_body(name, 16)
 		header.add_child(name)
 
 		var count := Label.new()
-		count.text = "× %s" % str(row.get("count", 0))
-		_style_secondary_title(count, 18)
+		count.text = str(row.get("count", 0))
+		_style_secondary_title(count, 16)
 		header.add_child(count)
 
 		var category := Label.new()
-		category.text = "%s · %s" % [_region_type_chip(active_region), _species_category(str(row.get("species_id", "")))]
-		_style_dim(category, 14)
+		category.text = _species_category(str(row.get("species_id", "")))
+		_style_dim(category, 12)
 		row_box.add_child(category)
 
 		var meter_bg := ColorRect.new()
 		meter_bg.color = Color(1.0, 1.0, 1.0, 0.08)
-		meter_bg.custom_minimum_size = Vector2(0, 6)
+		meter_bg.custom_minimum_size = Vector2(0, 5)
 		row_box.add_child(meter_bg)
 
 		var meter := ColorRect.new()
 		meter.color = Color(171.0 / 255.0, 132.0 / 255.0, 196.0 / 255.0, 0.72)
-		meter.custom_minimum_size = Vector2(220.0 * clamp(float(row.get("count", 0)) / 40.0, 0.05, 1.0), 6)
+		meter.custom_minimum_size = Vector2(112.0 * clamp(float(row.get("count", 0)) / 40.0, 0.05, 1.0), 5)
 		row_box.add_child(meter)
-		box.add_child(card)
 	return box
 
 
@@ -4432,28 +4199,11 @@ func _make_story_section(narrative: Dictionary, active_region: Dictionary) -> VB
 	_style_primary_title(title, 22)
 	story.add_child(title)
 
-	var system_card := PanelContainer.new()
-	story.add_child(system_card)
-
-	var system_box := VBoxContainer.new()
-	system_box.add_theme_constant_override("separation", 4)
-	system_card.add_child(system_box)
-
-	var system_tag := Label.new()
-	system_tag.text = "系统级播报"
-	_style_secondary_title(system_tag, 18)
-	system_box.add_child(system_tag)
-
-	var system_body := Label.new()
-	system_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	system_body.text = "左上角世界播报负责汇总跨区域动态，这里则专注当前焦点区域的局部情报。"
-	_style_dim(system_body, 15)
-	system_box.add_child(system_body)
-
-	var region_tag := Label.new()
-	region_tag.text = "区域级播报"
-	_style_secondary_title(region_tag, 18)
-	story.add_child(region_tag)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	story.add_child(grid)
 
 	for key in ["territory", "social_trends", "grassland_chain", "carrion_chain", "wetland_chain", "symbiosis", "predation"]:
 		var rows: Array = narrative.get(key, [])
@@ -4461,7 +4211,8 @@ func _make_story_section(narrative: Dictionary, active_region: Dictionary) -> VB
 			continue
 
 		var card := PanelContainer.new()
-		story.add_child(card)
+		card.custom_minimum_size = Vector2(0, 110)
+		grid.add_child(card)
 
 		var box := VBoxContainer.new()
 		box.add_theme_constant_override("separation", 4)
@@ -4473,16 +4224,15 @@ func _make_story_section(narrative: Dictionary, active_region: Dictionary) -> VB
 		box.add_child(ribbon)
 
 		var section_title := Label.new()
-		section_title.text = "%s · %s" % [_region_type_chip(active_region), _story_title(key)]
-		_style_secondary_title(section_title, 18)
+		section_title.text = _story_title(key)
+		_style_secondary_title(section_title, 16)
 		box.add_child(section_title)
 
-		for line in rows:
-			var item := Label.new()
-			item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			item.text = "• %s" % str(line)
-			_style_body(item, 15)
-			box.add_child(item)
+		var item := Label.new()
+		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		item.text = str(rows[0])
+		_style_body(item, 13)
+		box.add_child(item)
 	return story
 
 
@@ -4495,11 +4245,11 @@ func _make_badge_list(title_text: String, rows: Array, active_region: Dictionary
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
-	for line in rows:
+	for line in rows.slice(0, 3):
 		var item := Label.new()
 		item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		item.text = "◆ %s" % str(line)
-		_style_body(item, 15)
+		_style_body(item, 13)
 		box.add_child(item)
 	var accent := Color8(104, 171, 144)
 	if title_text == "风险焦点":

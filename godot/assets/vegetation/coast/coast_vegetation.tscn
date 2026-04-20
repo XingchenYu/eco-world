@@ -1,0 +1,140 @@
+[gd_scene load_steps=8 format=3]
+
+[sub_resource type="StandardMaterial3D" id="1"]
+albedo_color = Color(0.329412, 0.509804, 0.356863, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.478431, 0.364706, 0.207843, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.682353, 0.72549, 0.470588, 1)
+roughness = 1.0
+
+[sub_resource type="SphereMesh" id="4"]
+radius = 0.5
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="5"]
+top_radius = 0.14
+bottom_radius = 0.2
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="6"]
+top_radius = 0.05
+bottom_radius = 0.08
+height = 1.0
+
+[sub_resource type="BoxMesh" id="7"]
+size = Vector3(0.12, 0.6, 0.12)
+
+[node name="CoastVegetation" type="Node3D"]
+
+[node name="PalmA" type="Node3D" parent="."]
+position = Vector3(-18, 0, 12)
+
+[node name="Trunk" type="MeshInstance3D" parent="PalmA"]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(0, 2.0, 0)
+scale = Vector3(1.0, 4.0, 1.0)
+
+[node name="FrondHub" type="MeshInstance3D" parent="PalmA"]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(0, 5.1, 0)
+scale = Vector3(1.1, 0.8, 1.1)
+
+[node name="PalmB" type="Node3D" parent="."]
+position = Vector3(16, 0, 8)
+
+[node name="Trunk" type="MeshInstance3D" parent="PalmB"]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(0, 1.8, 0)
+scale = Vector3(0.9, 3.6, 0.9)
+
+[node name="FrondHub" type="MeshInstance3D" parent="PalmB"]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(0.1, 4.7, 0)
+scale = Vector3(1.0, 0.76, 1.0)
+
+[node name="PalmC" type="Node3D" parent="."]
+position = Vector3(40, 0, 14)
+
+[node name="Trunk" type="MeshInstance3D" parent="PalmC"]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(0, 2.2, 0)
+scale = Vector3(1.1, 4.4, 1.1)
+
+[node name="FrondHub" type="MeshInstance3D" parent="PalmC"]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(0.1, 5.5, 0)
+scale = Vector3(1.16, 0.84, 1.16)
+
+[node name="DuneGrassA" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(-6, 0.74, 18)
+scale = Vector3(1.0, 3.0, 1.0)
+
+[node name="DuneGrassB" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(20, 0.68, 2)
+scale = Vector3(1.0, 2.7, 1.0)
+
+[node name="DuneGrassC" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(46, 0.64, -6)
+scale = Vector3(1.0, 2.5, 1.0)
+
+[node name="ShrubA" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(8, 0.56, -12)
+scale = Vector3(1.2, 0.72, 1.1)
+
+[node name="ShrubB" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(28, 0.6, -14)
+scale = Vector3(1.4, 0.82, 1.2)
+
+[node name="StemPatch" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("3")
+position = Vector3(-24, 0.3, 6)
+scale = Vector3(1.1, 1.8, 1.1)
+
+[node name="BermGrassA" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(0, 0.72, 18)
+rotation = Vector3(0.0, 0.18, 0.0)
+scale = Vector3(1.0, 2.8, 1.0)
+
+[node name="BermGrassB" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(30, 0.7, -14)
+rotation = Vector3(0.0, -0.26, 0.0)
+scale = Vector3(1.0, 2.6, 1.0)
+
+[node name="ShoreShrub" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("1")
+position = Vector3(-30, 0.42, 10)
+scale = Vector3(1.0, 0.58, 0.9)
+
+[node name="DuneStem" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("3")
+position = Vector3(44, 0.34, -18)
+rotation = Vector3(0.0, 0.22, 0.0)
+scale = Vector3(1.0, 1.6, 1.0)

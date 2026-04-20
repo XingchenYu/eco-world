@@ -1,0 +1,248 @@
+[gd_scene load_steps=10 format=3]
+
+[sub_resource type="StandardMaterial3D" id="1"]
+albedo_color = Color(0.290196, 0.345098, 0.25098, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.388235, 0.494118, 0.411765, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.356863, 0.301961, 0.219608, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="10"]
+albedo_color = Color(0.247059, 0.309804, 0.223529, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="11"]
+albedo_color = Color(0.423529, 0.368627, 0.266667, 1)
+roughness = 1.0
+
+[sub_resource type="PlaneMesh" id="4"]
+size = Vector2(286, 214)
+
+[sub_resource type="SphereMesh" id="5"]
+radius = 0.5
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="6"]
+top_radius = 0.5
+bottom_radius = 0.62
+height = 1.0
+
+[sub_resource type="BoxMesh" id="7"]
+size = Vector3(30, 0.18, 8)
+
+[sub_resource type="SphereMesh" id="8"]
+radius = 0.5
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="9"]
+top_radius = 0.5
+bottom_radius = 0.5
+height = 1.0
+
+[node name="ForestTerrain" type="Node3D"]
+
+[node name="GroundBase" type="MeshInstance3D" parent="."]
+mesh = SubResource("4")
+material_override = SubResource("1")
+rotation = Vector3(-1.5708, 0, 0)
+
+[node name="PathShelf" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("3")
+position = Vector3(2, 0.05, 4)
+rotation = Vector3(0, -0.18, 0)
+
+[node name="WaterPocket" type="MeshInstance3D" parent="."]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(4, -0.28, 12)
+scale = Vector3(10, 0.45, 8)
+
+[node name="CanopyRiseA" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("1")
+position = Vector3(-20, 1.22, 8)
+scale = Vector3(16, 2.8, 10)
+
+[node name="CanopyRiseB" type="MeshInstance3D" parent="."]
+mesh = SubResource("6")
+material_override = SubResource("1")
+position = Vector3(26, 1.48, -10)
+scale = Vector3(18, 3.2, 11)
+
+[node name="MossShelfA" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("2")
+position = Vector3(-10, 0.42, -6)
+scale = Vector3(12, 0.9, 7)
+
+[node name="MossShelfB" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("2")
+position = Vector3(18, 0.46, 16)
+scale = Vector3(11, 1.0, 7)
+
+[node name="RootMound" type="MeshInstance3D" parent="."]
+mesh = SubResource("9")
+material_override = SubResource("3")
+position = Vector3(30, 0.56, 8)
+scale = Vector3(9, 1.1, 8)
+
+[node name="RavineShelfA" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("3")
+position = Vector3(-24, 0.46, -8)
+rotation = Vector3(0, 0.36, 0)
+scale = Vector3(14, 0.92, 5)
+
+[node name="RavineShelfB" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("3")
+position = Vector3(12, 0.5, -18)
+rotation = Vector3(0, -0.24, 0)
+scale = Vector3(12, 0.86, 5)
+
+[node name="FernRise" type="MeshInstance3D" parent="."]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(-4, 0.52, 18)
+rotation = Vector3(0, 0.22, 0)
+scale = Vector3(12, 1.1, 6)
+
+[node name="PathShoulderA" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(-16, 0.12, 8)
+rotation = Vector3(0, -0.46, 0)
+scale = Vector3(0.7, 1, 0.8)
+
+[node name="PathShoulderB" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(20, 0.14, -2)
+rotation = Vector3(0, 0.3, 0)
+scale = Vector3(0.8, 1, 0.7)
+
+[node name="RavineSpurA" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("3")
+position = Vector3(-30, 0.62, 4)
+rotation = Vector3(0, 0.42, 0)
+scale = Vector3(10, 1.02, 4)
+
+[node name="RavineSpurB" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("3")
+position = Vector3(8, 0.58, -22)
+rotation = Vector3(0, -0.34, 0)
+scale = Vector3(10, 0.96, 4)
+
+[node name="MidCanopyShelf" type="MeshInstance3D" parent="."]
+mesh = SubResource("5")
+material_override = SubResource("2")
+position = Vector3(6, 0.42, 6)
+rotation = Vector3(0, 0.18, 0)
+scale = Vector3(12, 0.88, 5)
+
+[node name="MossRise" type="MeshInstance3D" parent="."]
+mesh = SubResource("9")
+material_override = SubResource("1")
+position = Vector3(-12, 0.24, 20)
+rotation = Vector3(0, -0.22, 0)
+scale = Vector3(8, 0.48, 5)
+
+[node name="ForestFoldA" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("1")
+position = Vector3(-4, 0.22, 10)
+rotation = Vector3(0, 0.44, 0)
+scale = Vector3(12, 0.42, 3.8)
+
+[node name="ForestFoldB" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("3")
+position = Vector3(22, 0.26, -14)
+rotation = Vector3(0, -0.28, 0)
+scale = Vector3(10, 0.46, 3.6)
+
+[node name="PoolLip" type="MeshInstance3D" parent="."]
+mesh = SubResource("9")
+material_override = SubResource("2")
+position = Vector3(8, 0.12, 16)
+rotation = Vector3(0, 0.18, 0)
+scale = Vector3(7, 0.34, 3.8)
+
+[node name="LeafBedA" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("10")
+position = Vector3(-16, 0.08, 10)
+rotation = Vector3(0, 0.22, 0)
+scale = Vector3(12, 0.14, 3.4)
+
+[node name="LeafBedB" type="MeshInstance3D" parent="."]
+mesh = SubResource("8")
+material_override = SubResource("10")
+position = Vector3(18, 0.08, -6)
+rotation = Vector3(0, -0.16, 0)
+scale = Vector3(10, 0.14, 3.2)
+
+[node name="RootStainA" type="MeshInstance3D" parent="."]
+mesh = SubResource("9")
+material_override = SubResource("11")
+position = Vector3(-28, 0.06, 0)
+rotation = Vector3(0, 0.34, 0)
+scale = Vector3(8, 0.12, 2.8)
+
+[node name="RootStainB" type="MeshInstance3D" parent="."]
+mesh = SubResource("9")
+material_override = SubResource("11")
+position = Vector3(6, 0.06, -18)
+rotation = Vector3(0, -0.26, 0)
+scale = Vector3(7, 0.12, 2.6)
+
+[node name="RavineWallA" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("3")
+position = Vector3(-22, 0.42, -10)
+rotation = Vector3(0.22, 0.3, 0)
+scale = Vector3(0.34, 1.0, 0.78)
+
+[node name="RavineWallB" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("3")
+position = Vector3(14, 0.4, -20)
+rotation = Vector3(0.18, -0.24, 0)
+scale = Vector3(0.3, 1.0, 0.72)
+
+[node name="RootApron" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("11")
+position = Vector3(26, 0.12, 10)
+rotation = Vector3(-0.04, 0.22, 0)
+scale = Vector3(0.26, 1.0, 0.68)
+
+[node name="FarTreeLineWest" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(-126, 0.92, 10)
+rotation = Vector3(0.14, 0.5, 0)
+scale = Vector3(0.88, 0.58, 3.3)
+
+[node name="FarTreeLineNorth" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(8, 1.0, -118)
+rotation = Vector3(0.16, -0.2, 0)
+scale = Vector3(0.9, 0.6, 3.5)
+
+[node name="FarRootRiseEast" type="MeshInstance3D" parent="."]
+mesh = SubResource("7")
+material_override = SubResource("3")
+position = Vector3(128, 0.74, 18)
+rotation = Vector3(0.12, 0.34, 0)
+scale = Vector3(0.74, 0.46, 2.8)

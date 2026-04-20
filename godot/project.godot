@@ -15,12 +15,12 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="EcoWorld Godot Frontend"
-run/main_scene="res://scenes/world_map.tscn"
+run/main_scene="res://scenes/savanna_explorer_3d.tscn"
 config/features=PackedStringArray("4.6")
 
 [display]
 
 window/size/viewport_width=1600
 window/size/viewport_height=960
-window/stretch/mode="canvas_items"
+window/stretch/mode="viewport"
 window/stretch/aspect="expand"

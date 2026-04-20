@@ -1,0 +1,233 @@
+[gd_scene load_steps=11 format=3]
+
+[sub_resource type="StandardMaterial3D" id="1"]
+albedo_color = Color(0.705882, 0.596078, 0.364706, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="2"]
+albedo_color = Color(0.858824, 0.803922, 0.678431, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.215686, 0.168627, 0.121569, 1)
+roughness = 1.0
+
+[sub_resource type="CapsuleMesh" id="4"]
+radius = 0.17
+mid_height = 0.92
+
+[sub_resource type="SphereMesh" id="5"]
+radius = 0.15
+height = 0.3
+
+[sub_resource type="BoxMesh" id="6"]
+size = Vector3(0.16, 0.08, 0.3)
+
+[sub_resource type="CylinderMesh" id="7"]
+top_radius = 0.028
+bottom_radius = 0.036
+height = 0.42
+
+[sub_resource type="CylinderMesh" id="8"]
+top_radius = 0.024
+bottom_radius = 0.03
+height = 0.38
+
+[sub_resource type="SphereMesh" id="9"]
+radius = 0.04
+height = 0.08
+
+[sub_resource type="BoxMesh" id="10"]
+size = Vector3(0.08, 0.05, 0.14)
+
+[node name="AntelopeActor" type="Node3D"]
+
+[node name="GroundAnchor" type="Node3D" parent="."]
+
+[node name="BodyRig" type="Node3D" parent="GroundAnchor"]
+position = Vector3(0, 1.18, 0)
+
+[node name="Body" type="MeshInstance3D" parent="GroundAnchor/BodyRig"]
+mesh = SubResource("4")
+material_override = SubResource("1")
+rotation = Vector3(1.5708, 0, 0)
+
+[node name="Chest" type="MeshInstance3D" parent="GroundAnchor/BodyRig"]
+mesh = SubResource("5")
+material_override = SubResource("1")
+position = Vector3(0, 0.04, 0.28)
+scale = Vector3(1.14, 1.18, 1.08)
+
+[node name="Haunch" type="MeshInstance3D" parent="GroundAnchor/BodyRig"]
+mesh = SubResource("5")
+material_override = SubResource("1")
+position = Vector3(0, 0.02, -0.3)
+scale = Vector3(1.18, 1.08, 1.12)
+
+[node name="Belly" type="MeshInstance3D" parent="GroundAnchor/BodyRig"]
+mesh = SubResource("6")
+material_override = SubResource("2")
+position = Vector3(0, -0.16, 0.04)
+scale = Vector3(1.4, 0.72, 1.62)
+
+[node name="DorsalLine" type="MeshInstance3D" parent="GroundAnchor/BodyRig"]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(0, 0.18, -0.02)
+scale = Vector3(0.24, 0.24, 1.7)
+
+[node name="Tail" type="MeshInstance3D" parent="GroundAnchor/BodyRig"]
+mesh = SubResource("7")
+material_override = SubResource("3")
+position = Vector3(0, 0.08, -0.72)
+rotation = Vector3(0.56, 0, 0)
+scale = Vector3(0.72, 0.72, 0.72)
+
+[node name="Leg_FrontLeft" type="Node3D" parent="GroundAnchor/BodyRig"]
+position = Vector3(-0.16, -0.24, 0.3)
+
+[node name="Upper" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_FrontLeft"]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(0, -0.2, 0)
+
+[node name="Knee" type="Node3D" parent="GroundAnchor/BodyRig/Leg_FrontLeft"]
+position = Vector3(0, -0.42, 0.01)
+
+[node name="Lower" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_FrontLeft/Knee"]
+mesh = SubResource("8")
+material_override = SubResource("1")
+position = Vector3(0, -0.18, 0)
+
+[node name="Hoof" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_FrontLeft/Knee"]
+mesh = SubResource("9")
+material_override = SubResource("3")
+position = Vector3(0, -0.38, 0.01)
+
+[node name="Leg_FrontRight" type="Node3D" parent="GroundAnchor/BodyRig"]
+position = Vector3(0.16, -0.24, 0.3)
+
+[node name="Upper" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_FrontRight"]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(0, -0.2, 0)
+
+[node name="Knee" type="Node3D" parent="GroundAnchor/BodyRig/Leg_FrontRight"]
+position = Vector3(0, -0.42, 0.01)
+
+[node name="Lower" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_FrontRight/Knee"]
+mesh = SubResource("8")
+material_override = SubResource("1")
+position = Vector3(0, -0.18, 0)
+
+[node name="Hoof" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_FrontRight/Knee"]
+mesh = SubResource("9")
+material_override = SubResource("3")
+position = Vector3(0, -0.38, 0.01)
+
+[node name="Leg_BackLeft" type="Node3D" parent="GroundAnchor/BodyRig"]
+position = Vector3(-0.18, -0.26, -0.28)
+
+[node name="Upper" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_BackLeft"]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(0, -0.2, 0)
+
+[node name="Knee" type="Node3D" parent="GroundAnchor/BodyRig/Leg_BackLeft"]
+position = Vector3(0, -0.42, -0.01)
+
+[node name="Lower" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_BackLeft/Knee"]
+mesh = SubResource("8")
+material_override = SubResource("1")
+position = Vector3(0, -0.18, 0)
+
+[node name="Hoof" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_BackLeft/Knee"]
+mesh = SubResource("9")
+material_override = SubResource("3")
+position = Vector3(0, -0.38, -0.01)
+
+[node name="Leg_BackRight" type="Node3D" parent="GroundAnchor/BodyRig"]
+position = Vector3(0.18, -0.26, -0.28)
+
+[node name="Upper" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_BackRight"]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(0, -0.2, 0)
+
+[node name="Knee" type="Node3D" parent="GroundAnchor/BodyRig/Leg_BackRight"]
+position = Vector3(0, -0.42, -0.01)
+
+[node name="Lower" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_BackRight/Knee"]
+mesh = SubResource("8")
+material_override = SubResource("1")
+position = Vector3(0, -0.18, 0)
+
+[node name="Hoof" type="MeshInstance3D" parent="GroundAnchor/BodyRig/Leg_BackRight/Knee"]
+mesh = SubResource("9")
+material_override = SubResource("3")
+position = Vector3(0, -0.38, -0.01)
+
+[node name="HeadRig" type="Node3D" parent="GroundAnchor"]
+position = Vector3(0, 1.42, 0.44)
+
+[node name="Neck" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("7")
+material_override = SubResource("1")
+position = Vector3(0, -0.12, -0.08)
+rotation = Vector3(-0.74, 0, 0)
+
+[node name="Head" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("5")
+material_override = SubResource("1")
+position = Vector3(0, 0.02, 0.2)
+scale = Vector3(0.86, 0.8, 1.1)
+
+[node name="Muzzle" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("6")
+material_override = SubResource("2")
+position = Vector3(0, -0.06, 0.38)
+scale = Vector3(0.82, 0.72, 0.9)
+
+[node name="FaceStripe" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("6")
+material_override = SubResource("3")
+position = Vector3(0, 0.02, 0.42)
+scale = Vector3(0.16, 0.26, 0.62)
+
+[node name="EyeLeft" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("9")
+material_override = SubResource("3")
+position = Vector3(-0.06, 0.04, 0.4)
+scale = Vector3(0.36, 0.3, 0.3)
+
+[node name="EyeRight" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("9")
+material_override = SubResource("3")
+position = Vector3(0.06, 0.04, 0.4)
+scale = Vector3(0.36, 0.3, 0.3)
+
+[node name="EarLeft" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("10")
+material_override = SubResource("1")
+position = Vector3(-0.1, 0.14, 0.12)
+rotation = Vector3(0.18, 0, -0.48)
+
+[node name="EarRight" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("10")
+material_override = SubResource("1")
+position = Vector3(0.1, 0.14, 0.12)
+rotation = Vector3(0.18, 0, 0.48)
+
+[node name="HornLeft" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("8")
+material_override = SubResource("3")
+position = Vector3(-0.07, 0.24, 0.1)
+rotation = Vector3(-0.24, 0, -0.18)
+scale = Vector3(0.8, 0.82, 0.8)
+
+[node name="HornRight" type="MeshInstance3D" parent="GroundAnchor/HeadRig"]
+mesh = SubResource("8")
+material_override = SubResource("3")
+position = Vector3(0.07, 0.24, 0.1)
+rotation = Vector3(-0.24, 0, 0.18)
+scale = Vector3(0.8, 0.82, 0.8)
