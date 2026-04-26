@@ -1010,8 +1010,8 @@ func _update_wildlife(delta: float) -> void:
 			if nearest_predator != Vector2.ZERO and current_pos.distance_to(nearest_predator) < 240.0:
 				var flee := (current_pos - nearest_predator).normalized()
 				target_pos += flee * (180.0 if current_pos.distance_to(nearest_predator) > 150.0 else 260.0)
-			if player_distance < float(animal.get("alert_radius", 130.0)):
-				target_pos += player_delta.normalized() * 90.0
+			if player_distance < 70.0 and not Input.is_key_pressed(KEY_SPACE):
+				target_pos += player_delta.normalized() * 46.0
 		target_pos = _clamped_world_position(target_pos)
 		var next_pos := _move_animal_toward(current_pos, target_pos, animal, activity, delta)
 		animal["position"] = next_pos
@@ -1206,7 +1206,7 @@ func _apply_animal_activity_motion(animal: Dictionary, target_pos: Vector2, acti
 		"取水":
 			return target_pos.lerp(_hotspot_position("waterhole"), 0.34)
 		"警觉":
-			if player_distance < 220.0 and player_delta.length() > 0.01:
+			if player_distance < 120.0 and player_delta.length() > 0.01 and not Input.is_key_pressed(KEY_SPACE):
 				return target_pos + player_delta.normalized() * 34.0
 			return target_pos.lerp(current_pos, 0.32)
 		"逼近":
@@ -4246,19 +4246,28 @@ func _draw_objective_guidance() -> void:
 		return
 	var player_screen := _screen_point(player_pos)
 	var pulse := 0.5 + sin(elapsed * 4.2) * 0.5
+	var label := str(target.get("label", "目标"))
+	var distance_m := int(round(distance))
+	var side := Vector2(-direction.y, direction.x)
+	var cone := PackedVector2Array([
+		player_screen + direction * 34.0,
+		player_screen + direction * 174.0 + side * 34.0,
+		player_screen + direction * 174.0 - side * 34.0,
+	])
+	draw_colored_polygon(cone, Color(1.0, 0.78, 0.25, 0.055 + pulse * 0.025))
 	for index in range(3):
 		var step := 42.0 + float(index) * 34.0
 		var dot_pos := player_screen + direction * step
 		var alpha := 0.16 + float(index) * 0.08 + pulse * 0.08
 		draw_circle(dot_pos, 4.0 + float(index) * 0.8, Color(1.0, 0.82, 0.32, alpha))
 	var arrow_center := player_screen + direction * 30.0
-	var side := Vector2(-direction.y, direction.x)
 	var arrow := PackedVector2Array([
 		arrow_center + direction * 12.0,
 		arrow_center - direction * 8.0 + side * 6.0,
 		arrow_center - direction * 8.0 - side * 6.0,
 	])
 	draw_colored_polygon(arrow, Color(1.0, 0.82, 0.32, 0.50))
+	_draw_text(player_screen + direction * 132.0 + side * 18.0, "%s · %dm" % [label, distance_m], 13, Color8(255, 239, 184, 216))
 
 
 func _draw_survey_lock_marker() -> void:
@@ -4918,26 +4927,27 @@ func _draw_event_banner() -> void:
 	if current_event.is_empty():
 		return
 	var accent: Color = current_event.get("accent", Color8(244, 213, 142))
-	var rect := Rect2(size.x * 0.5 - 190, 190, 380, 58)
+	var rect := Rect2(size.x * 0.5 - 190, 214, 380, 58)
 	_draw_panel(rect, Color(0.05, 0.08, 0.11, 0.76), Color(accent.r, accent.g, accent.b, 0.22), 24, 2)
 	_draw_text(rect.position + Vector2(20, 27), str(current_event.get("title", "")), 17, Color8(246, 241, 228))
 	_draw_text(rect.position + Vector2(20, 49), _short_explorer_text(str(current_event.get("body", "")), 42), 12, Color8(196, 210, 216))
 
 
 func _draw_mainline_banner() -> void:
-	var rect := Rect2(size.x * 0.5 - 264, 104, 528, 74)
+	var rect := Rect2(size.x * 0.5 - 300, 104, 600, 96)
 	_draw_panel(rect, Color(0.04, 0.07, 0.09, 0.82), Color(1.0, 0.82, 0.32, 0.24), 26, 2)
 	draw_circle(rect.position + Vector2(30, 36), 12.0, Color(1.0, 0.80, 0.30, 0.22))
 	draw_circle(rect.position + Vector2(30, 36), 5.0, Color8(255, 221, 118, 230))
 	_draw_text(rect.position + Vector2(52, 28), _mainline_title(), 18, Color8(250, 242, 214))
 	_draw_text(rect.position + Vector2(52, 52), _mainline_current_instruction(), 13, Color8(211, 224, 222))
+	_draw_text(rect.position + Vector2(52, 72), _world_task_reward_hint_short(), 12, Color8(169, 214, 180))
 	var rows := _mainline_rows()
 	var cursor_x := rect.position.x + 52.0
-	var y := rect.position.y + 66.0
+	var y := rect.position.y + 88.0
 	for index in range(min(rows.size(), 4)):
 		var row: Dictionary = rows[index]
 		var done := bool(row.get("done", false))
-		var x := cursor_x + float(index) * 116.0
+		var x := cursor_x + float(index) * 132.0
 		draw_circle(Vector2(x, y - 4.0), 4.0, Color8(132, 220, 154, 230) if done else Color8(238, 196, 96, 190))
 		_draw_text(Vector2(x + 8.0, y), _short_explorer_text(str(row.get("label", "")), 8), 10, Color8(184, 204, 198))
 
@@ -5119,14 +5129,15 @@ func _draw_codex_panel() -> void:
 
 
 func _draw_compact_task_tracker() -> void:
-	var rect := Rect2(size.x - 320, size.y - 184, 286, 132)
+	var rect := Rect2(size.x - 342, size.y - 222, 308, 170)
 	_draw_panel(rect, Color(0.05, 0.08, 0.10, 0.70), Color(0.92, 0.78, 0.42, 0.16), 24, 1)
 	var action := str(world_task.get("action", "调查"))
 	var task_done := _world_task_completed(current_exit_zone)
 	_draw_text(rect.position + Vector2(18, 26), "主线进度", 17, Color8(244, 240, 222))
 	_draw_text(rect.position + Vector2(18, 48), "当前行动：%s · %s" % [action, ("可撤离" if task_done or extraction_ready else "进行中")], 12, Color8(177, 205, 188))
+	_draw_text(rect.position + Vector2(18, 66), _short_explorer_text(_world_task_backend_effect(action), 30), 11, Color8(154, 196, 168))
 	var objectives := _mainline_rows()
-	var y := rect.position.y + 72.0
+	var y := rect.position.y + 88.0
 	var shown := 0
 	for objective_variant in objectives:
 		var objective: Dictionary = objective_variant
@@ -5136,10 +5147,10 @@ func _draw_compact_task_tracker() -> void:
 		var marker := "✓" if bool(objective.get("done", false)) else "·"
 		var text_color := Color8(174, 222, 190) if bool(objective.get("done", false)) else Color8(205, 215, 212)
 		_draw_text(Vector2(rect.position.x + 18, y), "%s %s" % [marker, _short_explorer_text(label, 24)], 12, text_color)
-		_draw_mini_progress(Rect2(rect.position + Vector2(18, y + 7), Vector2(238, 4)), float(objective.get("progress", 0.0)), bool(objective.get("done", false)))
+		_draw_mini_progress(Rect2(rect.position + Vector2(18, y + 7), Vector2(258, 4)), float(objective.get("progress", 0.0)), bool(objective.get("done", false)))
 		y += 22.0
 		shown += 1
-		if shown >= 3:
+		if shown >= 4:
 			break
 
 
