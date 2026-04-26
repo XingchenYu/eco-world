@@ -159,7 +159,7 @@ var player_pos := Vector2(1080, 960)
 var camera_pos := Vector2.ZERO
 var player_speed := 280.0
 var elapsed := 0.0
-var show_codex := true
+var show_codex := false
 var current_encounter: Dictionary = {}
 var current_hotspot: Dictionary = {}
 var current_exit_zone: Dictionary = {}
@@ -168,6 +168,8 @@ var current_interaction: Dictionary = {}
 var current_chase: Dictionary = {}
 var current_chase_result: Dictionary = {}
 var current_task: Dictionary = {}
+var reward_feedback: Dictionary = {}
+var reward_feedback_timer := 0.0
 var world_task: Dictionary = {}
 var entry_request: Dictionary = {}
 var incoming_handoff: Dictionary = {}
@@ -244,6 +246,7 @@ func _process(delta: float) -> void:
 	_update_expedition_state()
 	_update_region_event_chain(delta)
 	_update_event_focus()
+	_update_reward_feedback(delta)
 	queue_redraw()
 
 
@@ -253,7 +256,10 @@ func _draw() -> void:
 	_draw_world_ground()
 	_draw_world_routes()
 	_draw_hotspots()
+	_draw_objective_guidance()
+	_draw_objective_marker()
 	_draw_wildlife()
+	_draw_interaction_prompts()
 	_draw_player()
 	_draw_overlay()
 
@@ -348,6 +354,8 @@ func _apply_region(region_id: String, spawn_gate: String = "") -> void:
 	current_chase.clear()
 	current_chase_result.clear()
 	current_task.clear()
+	reward_feedback.clear()
+	reward_feedback_timer = 0.0
 	world_task.clear()
 	incoming_handoff.clear()
 	handoff_task_completed = false
@@ -1646,6 +1654,14 @@ func _active_region_event_tag() -> String:
 	return str(_active_region_event().get("tag", ""))
 
 
+func _update_reward_feedback(delta: float) -> void:
+	if reward_feedback_timer <= 0.0:
+		return
+	reward_feedback_timer = maxf(0.0, reward_feedback_timer - delta)
+	if reward_feedback_timer <= 0.0:
+		reward_feedback.clear()
+
+
 func _update_expedition_state() -> void:
 	var threat_target := 0.0
 	var pressure_state: Dictionary = region_detail.get("ecological_pressures", {})
@@ -2166,6 +2182,16 @@ func _record_exit_summary(zone: Dictionary) -> void:
 		summary += " · 世界任务%s" % ("完成" if _world_task_completed(zone) else "未完成")
 	discovery_log.push_front(summary)
 	discovery_log = discovery_log.slice(0, 6)
+	_show_reward_feedback(
+		"撤离报告已生成",
+		"情报 %d · 热点 %d · 世界任务%s" % [
+			_expedition_intel_points(),
+			completed_task_ids.size(),
+			("完成" if _world_task_completed(zone) else "未完成"),
+		],
+		"回到世界图：点击回灌报告。",
+		Color8(210, 182, 96)
+	)
 	_write_expedition_report(zone, summary)
 
 
@@ -2268,7 +2294,11 @@ func _write_expedition_report(zone: Dictionary, summary: String) -> void:
 	var handoff_source_channel := str(incoming_handoff.get("channel", ""))
 	var handoff_source_window := str(incoming_handoff.get("window", ""))
 	var handoff_source_phase := str(incoming_handoff.get("phase", ""))
+	var created_at := Time.get_datetime_string_from_system()
+	var report_id := "%s:%s:%d" % [current_region_id, created_at, int(previous.get("visit_count", 0)) + 1]
 	var record := {
+		"report_id": report_id,
+		"created_at": created_at,
 		"region_id": current_region_id,
 		"region_name": str(region_detail.get("name", current_region_id)),
 		"visit_count": int(previous.get("visit_count", 0)) + 1,
@@ -3385,6 +3415,12 @@ func _complete_hotspot_task(hotspot: Dictionary) -> void:
 		bonus_note += " · 骨干奖励 +%d" % backbone_bonus
 	discovery_log.push_front("%s完成：%s · %s情报 +%d%s" % [str(task_config.get("noun", "观察")), hotspot_label, channel, reward, bonus_note])
 	discovery_log = discovery_log.slice(0, 6)
+	_show_reward_feedback(
+		"%s完成" % str(task_config.get("noun", "观察")),
+		"%s情报 +%d%s" % [channel, reward, bonus_note],
+		_world_task_reward_hint_short(),
+		Color8(118, 214, 164)
+	)
 	current_task = {
 		"title": "观察完成",
 		"body": "%s 的%s已完成，%s情报 +%d%s%s%s，继续寻找下一处目标。" % [hotspot_label, str(task_config.get("noun", "观察")), channel, reward, bonus_note, _identity_special_hotspot_note(hotspot), _identity_chain_note_for_channel(channel, "hotspot")],
@@ -3566,8 +3602,9 @@ func _objective_rows() -> Array:
 		rows.append(
 			{
 				"title": "世界任务 · %s" % task_action,
-				"label": str(world_task.get("reason", world_task.get("body", ""))),
+				"label": _world_task_progress_label(task_action),
 				"done": _world_task_completed(current_exit_zone),
+				"progress": _world_task_progress_ratio(task_action),
 			}
 		)
 	var stage := 1
@@ -3577,21 +3614,62 @@ func _objective_rows() -> Array:
 		stage = 3
 	if stage == 1:
 		rows.append_array([
-			{"title": "阶段一 · 建立观察", "label": "发现 3 种动物", "done": discovered_species_ids.size() >= 3},
-			{"title": "", "label": "完成 1 个热点采样", "done": completed_task_ids.size() >= 1},
+			{"title": "阶段一 · 建立观察", "label": "发现动物 %d/3" % mini(discovered_species_ids.size(), 3), "done": discovered_species_ids.size() >= 3, "progress": clampf(float(discovered_species_ids.size()) / 3.0, 0.0, 1.0)},
+			{"title": "", "label": "热点采样 %d/1" % mini(completed_task_ids.size(), 1), "done": completed_task_ids.size() >= 1, "progress": clampf(float(completed_task_ids.size()), 0.0, 1.0)},
 		])
 		return rows
 	if stage == 2:
 		rows.append_array([
-			{"title": "阶段二 · 见证压力", "label": "观察一次掠食追逐", "done": witnessed_pressure},
-			{"title": "", "label": "完成 2 个不同热点任务", "done": completed_task_ids.size() >= 2},
+			{"title": "阶段二 · 见证压力", "label": "观察一次掠食追逐", "done": witnessed_pressure, "progress": 1.0 if witnessed_pressure else 0.0},
+			{"title": "", "label": "不同热点任务 %d/2" % mini(completed_task_ids.size(), 2), "done": completed_task_ids.size() >= 2, "progress": clampf(float(completed_task_ids.size()) / 2.0, 0.0, 1.0)},
 		])
 		return rows
 	rows.append_array([
-		{"title": "阶段三 · 扩展生态图", "label": "进入下一个区域", "done": visited_region_ids.size() >= 2},
-		{"title": "", "label": "见证一次追猎命中或落空", "done": witnessed_chase_result},
+		{"title": "阶段三 · 扩展生态图", "label": "已进入区域 %d/2" % mini(visited_region_ids.size(), 2), "done": visited_region_ids.size() >= 2, "progress": clampf(float(visited_region_ids.size()) / 2.0, 0.0, 1.0)},
+		{"title": "", "label": "见证一次追猎命中或落空", "done": witnessed_chase_result, "progress": 1.0 if witnessed_chase_result else 0.0},
 	])
 	return rows
+
+
+func _world_task_progress_ratio(action: String) -> float:
+	match action:
+		"修复":
+			var intel_ratio := clampf(float(_expedition_intel_points()) / 3.0, 0.0, 1.0)
+			var hotspot_ratio := clampf(float(completed_task_ids.size()), 0.0, 1.0)
+			return (intel_ratio + hotspot_ratio) * 0.5
+		"通道":
+			var target := str(world_task.get("target_region_id", ""))
+			if target == "":
+				return 1.0 if not current_exit_zone.is_empty() else 0.0
+			return 1.0 if not current_exit_zone.is_empty() and str(current_exit_zone.get("target_region_id", "")) == target else 0.0
+		_:
+			var intel_ratio := clampf(float(_expedition_intel_points()) / 3.0, 0.0, 1.0)
+			var species_ratio := clampf(float(discovered_species_ids.size()) / 3.0, 0.0, 1.0)
+			var hotspot_ratio := clampf(float(completed_task_ids.size()), 0.0, 1.0)
+			return maxf(intel_ratio, maxf(species_ratio, hotspot_ratio))
+
+
+func _world_task_progress_label(action: String) -> String:
+	match action:
+		"修复":
+			return "情报 %d/3 · 热点 %d/1" % [
+				mini(_expedition_intel_points(), 3),
+				mini(completed_task_ids.size(), 1),
+			]
+		"通道":
+			var target := str(world_task.get("target_region_id", ""))
+			if target == "":
+				return "靠近任意出口，按 E 撤离"
+			var zone := _objective_exit_target()
+			var target_name := str(zone.get("label", "目标出口")) if not zone.is_empty() else "目标出口"
+			var ready := not current_exit_zone.is_empty() and str(current_exit_zone.get("target_region_id", "")) == target
+			return "%s · %s" % [target_name, ("已到达" if ready else "未到达")]
+		_:
+			return "情报 %d/3 · 动物 %d/3 · 热点 %d/1" % [
+				mini(_expedition_intel_points(), 3),
+				mini(discovered_species_ids.size(), 3),
+				mini(completed_task_ids.size(), 1),
+			]
 
 
 func _record_species_discovery(animal: Dictionary) -> void:
@@ -3616,6 +3694,12 @@ func _record_species_discovery(animal: Dictionary) -> void:
 		bonus_note += " · 骨干奖励 +%d" % backbone_bonus
 	discovery_log.push_front("发现动物：%s · %s情报 +%d%s%s" % [str(animal.get("label", species_id)), channel, reward, bonus_note, _identity_chain_note_for_channel(channel, "species")])
 	discovery_log = discovery_log.slice(0, 6)
+	_show_reward_feedback(
+		"记录新物种",
+		"%s · %s情报 +%d%s" % [str(animal.get("label", species_id)), channel, reward, bonus_note],
+		"回灌后：调查覆盖上升。",
+		Color8(230, 188, 102)
+	)
 	_maybe_complete_handoff(str(animal.get("label", species_id)), channel)
 	_maybe_award_specialization_chain_bonus(str(animal.get("label", species_id)))
 
@@ -3640,7 +3724,8 @@ func _draw_world_ground() -> void:
 		Vector2(size.x, size.y),
 		Vector2(0, size.y),
 	]
-	draw_colored_polygon(terrain_points, Color8(201, 183, 122))
+	draw_colored_polygon(terrain_points, current_theme.get("ground", Color8(201, 183, 122)))
+	_draw_ground_texture()
 
 	for band in range(5):
 		var y := 90.0 + float(band) * 160.0
@@ -3678,6 +3763,20 @@ func _draw_grass_patch(center: Vector2, width: float, height: float, color: Colo
 	_draw_natural_blob(center, width, height, color, 28)
 
 
+func _draw_ground_texture() -> void:
+	var origin := Vector2(floor(camera_pos.x / 92.0) * 92.0, floor(camera_pos.y / 72.0) * 72.0)
+	for x_index in range(-1, int(ceil(size.x / 92.0)) + 2):
+		for y_index in range(-1, int(ceil(size.y / 72.0)) + 2):
+			var world_pos := origin + Vector2(float(x_index) * 92.0, float(y_index) * 72.0)
+			var jitter := Vector2(
+				sin(world_pos.x * 0.017 + world_pos.y * 0.011) * 24.0,
+				cos(world_pos.x * 0.013 - world_pos.y * 0.019) * 18.0
+			)
+			var p := _screen_point(world_pos + jitter)
+			var shade := 0.055 + sin(world_pos.x * 0.005) * 0.018
+			draw_arc(p, 18.0, -0.8, 0.9, 8, Color(0.20, 0.26, 0.14, shade), 1.0, true)
+
+
 func _draw_natural_blob(center: Vector2, width: float, height: float, color: Color, segments: int = 24) -> void:
 	var points := PackedVector2Array()
 	var screen_center := _screen_point(center)
@@ -3707,9 +3806,8 @@ func _draw_river() -> void:
 
 func _draw_waterhole() -> void:
 	var center := _screen_point(_hotspot_position("waterhole"))
-	draw_circle(center, 82.0, Color8(80, 145, 182, 215))
-	draw_circle(center, 62.0, Color8(138, 209, 221, 210))
-	_draw_text(center + Vector2(-34, 110), "主水源地", 18, Color8(239, 248, 246))
+	_draw_natural_blob(_hotspot_position("waterhole"), 178.0, 126.0, Color8(80, 145, 182, 150), 30)
+	draw_circle(center, 48.0, Color8(138, 209, 221, 150))
 
 
 func _draw_acacia_grove(center: Vector2, count: int) -> void:
@@ -3794,10 +3892,10 @@ func _draw_ridge() -> void:
 
 func _draw_carcass_field() -> void:
 	var center := _screen_point(_hotspot_position("carrion_field"))
-	draw_circle(center, 66.0, Color8(112, 76, 58, 170))
-	draw_circle(center, 22.0, Color8(235, 223, 178, 220))
-	draw_line(center + Vector2(-16, -8), center + Vector2(16, 8), Color8(132, 94, 72, 220), 4.0)
-	draw_line(center + Vector2(-10, 16), center + Vector2(20, -14), Color8(132, 94, 72, 220), 4.0)
+	_draw_natural_blob(_hotspot_position("carrion_field"), 118.0, 78.0, Color8(112, 76, 58, 82), 22)
+	draw_circle(center, 14.0, Color8(235, 223, 178, 168))
+	draw_line(center + Vector2(-13, -6), center + Vector2(13, 7), Color8(132, 94, 72, 160), 2.2)
+	draw_line(center + Vector2(-8, 12), center + Vector2(16, -12), Color8(132, 94, 72, 150), 2.0)
 
 
 func _draw_world_routes() -> void:
@@ -3832,18 +3930,187 @@ func _draw_exit_markers() -> void:
 
 
 func _draw_hotspots() -> void:
+	var objective := _current_objective_target()
 	for hotspot in hotspots:
 		var hotspot_id := str(hotspot.get("hotspot_id", ""))
 		var label := str(hotspot.get("label", "热点"))
 		var center := _screen_point(_hotspot_position(hotspot_id))
-		var accent := Color(1.0, 0.95, 0.7, 0.08)
-		if not current_hotspot.is_empty() and str(current_hotspot.get("hotspot_id", "")) == hotspot_id:
-			accent = Color(1.0, 0.95, 0.7, 0.18)
-		draw_circle(center, 28.0, accent)
-		_draw_text(center + Vector2(-30, -42), label, 13, Color8(238, 235, 212, 188))
+		var is_current := not current_hotspot.is_empty() and str(current_hotspot.get("hotspot_id", "")) == hotspot_id
+		var is_objective := str(objective.get("kind", "")) == "hotspot" and _hotspot_position(hotspot_id).distance_to(objective.get("position", Vector2.ZERO)) < 2.0
+		var accent := Color(1.0, 0.95, 0.7, 0.16 if is_current or is_objective else 0.045)
+		draw_circle(center, 30.0 if is_current or is_objective else 18.0, accent)
+		if is_current or is_objective:
+			draw_arc(center, 36.0, 0.0, TAU, 36, Color(1.0, 0.90, 0.52, 0.24), 2.0, true)
+			_draw_text(center + Vector2(-28, -42), label, 13, Color8(238, 235, 212, 202))
+
+
+func _draw_objective_marker() -> void:
+	var target := _current_objective_target()
+	if target.is_empty():
+		return
+	var world_pos: Vector2 = target.get("position", player_pos)
+	var screen_pos := _screen_point(world_pos)
+	var label := str(target.get("label", "目标"))
+	var distance := int(round(player_pos.distance_to(world_pos)))
+	var pulse := 0.5 + sin(elapsed * 3.2) * 0.5
+	var margin := 58.0
+	var inside := screen_pos.x >= margin and screen_pos.y >= margin and screen_pos.x <= size.x - margin and screen_pos.y <= size.y - margin
+	if inside:
+		var accent := Color(0.98, 0.82, 0.34, 0.28 + pulse * 0.12)
+		draw_arc(screen_pos, 34.0 + pulse * 8.0, 0.0, TAU, 48, accent, 3.0, true)
+		draw_circle(screen_pos, 6.0, Color8(255, 229, 135, 230))
+		draw_circle(screen_pos, 2.6, Color8(64, 48, 28, 230))
+		_draw_text(screen_pos + Vector2(14, -14), "%s · %dm" % [label, distance], 13, Color8(255, 241, 191, 224))
+		return
+
+	var edge_pos := Vector2(clampf(screen_pos.x, margin, size.x - margin), clampf(screen_pos.y, margin, size.y - margin))
+	var direction := (screen_pos - Vector2(size.x * 0.5, size.y * 0.5)).normalized()
+	if direction.length() <= 0.01:
+		direction = Vector2.UP
+	var side := Vector2(-direction.y, direction.x)
+	var arrow := PackedVector2Array([
+		edge_pos + direction * 18.0,
+		edge_pos - direction * 12.0 + side * 10.0,
+		edge_pos - direction * 12.0 - side * 10.0,
+	])
+	draw_colored_polygon(arrow, Color8(255, 220, 112, 224))
+	_draw_text(edge_pos + Vector2(16, 4), "%s · %dm" % [label, distance], 13, Color8(255, 241, 191, 214))
+
+
+func _draw_objective_guidance() -> void:
+	var target := _current_objective_target()
+	if target.is_empty():
+		return
+	var world_pos: Vector2 = target.get("position", player_pos)
+	var distance := player_pos.distance_to(world_pos)
+	if distance < 120.0:
+		return
+	var direction := (world_pos - player_pos).normalized()
+	if direction.length() <= 0.01:
+		return
+	var player_screen := _screen_point(player_pos)
+	var pulse := 0.5 + sin(elapsed * 4.2) * 0.5
+	for index in range(3):
+		var step := 42.0 + float(index) * 34.0
+		var dot_pos := player_screen + direction * step
+		var alpha := 0.16 + float(index) * 0.08 + pulse * 0.08
+		draw_circle(dot_pos, 4.0 + float(index) * 0.8, Color(1.0, 0.82, 0.32, alpha))
+	var arrow_center := player_screen + direction * 30.0
+	var side := Vector2(-direction.y, direction.x)
+	var arrow := PackedVector2Array([
+		arrow_center + direction * 12.0,
+		arrow_center - direction * 8.0 + side * 6.0,
+		arrow_center - direction * 8.0 - side * 6.0,
+	])
+	draw_colored_polygon(arrow, Color(1.0, 0.82, 0.32, 0.50))
+
+
+func _current_objective_target() -> Dictionary:
+	if not world_task.is_empty() and _world_task_completed(current_exit_zone):
+		var ready_exit := _objective_exit_target()
+		if not ready_exit.is_empty():
+			return {
+				"position": _exit_center(ready_exit),
+				"label": "撤离回灌",
+				"kind": "exit",
+			}
+
+	var action := str(world_task.get("action", "调查"))
+	match action:
+		"修复":
+			var hotspot := _first_incomplete_hotspot()
+			if not hotspot.is_empty():
+				return {
+					"position": _hotspot_position(str(hotspot.get("hotspot_id", ""))),
+					"label": "采样修复",
+					"kind": "hotspot",
+				}
+		"通道":
+			var exit_zone := _objective_exit_target()
+			if not exit_zone.is_empty():
+				return {
+					"position": _exit_center(exit_zone),
+					"label": "前往通道",
+					"kind": "exit",
+				}
+		_:
+			var animal := _first_undiscovered_animal()
+			if not animal.is_empty():
+				return {
+					"position": animal.get("position", player_pos),
+					"label": "记录物种",
+					"kind": "animal",
+				}
+			var survey_hotspot := _first_incomplete_hotspot()
+			if not survey_hotspot.is_empty():
+				return {
+					"position": _hotspot_position(str(survey_hotspot.get("hotspot_id", ""))),
+					"label": "采样热点",
+					"kind": "hotspot",
+				}
+
+	if extraction_ready:
+		var fallback_exit := _objective_exit_target()
+		if not fallback_exit.is_empty():
+			return {
+				"position": _exit_center(fallback_exit),
+				"label": "撤离回灌",
+				"kind": "exit",
+			}
+	return {}
+
+
+func _first_incomplete_hotspot() -> Dictionary:
+	for hotspot_variant in hotspots:
+		var hotspot: Dictionary = hotspot_variant
+		var hotspot_id := str(hotspot.get("hotspot_id", ""))
+		if hotspot_id == "" or completed_task_ids.has("task_" + hotspot_id):
+			continue
+		return hotspot
+	return {}
+
+
+func _first_undiscovered_animal() -> Dictionary:
+	for animal_variant in wildlife:
+		var animal: Dictionary = animal_variant
+		var species_id := str(animal.get("species_id", ""))
+		if species_id == "" or discovered_species_ids.has(species_id):
+			continue
+		return animal
+	return {}
+
+
+func _objective_exit_target() -> Dictionary:
+	var expected_target := str(world_task.get("target_region_id", ""))
+	for zone_variant in exit_zones:
+		var zone: Dictionary = zone_variant
+		if expected_target != "" and str(zone.get("target_region_id", "")) != expected_target:
+			continue
+		return zone
+	if not exit_zones.is_empty():
+		return exit_zones[0]
+	return {}
+
+
+func _exit_center(zone: Dictionary) -> Vector2:
+	var rect: Rect2 = zone.get("rect", Rect2())
+	return rect.position + rect.size * 0.5
+
+
+func _current_objective_summary() -> String:
+	var target := _current_objective_target()
+	if target.is_empty():
+		return "目标：自由调查 · 主情报：%s" % _top_intel_channel()
+	var world_pos: Vector2 = target.get("position", player_pos)
+	return "目标：%s · 距离 %dm · 主情报：%s" % [
+		str(target.get("label", "现场目标")),
+		int(round(player_pos.distance_to(world_pos))),
+		_top_intel_channel(),
+	]
 
 
 func _draw_wildlife() -> void:
+	var objective := _current_objective_target()
 	for animal in wildlife:
 		var pos := _screen_point(animal.get("position", Vector2.ZERO))
 		var color: Color = animal.get("color", Color8(174, 191, 126))
@@ -3856,7 +4123,32 @@ func _draw_wildlife() -> void:
 			var scale := 1.0 if group_index == 0 else 0.74
 			var facing := -1.0 if sin(orbit) < 0.0 else 1.0
 			_draw_animal_silhouette(animal, member_pos, color, scale, facing)
-		_draw_text(pos + Vector2(-26, 24), str(animal.get("label", "")), 11, Color8(242, 241, 230, 210))
+		var is_current: bool = not current_encounter.is_empty() and str(current_encounter.get("species_id", "")) == str(animal.get("species_id", ""))
+		var is_objective: bool = str(objective.get("kind", "")) == "animal" and (animal.get("position", Vector2.ZERO) as Vector2).distance_to(objective.get("position", Vector2.ZERO)) < 2.0
+		if is_current or is_objective:
+			_draw_text(pos + Vector2(-26, 24), str(animal.get("label", "")), 11, Color8(242, 241, 230, 220))
+
+
+func _draw_interaction_prompts() -> void:
+	if not current_encounter.is_empty():
+		var pos := _screen_point(current_encounter.get("position", Vector2.ZERO))
+		var species_id := str(current_encounter.get("species_id", ""))
+		if not discovered_species_ids.has(species_id):
+			_draw_interaction_ring(pos + Vector2(0, 18), Color8(230, 188, 102), "Space 记录")
+	if not current_hotspot.is_empty():
+		var hotspot_id := str(current_hotspot.get("hotspot_id", ""))
+		if not completed_task_ids.has("task_" + hotspot_id):
+			_draw_interaction_ring(_screen_point(_hotspot_position(hotspot_id)), Color8(118, 214, 164), "Space 采样")
+	if not current_exit_zone.is_empty():
+		var rect: Rect2 = current_exit_zone.get("rect", Rect2())
+		_draw_interaction_ring(_screen_point(rect.position + rect.size * 0.5), Color8(232, 210, 142), "E 撤离")
+
+
+func _draw_interaction_ring(pos: Vector2, accent: Color, text: String) -> void:
+	var pulse := 0.5 + sin(elapsed * 5.0) * 0.5
+	draw_arc(pos, 26.0 + pulse * 4.0, 0.0, TAU, 36, Color(accent.r, accent.g, accent.b, 0.34), 2.0, true)
+	draw_circle(pos, 4.0, Color(accent.r, accent.g, accent.b, 0.82))
+	_draw_text(pos + Vector2(14, -10), text, 12, Color8(246, 240, 214, 220))
 
 
 func _draw_animal_silhouette(animal: Dictionary, pos: Vector2, color: Color, scale: float, facing: float) -> void:
@@ -3933,20 +4225,33 @@ func _draw_ellipse(center: Vector2, radius: Vector2, color: Color, segments: int
 
 func _draw_player() -> void:
 	var pos := _screen_point(player_pos)
-	draw_circle(pos + Vector2(0, 18), 14.0, Color(0, 0, 0, 0.16))
-	draw_circle(pos, 16.0, Color8(235, 226, 205))
-	draw_circle(pos + Vector2(0, -8), 14.0, Color8(207, 58, 58))
-	draw_rect(Rect2(pos + Vector2(-14, -4), Vector2(28, 8)), Color8(220, 242, 246))
-	draw_rect(Rect2(pos + Vector2(-10, 14), Vector2(20, 18)), Color8(67, 103, 175))
-	draw_rect(Rect2(pos + Vector2(-15, -12), Vector2(30, 5)), Color8(245, 245, 230))
+	draw_circle(pos + Vector2(0, 18), 15.0, Color(0, 0, 0, 0.16))
+	var coat := Color8(56, 92, 124)
+	var vest := Color8(218, 190, 116)
+	var skin := Color8(226, 196, 152)
+	_draw_ellipse(pos + Vector2(0, 8), Vector2(12, 19), coat, 18)
+	_draw_ellipse(pos + Vector2(0, -13), Vector2(10, 10), skin, 16)
+	draw_arc(pos + Vector2(0, -18), 14.0, PI, TAU, 20, Color8(92, 67, 42), 5.0, true)
+	draw_line(pos + Vector2(-12, 1), pos + Vector2(-24, 12), coat.darkened(0.12), 3.0, true)
+	draw_line(pos + Vector2(11, 1), pos + Vector2(22, 10), coat.darkened(0.12), 3.0, true)
+	draw_line(pos + Vector2(-5, 24), pos + Vector2(-11, 38), Color8(48, 60, 68), 3.2, true)
+	draw_line(pos + Vector2(5, 24), pos + Vector2(12, 38), Color8(48, 60, 68), 3.2, true)
+	_draw_ellipse(pos + Vector2(0, 6), Vector2(5, 12), vest, 12)
+	draw_line(pos + Vector2(16, -2), pos + Vector2(30, -18), Color8(72, 82, 74), 2.0, true)
+	draw_circle(pos + Vector2(32, -20), 3.0, Color8(92, 112, 96))
 
 
 func _draw_overlay() -> void:
 	_draw_top_banner()
+	_draw_ecology_radar()
 	_draw_event_banner()
+	_draw_reward_feedback()
+	_draw_survey_focus_strip()
 	_draw_encounter_card()
 	if show_codex:
 		_draw_codex_panel()
+	else:
+		_draw_compact_task_tracker()
 	_draw_controls()
 
 
@@ -3970,7 +4275,43 @@ func _draw_top_banner() -> void:
 	_draw_text(Vector2(size.x - 236, 68), "撤离 %s · 阈值 %d" % [("已准备" if extraction_ready else "未准备"), _required_extraction_intel()], 13, Color8(184, 203, 208))
 	_draw_panel(Rect2(398, 20, 308, 64), Color(0.05, 0.08, 0.11, 0.68), Color(0.61, 0.77, 0.72, 0.14), 24, 2)
 	_draw_text(Vector2(418, 44), "%s · %s" % [_region_state_label(), _chain_focus_text()], 14, Color8(226, 235, 229))
-	_draw_text(Vector2(418, 67), "热点优先：%s · 主情报：%s" % [("" if hotspots.is_empty() else str(hotspots[0].get("label", "主热点"))), _top_intel_channel()], 13, Color8(184, 203, 208))
+	_draw_text(Vector2(418, 67), _current_objective_summary(), 13, Color8(184, 203, 208))
+
+
+func _draw_ecology_radar() -> void:
+	var rect := Rect2(24, 112, 184, 122)
+	_draw_panel(rect, Color(0.04, 0.07, 0.08, 0.58), Color(0.72, 0.86, 0.72, 0.12), 22, 1)
+	_draw_text(rect.position + Vector2(16, 24), "生态雷达", 14, Color8(236, 233, 210, 210))
+	var map_rect := Rect2(rect.position + Vector2(14, 34), Vector2(rect.size.x - 28, rect.size.y - 48))
+	draw_rect(map_rect, Color(0.75, 0.82, 0.60, 0.08), true)
+	draw_rect(map_rect, Color(1, 1, 1, 0.08), false, 1.0)
+
+	for hotspot_variant in hotspots.slice(0, min(hotspots.size(), 5)):
+		var hotspot: Dictionary = hotspot_variant
+		var point := _radar_point(_hotspot_position(str(hotspot.get("hotspot_id", ""))), map_rect)
+		var done := completed_task_ids.has("task_" + str(hotspot.get("hotspot_id", "")))
+		draw_circle(point, 3.2, Color8(118, 214, 164, 110 if done else 210))
+	for zone_variant in exit_zones:
+		var zone: Dictionary = zone_variant
+		var point := _radar_point(_exit_center(zone), map_rect)
+		draw_circle(point, 3.6, Color8(232, 210, 142, 210))
+	var target := _current_objective_target()
+	if not target.is_empty():
+		var target_point := _radar_point(target.get("position", player_pos), map_rect)
+		draw_arc(target_point, 7.5, 0.0, TAU, 28, Color8(255, 220, 112, 230), 1.4, true)
+		draw_circle(target_point, 3.0, Color8(255, 220, 112, 230))
+	var player_point := _radar_point(player_pos, map_rect)
+	draw_circle(player_point, 4.4, Color8(238, 238, 230, 230))
+	draw_circle(player_point, 2.0, Color8(58, 92, 168, 230))
+	_draw_text(rect.position + Vector2(16, 112), "白=你  黄=目标/出口  绿=热点", 10, Color8(180, 196, 190, 180))
+
+
+func _radar_point(world_point: Vector2, radar_rect: Rect2) -> Vector2:
+	var normalized := Vector2(
+		clampf(world_point.x / WORLD_SIZE.x, 0.0, 1.0),
+		clampf(world_point.y / WORLD_SIZE.y, 0.0, 1.0)
+	)
+	return radar_rect.position + Vector2(normalized.x * radar_rect.size.x, normalized.y * radar_rect.size.y)
 
 
 func _draw_event_banner() -> void:
@@ -3981,6 +4322,75 @@ func _draw_event_banner() -> void:
 	_draw_panel(rect, Color(0.05, 0.08, 0.11, 0.76), Color(accent.r, accent.g, accent.b, 0.22), 24, 2)
 	_draw_text(rect.position + Vector2(20, 30), str(current_event.get("title", "")), 18, Color8(246, 241, 228))
 	_draw_text(rect.position + Vector2(20, 56), str(current_event.get("body", "")), 13, Color8(196, 210, 216))
+
+
+func _draw_reward_feedback() -> void:
+	if reward_feedback.is_empty() or reward_feedback_timer <= 0.0:
+		return
+	var alpha := clampf(reward_feedback_timer / 0.35, 0.0, 1.0) if reward_feedback_timer < 0.35 else 1.0
+	var accent: Color = reward_feedback.get("accent", Color8(210, 182, 96))
+	var rect := Rect2(size.x * 0.5 - 210, 108, 420, 92)
+	_draw_panel(rect, Color(0.04, 0.08, 0.08, 0.74 * alpha), Color(accent.r, accent.g, accent.b, 0.24 * alpha), 26, 2)
+	draw_circle(rect.position + Vector2(34, 44), 18.0, Color(accent.r, accent.g, accent.b, 0.18 * alpha))
+	draw_circle(rect.position + Vector2(34, 44), 8.0, Color(accent.r, accent.g, accent.b, 0.88 * alpha))
+	_draw_text(rect.position + Vector2(62, 32), str(reward_feedback.get("title", "")), 21, Color(0.98, 0.95, 0.84, alpha))
+	_draw_text(rect.position + Vector2(62, 58), str(reward_feedback.get("gain", "")), 15, Color(accent.r, accent.g, accent.b, alpha))
+	_draw_text(rect.position + Vector2(62, 78), str(reward_feedback.get("backend", "")), 12, Color(0.72, 0.86, 0.78, alpha))
+
+
+func _draw_survey_focus_strip() -> void:
+	var focus := _survey_focus_state()
+	if focus.is_empty():
+		return
+	var rect := Rect2(24, size.y - 214, 356, 36)
+	var accent: Color = focus.get("accent", Color8(210, 182, 96))
+	_draw_panel(rect, Color(0.05, 0.08, 0.10, 0.74), Color(accent.r, accent.g, accent.b, 0.22), 18, 1)
+	draw_circle(rect.position + Vector2(20, 18), 5.0, accent)
+	_draw_text(rect.position + Vector2(34, 22), str(focus.get("text", "")), 13, Color8(226, 235, 228))
+
+
+func _survey_focus_state() -> Dictionary:
+	if not current_encounter.is_empty():
+		var species_id := str(current_encounter.get("species_id", ""))
+		if discovered_species_ids.has(species_id):
+			return {
+				"text": "%s 已记录，继续找未记录目标或热点。" % str(current_encounter.get("label", "动物")),
+				"accent": Color8(154, 172, 180),
+			}
+		if survey_target_kind == "species":
+			return {
+				"text": "正在记录 %s %.1f/%.1f 秒" % [str(current_encounter.get("label", "动物")), survey_progress, survey_required_time],
+				"accent": Color8(230, 188, 102),
+			}
+		return {
+			"text": "可记录：%s，按住 Space。" % str(current_encounter.get("label", "动物")),
+			"accent": Color8(230, 188, 102),
+		}
+	if not current_hotspot.is_empty():
+		var hotspot_id := str(current_hotspot.get("hotspot_id", ""))
+		if completed_task_ids.has("task_" + hotspot_id):
+			return {
+				"text": "%s 已采样，继续找下一处。" % str(current_hotspot.get("label", "热点")),
+				"accent": Color8(154, 172, 180),
+			}
+		if survey_target_kind == "hotspot":
+			return {
+				"text": "正在采样 %s %.1f/%.1f 秒" % [str(current_hotspot.get("label", "热点")), survey_progress, survey_required_time],
+				"accent": Color8(118, 214, 164),
+			}
+		return {
+			"text": "可采样：%s，按住 Space。" % str(current_hotspot.get("label", "热点")),
+			"accent": Color8(118, 214, 164),
+		}
+	var target := _current_objective_target()
+	if target.is_empty():
+		return {}
+	var world_pos: Vector2 = target.get("position", player_pos)
+	var distance := int(round(player_pos.distance_to(world_pos)))
+	return {
+		"text": "前往目标：%s，距离 %dm。" % [str(target.get("label", "现场目标")), distance],
+		"accent": Color8(255, 220, 112),
+	}
 
 
 func _draw_encounter_card() -> void:
@@ -4082,6 +4492,44 @@ func _draw_codex_panel() -> void:
 	_draw_text(Vector2(rect.position.x + 24, bottom_y + 22), "Tab 隐藏面板 · M 返回世界地图", 12, Color8(154, 172, 180))
 
 
+func _draw_compact_task_tracker() -> void:
+	var rect := Rect2(size.x - 320, size.y - 184, 286, 132)
+	_draw_panel(rect, Color(0.05, 0.08, 0.10, 0.70), Color(0.92, 0.78, 0.42, 0.16), 24, 1)
+	var action := str(world_task.get("action", "调查"))
+	var task_done := _world_task_completed(current_exit_zone)
+	_draw_text(rect.position + Vector2(18, 26), "撤离回灌" if task_done else "任务 · %s" % action, 17, Color8(244, 240, 222))
+	_draw_text(rect.position + Vector2(18, 48), "前往出口，把报告带回世界图" if task_done else _world_task_status_line(), 12, Color8(177, 205, 188))
+	var objectives := _objective_rows()
+	var y := rect.position.y + 72.0
+	var shown := 0
+	for objective_variant in objectives:
+		var objective: Dictionary = objective_variant
+		var label := str(objective.get("label", ""))
+		if label == "":
+			continue
+		var marker := "✓" if bool(objective.get("done", false)) else "·"
+		var text_color := Color8(174, 222, 190) if bool(objective.get("done", false)) else Color8(205, 215, 212)
+		_draw_text(Vector2(rect.position.x + 18, y), "%s %s" % [marker, _short_explorer_text(label, 24)], 12, text_color)
+		_draw_mini_progress(Rect2(rect.position + Vector2(18, y + 7), Vector2(238, 4)), float(objective.get("progress", 0.0)), bool(objective.get("done", false)))
+		y += 22.0
+		shown += 1
+		if shown >= 3:
+			break
+
+
+func _draw_mini_progress(rect: Rect2, progress: float, done: bool) -> void:
+	draw_rect(rect, Color(1, 1, 1, 0.08), true)
+	var fill_rect := rect
+	fill_rect.size.x *= clampf(progress, 0.0, 1.0)
+	draw_rect(fill_rect, Color(0.50, 0.86, 0.58, 0.86) if done else Color(0.86, 0.68, 0.34, 0.72), true)
+
+
+func _short_explorer_text(text: String, max_length: int) -> String:
+	if text.length() <= max_length:
+		return text
+	return text.substr(0, max_length) + "..."
+
+
 func _world_task_status_line() -> String:
 	if world_task.is_empty():
 		return "按区域状态自由调查"
@@ -4108,10 +4556,42 @@ func _world_task_backend_effect(action: String) -> String:
 			return "撤离回灌后：调查覆盖率上升，资源判断更准确。"
 
 
+func _show_reward_feedback(title: String, gain: String, backend: String, accent: Color) -> void:
+	reward_feedback = {
+		"title": title,
+		"gain": gain,
+		"backend": backend,
+		"accent": accent,
+	}
+	reward_feedback_timer = 3.0
+
+
+func _world_task_reward_hint() -> String:
+	var action := str(world_task.get("action", "调查"))
+	match action:
+		"修复":
+			return "若撤离时世界任务完成，后端会额外压低风险并提高韧性。"
+		"通道":
+			return "若从目标出口撤离，后端会增强区域通道连接。"
+		_:
+			return "撤离回灌后，后端会提高调查覆盖和资源判断。"
+
+
+func _world_task_reward_hint_short() -> String:
+	var action := str(world_task.get("action", "调查"))
+	match action:
+		"修复":
+			return "回灌后：风险下降。"
+		"通道":
+			return "回灌后：通道增强。"
+		_:
+			return "回灌后：覆盖上升。"
+
+
 func _draw_controls() -> void:
-	var rect := Rect2(size.x * 0.5 - 212, size.y - 48, 424, 30)
+	var rect := Rect2(size.x * 0.5 - 164, size.y - 48, 328, 30)
 	_draw_panel(rect, Color(0.05, 0.08, 0.11, 0.66), Color(0.76, 0.85, 0.9, 0.12), 16, 1)
-	_draw_text(rect.position + Vector2(18, 20), "WASD / 方向键移动   Shift 冲刺   Space 调查   Tab 图鉴开关   E 区域跳转   M 世界图", 13, Color8(213, 222, 226))
+	_draw_text(rect.position + Vector2(18, 20), "WASD 移动 · Space 调查 · E 撤离 · Tab 任务 · M 世界图", 13, Color8(213, 222, 226))
 
 
 func _draw_progress_bar(rect: Rect2, value: float, max_value: float, fill_color: Color) -> void:

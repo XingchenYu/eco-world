@@ -204,6 +204,8 @@ def _apply_expedition_reports(world, reports: dict[str, Any]) -> dict[str, Any]:
             ]
         )
         applied[str(region_id)] = {
+            "report_id": str(report.get("report_id", "")),
+            "created_at": str(report.get("created_at", "")),
             "region_id": str(region_id),
             "region_name": region.name,
             "intel": intel,

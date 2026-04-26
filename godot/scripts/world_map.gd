@@ -55,6 +55,10 @@ var hud_metric_label: Label
 var hud_species_label: Label
 var hud_objective_label: Label
 var hud_action_label: Label
+var action_buttons: Dictionary = {}
+var focus_recommended_button: Button
+var apply_turn_button: Button
+var enter_region_button: Button
 var selected_game_action := "调查"
 var pending_strategy_message := ""
 var selected_tab := "overview"
@@ -1229,7 +1233,7 @@ func _build_game_hud() -> void:
 	title_row.add_child(hud_region_label)
 
 	var hint_label := Label.new()
-	hint_label.text = "点击地图小点切换区域"
+	hint_label.text = "点击标记切区"
 	_style_dim(hint_label, 11)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	title_row.add_child(hint_label)
@@ -1266,26 +1270,33 @@ func _build_game_hud() -> void:
 	var action_row := HBoxContainer.new()
 	action_row.add_theme_constant_override("separation", 7)
 	box.add_child(action_row)
+	focus_recommended_button = Button.new()
+	focus_recommended_button.text = "建议区"
+	focus_recommended_button.custom_minimum_size = Vector2(70, 28)
+	focus_recommended_button.pressed.connect(_on_focus_recommended_region_pressed)
+	action_row.add_child(focus_recommended_button)
 	for action_name in ["调查", "修复", "通道"]:
 		var button := Button.new()
 		button.text = {
-			"调查": "调查情报",
-			"修复": "修复风险",
-			"通道": "建立通道",
+			"调查": "调查",
+			"修复": "修复",
+			"通道": "通道",
 		}.get(action_name, action_name)
+		button.toggle_mode = true
 		button.custom_minimum_size = Vector2(78, 28)
 		button.pressed.connect(_on_game_action_pressed.bind(action_name))
 		action_row.add_child(button)
-	var apply_button := Button.new()
-	apply_button.text = "应用回合"
-	apply_button.custom_minimum_size = Vector2(84, 28)
-	apply_button.pressed.connect(_on_apply_turn_pressed)
-	action_row.add_child(apply_button)
-	var enter_button := Button.new()
-	enter_button.text = "进入区域"
-	enter_button.custom_minimum_size = Vector2(84, 28)
-	enter_button.pressed.connect(_on_enter_region_pressed)
-	action_row.add_child(enter_button)
+		action_buttons[action_name] = button
+	apply_turn_button = Button.new()
+	apply_turn_button.text = "应用回合"
+	apply_turn_button.custom_minimum_size = Vector2(92, 28)
+	apply_turn_button.pressed.connect(_on_apply_turn_pressed)
+	action_row.add_child(apply_turn_button)
+	enter_region_button = Button.new()
+	enter_region_button.text = "进入区域"
+	enter_region_button.custom_minimum_size = Vector2(112, 28)
+	enter_region_button.pressed.connect(_on_enter_region_pressed)
+	action_row.add_child(enter_region_button)
 
 	hud_action_label = Label.new()
 	hud_action_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -3211,7 +3222,8 @@ func _build_realistic_map_canvas(regions: Array) -> void:
 	canvas.size = map_size
 	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_layer.add_child(canvas)
-	canvas.configure(regions, active_region_id, target_region_id, REGION_LAYOUT, REGION_COLORS)
+	var priority := _recommended_region_for_world()
+	canvas.configure(regions, active_region_id, target_region_id, REGION_LAYOUT, REGION_COLORS, str(priority.get("region_id", "")))
 
 
 func _build_map_hit_areas(regions: Array) -> void:
@@ -3962,30 +3974,40 @@ func _refresh_game_hud() -> void:
 	var hazards: Dictionary = active_region.get("hazard_state", {})
 	var frontier_links: Array = active_region.get("frontier_links", [])
 	var accent := _active_region_accent()
-	hud_region_label.text = str(active_region.get("name", "未选择区域"))
+	var report_pending := _latest_expedition_report_pending()
+	_sync_game_hud_style(report_pending, accent)
+	hud_region_label.text = "撤离报告待回灌" if report_pending else str(active_region.get("name", "未选择区域"))
 	hud_region_label.modulate = accent.lightened(0.30)
-	hud_summary_label.text = _region_plain_summary(active_region)
-	hud_world_label.text = _world_goal_line()
-	hud_loop_label.text = "玩法闭环：选区域 -> 选行动 -> 应用回合影响后端 -> 进入区域完成世界任务 -> 撤离后回灌生态系统"
+	if report_pending:
+		hud_summary_label.text = _pending_expedition_report_summary()
+		hud_world_label.text = "下一步：点击“回灌报告”，把探索结果写回后端生态系统。"
+		hud_loop_label.text = _pending_expedition_report_effect_line()
+	else:
+		hud_summary_label.text = _region_plain_summary(active_region)
+		hud_world_label.text = _world_goal_line()
+		hud_loop_label.text = _world_next_step_line(active_region)
 	hud_metric_label.text = "多样性 %s   韧性 %s   风险 %s   关键资源 %s" % [
 		_percent_text(float(health.get("biodiversity", 0.0))),
 		_percent_text(float(health.get("resilience", 0.0))),
 		_percent_text(_max_dictionary_value(hazards)),
 		_top_dictionary_label(resources),
 	]
-	hud_species_label.text = "代表物种：%s" % _top_species_line(active_region)
-	hud_objective_label.text = "推荐行动：%s。当前目标：%s" % [
+	hud_species_label.text = "物种：%s" % _top_species_line(active_region)
+	hud_objective_label.text = "本轮玩法：%s。建议：%s。进入后任务：%s" % [
+		selected_game_action,
 		_recommended_action_line(active_region, frontier_links),
 		_game_objective_line(active_region, frontier_links),
 	]
+	_sync_action_button_state()
+	_sync_primary_button_state(active_region)
 	var backend_intent: Dictionary = active_region.get("player_intent", {})
 	if backend_intent.is_empty():
 		backend_intent = active_region.get("incoming_player_intent", {})
 	if backend_intent.is_empty():
 		if pending_strategy_message != "":
 			hud_action_label.text = pending_strategy_message
-		elif _latest_expedition_report_pending():
-			hud_action_label.text = _pending_expedition_report_line()
+		elif report_pending:
+			hud_action_label.text = "回灌完成后，世界状态会更新，再选择下一片区域。"
 		else:
 			hud_action_label.text = _game_action_hint(selected_game_action, active_region, frontier_links)
 	else:
@@ -3993,10 +4015,112 @@ func _refresh_game_hud() -> void:
 		hud_action_label.text = "后端回执：%s" % str(backend_intent.get("summary", "策略已接入世界状态。"))
 
 
+func _sync_game_hud_style(report_pending: bool, accent: Color) -> void:
+	if game_hud == null:
+		return
+	var hud_style := StyleBoxFlat.new()
+	hud_style.bg_color = Color(0.08, 0.07, 0.035, 0.74) if report_pending else Color(0.04, 0.07, 0.06, 0.62)
+	hud_style.border_color = Color(1.0, 0.78, 0.28, 0.54) if report_pending else Color(accent.r, accent.g, accent.b, 0.30)
+	hud_style.set_border_width_all(2 if report_pending else 1)
+	hud_style.corner_radius_top_left = 14
+	hud_style.corner_radius_top_right = 14
+	hud_style.corner_radius_bottom_left = 14
+	hud_style.corner_radius_bottom_right = 14
+	hud_style.content_margin_left = 16
+	hud_style.content_margin_top = 12
+	hud_style.content_margin_right = 16
+	hud_style.content_margin_bottom = 12
+	game_hud.add_theme_stylebox_override("panel", hud_style)
+
+
 func _region_plain_summary(region: Dictionary) -> String:
 	var role := str(region.get("region_role", "生态区"))
+	if " · " in role:
+		role = role.split(" · ")[0]
 	var biomes := _localized_biome_line(region.get("dominant_biomes", []))
-	return "%s。这里的主地貌是%s，玩法重点是看资源、风险、物种之间是否形成稳定循环。" % [role, biomes]
+	return "%s · %s · 关注资源、风险、代表物种。" % [role, biomes]
+
+
+func _world_next_step_line(active_region: Dictionary) -> String:
+	var recommendation := _recommended_region_for_world()
+	if recommendation.is_empty():
+		return "下一步：选行动，进入区域完成任务，撤离后回灌报告。"
+	var region_id := str(recommendation.get("region_id", ""))
+	var name := str(recommendation.get("name", region_id))
+	var reason := _localized_gameplay_reason(str(recommendation.get("reason", "")))
+	var prefix := "建议先去：%s" % name
+	if region_id == active_region_id:
+		prefix = "当前选中就是优先区：%s" % name
+	return "%s。原因：%s。下一步：进入区域执行%s。" % [prefix, reason, selected_game_action]
+
+
+func _recommended_region_for_world() -> Dictionary:
+	var best := {}
+	var best_score := -9999.0
+	for region_id_variant in detail_cache.keys():
+		var region_id := str(region_id_variant)
+		var region: Dictionary = detail_cache.get(region_id, {})
+		if region.is_empty():
+			continue
+		var score := _region_world_priority_score(region)
+		if score > best_score:
+			best_score = score
+			best = {
+				"region_id": region_id,
+				"name": str(region.get("name", region_id)),
+				"score": score,
+				"reason": _region_priority_reason(region),
+			}
+	return best
+
+
+func _region_world_priority_score(region: Dictionary) -> float:
+	var gameplay_hint: Dictionary = region.get("gameplay_hint", {})
+	var priority := str(gameplay_hint.get("priority", ""))
+	var action := str(gameplay_hint.get("action", ""))
+	var health: Dictionary = region.get("health_state", {})
+	var risk := _max_dictionary_value(region.get("hazard_state", {}))
+	var biodiversity := float(health.get("biodiversity", 0.0))
+	var resilience := float(health.get("resilience", 0.0))
+	var score := risk * 100.0
+	score += maxf(0.0, 0.62 - biodiversity) * 70.0
+	score += maxf(0.0, 0.62 - resilience) * 70.0
+	score += _weakest_frontier_gap(region) * 28.0
+	if priority == "high":
+		score += 28.0
+	elif priority == "medium":
+		score += 14.0
+	if action == "修复":
+		score += 12.0
+	elif action == "通道":
+		score += 8.0
+	return score
+
+
+func _region_priority_reason(region: Dictionary) -> String:
+	var gameplay_hint: Dictionary = region.get("gameplay_hint", {})
+	var backend_reason := _localized_gameplay_reason(str(gameplay_hint.get("reason", "")))
+	if backend_reason != "":
+		return backend_reason
+	var risk := _max_dictionary_value(region.get("hazard_state", {}))
+	var health: Dictionary = region.get("health_state", {})
+	if risk >= 0.55:
+		return "最高风险已到 %s，需要先修复" % _percent_text(risk)
+	if float(health.get("biodiversity", 0.0)) < 0.60:
+		return "多样性低于目标，需要补调查"
+	if float(health.get("resilience", 0.0)) < 0.60:
+		return "生态韧性低于目标，需要补调查"
+	if _weakest_frontier_gap(region) > 0.0:
+		return "相邻通道偏弱，需要建立连接"
+	return "稳定区，适合继续扩充记录"
+
+
+func _weakest_frontier_gap(region: Dictionary) -> float:
+	var weakest_gap := 0.0
+	for link_variant in region.get("frontier_links", []):
+		var link: Dictionary = link_variant
+		weakest_gap = maxf(weakest_gap, maxf(0.0, 0.80 - float(link.get("strength", 0.0))))
+	return weakest_gap
 
 
 func _localized_biome_line(biomes: Array) -> String:
@@ -4047,8 +4171,20 @@ func _max_dictionary_value(values: Dictionary) -> float:
 func _world_goal_line() -> String:
 	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
 	var world_goal: Dictionary = gameplay_state.get("world_goal", {})
+	if not world_goal.is_empty() and world_goal.has("safe_count"):
+		var weakest_region: Dictionary = world_goal.get("weakest_region", {})
+		var riskiest_region: Dictionary = world_goal.get("riskiest_region", {})
+		return "世界状态：安全 %d/%d · 薄弱 %s · 风险 %s %s" % [
+			int(world_goal.get("safe_count", 0)),
+			int(world_goal.get("total_regions", 0)),
+			str(weakest_region.get("name", "未知区域")),
+			str(riskiest_region.get("name", "未知区域")),
+			_percent_text(float(riskiest_region.get("risk", 0.0))),
+		]
 	var backend_summary := str(world_goal.get("summary", ""))
 	if backend_summary != "":
+		if backend_summary.length() > 58:
+			backend_summary = backend_summary.substr(0, 58) + "..."
 		return "世界目标：" + backend_summary
 	var regions: Dictionary = world_data.get("region_details", {})
 	if regions.is_empty():
@@ -4076,13 +4212,29 @@ func _world_goal_line() -> String:
 		if health_score < weakest_score:
 			weakest_score = health_score
 			weakest_name = str(region.get("name", region.get("id", "未知区域")))
-	return "世界目标：让全部生态区保持多样性/韧性 60%% 以上且风险低于 55%%。当前安全 %d/%d，优先关注 %s，最高风险 %s %s。" % [
+	return "世界状态：安全 %d/%d · 薄弱 %s · 风险 %s %s" % [
 		safe_count,
 		regions.size(),
 		weakest_name,
 		worst_name,
 		_percent_text(max(worst_risk, 0.0)),
 	]
+
+
+func _localized_gameplay_reason(text: String) -> String:
+	var localized := text
+	for hazard_key in [
+		"fire_risk",
+		"flood_risk",
+		"disease_pressure",
+		"predation_pressure",
+		"drought_risk",
+		"pollution_pressure",
+		"storm_risk",
+		"bleaching_risk",
+	]:
+		localized = localized.replace(hazard_key, _localized_hazard_name(hazard_key))
+	return localized
 
 
 func _top_dictionary_label(values: Dictionary) -> String:
@@ -4138,7 +4290,7 @@ func _top_species_line(region: Dictionary) -> String:
 	var names := PackedStringArray()
 	for species_variant in species.slice(0, 4):
 		var item: Dictionary = species_variant
-		names.append("%s×%s" % [str(item.get("label", "未知")), str(roundi(float(item.get("count", 0))))])
+		names.append(str(item.get("label", "未知")))
 	if names.is_empty():
 		return "暂无记录"
 	return "、".join(names)
@@ -4153,10 +4305,15 @@ func _latest_expedition_report_pending() -> bool:
 		return false
 	var applied_reports: Dictionary = world_data.get("expedition_reports", {})
 	var applied_last: Dictionary = applied_reports.get("last", {})
+	var report_id := str(latest_report.get("report_id", ""))
+	if report_id != "" and str(applied_last.get("report_id", "")) == report_id:
+		return false
 	if str(applied_last.get("summary", "")) == str(latest_report.get("summary", "")):
 		return false
 	var region: Dictionary = detail_cache.get(region_id, {})
 	var applied_region_report: Dictionary = region.get("expedition_report", {})
+	if report_id != "" and str(applied_region_report.get("report_id", "")) == report_id:
+		return false
 	if str(applied_region_report.get("summary", "")) == str(latest_report.get("summary", "")):
 		return false
 	return true
@@ -4167,31 +4324,50 @@ func _pending_expedition_report_line() -> String:
 	return "撤离报告待回灌：%s。点击“应用回合”，后端会把本轮情报写回生态系统。" % str(latest_report.get("summary", "刚完成一轮区域探索"))
 
 
+func _pending_expedition_report_summary() -> String:
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+	var region_name := str(latest_report.get("region_name", "刚探索的区域"))
+	var summary := str(latest_report.get("summary", "已完成一轮区域探索"))
+	var task_state := "世界任务完成" if bool(latest_report.get("world_task_completed", false)) else "世界任务未完成"
+	return "撤离报告待回灌：%s。%s · %s。" % [region_name, summary, task_state]
+
+
+func _pending_expedition_report_effect_line() -> String:
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+	var action := str(latest_report.get("world_task_action", "调查"))
+	match action:
+		"修复":
+			return "预计影响：压低该区域最高风险，并提高生态韧性。"
+		"通道":
+			return "预计影响：强化本区与目标区通道，让物种流动更稳定。"
+		_:
+			return "预计影响：提高调查覆盖，补强后端对资源和物种链的判断。"
+
+
 func _recommended_action_line(region: Dictionary, frontier_links: Array) -> String:
 	var gameplay_hint: Dictionary = region.get("gameplay_hint", {})
 	var backend_action := str(gameplay_hint.get("action", ""))
 	var backend_reason := str(gameplay_hint.get("reason", ""))
 	if backend_action != "" and backend_reason != "":
-		return "%s（%s）" % [backend_action, backend_reason]
+		return "%s · %s" % [backend_action, _short_ui_text(backend_reason, 28)]
 	var hazard := _top_hazard(region.get("hazard_state", {}))
 	var health: Dictionary = region.get("health_state", {})
 	var biodiversity := float(health.get("biodiversity", 0.0))
 	var resilience := float(health.get("resilience", 0.0))
 	if float(hazard.get("value", 0.0)) >= 0.55:
-		return "修复（压低%s %s）" % [
+		return "修复 · 压低%s %s" % [
 			_localized_hazard_name(str(hazard.get("key", "风险"))),
 			_percent_text(float(hazard.get("value", 0.0))),
 		]
 	if biodiversity < 0.60 or resilience < 0.60:
-		return "调查（补齐情报，找出薄弱生态链）"
+		return "调查 · 补齐薄弱生态链"
 	if not frontier_links.is_empty():
 		var link: Dictionary = frontier_links[0]
 		if float(link.get("strength", 0.0)) < 0.80:
-			return "通道（加强到%s的%s）" % [
+			return "通道 · 连到%s" % [
 				str(link.get("target_name", "相邻区域")),
-				str(link.get("connection_label", "生态通道")),
 			]
-	return "调查（稳定区继续扩充物种与热点记录）"
+	return "调查 · 扩充物种与热点记录"
 
 
 func _recommended_game_action(region: Dictionary) -> String:
@@ -4243,37 +4419,121 @@ func _game_objective_line(region: Dictionary, frontier_links: Array) -> String:
 	var hazards: Dictionary = region.get("hazard_state", {})
 	var risk := _max_dictionary_value(hazards)
 	if risk >= 0.55:
-		return "先压低最高风险，再扩大物种循环。"
+		return "压低最高风险，再扩大物种循环。"
 	if frontier_links.size() > 0:
 		var link: Dictionary = frontier_links[0]
-		return "保持%s通畅，把本区生态链延伸到%s。" % [
-			str(link.get("connection_label", "生态通道")),
+		return "保持通往%s的连接通畅。" % [
 			str(link.get("target_name", "相邻区域")),
 		]
-	return "稳定本区资源和代表物种，等待新通道解锁。"
+	return "稳定资源和代表物种。"
+
+
+func _short_ui_text(text: String, max_length: int) -> String:
+	if text.length() <= max_length:
+		return text
+	return text.substr(0, max_length) + "..."
 
 
 func _game_action_hint(action_name: String, region: Dictionary, frontier_links: Array) -> String:
 	match action_name:
 		"修复":
-			return "修复：优先补足%s；如果风险超过 55%，先治理风险最高的压力源。" % _top_dictionary_label(region.get("resource_state", {}))
+			return "你正在选择“修复”：进入区域后优先找最高风险源，完成后会降低风险并提高韧性。关键资源：%s。" % _top_dictionary_label(region.get("resource_state", {}))
 		"通道":
 			if frontier_links.is_empty():
-				return "通道：当前没有已知相邻区域，先调查本区以解锁生态连接。"
+				return "你正在选择“通道”：当前没有已知相邻区，先改用调查来解锁连接。"
 			var link: Dictionary = frontier_links[0]
-			return "通道：下一步关注%s，连接到%s；通道强度 %s。" % [
-				str(link.get("connection_label", "生态通道")),
+			return "你正在选择“通道”：进入区域后寻找迁徙/水系/海岸连接，把本区连到%s；当前%s强度 %s。" % [
 				str(link.get("target_name", "相邻区域")),
+				str(link.get("connection_label", "生态通道")),
 				_percent_text(float(link.get("strength", 0.0))),
 			]
 		_:
-			return "调查：点击地图小点切换区域，比较多样性、韧性、风险和代表物种，决定先修复哪里。"
+			return "你正在选择“调查”：进入区域后记录代表物种和热点，后端会用这些情报更新生态链判断。"
+
+
+func _sync_action_button_state() -> void:
+	var report_pending := _latest_expedition_report_pending()
+	for action_name in action_buttons.keys():
+		var button: Button = action_buttons[action_name]
+		var is_selected := str(action_name) == selected_game_action
+		button.button_pressed = is_selected
+		button.disabled = report_pending
+		button.text = {
+			"调查": "调查",
+			"修复": "修复",
+			"通道": "通道",
+		}.get(str(action_name), str(action_name))
+		if is_selected:
+			button.text = "✓ " + button.text
+		button.tooltip_text = "先回灌上一轮撤离报告，再选择新行动。" if report_pending else "选择%s作为进入区域后的世界任务。" % str(action_name)
+
+
+func _sync_primary_button_state(active_region: Dictionary) -> void:
+	var report_pending := _latest_expedition_report_pending()
+	var strategy_pending := _strategy_intent_pending()
+	if focus_recommended_button != null:
+		focus_recommended_button.disabled = report_pending
+		focus_recommended_button.tooltip_text = "先回灌上一轮撤离报告，再切换建议区。" if report_pending else "切到当前全局优先区域。"
+	if apply_turn_button != null:
+		apply_turn_button.text = "回灌报告" if report_pending else "推进模拟"
+		apply_turn_button.disabled = not report_pending and not strategy_pending
+		if report_pending:
+			apply_turn_button.tooltip_text = "把刚才撤离得到的报告写回后端生态系统。"
+		elif strategy_pending:
+			apply_turn_button.tooltip_text = "把刚选择的世界行动提交给后端模拟。"
+		else:
+			apply_turn_button.tooltip_text = "先选择一个行动；主要玩法请点击“进入执行”。"
+	if enter_region_button != null:
+		var region_name := str(active_region.get("name", "区域"))
+		if region_name.length() > 6:
+			region_name = region_name.substr(0, 6)
+		enter_region_button.text = "进入：%s" % selected_game_action
+		enter_region_button.disabled = report_pending
+		enter_region_button.tooltip_text = "先点击“回灌报告”，把上一轮撤离结果写回后端。" if report_pending else "进入%s，执行%s任务。" % [region_name, selected_game_action]
+
+
+func _strategy_intent_pending() -> bool:
+	return FileAccess.file_exists(STRATEGY_PATH) or FileAccess.file_exists(PROJECT_STRATEGY_PATH)
 
 
 func _on_game_action_pressed(action_name: String) -> void:
+	if _latest_expedition_report_pending():
+		pending_strategy_message = "先点击“回灌报告”，把上一轮撤离结果写回后端，再选择新行动。"
+		_refresh_game_hud()
+		return
 	selected_game_action = action_name
 	_write_strategy_intent(action_name)
 	_refresh_game_hud()
+
+
+func _on_focus_recommended_region_pressed() -> void:
+	if _latest_expedition_report_pending():
+		pending_strategy_message = "先点击“回灌报告”，把上一轮撤离结果写回后端，再切换建议区域。"
+		_refresh_game_hud()
+		return
+	var recommendation := _recommended_region_for_world()
+	var region_id := str(recommendation.get("region_id", ""))
+	if region_id == "" or not detail_cache.has(region_id):
+		pending_strategy_message = "当前没有可推荐的优先区域。"
+		_refresh_game_hud()
+		return
+	active_region_id = region_id
+	selected_game_action = _recommended_game_action(detail_cache.get(active_region_id, world_data.get("active_region", {})))
+	selected_campaign_stage_index = 0
+	selected_campaign_landing_target_id = ""
+	selected_schedule_route_key = "primary_route"
+	selected_formation_key = "assault"
+	selected_activation_preset_key = "assault"
+	selected_directive_key = "assault"
+	selected_decision_key = "assault"
+	selected_confirmation_key = "assault"
+	selected_frontier_target_id = ""
+	pending_strategy_message = "已切到建议优先区：%s。建议行动：%s。" % [
+		str(recommendation.get("name", region_id)),
+		selected_game_action,
+	]
+	_render_world()
+	_animate_region_transition(_active_region_accent())
 
 
 func _on_apply_turn_pressed() -> void:
@@ -4284,8 +4544,9 @@ func _on_apply_turn_pressed() -> void:
 	var output: Array = []
 	var exit_code := OS.execute("/bin/zsh", PackedStringArray(["-lc", command]), output, true, false)
 	if exit_code == 0:
+		var had_pending_report := _latest_expedition_report_pending()
 		_clear_strategy_intent_files()
-		pending_strategy_message = "后端回合已应用，世界状态已刷新。"
+		pending_strategy_message = "后端回合已应用。%s" % ("撤离报告已写回生态系统，现在可以重新选择优先区域。" if had_pending_report else "策略已写入世界状态，现在可以进入区域执行。")
 		_load_world_data()
 	else:
 		pending_strategy_message = "后端应用失败：%s" % _short_command_output(output)
@@ -4299,6 +4560,10 @@ func _clear_strategy_intent_files() -> void:
 
 
 func _on_enter_region_pressed() -> void:
+	if _latest_expedition_report_pending():
+		pending_strategy_message = "先点击“回灌报告”，把上一轮撤离结果写回后端，再进入下一片区域。"
+		_refresh_game_hud()
+		return
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	if active_region.is_empty():
 		pending_strategy_message = "当前没有可进入的生态区。"
@@ -4311,13 +4576,17 @@ func _on_enter_region_pressed() -> void:
 
 
 func _build_expedition_region_request(active_region: Dictionary) -> Dictionary:
+	var hint: Dictionary = active_region.get("gameplay_hint", {}).duplicate(true)
+	hint["action"] = selected_game_action
+	if not hint.has("reason") or str(hint.get("reason", "")) == "":
+		hint["reason"] = _game_action_hint(selected_game_action, active_region, active_region.get("frontier_links", []))
 	return {
 		"schema_version": 1,
 		"created_at": Time.get_datetime_string_from_system(),
 		"region_id": active_region_id,
 		"region_name": str(active_region.get("name", active_region_id)),
-		"recommended_action": _recommended_game_action(active_region),
-		"gameplay_hint": active_region.get("gameplay_hint", {}),
+		"recommended_action": selected_game_action,
+		"gameplay_hint": hint,
 	}
 
 
@@ -4377,7 +4646,7 @@ func _write_strategy_intent(action_name: String) -> void:
 	var project_file := FileAccess.open(PROJECT_STRATEGY_PATH, FileAccess.WRITE)
 	if project_file != null:
 		project_file.store_string(payload_text)
-	pending_strategy_message = "已写入策略：%s。运行后端导出命令应用本回合，然后刷新地图查看回执。" % action_name
+	pending_strategy_message = "已选择本轮行动：%s。可以直接进入区域执行；如果只想推进后端模拟，点击“应用回合”。" % action_name
 	if project_file == null:
 		pending_strategy_message = "策略只写入了本地用户目录，项目策略文件写入失败；后端可能读不到。"
 	status_label.text = "系统栏 · 已写入策略意图：%s · %s" % [str(active_region.get("name", active_region_id)), action_name]
