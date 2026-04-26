@@ -1,0 +1,11 @@
+Model Information:
+* title:	African Elephant Textured
+* source:	https://sketchfab.com/3d-models/african-elephant-textured-49ad44f03f374433ac3a4f3143d7980c
+* author:	JohnMesplay (https://sketchfab.com/JohnMesplay)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "African Elephant Textured" (https://sketchfab.com/3d-models/african-elephant-textured-49ad44f03f374433ac3a4f3143d7980c) by JohnMesplay (https://sketchfab.com/JohnMesplay) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

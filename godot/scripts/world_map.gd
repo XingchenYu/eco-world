@@ -1,6 +1,13 @@
 extends Control
 
+const RealisticWorldMapCanvas = preload("res://scripts/realistic_world_map_canvas.gd")
 const DATA_PATH := "res://data/world_state.json"
+const PROJECT_STRATEGY_PATH := "res://data/world_strategy_intent.json"
+const EXPLORER_SCENE := "res://scenes/savanna_explorer.tscn"
+const REPORT_PATH := "user://expedition_reports.json"
+const EXPEDITION_REGION_PATH := "user://selected_expedition_region.json"
+const PROJECT_EXPEDITION_REGION_PATH := "res://data/selected_expedition_region.json"
+const STRATEGY_PATH := "user://world_strategy_intent.json"
 const REGION_LAYOUT := {
 	"temperate_forest": Vector2(0.21, 0.28),
 	"temperate_grassland": Vector2(0.43, 0.24),
@@ -39,6 +46,17 @@ var side_scroll: ScrollContainer
 var side_box: VBoxContainer
 var footer_box: VBoxContainer
 var footer_command_holder: HBoxContainer
+var game_hud: PanelContainer
+var hud_region_label: Label
+var hud_summary_label: Label
+var hud_world_label: Label
+var hud_loop_label: Label
+var hud_metric_label: Label
+var hud_species_label: Label
+var hud_objective_label: Label
+var hud_action_label: Label
+var selected_game_action := "调查"
+var pending_strategy_message := ""
 var selected_tab := "overview"
 var selected_campaign_target_id := ""
 var selected_campaign_stage_index := 0
@@ -58,6 +76,7 @@ var refresh_timer: Timer
 var detail_cache: Dictionary = {}
 var bulletin_cache: Array = []
 var legend_cache: Array = []
+var expedition_reports: Dictionary = {}
 var ui_font_resource: Font
 
 
@@ -247,7 +266,7 @@ func _animate_page_transition(region_accent: Color, tab_accent: Color) -> void:
 		subtitle_tween.tween_property(subtitle_label, "modulate", Color8(223, 215, 182), 0.24)
 
 
-func _animate_focus_glow(glow: ColorRect, focus_frame: ColorRect) -> void:
+func _animate_focus_glow(glow: Control, focus_frame: Control) -> void:
 	var tween := create_tween().set_loops()
 	tween.tween_property(glow, "modulate:a", 0.92, 0.75)
 	tween.parallel().tween_property(focus_frame, "modulate:a", 0.88, 0.75)
@@ -255,7 +274,7 @@ func _animate_focus_glow(glow: ColorRect, focus_frame: ColorRect) -> void:
 	tween.parallel().tween_property(focus_frame, "modulate:a", 0.38, 0.75)
 
 
-func _animate_region_focus_entry(shell: Control, outer_ring: ColorRect, shadow: ColorRect, shell_base: Vector2, shadow_base: Vector2) -> void:
+func _animate_region_focus_entry(shell: Control, outer_ring: Control, shadow: Control, shell_base: Vector2, shadow_base: Vector2) -> void:
 	shell.scale = Vector2(0.94, 0.94)
 	shell.position = shell_base + Vector2(0, 12)
 	shell.modulate = Color(1.0, 1.0, 1.0, 0.78)
@@ -269,7 +288,7 @@ func _animate_region_focus_entry(shell: Control, outer_ring: ColorRect, shadow: 
 	tween.parallel().tween_property(shadow, "position", shadow_base, 0.22)
 
 
-func _animate_region_hover(shell: Control, outer_ring: ColorRect, shadow: ColorRect, entering: bool) -> void:
+func _animate_region_hover(shell: Control, outer_ring: Control, shadow: Control, entering: bool) -> void:
 	var tween := create_tween()
 	if entering:
 		tween.tween_property(shell, "scale", Vector2(1.03, 1.03), 0.12)
@@ -381,6 +400,657 @@ func _active_region_accent() -> Color:
 	return REGION_COLORS.get(active_region_id, Color8(210, 182, 96))
 
 
+func _region_report(region_id: String) -> Dictionary:
+	return expedition_reports.get(region_id, {})
+
+
+func _join_summary_parts(parts: Array) -> String:
+	var text_parts := PackedStringArray()
+	for part_variant in parts:
+		var part := str(part_variant).strip_edges()
+		if part != "":
+			text_parts.append(part)
+	return " · ".join(text_parts)
+
+
+func _region_report_summary(region_id: String) -> String:
+	var report := _region_report(region_id)
+	if report.is_empty():
+		return "尚无 expedition 回执"
+	var parts: Array = []
+	parts.append(_region_archive_tier(report))
+	parts.append("%s / 情报 %s" % [str(report.get("top_intel_channel", "未分类")), str(report.get("intel", 0))])
+	parts.append("风险 %.2f" % float(report.get("risk", 0.0)))
+	var management_phase := str(report.get("management_rotation_phase", "常规经营"))
+	if management_phase != "常规经营":
+		parts.append(management_phase)
+	var lock_completion := _region_lock_completion_tag(report)
+	if lock_completion != "未成型":
+		parts.append(lock_completion)
+	var handoff_completion := _region_handoff_completion_tag(report)
+	if handoff_completion != "未承接":
+		parts.append(handoff_completion)
+	var first_segment_completion := _region_first_segment_completion_tag(report)
+	if first_segment_completion != "非第一站":
+		parts.append(first_segment_completion)
+	var second_segment_completion := _region_second_segment_completion_tag(report)
+	if second_segment_completion != "非第二段":
+		parts.append(second_segment_completion)
+	var branch_completion := _region_branch_completion_tag(report)
+	if branch_completion != "非分支段":
+		parts.append(branch_completion)
+	var branch_stability := _region_branch_stability_tag(report)
+	if branch_stability != "分支未定型":
+		parts.append(branch_stability)
+	var backbone_completion := str(report.get("backbone_completion_tag", ""))
+	if backbone_completion != "":
+		parts.append(backbone_completion)
+	return _join_summary_parts(parts)
+
+
+func _region_archive_tier(report: Dictionary) -> String:
+	if report.is_empty():
+		return "未建档"
+	return str(report.get("archive_tier", "初勘档案"))
+
+
+func _region_archive_progress(report: Dictionary) -> int:
+	if report.is_empty():
+		return 0
+	return int(report.get("archive_progress", 0))
+
+
+func _region_archive_ratio(report: Dictionary) -> float:
+	match _region_archive_tier(report):
+		"定型档案":
+			return 1.0
+		"熟悉档案":
+			return clampf(float(_region_archive_progress(report)) / 12.0, 0.0, 1.0)
+		"已知档案":
+			return clampf(float(_region_archive_progress(report)) / 7.0, 0.0, 1.0)
+		"初勘档案":
+			return clampf(float(_region_archive_progress(report)) / 3.0, 0.0, 1.0)
+		_:
+			return clampf(float(_region_archive_progress(report)) / 12.0, 0.0, 1.0)
+
+
+func _region_known_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "未知区"
+	var dominant_channel := str(report.get("dominant_intel_channel", report.get("top_intel_channel", "未分类")))
+	var dominant_window := str(report.get("dominant_window", report.get("event_window", "focus")))
+	var channel_text: String = {
+		"水源": "水源线",
+		"迁徙": "迁徙线",
+		"压迫": "压迫线",
+		"腐食": "腐食线",
+		"栖地": "栖地线",
+	}.get(dominant_channel, dominant_channel)
+	var window_text: String = {
+		"predation": "捕食窗",
+		"pressure": "压力窗",
+		"risk": "风险窗",
+		"territory": "领地窗",
+		"symbiosis": "共生窗",
+		"carrion": "腐食窗",
+		"focus": "主线窗",
+		"trend": "趋势窗",
+		"handoff": "承接窗",
+	}.get(dominant_window, "观察窗")
+	return "%s · %s · %s · %s · %s" % [_region_archive_tier(report), channel_text, window_text, _region_specialization_tag(report), _region_run_profile_tag(report)]
+
+
+func _region_focus_brief(report: Dictionary) -> String:
+	if report.is_empty():
+		return "当前无区域画像"
+	var dominant_channel := str(report.get("dominant_intel_channel", report.get("top_intel_channel", "未分类")))
+	var dominant_window := str(report.get("dominant_window", report.get("event_window", "focus")))
+	var channel_text: String = {
+		"水源": "水源线",
+		"迁徙": "迁徙线",
+		"压迫": "压迫线",
+		"腐食": "腐食线",
+		"栖地": "栖地线",
+	}.get(dominant_channel, dominant_channel)
+	var window_text: String = {
+		"predation": "捕食窗",
+		"pressure": "压力窗",
+		"risk": "风险窗",
+		"territory": "领地窗",
+		"symbiosis": "共生窗",
+		"carrion": "腐食窗",
+		"focus": "主线窗",
+		"trend": "趋势窗",
+		"handoff": "承接窗",
+	}.get(dominant_window, "观察窗")
+	return "%s · %s" % [channel_text, window_text]
+
+
+func _region_specialization_mode(report: Dictionary) -> String:
+	if report.is_empty():
+		return "基础线"
+	return str(report.get("specialization_mode", "基础线"))
+
+
+func _region_specialization_target(report: Dictionary) -> String:
+	if report.is_empty():
+		return "未定向"
+	return str(report.get("specialization_target", report.get("dominant_intel_channel", report.get("top_intel_channel", "未定向"))))
+
+
+func _region_specialization_tag(report: Dictionary) -> String:
+	match _region_specialization_mode(report):
+		"快取线":
+			return "快取线"
+		"深挖线":
+			return "深挖线"
+		_:
+			return "基础线"
+
+
+func _region_specialization_run_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "无回线"
+	return str(report.get("specialization_run_tag", "基础观察"))
+
+
+func _region_dominant_run_style(report: Dictionary) -> String:
+	if report.is_empty():
+		return "基础观察"
+	return str(report.get("dominant_run_style", _region_specialization_run_tag(report)))
+
+
+func _region_run_profile_tag(report: Dictionary) -> String:
+	match _region_dominant_run_style(report):
+		"快取完成":
+			return "快取惯性"
+		"深挖完成":
+			return "深挖惯性"
+		"快取未完成":
+			return "快取试探"
+		"深挖未完成":
+			return "深挖试探"
+		_:
+			return "基础观察"
+
+
+func _region_dominant_route_style(report: Dictionary) -> String:
+	if report.is_empty():
+		return "base"
+	return str(report.get("dominant_route_style", "base"))
+
+
+func _region_route_style_streak(report: Dictionary) -> int:
+	if report.is_empty():
+		return 0
+	var dominant_style := _region_dominant_route_style(report)
+	if str(report.get("route_style_streak_style", dominant_style)) != dominant_style:
+		return 0
+	return int(report.get("route_style_streak", 0))
+
+
+func _region_route_shaping_tag(report: Dictionary) -> String:
+	var dominant_style := _region_dominant_route_style(report)
+	var streak := _region_route_style_streak(report)
+	match dominant_style:
+		"quick":
+			if streak >= 5:
+				return "快取塑形稳固"
+			if streak >= 3:
+				return "快取塑形中"
+		"deep":
+			if streak >= 4:
+				return "深挖塑形稳固"
+			if streak >= 3:
+				return "深挖塑形中"
+		"base":
+			if streak >= 3:
+				return "基础塑形中"
+	return "塑形待定"
+
+
+func _region_route_lock_tag(report: Dictionary) -> String:
+	var dominant_style := _region_dominant_route_style(report)
+	var streak := _region_route_style_streak(report)
+	var archive_tier := _region_archive_tier(report)
+	match dominant_style:
+		"quick":
+			if streak >= 6 and archive_tier in ["已知档案", "熟悉档案", "定型档案"]:
+				return "快取锁定"
+		"deep":
+			if streak >= 5 and archive_tier in ["已知档案", "熟悉档案", "定型档案"]:
+				return "深挖锁定"
+	return "未锁定"
+
+
+func _region_lock_completion_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "未成型"
+	if bool(report.get("route_lock_completed", false)):
+		return "锁定跑成"
+	var lock_tag := _region_route_lock_tag(report)
+	if lock_tag != "未锁定":
+		return "锁定未跑成"
+	return "未成型"
+
+
+func _region_handoff_completion_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "未承接"
+	var source_region := str(report.get("handoff_source_region", ""))
+	if source_region == "":
+		return "未承接"
+	if bool(report.get("handoff_completed", false)):
+		return "承接跑成"
+	return "承接未跑成"
+
+
+func _region_first_segment_completion_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "非第一站"
+	var phase := str(report.get("management_rotation_phase", "常规经营"))
+	if phase not in ["主经营第一段", "单区快取主经营", "单区深挖主经营"]:
+		return "非第一站"
+	return "第一站跑成" if bool(report.get("first_segment_completed", false)) else "第一站未跑成"
+
+
+func _region_second_segment_completion_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "非第二段"
+	var source_region := str(report.get("handoff_source_region", ""))
+	if source_region == "":
+		return "非第二段"
+	if bool(report.get("second_segment_completed", false)):
+		return "第二段接稳"
+	return "第二段未接稳"
+
+
+func _region_branch_completion_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "非分支段"
+	var explicit_tag := str(report.get("branch_completion_tag", ""))
+	if explicit_tag != "":
+		return explicit_tag
+	var branch_mode := str(report.get("branch_mode", ""))
+	if branch_mode == "deep_expand":
+		return "扩线接稳" if bool(report.get("branch_completed", false)) else "扩线未接稳"
+	if branch_mode == "quick_close":
+		return "收束接稳" if bool(report.get("branch_completed", false)) else "收束未接稳"
+	return "非分支段"
+
+
+func _region_branch_stability_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "分支未定型"
+	var branch_mode := str(report.get("branch_mode", ""))
+	var branch_completed := bool(report.get("branch_completed", false))
+	var branch_streak := int(report.get("branch_completion_streak", 0))
+	var branch_counts: Dictionary = report.get("branch_completion_counts", {}) if report.has("branch_completion_counts") else {}
+	if branch_mode == "deep_expand":
+		var count := int(branch_counts.get("deep_expand", 0))
+		if branch_completed and branch_streak >= 3:
+			return "稳定扩线区"
+		if count >= 2:
+			return "扩线塑形中"
+	elif branch_mode == "quick_close":
+		var count := int(branch_counts.get("quick_close", 0))
+		if branch_completed and branch_streak >= 3:
+			return "稳定收束区"
+		if count >= 2:
+			return "收束塑形中"
+	return "分支未定型"
+
+
+func _region_management_priority_tag(report: Dictionary) -> String:
+	if report.is_empty():
+		return "常规经营区"
+	var explicit_tag := str(report.get("management_priority_tag", ""))
+	if explicit_tag != "":
+		return explicit_tag
+	var lock_tag := _region_route_lock_tag(report)
+	var streak := int(report.get("lock_completion_streak", 0)) + _region_handoff_completion_bonus(report)
+	var branch_stability_tag := _region_branch_stability_tag(report)
+	if branch_stability_tag == "稳定收束区":
+		if streak >= 4:
+			return "主力快取经营区"
+		return "重点快取经营区"
+	if branch_stability_tag == "稳定扩线区":
+		if streak >= 4:
+			return "主力深挖经营区"
+		return "重点深挖经营区"
+	if lock_tag == "快取锁定":
+		if streak >= 6:
+			return "主力快取经营区"
+		if streak >= 3:
+			return "重点快取经营区"
+	if lock_tag == "深挖锁定":
+		if streak >= 5:
+			return "主力深挖经营区"
+		if streak >= 3:
+			return "重点深挖经营区"
+	return "常规经营区"
+
+
+func _region_handoff_completion_bonus(report: Dictionary) -> int:
+	if report.is_empty():
+		return 0
+	var streak := int(report.get("handoff_completion_streak", 0))
+	var count := int(report.get("handoff_completion_count", 0))
+	if streak >= 3:
+		return 2
+	if streak >= 2 or count >= 4:
+		return 1
+	return 0
+
+
+func _region_branch_management_bonus(report: Dictionary) -> int:
+	var branch_stability_tag := _region_branch_stability_tag(report)
+	match branch_stability_tag:
+		"稳定扩线区", "稳定收束区":
+			return 2
+		"扩线塑形中", "收束塑形中":
+			return 1
+		_:
+			return 0
+
+
+func _management_rotation_tag_from_management(management_tag: String) -> String:
+	match management_tag:
+		"主力快取经营区":
+			return "优先快取经营"
+		"重点快取经营区":
+			return "推进快取经营"
+		"主力深挖经营区":
+			return "优先深挖经营"
+		"重点深挖经营区":
+			return "推进深挖经营"
+		_:
+			return "常规经营"
+
+
+func _region_management_backbone_tag(report: Dictionary) -> String:
+	var management_tag := _region_management_priority_tag(report)
+	var branch_stability_tag := _region_branch_stability_tag(report)
+	if management_tag == "主力快取经营区" and branch_stability_tag == "稳定收束区":
+		return "快取经营骨干区"
+	if management_tag == "主力深挖经营区" and branch_stability_tag == "稳定扩线区":
+		return "深挖经营骨干区"
+	return ""
+
+
+func _region_management_backbone_bonus(report: Dictionary) -> int:
+	match _region_management_backbone_tag(report):
+		"快取经营骨干区", "深挖经营骨干区":
+			return 2
+		_:
+			return 0
+
+
+func _region_management_display(report: Dictionary) -> String:
+	if report.is_empty():
+		return "常规经营区"
+	return _region_management_priority_tag(report)
+
+
+func _region_management_short_display(report: Dictionary) -> String:
+	match _region_management_priority_tag(report):
+		"主力快取经营区":
+			return "主力快取"
+		"重点快取经营区":
+			return "重点快取"
+		"主力深挖经营区":
+			return "主力深挖"
+		"重点深挖经营区":
+			return "重点深挖"
+		_:
+			return "常规"
+
+
+func _region_backbone_display(report: Dictionary) -> String:
+	if report.is_empty():
+		return "无骨干"
+	var completion_tag := str(report.get("backbone_completion_tag", ""))
+	if completion_tag != "":
+		return completion_tag
+	var backbone_tag := _region_management_backbone_tag(report)
+	if backbone_tag != "":
+		return backbone_tag
+	return "无骨干"
+
+
+func _region_backbone_short_display(report: Dictionary) -> String:
+	var completion_tag := str(report.get("backbone_completion_tag", ""))
+	if completion_tag.contains("快取"):
+		return "快取巩固"
+	if completion_tag.contains("深挖"):
+		return "深挖巩固"
+	match _region_management_backbone_tag(report):
+		"快取经营骨干区":
+			return "快取骨干"
+		"深挖经营骨干区":
+			return "深挖骨干"
+		_:
+			return "无骨干"
+
+
+func _region_consolidation_display(report: Dictionary) -> String:
+	if report.is_empty():
+		return "未巩固"
+	var completion_tag := str(report.get("backbone_completion_tag", ""))
+	if completion_tag != "":
+		return completion_tag
+	var streak := int(report.get("backbone_completion_streak", 0))
+	if streak > 0:
+		return "巩固中 %d" % streak
+	return "未巩固"
+
+
+func _region_consolidation_short_display(report: Dictionary) -> String:
+	var completion_tag := str(report.get("backbone_completion_tag", ""))
+	if completion_tag.contains("巩固"):
+		return "已巩固"
+	if completion_tag.contains("跑成"):
+		return "已跑成"
+	var streak := int(report.get("backbone_completion_streak", 0))
+	if streak > 0:
+		return "巩固中 %d" % streak
+	return "未巩固"
+
+
+func _region_consolidation_ratio(report: Dictionary) -> float:
+	if report.is_empty():
+		return 0.0
+	var streak := int(report.get("backbone_completion_streak", 0))
+	if str(report.get("backbone_completion_tag", "")) != "":
+		return clampf(0.42 + float(streak) * 0.14, 0.0, 1.0)
+	return clampf(float(streak) * 0.18, 0.0, 0.62)
+
+
+func _region_management_chip_color(report: Dictionary) -> Color:
+	match _region_management_priority_tag(report):
+		"主力快取经营区":
+			return Color8(214, 176, 82)
+		"重点快取经营区":
+			return Color8(194, 164, 100)
+		"主力深挖经营区":
+			return Color8(108, 146, 208)
+		"重点深挖经营区":
+			return Color8(95, 132, 186)
+		_:
+			return Color8(124, 134, 144)
+
+
+func _region_backbone_chip_color(report: Dictionary) -> Color:
+	match _region_management_backbone_tag(report):
+		"快取经营骨干区":
+			return Color8(227, 135, 78)
+		"深挖经营骨干区":
+			return Color8(129, 118, 212)
+		_:
+			return Color8(132, 140, 150)
+
+
+func _region_consolidation_chip_color(report: Dictionary) -> Color:
+	var completion_tag := str(report.get("backbone_completion_tag", ""))
+	if completion_tag.contains("巩固") or completion_tag.contains("跑成"):
+		return Color8(95, 176, 132)
+	if int(report.get("backbone_completion_streak", 0)) > 0:
+		return Color8(126, 166, 136)
+	return Color8(132, 140, 150)
+
+
+func _region_archive_strategy_tag(report: Dictionary) -> String:
+	var archive_tier := _region_archive_tier(report)
+	var run_profile := _region_run_profile_tag(report)
+	var route_lock := _region_route_lock_tag(report)
+	if route_lock == "快取锁定":
+		if _region_lock_completion_tag(report) == "锁定跑成":
+			return "主力快取区"
+		return "锁定快取区"
+	if route_lock == "深挖锁定":
+		if _region_lock_completion_tag(report) == "锁定跑成":
+			return "主力深挖区"
+		return "锁定深挖区"
+	match archive_tier:
+		"定型档案":
+			if run_profile == "深挖惯性":
+				return "定型深挖区"
+			if run_profile == "快取惯性":
+				return "定型快取区"
+			return "定型推进区"
+		"熟悉档案":
+			if run_profile in ["深挖惯性", "深挖试探"]:
+				return "熟悉深挖区"
+			if run_profile in ["快取惯性", "快取试探"]:
+				return "熟悉快取区"
+			return "熟悉推进区"
+		"已知档案":
+			return "成长调查区"
+		_:
+			return "初勘调查区"
+
+
+func _region_archive_route_tag(report: Dictionary) -> String:
+	var archive_tier := _region_archive_tier(report)
+	var run_profile := _region_run_profile_tag(report)
+	var route_lock := _region_route_lock_tag(report)
+	if route_lock == "快取锁定":
+		if _region_lock_completion_tag(report) == "锁定跑成":
+			return "主力短推进路线"
+		return "锁定短推进路线"
+	if route_lock == "深挖锁定":
+		if _region_lock_completion_tag(report) == "锁定跑成":
+			return "主力连续复核路线"
+		return "锁定连续复核路线"
+	if archive_tier == "定型档案" and run_profile == "快取惯性":
+		return "默认短推进路线"
+	if archive_tier == "定型档案" and run_profile == "深挖惯性":
+		return "默认连续复核路线"
+	if archive_tier == "熟悉档案" and run_profile in ["快取惯性", "快取试探"]:
+		return "偏短推进路线"
+	if archive_tier == "熟悉档案" and run_profile in ["深挖惯性", "深挖试探"]:
+		return "偏连续复核路线"
+	return "基础观察路线"
+
+
+func _region_run_profile_strategy_text(report: Dictionary) -> String:
+	var management_tag := _region_management_priority_tag(report)
+	var management_rotation := _management_rotation_tag_from_management(management_tag)
+	var backbone_tag := _region_management_backbone_tag(report)
+	var backbone_prefix := ""
+	if backbone_tag != "":
+		var backbone_completion_tag := str(report.get("backbone_completion_tag", ""))
+		backbone_prefix = (backbone_completion_tag if backbone_completion_tag != "" else backbone_tag) + " · "
+	if _region_route_lock_tag(report) == "快取锁定":
+		if _region_lock_completion_tag(report) == "锁定跑成":
+			return "%s%s · %s · %s · %s · %s · %s · 这片区已成为长期主力快取区，默认先吃第一阶段主力速查组，再带着关键样本撤离。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report), _region_lock_completion_tag(report)]
+		return "%s%s · %s · %s · %s · %s · %s · 这片区已被长期塑形成短推进区，默认拿关键样本后快速撤离。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report), _region_lock_completion_tag(report)]
+	if _region_route_lock_tag(report) == "深挖锁定":
+		if _region_lock_completion_tag(report) == "锁定跑成":
+			return "%s%s · %s · %s · %s · %s · %s · 这片区已成为长期主力深挖区，默认先压主力主复核，再补主力次复核与对应样本。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report), _region_lock_completion_tag(report)]
+		return "%s%s · %s · %s · %s · %s · %s · 这片区已被长期塑形成连续复核区，默认优先压多段复核链。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report), _region_lock_completion_tag(report)]
+	match _region_dominant_run_style(report):
+		"快取完成":
+			return "%s%s · %s · %s · %s · %s · 当前更适合短推进，锁定第一阶段落点后拿样本就撤。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report)]
+		"深挖完成":
+			return "%s%s · %s · %s · %s · %s · 当前更适合连续深挖，优先压第二阶段深线落点。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report)]
+		"快取未完成":
+			return "%s%s · %s · %s · %s · %s · 当前仍在快取试探，建议先用短推进补关键样本。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report)]
+		"深挖未完成":
+			return "%s%s · %s · %s · %s · %s · 当前仍在深挖试探，建议继续延长路线补复核链。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report)]
+		_:
+			return "%s%s · %s · %s · %s · %s · 当前仍是基础观察，按区域总态稳步推进。" % [backbone_prefix, management_rotation, management_tag, _region_archive_strategy_tag(report), _region_archive_route_tag(report), _region_route_shaping_tag(report)]
+
+
+func _route_identity_text(active_region: Dictionary) -> String:
+	var report := _region_report(str(active_region.get("id", active_region_id)))
+	if report.is_empty():
+		return "当前仍是初勘路线，优先沿主线建立第一批调查样本。"
+	var route_lock := _region_route_lock_tag(report)
+	var dominant_channel := str(report.get("dominant_intel_channel", report.get("top_intel_channel", "未分类")))
+	var dominant_window := str(report.get("dominant_window", report.get("event_window", "focus")))
+	var specialization_tag := _region_specialization_tag(report)
+	var specialization_target := _region_specialization_target(report)
+	var run_tag := _region_specialization_run_tag(report)
+	var run_profile := _region_run_profile_tag(report)
+	var shaping_tag := _region_route_shaping_tag(report)
+	var prefix := _region_archive_tier(report)
+	if route_lock == "快取锁定":
+		return "%s锁定快取区 · %s / %s / %s / %s / %s，默认先吃第一阶段高值速查点，拿到关键样本后快速撤离。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag]
+	if route_lock == "深挖锁定":
+		return "%s锁定深挖区 · %s / %s / %s / %s / %s，默认先压主线复核，再补第二复核点与对应样本。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag]
+	match dominant_channel:
+		"水源":
+			return "%s水源调查区 · %s / %s / %s / %s / %s，路线建议继续先压水点与岸带，主攻%s。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag, specialization_target]
+		"迁徙":
+			return "%s迁徙调查区 · %s / %s / %s / %s / %s，路线建议优先走迁徙线与草食走廊，主攻%s。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag, specialization_target]
+		"压迫":
+			return "%s压迫调查区 · %s / %s / %s / %s / %s，路线建议先看掠食压力和风险窗口，主攻%s。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag, specialization_target]
+		"腐食":
+			return "%s腐食调查区 · %s / %s / %s / %s / %s，路线建议先压腐食点与飞行链，主攻%s。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag, specialization_target]
+		"栖地":
+			return "%s栖地调查区 · %s / %s / %s / %s / %s，路线建议先补林下或庇护热点，主攻%s。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag, specialization_target]
+		_:
+			if dominant_window == "predation":
+				return "%s捕食窗口区 · %s / %s / %s / %s / %s，路线建议保守推进并优先看压力点。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag]
+			if dominant_window == "symbiosis":
+				return "%s共生窗口区 · %s / %s / %s / %s / %s，路线建议补稳定样本。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag]
+			return "%s观察区 · %s / %s / %s / %s / %s，路线建议沿既有主线继续扩样。" % [prefix, specialization_tag, run_tag, run_profile, _region_archive_route_tag(report), shaping_tag]
+
+
+func _region_event_window_text(active_region: Dictionary) -> String:
+	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
+	var chain_focus: Array = active_region.get("chain_focus", [])
+	var report := _region_report(str(active_region.get("id", active_region_id)))
+	var report_channel := str(report.get("top_intel_channel", ""))
+	if pressure_headlines.size() > 0:
+		if report_channel != "":
+			return "%s · 当前窗口偏向%s" % [str(pressure_headlines[0]), report_channel]
+		return str(pressure_headlines[0])
+	if chain_focus.size() > 0:
+		return str(chain_focus[0])
+	if report_channel != "":
+		return "最近回执显示当前窗口偏向%s" % report_channel
+	return "当前窗口待建立"
+
+
+func _region_event_window_tag(active_region: Dictionary) -> String:
+	var text := _region_event_window_text(active_region)
+	if "水源" in text:
+		return "水源窗"
+	if "迁徙" in text:
+		return "迁徙窗"
+	if "压迫" in text or "捕食" in text:
+		return "压迫窗"
+	if "腐食" in text:
+		return "腐食窗"
+	if "栖地" in text or "共生" in text:
+		return "栖地窗"
+	if "风险" in text:
+		return "高风险窗"
+	return "观察窗"
+
+
 func _blend_ui_accent(base: Color, region: Color) -> Color:
 	return Color(
 		lerp(base.r, region.r, 0.42),
@@ -401,18 +1071,20 @@ func _build_ui() -> void:
 
 	var root_margin := MarginContainer.new()
 	root_margin.set_anchors_preset(PRESET_FULL_RECT)
-	root_margin.add_theme_constant_override("margin_left", 14)
-	root_margin.add_theme_constant_override("margin_top", 14)
-	root_margin.add_theme_constant_override("margin_right", 14)
-	root_margin.add_theme_constant_override("margin_bottom", 14)
+	root_margin.add_theme_constant_override("margin_left", 0)
+	root_margin.add_theme_constant_override("margin_top", 0)
+	root_margin.add_theme_constant_override("margin_right", 0)
+	root_margin.add_theme_constant_override("margin_bottom", 0)
 	add_child(root_margin)
 
 	var root_vbox := VBoxContainer.new()
+	root_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	root_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root_margin.add_child(root_vbox)
 
 	var header_panel := PanelContainer.new()
 	header_panel.custom_minimum_size = Vector2(0, 82)
+	header_panel.visible = false
 	root_vbox.add_child(header_panel)
 
 	var header_box := VBoxContainer.new()
@@ -459,24 +1131,27 @@ func _build_ui() -> void:
 	control_row.add_child(auto_refresh_button)
 
 	var content := HBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 10)
 	root_vbox.add_child(content)
 
 	var map_panel := PanelContainer.new()
+	map_panel.custom_minimum_size = Vector2(1600, 960)
 	map_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_child(map_panel)
 
 	map_layer = Control.new()
-	map_layer.custom_minimum_size = Vector2(1120, 760)
+	map_layer.custom_minimum_size = Vector2(1600, 960)
 	map_layer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map_layer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	map_panel.add_child(map_layer)
 
 	side_panel = PanelContainer.new()
-	side_panel.custom_minimum_size = Vector2(208, 0)
+	side_panel.custom_minimum_size = Vector2(0, 0)
 	side_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	side_panel.visible = false
 	content.add_child(side_panel)
 
 	side_scroll = ScrollContainer.new()
@@ -489,6 +1164,7 @@ func _build_ui() -> void:
 
 	var footer_panel := PanelContainer.new()
 	footer_panel.custom_minimum_size = Vector2(0, 78)
+	footer_panel.visible = false
 	root_vbox.add_child(footer_panel)
 
 	footer_box = VBoxContainer.new()
@@ -515,6 +1191,107 @@ func _build_ui() -> void:
 	refresh_timer.timeout.connect(_load_world_data)
 	add_child(refresh_timer)
 
+	_build_game_hud()
+
+
+func _build_game_hud() -> void:
+	game_hud = PanelContainer.new()
+	game_hud.position = Vector2(28, 28)
+	game_hud.custom_minimum_size = Vector2(520, 190)
+	game_hud.z_index = 30
+	game_hud.mouse_filter = Control.MOUSE_FILTER_STOP
+	var hud_style := StyleBoxFlat.new()
+	hud_style.bg_color = Color(0.04, 0.07, 0.06, 0.62)
+	hud_style.border_color = Color(0.86, 0.78, 0.55, 0.30)
+	hud_style.set_border_width_all(1)
+	hud_style.corner_radius_top_left = 14
+	hud_style.corner_radius_top_right = 14
+	hud_style.corner_radius_bottom_left = 14
+	hud_style.corner_radius_bottom_right = 14
+	hud_style.content_margin_left = 16
+	hud_style.content_margin_top = 12
+	hud_style.content_margin_right = 16
+	hud_style.content_margin_bottom = 12
+	game_hud.add_theme_stylebox_override("panel", hud_style)
+	add_child(game_hud)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 7)
+	game_hud.add_child(box)
+
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 8)
+	box.add_child(title_row)
+
+	hud_region_label = Label.new()
+	_style_primary_title(hud_region_label, 19)
+	hud_region_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(hud_region_label)
+
+	var hint_label := Label.new()
+	hint_label.text = "点击地图小点切换区域"
+	_style_dim(hint_label, 11)
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	title_row.add_child(hint_label)
+
+	hud_summary_label = Label.new()
+	hud_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_body(hud_summary_label, 13)
+	box.add_child(hud_summary_label)
+
+	hud_world_label = Label.new()
+	hud_world_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_dim(hud_world_label, 12)
+	box.add_child(hud_world_label)
+
+	hud_loop_label = Label.new()
+	hud_loop_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_body(hud_loop_label, 12)
+	box.add_child(hud_loop_label)
+
+	hud_metric_label = Label.new()
+	_style_secondary_title(hud_metric_label, 12)
+	box.add_child(hud_metric_label)
+
+	hud_species_label = Label.new()
+	hud_species_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_dim(hud_species_label, 12)
+	box.add_child(hud_species_label)
+
+	hud_objective_label = Label.new()
+	hud_objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_body(hud_objective_label, 12)
+	box.add_child(hud_objective_label)
+
+	var action_row := HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 7)
+	box.add_child(action_row)
+	for action_name in ["调查", "修复", "通道"]:
+		var button := Button.new()
+		button.text = {
+			"调查": "调查情报",
+			"修复": "修复风险",
+			"通道": "建立通道",
+		}.get(action_name, action_name)
+		button.custom_minimum_size = Vector2(78, 28)
+		button.pressed.connect(_on_game_action_pressed.bind(action_name))
+		action_row.add_child(button)
+	var apply_button := Button.new()
+	apply_button.text = "应用回合"
+	apply_button.custom_minimum_size = Vector2(84, 28)
+	apply_button.pressed.connect(_on_apply_turn_pressed)
+	action_row.add_child(apply_button)
+	var enter_button := Button.new()
+	enter_button.text = "进入区域"
+	enter_button.custom_minimum_size = Vector2(84, 28)
+	enter_button.pressed.connect(_on_enter_region_pressed)
+	action_row.add_child(enter_button)
+
+	hud_action_label = Label.new()
+	hud_action_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_dim(hud_action_label, 12)
+	box.add_child(hud_action_label)
+
 
 func _load_world_data() -> void:
 	if not FileAccess.file_exists(DATA_PATH):
@@ -536,7 +1313,45 @@ func _load_world_data() -> void:
 	detail_cache = world_data.get("region_details", {})
 	bulletin_cache = world_data.get("world_bulletin", [])
 	legend_cache = world_data.get("map_legend", [])
+	expedition_reports = _load_expedition_reports()
+	_apply_recent_expedition_handoff()
+	selected_game_action = _recommended_game_action(detail_cache.get(active_region_id, world_data.get("active_region", {})))
 	_render_world()
+
+
+func _load_expedition_reports() -> Dictionary:
+	if not FileAccess.file_exists(REPORT_PATH):
+		return {}
+	var file := FileAccess.open(REPORT_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
+	return parsed
+
+
+func _apply_recent_expedition_handoff() -> void:
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+	if latest_report.is_empty():
+		return
+	var target_region_id := str(latest_report.get("target_region_id", ""))
+	if target_region_id == "" or not detail_cache.has(target_region_id):
+		return
+	active_region_id = target_region_id
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	selected_campaign_target_id = ""
+	selected_frontier_target_id = ""
+	selected_branch_target_id = ""
+	selected_campaign_landing_target_id = ""
+	selected_campaign_filter = _recommended_campaign_filter(active_region)
+	selected_campaign_stage_index = 0
+	selected_schedule_route_key = "primary_route"
+	selected_formation_key = "assault"
+	selected_activation_preset_key = "assault"
+	selected_directive_key = "assault"
+	selected_decision_key = "assault"
+	selected_confirmation_key = "assault"
 
 
 func _render_missing_data() -> void:
@@ -548,33 +1363,41 @@ func _render_missing_data() -> void:
 func _render_world() -> void:
 	title_label.text = "阿瑞利亚生态世界"
 	var world_meta: Dictionary = world_data.get("world", {})
-	subtitle_label.text = "Tick %s · 已加载 %s/%s 区域" % [
+	var subtitle := "Tick %s · 已加载 %s/%s 区域" % [
 		str(world_meta.get("tick", 0)),
 		str(world_meta.get("loaded_regions", 0)),
 		str(world_meta.get("total_regions", 0)),
 	]
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+	if not latest_report.is_empty():
+		subtitle += " · 最近回执：%s" % str(latest_report.get("region_name", "未知区域"))
+	subtitle_label.text = subtitle
 	status_label.text = "系统栏 · Godot 世界地图前端 · 中文界面 · 读取 Python 导出的世界状态"
+	if not latest_report.is_empty():
+		status_label.text += " · %s" % str(latest_report.get("summary", ""))
+		if _latest_expedition_report_pending():
+			status_label.text += " · 待回灌：点击应用回合"
+		var handoff_region_id := str(latest_report.get("target_region_id", ""))
+		if handoff_region_id != "" and detail_cache.has(handoff_region_id):
+			var handoff_detail: Dictionary = detail_cache.get(handoff_region_id, {})
+			status_label.text += " · 已承接到下一段：%s" % str(handoff_detail.get("name", handoff_region_id))
 	queue_redraw()
 	_sync_frontier_focus()
+	selected_tab = "overview"
 
 	for child in footer_command_holder.get_children():
 		child.queue_free()
-	footer_command_holder.add_child(_make_tabs(_active_region_accent()))
+	footer_command_holder.add_child(_make_terminal_footer(detail_cache.get(active_region_id, world_data.get("active_region", {})), _active_region_accent()))
 
 	for child in map_layer.get_children():
 		child.queue_free()
 	for child in side_box.get_children():
 		child.queue_free()
 
-	_build_world_backdrop()
-	_build_world_ambience()
-	_build_focus_stage(world_meta.get("regions", []))
-	_build_route_lines(world_meta.get("regions", []))
-	_build_frontier_network_overlay(world_meta.get("regions", []))
-	_build_campaign_overlay(world_meta.get("regions", []))
-	_build_map_nodes(world_meta.get("regions", []))
-	_build_map_command_layer()
+	_build_realistic_map_canvas(world_meta.get("regions", []))
+	_build_map_hit_areas(world_meta.get("regions", []))
 	_build_side_panel()
+	_refresh_game_hud()
 
 
 func _sync_frontier_focus() -> void:
@@ -602,6 +1425,8 @@ func _sync_campaign_focus(active_region: Dictionary) -> void:
 		selected_campaign_stage_index = 0
 		selected_campaign_landing_target_id = ""
 		return
+	if selected_campaign_filter == "balanced":
+		selected_campaign_filter = _recommended_campaign_filter(active_region)
 	for campaign_variant in campaigns:
 		var campaign: Dictionary = campaign_variant
 		if str(campaign.get("target_region_id", "")) == selected_campaign_target_id:
@@ -621,6 +1446,14 @@ func _sync_campaign_stage(active_region: Dictionary) -> void:
 	if route_titles.is_empty():
 		selected_campaign_stage_index = 0
 		return
+	var report := _region_report(str(active_region.get("id", active_region_id)))
+	match _region_route_lock_tag(report):
+		"快取锁定":
+			selected_campaign_stage_index = 0
+			return
+		"深挖锁定":
+			selected_campaign_stage_index = min(1, route_titles.size() - 1)
+			return
 	selected_campaign_stage_index = clampi(selected_campaign_stage_index, 0, route_titles.size() - 1)
 
 
@@ -629,16 +1462,41 @@ func _sync_campaign_landing(active_region: Dictionary) -> void:
 	if candidates.is_empty():
 		selected_campaign_landing_target_id = ""
 		return
+	var preferred_rotation_target_id := _preferred_rotation_candidate_id(candidates)
+	if preferred_rotation_target_id != "":
+		selected_campaign_landing_target_id = preferred_rotation_target_id
+		return
 	for candidate_variant in candidates:
 		var candidate: Dictionary = candidate_variant
 		if str(candidate.get("target_region_id", "")) == selected_campaign_landing_target_id:
 			return
-	var active_stage := _active_campaign_stage(active_region)
-	var stage_target_id := str(active_stage.get("target_region_id", ""))
-	if stage_target_id != "":
-		selected_campaign_landing_target_id = stage_target_id
-		return
 	selected_campaign_landing_target_id = str((candidates[0] as Dictionary).get("target_region_id", ""))
+
+
+func _recommended_campaign_filter(active_region: Dictionary) -> String:
+	var report := _region_report(str(active_region.get("id", active_region_id)))
+	match _region_management_priority_tag(report):
+		"主力快取经营区", "重点快取经营区":
+			return "safe"
+		"主力深挖经营区", "重点深挖经营区":
+			return "rich"
+	match _region_route_lock_tag(report):
+		"快取锁定":
+			return "safe"
+		"深挖锁定":
+			return "rich"
+	match _region_archive_route_tag(report):
+		"默认短推进路线", "偏短推进路线":
+			return "safe"
+		"默认连续复核路线", "偏连续复核路线":
+			return "rich"
+		_:
+			var shaping_tag := _region_route_shaping_tag(report)
+			if shaping_tag.begins_with("快取塑形"):
+				return "safe"
+			if shaping_tag.begins_with("深挖塑形"):
+				return "rich"
+			return "balanced"
 
 
 func _apply_activation_feedback(active_region: Dictionary) -> void:
@@ -988,12 +1846,16 @@ func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 	var active_frontier := _active_frontier_link(active_region)
 	var active_network := _active_frontier_network(active_region)
 	var active_feedback := _active_activation_feedback(active_region)
+	var active_report := _region_report(str(active_region.get("id", active_region_id)))
+	var report_channel := str(active_report.get("top_intel_channel", ""))
+	var active_window_tag := str(active_report.get("event_window_title", _region_event_window_tag(active_region)))
 	var candidates: Array = []
 	var seen := {}
 
 	var frontier_target_id := str(active_frontier.get("target_region_id", ""))
 	if frontier_target_id != "" and detail_cache.has(frontier_target_id):
 		var landing_detail: Dictionary = detail_cache.get(frontier_target_id, {})
+		var frontier_report := _region_report(frontier_target_id)
 		candidates.append(
 			{
 				"target_region_id": frontier_target_id,
@@ -1002,6 +1864,45 @@ func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 				"prosperity": float(landing_detail.get("health_state", {}).get("prosperity", 0.0)),
 				"risk": float(landing_detail.get("health_state", {}).get("collapse_risk", 0.0)),
 				"stage_label": "第一阶段",
+				"report_channel": str(frontier_report.get("top_intel_channel", "")),
+				"report_intel": int(frontier_report.get("intel", 0)),
+				"report_risk": float(frontier_report.get("risk", 0.0)),
+				"event_window": _region_event_window_text(landing_detail),
+				"event_window_tag": _region_event_window_tag(landing_detail),
+				"known_tag": _region_known_tag(frontier_report),
+				"specialization_mode": _region_specialization_mode(frontier_report),
+				"specialization_tag": _region_specialization_tag(frontier_report),
+				"specialization_run_tag": _region_specialization_run_tag(frontier_report),
+				"dominant_run_style": _region_dominant_run_style(frontier_report),
+				"dominant_route_style": _region_dominant_route_style(frontier_report),
+				"route_style_streak": _region_route_style_streak(frontier_report),
+				"route_shaping_tag": _region_route_shaping_tag(frontier_report),
+				"route_lock_tag": _region_route_lock_tag(frontier_report),
+				"route_lock_completed": _region_lock_completion_tag(frontier_report),
+				"management_priority_tag": _region_management_priority_tag(frontier_report),
+				"management_backbone_tag": _region_management_backbone_tag(frontier_report),
+				"backbone_completion_tag": str(frontier_report.get("backbone_completion_tag", "")),
+				"management_rotation_phase": str(frontier_report.get("management_rotation_phase", "常规经营")),
+				"first_segment_completed": bool(frontier_report.get("first_segment_completed", false)),
+				"second_segment_completed": bool(frontier_report.get("second_segment_completed", false)),
+				"branch_mode": str(frontier_report.get("branch_mode", "")),
+				"branch_completed": bool(frontier_report.get("branch_completed", false)),
+				"branch_completion_tag": _region_branch_completion_tag(frontier_report),
+				"branch_stability_tag": _region_branch_stability_tag(frontier_report),
+				"branch_completion_counts": frontier_report.get("branch_completion_counts", {}),
+				"branch_completion_streak": int(frontier_report.get("branch_completion_streak", 0)),
+				"primary_lock_zone": bool(frontier_report.get("primary_lock_zone", false)),
+				"backbone_completed": bool(frontier_report.get("backbone_completed", false)),
+				"backbone_completion_counts": frontier_report.get("backbone_completion_counts", {}),
+				"backbone_completion_streak": int(frontier_report.get("backbone_completion_streak", 0)),
+				"handoff_completed": bool(frontier_report.get("handoff_completed", false)),
+				"handoff_completion_count": int(frontier_report.get("handoff_completion_count", 0)),
+				"handoff_completion_streak": int(frontier_report.get("handoff_completion_streak", 0)),
+				"handoff_source_region": str(frontier_report.get("handoff_source_region", "")),
+				"run_profile_tag": _region_run_profile_tag(frontier_report),
+				"archive_tier": _region_archive_tier(frontier_report),
+				"archive_progress": _region_archive_progress(frontier_report),
+				"archive_ratio": _region_archive_ratio(frontier_report),
 			}
 		)
 		seen[frontier_target_id] = true
@@ -1012,6 +1913,7 @@ func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 		if branch_id == "" or seen.has(branch_id):
 			continue
 		var branch_detail: Dictionary = detail_cache.get(branch_id, {})
+		var branch_report := _region_report(branch_id)
 		candidates.append(
 			{
 				"target_region_id": branch_id,
@@ -1020,6 +1922,45 @@ func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 				"prosperity": float(branch_detail.get("health_state", {}).get("prosperity", branch.get("target_prosperity", 0.0))),
 				"risk": float(branch_detail.get("health_state", {}).get("collapse_risk", branch.get("target_risk", 0.0))),
 				"stage_label": "第二阶段",
+				"report_channel": str(branch_report.get("top_intel_channel", "")),
+				"report_intel": int(branch_report.get("intel", 0)),
+				"report_risk": float(branch_report.get("risk", 0.0)),
+				"event_window": _region_event_window_text(branch_detail),
+				"event_window_tag": _region_event_window_tag(branch_detail),
+				"known_tag": _region_known_tag(branch_report),
+				"specialization_mode": _region_specialization_mode(branch_report),
+				"specialization_tag": _region_specialization_tag(branch_report),
+				"specialization_run_tag": _region_specialization_run_tag(branch_report),
+				"dominant_run_style": _region_dominant_run_style(branch_report),
+				"dominant_route_style": _region_dominant_route_style(branch_report),
+				"route_style_streak": _region_route_style_streak(branch_report),
+				"route_shaping_tag": _region_route_shaping_tag(branch_report),
+				"route_lock_tag": _region_route_lock_tag(branch_report),
+				"route_lock_completed": _region_lock_completion_tag(branch_report),
+				"management_priority_tag": _region_management_priority_tag(branch_report),
+				"management_backbone_tag": _region_management_backbone_tag(branch_report),
+				"backbone_completion_tag": str(branch_report.get("backbone_completion_tag", "")),
+				"management_rotation_phase": str(branch_report.get("management_rotation_phase", "常规经营")),
+				"first_segment_completed": bool(branch_report.get("first_segment_completed", false)),
+				"second_segment_completed": bool(branch_report.get("second_segment_completed", false)),
+				"branch_mode": str(branch_report.get("branch_mode", "")),
+				"branch_completed": bool(branch_report.get("branch_completed", false)),
+				"branch_completion_tag": _region_branch_completion_tag(branch_report),
+				"branch_stability_tag": _region_branch_stability_tag(branch_report),
+				"branch_completion_counts": branch_report.get("branch_completion_counts", {}),
+				"branch_completion_streak": int(branch_report.get("branch_completion_streak", 0)),
+				"primary_lock_zone": bool(branch_report.get("primary_lock_zone", false)),
+				"backbone_completed": bool(branch_report.get("backbone_completed", false)),
+				"backbone_completion_counts": branch_report.get("backbone_completion_counts", {}),
+				"backbone_completion_streak": int(branch_report.get("backbone_completion_streak", 0)),
+				"handoff_completed": bool(branch_report.get("handoff_completed", false)),
+				"handoff_completion_count": int(branch_report.get("handoff_completion_count", 0)),
+				"handoff_completion_streak": int(branch_report.get("handoff_completion_streak", 0)),
+				"handoff_source_region": str(branch_report.get("handoff_source_region", "")),
+				"run_profile_tag": _region_run_profile_tag(branch_report),
+				"archive_tier": _region_archive_tier(branch_report),
+				"archive_progress": _region_archive_progress(branch_report),
+				"archive_ratio": _region_archive_ratio(branch_report),
 			}
 		)
 		seen[branch_id] = true
@@ -1029,19 +1970,411 @@ func _campaign_landing_candidates(active_region: Dictionary) -> Array:
 		var prosperity := float(candidate.get("prosperity", 0.0))
 		var risk := float(candidate.get("risk", 0.0))
 		var loop_boost := 0.0
+		var report_boost := _campaign_report_bias(active_region, candidate, report_channel)
+		var window_boost := _campaign_window_bias(candidate, active_window_tag)
+		var archive_boost := _campaign_archive_bias(candidate)
 		if str(candidate.get("target_region_id", "")) == str(active_feedback.get("priority_target_id", "")):
 			loop_boost += 0.16
 		if str(candidate.get("stage_label", "")) == str(active_feedback.get("recommended_stage_title", "")):
 			loop_boost += 0.08
+		candidate["report_note"] = _campaign_report_note(candidate, report_channel)
 		candidate["score_balanced"] = floor((prosperity * 0.64 + (1.0 - risk) * 0.36) * 10000.0 + 0.5) / 10000.0
 		candidate["score_safe"] = floor(((1.0 - risk) * 0.72 + prosperity * 0.28) * 10000.0 + 0.5) / 10000.0
 		candidate["score_rich"] = floor((prosperity * 0.82 + (1.0 - risk) * 0.18) * 10000.0 + 0.5) / 10000.0
 		candidate["score_risk"] = floor((risk * 0.78 + prosperity * 0.22) * 10000.0 + 0.5) / 10000.0
 		candidate["loop_boost"] = floor(loop_boost * 10000.0 + 0.5) / 10000.0
+		candidate["report_boost"] = floor(report_boost * 10000.0 + 0.5) / 10000.0
+		candidate["window_boost"] = floor(window_boost * 10000.0 + 0.5) / 10000.0
+		candidate["archive_boost"] = floor(archive_boost * 10000.0 + 0.5) / 10000.0
+		candidate["score_balanced"] = float(candidate.get("score_balanced", 0.0)) + report_boost + window_boost + archive_boost
+		candidate["score_safe"] = float(candidate.get("score_safe", 0.0)) + max(report_boost * 0.72, 0.0) + max(window_boost * 0.56, 0.0) + max(archive_boost * 0.80, 0.0)
+		candidate["score_rich"] = float(candidate.get("score_rich", 0.0)) + max(report_boost * 0.84, 0.0) + max(window_boost * 0.72, 0.0) + max(archive_boost * 0.92, 0.0)
+		candidate["score_risk"] = float(candidate.get("score_risk", 0.0)) + min(report_boost * 0.48, 0.08) + min(window_boost * 0.60, 0.10) + min(archive_boost * 0.40, 0.06)
 		candidate["score"] = float(candidate.get("score_balanced", 0.0)) + loop_boost
 
 	_apply_campaign_filter(candidates)
 	return candidates
+
+
+func _campaign_window_bias(candidate: Dictionary, active_window_tag: String) -> float:
+	var candidate_window := str(candidate.get("event_window_tag", "观察窗"))
+	var bias := 0.0
+	if active_window_tag != "" and candidate_window == active_window_tag:
+		bias += 0.10
+	match selected_campaign_filter:
+		"safe":
+			if candidate_window in ["水源窗", "栖地窗", "观察窗"]:
+				bias += 0.04
+		"rich":
+			if candidate_window in ["迁徙窗", "腐食窗", "栖地窗"]:
+				bias += 0.05
+		"risk":
+			if candidate_window in ["压迫窗", "高风险窗"]:
+				bias += 0.07
+	return bias
+
+
+func _campaign_report_bias(active_region: Dictionary, candidate: Dictionary, active_report_channel: String) -> float:
+	var report_channel := str(candidate.get("report_channel", ""))
+	var report_intel := float(candidate.get("report_intel", 0))
+	var report_risk := float(candidate.get("report_risk", candidate.get("risk", 0.0)))
+	var role := str(candidate.get("role", ""))
+	var candidate_id := str(candidate.get("target_region_id", ""))
+	var active_id := str(active_region.get("id", active_region_id))
+	var specialization_mode := str(candidate.get("specialization_mode", "基础线"))
+	var dominant_run_style := str(candidate.get("dominant_run_style", "基础观察"))
+	var route_lock_tag := str(candidate.get("route_lock_tag", "未锁定"))
+	var management_tag := str(candidate.get("management_priority_tag", "常规经营区"))
+	var management_phase := str(candidate.get("management_rotation_phase", "常规经营"))
+	var handoff_completed := bool(candidate.get("handoff_completed", false))
+	var handoff_completion_count := int(candidate.get("handoff_completion_count", 0))
+	var handoff_completion_streak := int(candidate.get("handoff_completion_streak", 0))
+	var handoff_source_region := str(candidate.get("handoff_source_region", ""))
+	var first_segment_completed := bool(candidate.get("first_segment_completed", false))
+	var second_segment_completed := bool(candidate.get("second_segment_completed", false))
+	var branch_mode := str(candidate.get("branch_mode", ""))
+	var branch_completed := bool(candidate.get("branch_completed", false))
+	var branch_stability_tag := str(candidate.get("branch_stability_tag", "分支未定型"))
+	var backbone_completed := bool(candidate.get("backbone_completed", false))
+	var backbone_completion_streak := int(candidate.get("backbone_completion_streak", 0))
+	var backbone_tag := _region_management_backbone_tag({
+		"management_priority_tag": management_tag,
+		"branch_mode": branch_mode,
+		"branch_completed": branch_completed,
+		"branch_completion_tag": candidate.get("branch_completion_tag", ""),
+		"branch_completion_counts": candidate.get("branch_completion_counts", {}),
+		"branch_completion_streak": candidate.get("branch_completion_streak", 0),
+	})
+	var bias := 0.0
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+
+	if active_report_channel != "" and active_report_channel == report_channel:
+		bias += 0.12
+	if active_report_channel == "水源" and (role.contains("湿地") or candidate_id.contains("wetland")):
+		bias += 0.10
+	if active_report_channel == "迁徙" and (role.contains("草原") or candidate_id.contains("grassland")):
+		bias += 0.10
+	if active_report_channel == "栖地" and (role.contains("森林") or candidate_id.contains("forest")):
+		bias += 0.10
+	if active_report_channel == "腐食" and (role.contains("海岸") or candidate_id.contains("coast")):
+		bias += 0.08
+	if active_report_channel == "压迫":
+		bias += 0.05 if selected_campaign_filter == "risk" else -0.03
+
+	if selected_campaign_filter == "safe":
+		bias += clamp((1.0 - report_risk) * 0.10, 0.0, 0.10)
+	elif selected_campaign_filter == "rich":
+		bias += clamp(report_intel / 40.0, 0.0, 0.10)
+	elif selected_campaign_filter == "risk":
+		bias += clamp(report_risk * 0.12, 0.0, 0.12)
+
+	if candidate_id == active_id:
+		bias -= 0.06
+	if selected_campaign_filter == "safe" and specialization_mode == "快取线":
+		bias += 0.04
+	elif selected_campaign_filter == "rich" and specialization_mode == "深挖线":
+		bias += 0.05
+	elif selected_campaign_filter == "risk" and specialization_mode == "快取线":
+		bias += 0.03
+	if selected_campaign_filter == "safe" and dominant_run_style == "快取完成":
+		bias += 0.05
+	elif selected_campaign_filter == "rich" and dominant_run_style == "深挖完成":
+		bias += 0.06
+	elif selected_campaign_filter == "risk" and dominant_run_style == "快取完成":
+		bias += 0.02
+	if route_lock_tag == "快取锁定":
+		bias += 0.06 if selected_campaign_filter == "safe" else 0.02
+	elif route_lock_tag == "深挖锁定":
+		bias += 0.07 if selected_campaign_filter == "rich" else 0.02
+	match management_tag:
+		"主力快取经营区":
+			bias += 0.10 if selected_campaign_filter == "safe" else 0.03
+		"主力深挖经营区":
+			bias += 0.11 if selected_campaign_filter == "rich" else 0.03
+		"重点快取经营区":
+			bias += 0.05 if selected_campaign_filter == "safe" else 0.02
+		"重点深挖经营区":
+			bias += 0.06 if selected_campaign_filter == "rich" else 0.02
+	match management_phase:
+		"主经营第一段":
+			bias += 0.08
+		"主经营第二段":
+			bias += 0.03
+		"单区快取主经营", "单区深挖主经营":
+			bias += 0.05
+	if handoff_source_region != "":
+		bias += 0.01
+		if handoff_completed:
+			bias += 0.05
+			if handoff_completion_streak >= 2:
+				bias += 0.03
+			elif handoff_completion_count >= 4:
+				bias += 0.02
+			if management_phase in ["主经营第一段", "单区快取主经营", "单区深挖主经营"]:
+				bias += 0.03
+	if first_segment_completed:
+		bias += 0.04
+	if second_segment_completed:
+		bias += 0.06
+	if branch_mode == "deep_expand":
+		bias += 0.07 if selected_campaign_filter == "rich" else 0.02
+		if branch_completed:
+			bias += 0.04 if selected_campaign_filter == "rich" else 0.01
+	elif branch_mode == "quick_close":
+		bias += 0.07 if selected_campaign_filter == "safe" else 0.02
+		if branch_completed:
+			bias += 0.04 if selected_campaign_filter == "safe" else 0.01
+	if branch_stability_tag == "稳定扩线区":
+		bias += 0.08 if selected_campaign_filter == "rich" else 0.02
+	elif branch_stability_tag == "稳定收束区":
+		bias += 0.08 if selected_campaign_filter == "safe" else 0.02
+	elif branch_stability_tag == "扩线塑形中":
+		bias += 0.04 if selected_campaign_filter == "rich" else 0.01
+	elif branch_stability_tag == "收束塑形中":
+		bias += 0.04 if selected_campaign_filter == "safe" else 0.01
+	if backbone_tag == "快取经营骨干区":
+		bias += 0.12 if selected_campaign_filter == "safe" else 0.03
+	elif backbone_tag == "深挖经营骨干区":
+		bias += 0.12 if selected_campaign_filter == "rich" else 0.03
+	if backbone_completed:
+		if backbone_tag == "快取经营骨干区":
+			bias += 0.05 if selected_campaign_filter == "safe" else 0.01
+		elif backbone_tag == "深挖经营骨干区":
+			bias += 0.05 if selected_campaign_filter == "rich" else 0.01
+	if backbone_completion_streak >= 3:
+		if backbone_tag == "快取经营骨干区":
+			bias += 0.04 if selected_campaign_filter == "safe" else 0.01
+		elif backbone_tag == "深挖经营骨干区":
+			bias += 0.04 if selected_campaign_filter == "rich" else 0.01
+	if not latest_report.is_empty() and bool(latest_report.get("first_segment_completed", false)):
+		var latest_target_region_id := str(latest_report.get("target_region_id", ""))
+		if latest_target_region_id != "" and latest_target_region_id == candidate_id:
+			bias += 0.10
+			if management_phase == "主经营第二段":
+				bias += 0.05
+	if not latest_report.is_empty() and bool(latest_report.get("second_segment_completed", false)):
+		var latest_second_segment_region_id := str(latest_report.get("region_id", ""))
+		if latest_second_segment_region_id != "" and latest_second_segment_region_id == candidate_id:
+			bias += 0.08
+	if not latest_report.is_empty() and bool(latest_report.get("branch_completed", false)):
+		var latest_target_region_id := str(latest_report.get("target_region_id", ""))
+		var latest_branch_mode := str(latest_report.get("branch_mode", ""))
+		if latest_target_region_id != "" and latest_target_region_id == candidate_id:
+			bias += 0.10
+			if latest_branch_mode == "deep_expand" and selected_campaign_filter == "rich":
+				bias += 0.04
+			elif latest_branch_mode == "quick_close" and selected_campaign_filter == "safe":
+				bias += 0.04
+	if str(candidate.get("route_lock_completed", "未成型")) == "锁定跑成":
+		bias += 0.04
+	bias += _campaign_run_profile_route_bias(candidate)
+
+	return bias
+
+
+func _campaign_archive_bias(candidate: Dictionary) -> float:
+	var archive_tier := str(candidate.get("archive_tier", "未建档"))
+	var archive_ratio := float(candidate.get("archive_ratio", 0.0))
+	var dominant_run_style := str(candidate.get("dominant_run_style", "基础观察"))
+	var dominant_route_style := str(candidate.get("dominant_route_style", "base"))
+	var route_style_streak := int(candidate.get("route_style_streak", 0))
+	var route_shaping_tag := str(candidate.get("route_shaping_tag", "塑形待定"))
+	var route_lock_tag := str(candidate.get("route_lock_tag", "未锁定"))
+	var route_lock_completed := str(candidate.get("route_lock_completed", "未成型"))
+	var management_tag := str(candidate.get("management_priority_tag", "常规经营区"))
+	var backbone_tag := _region_management_backbone_tag({
+		"management_priority_tag": management_tag,
+		"branch_mode": candidate.get("branch_mode", ""),
+		"branch_completed": candidate.get("branch_completed", false),
+		"branch_completion_tag": candidate.get("branch_completion_tag", ""),
+		"branch_completion_counts": candidate.get("branch_completion_counts", {}),
+		"branch_completion_streak": candidate.get("branch_completion_streak", 0),
+	})
+	var backbone_completed := bool(candidate.get("backbone_completed", false))
+	var backbone_completion_streak := int(candidate.get("backbone_completion_streak", 0))
+	var bias := archive_ratio * 0.04
+	match archive_tier:
+		"已知档案":
+			bias += 0.02
+		"熟悉档案":
+			bias += 0.05
+		"定型档案":
+			bias += 0.08
+	match selected_campaign_filter:
+		"safe":
+			if dominant_run_style in ["快取完成", "快取未完成"]:
+				bias += 0.03
+			if dominant_route_style == "quick" and route_style_streak >= 3:
+				bias += 0.03
+			if route_shaping_tag in ["快取塑形中", "快取塑形稳固"]:
+				bias += 0.02
+			if route_lock_tag == "快取锁定":
+				bias += 0.04
+			if route_lock_completed == "锁定跑成":
+				bias += 0.03
+			if management_tag in ["重点快取经营区", "主力快取经营区"]:
+				bias += 0.03 if management_tag == "重点快取经营区" else 0.06
+		"rich":
+			if dominant_run_style in ["深挖完成", "深挖未完成"]:
+				bias += 0.04
+			if dominant_route_style == "deep" and route_style_streak >= 3:
+				bias += 0.04
+			if route_shaping_tag in ["深挖塑形中", "深挖塑形稳固"]:
+				bias += 0.03
+			if route_lock_tag == "深挖锁定":
+				bias += 0.05
+			if route_lock_completed == "锁定跑成":
+				bias += 0.03
+			if management_tag in ["重点深挖经营区", "主力深挖经营区"]:
+				bias += 0.03 if management_tag == "重点深挖经营区" else 0.06
+		"risk":
+			if archive_tier in ["熟悉档案", "定型档案"]:
+				bias -= 0.02
+	if backbone_tag != "":
+		bias += 0.06
+		if backbone_completed:
+			bias += 0.04
+		if backbone_completion_streak >= 3:
+			bias += 0.03
+	return bias
+
+
+func _campaign_run_profile_route_bias(candidate: Dictionary) -> float:
+	var stage_label := str(candidate.get("stage_label", "落点"))
+	var dominant_run_style := str(candidate.get("dominant_run_style", "基础观察"))
+	var route_lock_tag := str(candidate.get("route_lock_tag", "未锁定"))
+	var bias := 0.0
+	if route_lock_tag == "快取锁定":
+		if stage_label == "第一阶段":
+			bias += 0.08
+		else:
+			bias -= 0.03
+	if route_lock_tag == "深挖锁定":
+		if stage_label == "第二阶段":
+			bias += 0.10
+		else:
+			bias -= 0.03
+	match dominant_run_style:
+		"快取完成":
+			if stage_label == "第一阶段":
+				bias += 0.05
+			else:
+				bias -= 0.02
+		"深挖完成":
+			if stage_label == "第二阶段":
+				bias += 0.06
+			else:
+				bias -= 0.01
+		"快取未完成":
+			if stage_label == "第一阶段":
+				bias += 0.03
+		"深挖未完成":
+			if stage_label == "第二阶段":
+				bias += 0.03
+	match selected_campaign_filter:
+		"safe":
+			if dominant_run_style in ["快取完成", "快取未完成"]:
+				bias += 0.03
+		"rich":
+			if dominant_run_style in ["深挖完成", "深挖未完成"]:
+				bias += 0.04
+	return bias
+
+
+func _campaign_report_note(candidate: Dictionary, active_report_channel: String) -> String:
+	var report_channel := str(candidate.get("report_channel", ""))
+	var report_intel := int(candidate.get("report_intel", 0))
+	var report_risk := float(candidate.get("report_risk", candidate.get("risk", 0.0)))
+	if report_channel == "":
+		return "暂无最近回执，按区域总态推进"
+	var note := "最近回执 · %s %d" % [report_channel, report_intel]
+	if active_report_channel != "" and active_report_channel == report_channel:
+		note += " · 与当前主情报同向"
+	elif report_risk >= 0.65:
+		note += " · 高风险回线"
+	elif report_risk <= 0.35:
+		note += " · 低风险回线"
+	if candidate.has("known_tag"):
+		note += " · %s" % str(candidate.get("known_tag", ""))
+	if candidate.has("specialization_tag"):
+		note += " · %s" % str(candidate.get("specialization_tag", "基础线"))
+	if candidate.has("specialization_run_tag"):
+		note += " · %s" % str(candidate.get("specialization_run_tag", "基础观察"))
+	if candidate.has("run_profile_tag"):
+		note += " · %s" % str(candidate.get("run_profile_tag", "基础观察"))
+	if candidate.has("archive_tier"):
+		note += " · %s %d" % [str(candidate.get("archive_tier", "未建档")), int(candidate.get("archive_progress", 0))]
+		note += " · %s" % _region_archive_strategy_tag({
+			"archive_tier": candidate.get("archive_tier", "未建档"),
+			"dominant_run_style": candidate.get("dominant_run_style", "基础观察"),
+		})
+		note += " · %s" % _region_archive_route_tag({
+			"archive_tier": candidate.get("archive_tier", "未建档"),
+			"dominant_run_style": candidate.get("dominant_run_style", "基础观察"),
+		})
+	if candidate.has("route_shaping_tag"):
+		note += " · %s" % str(candidate.get("route_shaping_tag", "塑形待定"))
+	if candidate.has("management_rotation_phase"):
+		var management_phase := str(candidate.get("management_rotation_phase", "常规经营"))
+		if management_phase != "常规经营":
+			note += " · %s" % management_phase
+			if management_phase == "主经营第一段":
+				note += " · 当前默认下一段"
+	if bool(candidate.get("first_segment_completed", false)):
+		note += " · 第一站跑成"
+	if bool(candidate.get("second_segment_completed", false)):
+		note += " · 第二段接稳"
+	var branch_completion_tag := str(candidate.get("branch_completion_tag", "非分支段"))
+	if branch_completion_tag != "非分支段":
+		note += " · %s" % branch_completion_tag
+	var branch_stability_tag := str(candidate.get("branch_stability_tag", "分支未定型"))
+	if branch_stability_tag != "分支未定型":
+		note += " · %s" % branch_stability_tag
+	if candidate.has("handoff_source_region"):
+		var handoff_source_region := str(candidate.get("handoff_source_region", ""))
+		if handoff_source_region != "":
+			var handoff_tag := "承接跑成" if bool(candidate.get("handoff_completed", false)) else "承接未跑成"
+			note += " · %s" % handoff_tag
+			note += " · 承接自%s" % handoff_source_region
+			var handoff_streak := int(candidate.get("handoff_completion_streak", 0))
+			var handoff_count := int(candidate.get("handoff_completion_count", 0))
+			if handoff_streak >= 2:
+				note += " · 承接连成 %d" % handoff_streak
+			elif handoff_count >= 2:
+				note += " · 承接累计 %d" % handoff_count
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+	if not latest_report.is_empty() and bool(latest_report.get("first_segment_completed", false)):
+		var latest_target_region_id := str(latest_report.get("target_region_id", ""))
+		if latest_target_region_id != "" and latest_target_region_id == str(candidate.get("target_region_id", "")):
+			note += " · 上一段第一站已跑成，当前承接下一段"
+	if not latest_report.is_empty() and bool(latest_report.get("second_segment_completed", false)):
+		var latest_region_id := str(latest_report.get("region_id", ""))
+		if latest_region_id != "" and latest_region_id == str(candidate.get("target_region_id", "")):
+			note += " · 第二段已接稳"
+	if not latest_report.is_empty() and bool(latest_report.get("branch_completed", false)):
+		var latest_target_region_id := str(latest_report.get("target_region_id", ""))
+		if latest_target_region_id != "" and latest_target_region_id == str(candidate.get("target_region_id", "")):
+			note += " · 上一段%s，当前继续承接" % _region_branch_completion_tag(latest_report)
+	if candidate.has("route_lock_tag"):
+		var route_lock_tag := str(candidate.get("route_lock_tag", "未锁定"))
+		if route_lock_tag != "未锁定":
+			note += " · %s" % route_lock_tag
+	if candidate.has("route_lock_completed"):
+		var route_lock_completed := str(candidate.get("route_lock_completed", "未成型"))
+		if route_lock_completed != "未成型":
+			note += " · %s" % route_lock_completed
+	var dominant_run_style := str(candidate.get("dominant_run_style", "基础观察"))
+	var stage_label := str(candidate.get("stage_label", "落点"))
+	var route_lock_tag := str(candidate.get("route_lock_tag", "未锁定"))
+	if route_lock_tag == "快取锁定":
+		note += " · 默认短推进"
+	elif route_lock_tag == "深挖锁定":
+		note += " · 默认连续复核"
+	elif dominant_run_style == "快取完成" and stage_label == "第一阶段":
+		note += " · 适合短推进"
+	elif dominant_run_style == "深挖完成" and stage_label == "第二阶段":
+		note += " · 适合连续深挖"
+	return note
 
 
 func _campaign_filter_label() -> String:
@@ -1074,51 +2407,409 @@ func _apply_campaign_filter(candidates: Array) -> void:
 	)
 
 
+func _campaign_management_rotation_plan(candidates: Array) -> Dictionary:
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+	if not latest_report.is_empty() and bool(latest_report.get("second_segment_completed", false)):
+		var branch_plan := _campaign_post_second_segment_plan(candidates, latest_report)
+		if not branch_plan.is_empty():
+			return branch_plan
+	var primary_quick: Dictionary = {}
+	var primary_deep: Dictionary = {}
+	for candidate_variant in candidates:
+		var candidate: Dictionary = candidate_variant
+		match str(candidate.get("management_priority_tag", "常规经营区")):
+			"主力快取经营区":
+				if primary_quick.is_empty() or _candidate_management_rotation_strength(candidate) > _candidate_management_rotation_strength(primary_quick):
+					primary_quick = candidate
+			"主力深挖经营区":
+				if primary_deep.is_empty() or _candidate_management_rotation_strength(candidate) > _candidate_management_rotation_strength(primary_deep):
+					primary_deep = candidate
+	if primary_quick.is_empty() and primary_deep.is_empty():
+		return {"tag": "常规经营", "summary": "当前没有主力经营区，按总态与窗口推进。"}
+	if primary_quick.is_empty():
+		var deep_suffix := _candidate_rotation_strength_note(primary_deep)
+		var deep_lead := "当前先巩固深挖经营骨干区" if str(primary_deep.get("backbone_completion_tag", "")) != "" else "当前先经营主力深挖区"
+		return {
+			"tag": "优先深挖经营",
+			"summary": "%s %s%s，再沿复核链继续扩样。" % [deep_lead, str(primary_deep.get("name", "")), deep_suffix],
+			"preferred_target_region_id": str(primary_deep.get("target_region_id", "")),
+		}
+	if primary_deep.is_empty():
+		var quick_suffix := _candidate_rotation_strength_note(primary_quick)
+		var quick_lead := "当前先巩固快取经营骨干区" if str(primary_quick.get("backbone_completion_tag", "")) != "" else "当前先经营主力快取区"
+		return {
+			"tag": "优先快取经营",
+			"summary": "%s %s%s，拿到关键样本后快速撤离。" % [quick_lead, str(primary_quick.get("name", "")), quick_suffix],
+			"preferred_target_region_id": str(primary_quick.get("target_region_id", "")),
+		}
+	var quick_score := _candidate_management_rotation_strength(primary_quick)
+	var deep_score := _candidate_management_rotation_strength(primary_deep)
+	if quick_score >= deep_score:
+		var quick_lead := "当前先巩固快取经营骨干区" if str(primary_quick.get("backbone_completion_tag", "")) != "" else "当前先经营主力快取区"
+		return {
+			"tag": "快取转深挖",
+			"summary": "%s %s%s，再转主力深挖区 %s%s。" % [
+				quick_lead,
+				str(primary_quick.get("name", "")),
+				_candidate_rotation_strength_note(primary_quick),
+				str(primary_deep.get("name", "")),
+				_candidate_rotation_strength_note(primary_deep),
+			],
+			"preferred_target_region_id": str(primary_quick.get("target_region_id", "")),
+		}
+	var deep_lead := "当前先巩固深挖经营骨干区" if str(primary_deep.get("backbone_completion_tag", "")) != "" else "当前先经营主力深挖区"
+	return {
+		"tag": "深挖转快取",
+		"summary": "%s %s%s，再转主力快取区 %s%s。" % [
+			deep_lead,
+			str(primary_deep.get("name", "")),
+			_candidate_rotation_strength_note(primary_deep),
+			str(primary_quick.get("name", "")),
+			_candidate_rotation_strength_note(primary_quick),
+		],
+		"preferred_target_region_id": str(primary_deep.get("target_region_id", "")),
+	}
+
+
+func _campaign_post_second_segment_plan(candidates: Array, latest_report: Dictionary) -> Dictionary:
+	var management_tag := str(latest_report.get("management_priority_tag", "常规经营区"))
+	var latest_region_name := str(latest_report.get("region_name", latest_report.get("region_id", "当前区域")))
+	var latest_branch_mode := str(latest_report.get("branch_mode", ""))
+	var latest_branch_completed := bool(latest_report.get("branch_completed", false))
+	if latest_branch_completed and latest_branch_mode == "deep_expand":
+		var deep_candidate := _best_branch_candidate(candidates, "deep")
+		if not deep_candidate.is_empty():
+			return {
+				"tag": "深挖扩线",
+				"summary": "当前 %s 已完成扩线接稳，下一步继续沿深挖线扩线，优先压 %s。" % [
+					latest_region_name,
+					str(deep_candidate.get("name", "")),
+				],
+				"preferred_target_region_id": str(deep_candidate.get("target_region_id", "")),
+			}
+	if latest_branch_completed and latest_branch_mode == "quick_close":
+		var quick_candidate := _best_branch_candidate(candidates, "quick")
+		if not quick_candidate.is_empty():
+			return {
+				"tag": "快取收束",
+				"summary": "当前 %s 已完成收束接稳，下一步沿快取线收束，优先先吃 %s 再准备转场。" % [
+					latest_region_name,
+					str(quick_candidate.get("name", "")),
+				],
+				"preferred_target_region_id": str(quick_candidate.get("target_region_id", "")),
+			}
+	if management_tag in ["主力深挖经营区", "重点深挖经营区"] or str(latest_report.get("route_lock_tag", "未锁定")) == "深挖锁定":
+		var branch_candidate := _best_branch_candidate(candidates, "deep")
+		if not branch_candidate.is_empty():
+			return {
+				"tag": "深挖扩线",
+				"summary": "当前 %s 的第二段已经接稳，下一步沿深挖线继续扩线，优先压 %s。" % [
+					latest_region_name,
+					str(branch_candidate.get("name", "")),
+				],
+				"preferred_target_region_id": str(branch_candidate.get("target_region_id", "")),
+			}
+	if management_tag in ["主力快取经营区", "重点快取经营区"] or str(latest_report.get("route_lock_tag", "未锁定")) == "快取锁定":
+		var branch_candidate := _best_branch_candidate(candidates, "quick")
+		if not branch_candidate.is_empty():
+			return {
+				"tag": "快取收束",
+				"summary": "当前 %s 的第二段已经接稳，下一步沿快取线收束，优先先吃 %s 再准备转场。" % [
+					latest_region_name,
+					str(branch_candidate.get("name", "")),
+				],
+				"preferred_target_region_id": str(branch_candidate.get("target_region_id", "")),
+			}
+	return {}
+
+
+func _best_branch_candidate(candidates: Array, branch_mode: String) -> Dictionary:
+	var best: Dictionary = {}
+	for candidate_variant in candidates:
+		var candidate: Dictionary = candidate_variant
+		var stage_label := str(candidate.get("stage_label", "落点"))
+		if branch_mode == "deep" and stage_label != "第二阶段":
+			continue
+		if branch_mode == "quick" and stage_label != "第一阶段":
+			continue
+		if best.is_empty():
+			best = candidate
+			continue
+		var current_score := _candidate_branch_strength(candidate, branch_mode)
+		var best_score := _candidate_branch_strength(best, branch_mode)
+		if current_score > best_score:
+			best = candidate
+	return best
+
+
+func _candidate_branch_strength(candidate: Dictionary, branch_mode: String) -> float:
+	if branch_mode == "deep":
+		return float(candidate.get("score_rich", candidate.get("score", 0.0))) + _candidate_management_rotation_strength(candidate)
+	return float(candidate.get("score_safe", candidate.get("score", 0.0))) + _candidate_management_rotation_strength(candidate)
+
+
+func _candidate_management_rotation_strength(candidate: Dictionary) -> float:
+	var score := float(candidate.get("score", 0.0))
+	score += float(candidate.get("archive_progress", 0)) * 0.08
+	score += float(candidate.get("handoff_completion_streak", 0)) * 0.20
+	score += float(candidate.get("handoff_completion_count", 0)) * 0.04
+	score += float(candidate.get("backbone_completion_streak", 0)) * 0.28
+	score += float(_region_branch_management_bonus({
+		"branch_mode": candidate.get("branch_mode", ""),
+		"branch_completed": candidate.get("branch_completed", false),
+		"branch_completion_tag": candidate.get("branch_completion_tag", ""),
+		"branch_completion_counts": candidate.get("branch_completion_counts", {}),
+		"branch_completion_streak": candidate.get("branch_completion_streak", 0),
+	})) * 0.90
+	score += float(_region_management_backbone_bonus({
+		"management_priority_tag": candidate.get("management_priority_tag", "常规经营区"),
+		"branch_mode": candidate.get("branch_mode", ""),
+		"branch_completed": candidate.get("branch_completed", false),
+		"branch_completion_tag": candidate.get("branch_completion_tag", ""),
+		"branch_completion_counts": candidate.get("branch_completion_counts", {}),
+		"branch_completion_streak": candidate.get("branch_completion_streak", 0),
+	})) * 1.4
+	if bool(candidate.get("handoff_completed", false)):
+		score += 0.10
+	if bool(candidate.get("backbone_completed", false)):
+		score += 0.16
+	if str(candidate.get("route_lock_completed", "未成型")) == "锁定跑成":
+		score += 0.12
+	return score
+
+
+func _candidate_rotation_strength_note(candidate: Dictionary) -> String:
+	var handoff_streak := int(candidate.get("handoff_completion_streak", 0))
+	var handoff_count := int(candidate.get("handoff_completion_count", 0))
+	var backbone_streak := int(candidate.get("backbone_completion_streak", 0))
+	var backbone_completed := bool(candidate.get("backbone_completed", false))
+	var backbone_completion_tag := str(candidate.get("backbone_completion_tag", ""))
+	var backbone_tag := _region_management_backbone_tag({
+		"management_priority_tag": candidate.get("management_priority_tag", "常规经营区"),
+		"branch_mode": candidate.get("branch_mode", ""),
+		"branch_completed": candidate.get("branch_completed", false),
+		"branch_completion_tag": candidate.get("branch_completion_tag", ""),
+		"branch_completion_counts": candidate.get("branch_completion_counts", {}),
+		"branch_completion_streak": candidate.get("branch_completion_streak", 0),
+	})
+	if backbone_tag != "":
+		if backbone_completion_tag != "":
+			return "（%s）" % backbone_completion_tag
+		if backbone_completed and backbone_streak >= 2:
+			return "（%s · 跑成 %d）" % [backbone_tag, backbone_streak]
+		if backbone_completed:
+			return "（%s · 已跑成）" % backbone_tag
+		return "（%s）" % backbone_tag
+	if handoff_streak >= 3:
+		return "（承接连成 %d）" % handoff_streak
+	if handoff_count >= 4:
+		return "（承接累计 %d）" % handoff_count
+	return ""
+
+
+func _preferred_rotation_candidate_id(candidates: Array) -> String:
+	var rotation_plan := _campaign_management_rotation_plan(candidates)
+	var preferred_target_region_id := str(rotation_plan.get("preferred_target_region_id", ""))
+	if preferred_target_region_id != "":
+		return preferred_target_region_id
+	var best_backbone_completed: Dictionary = {}
+	var best_first_segment: Dictionary = {}
+	var best_single_segment: Dictionary = {}
+	for candidate_variant in candidates:
+		var candidate: Dictionary = candidate_variant
+		var phase := str(candidate.get("management_rotation_phase", "常规经营"))
+		if str(candidate.get("backbone_completion_tag", "")) != "":
+			if best_backbone_completed.is_empty() or _candidate_management_rotation_strength(candidate) > _candidate_management_rotation_strength(best_backbone_completed):
+				best_backbone_completed = candidate
+		if phase == "主经营第一段":
+			if best_first_segment.is_empty() or _candidate_management_rotation_strength(candidate) > _candidate_management_rotation_strength(best_first_segment):
+				best_first_segment = candidate
+		elif phase in ["单区快取主经营", "单区深挖主经营"]:
+			if best_single_segment.is_empty() or _candidate_management_rotation_strength(candidate) > _candidate_management_rotation_strength(best_single_segment):
+				best_single_segment = candidate
+	if not best_backbone_completed.is_empty():
+		return str(best_backbone_completed.get("target_region_id", ""))
+	if not best_first_segment.is_empty():
+		return str(best_first_segment.get("target_region_id", ""))
+	if not best_single_segment.is_empty():
+		return str(best_single_segment.get("target_region_id", ""))
+	return ""
+
+
 func _build_world_backdrop() -> void:
 	var map_size := map_layer.get_rect().size
 	if map_size.x <= 0.0 or map_size.y <= 0.0:
 		map_size = Vector2(1040, 720)
 
 	var ocean := ColorRect.new()
-	ocean.color = Color8(12, 28, 44, 255)
+	ocean.color = Color8(38, 51, 56, 255)
 	ocean.position = Vector2.ZERO
 	ocean.custom_minimum_size = map_size
 	map_layer.add_child(ocean)
 
-	for band_variant in [
-		{"color": Color8(18, 45, 71, 138), "pos": Vector2(map_size.x * 0.00, map_size.y * 0.08), "size": Vector2(map_size.x * 1.00, map_size.y * 0.18)},
-		{"color": Color8(26, 56, 84, 120), "pos": Vector2(map_size.x * 0.00, map_size.y * 0.34), "size": Vector2(map_size.x * 1.00, map_size.y * 0.16)},
-		{"color": Color8(15, 39, 62, 132), "pos": Vector2(map_size.x * 0.00, map_size.y * 0.64), "size": Vector2(map_size.x * 1.00, map_size.y * 0.22)},
+	for haze_variant in [
+		{"color": Color8(60, 76, 80, 88), "pos": Vector2(map_size.x * 0.00, map_size.y * 0.08), "size": Vector2(map_size.x * 1.00, map_size.y * 0.16)},
+		{"color": Color8(46, 61, 66, 72), "pos": Vector2(map_size.x * 0.00, map_size.y * 0.58), "size": Vector2(map_size.x * 1.00, map_size.y * 0.20)},
 	]:
-		var sea_band := ColorRect.new()
-		sea_band.color = band_variant["color"]
-		sea_band.position = band_variant["pos"]
-		sea_band.custom_minimum_size = band_variant["size"]
-		map_layer.add_child(sea_band)
+		var sea_haze := ColorRect.new()
+		sea_haze.color = haze_variant["color"]
+		sea_haze.position = haze_variant["pos"]
+		sea_haze.custom_minimum_size = haze_variant["size"]
+		map_layer.add_child(sea_haze)
 
-	for land_variant in [
-		{"color": Color8(54, 94, 66, 170), "pos": Vector2(map_size.x * 0.07, map_size.y * 0.12), "size": Vector2(map_size.x * 0.34, map_size.y * 0.32)},
-		{"color": Color8(63, 103, 72, 176), "pos": Vector2(map_size.x * 0.22, map_size.y * 0.36), "size": Vector2(map_size.x * 0.28, map_size.y * 0.24)},
-		{"color": Color8(57, 98, 82, 164), "pos": Vector2(map_size.x * 0.47, map_size.y * 0.18), "size": Vector2(map_size.x * 0.18, map_size.y * 0.20)},
-		{"color": Color8(46, 81, 96, 156), "pos": Vector2(map_size.x * 0.67, map_size.y * 0.28), "size": Vector2(map_size.x * 0.18, map_size.y * 0.26)},
-		{"color": Color8(97, 72, 103, 152), "pos": Vector2(map_size.x * 0.73, map_size.y * 0.64), "size": Vector2(map_size.x * 0.15, map_size.y * 0.12)},
-	]:
-		var land_block := ColorRect.new()
-		land_block.color = land_variant["color"]
-		land_block.position = land_variant["pos"]
-		land_block.custom_minimum_size = land_variant["size"]
-		map_layer.add_child(land_block)
+	var west_land := [
+		Vector2(map_size.x * 0.04, map_size.y * 0.20),
+		Vector2(map_size.x * 0.08, map_size.y * 0.14),
+		Vector2(map_size.x * 0.14, map_size.y * 0.10),
+		Vector2(map_size.x * 0.22, map_size.y * 0.09),
+		Vector2(map_size.x * 0.28, map_size.y * 0.12),
+		Vector2(map_size.x * 0.33, map_size.y * 0.16),
+		Vector2(map_size.x * 0.38, map_size.y * 0.22),
+		Vector2(map_size.x * 0.40, map_size.y * 0.34),
+		Vector2(map_size.x * 0.37, map_size.y * 0.42),
+		Vector2(map_size.x * 0.33, map_size.y * 0.48),
+		Vector2(map_size.x * 0.20, map_size.y * 0.54),
+		Vector2(map_size.x * 0.13, map_size.y * 0.52),
+		Vector2(map_size.x * 0.08, map_size.y * 0.44),
+		Vector2(map_size.x * 0.03, map_size.y * 0.31),
+	]
+	var center_land := [
+		Vector2(map_size.x * 0.28, map_size.y * 0.46),
+		Vector2(map_size.x * 0.34, map_size.y * 0.41),
+		Vector2(map_size.x * 0.40, map_size.y * 0.40),
+		Vector2(map_size.x * 0.48, map_size.y * 0.42),
+		Vector2(map_size.x * 0.54, map_size.y * 0.44),
+		Vector2(map_size.x * 0.60, map_size.y * 0.55),
+		Vector2(map_size.x * 0.59, map_size.y * 0.61),
+		Vector2(map_size.x * 0.56, map_size.y * 0.68),
+		Vector2(map_size.x * 0.52, map_size.y * 0.73),
+		Vector2(map_size.x * 0.46, map_size.y * 0.75),
+		Vector2(map_size.x * 0.40, map_size.y * 0.74),
+		Vector2(map_size.x * 0.32, map_size.y * 0.70),
+		Vector2(map_size.x * 0.24, map_size.y * 0.58),
+	]
+	var east_land := [
+		Vector2(map_size.x * 0.58, map_size.y * 0.18),
+		Vector2(map_size.x * 0.63, map_size.y * 0.15),
+		Vector2(map_size.x * 0.69, map_size.y * 0.14),
+		Vector2(map_size.x * 0.75, map_size.y * 0.16),
+		Vector2(map_size.x * 0.79, map_size.y * 0.20),
+		Vector2(map_size.x * 0.84, map_size.y * 0.32),
+		Vector2(map_size.x * 0.85, map_size.y * 0.39),
+		Vector2(map_size.x * 0.82, map_size.y * 0.46),
+		Vector2(map_size.x * 0.77, map_size.y * 0.50),
+		Vector2(map_size.x * 0.72, map_size.y * 0.54),
+		Vector2(map_size.x * 0.66, map_size.y * 0.53),
+		Vector2(map_size.x * 0.61, map_size.y * 0.46),
+		Vector2(map_size.x * 0.55, map_size.y * 0.31),
+	]
+	var south_land := [
+		Vector2(map_size.x * 0.72, map_size.y * 0.62),
+		Vector2(map_size.x * 0.77, map_size.y * 0.58),
+		Vector2(map_size.x * 0.81, map_size.y * 0.58),
+		Vector2(map_size.x * 0.87, map_size.y * 0.60),
+		Vector2(map_size.x * 0.90, map_size.y * 0.64),
+		Vector2(map_size.x * 0.92, map_size.y * 0.76),
+		Vector2(map_size.x * 0.89, map_size.y * 0.81),
+		Vector2(map_size.x * 0.86, map_size.y * 0.84),
+		Vector2(map_size.x * 0.80, map_size.y * 0.85),
+		Vector2(map_size.x * 0.75, map_size.y * 0.82),
+		Vector2(map_size.x * 0.69, map_size.y * 0.72),
+	]
 
-	for coast_variant in [
-		{"color": Color(1.0, 0.92, 0.60, 0.10), "pos": Vector2(map_size.x * 0.06, map_size.y * 0.11), "size": Vector2(map_size.x * 0.36, 3)},
-		{"color": Color(1.0, 0.92, 0.60, 0.10), "pos": Vector2(map_size.x * 0.21, map_size.y * 0.35), "size": Vector2(map_size.x * 0.30, 3)},
-		{"color": Color(1.0, 0.92, 0.60, 0.08), "pos": Vector2(map_size.x * 0.67, map_size.y * 0.27), "size": Vector2(map_size.x * 0.19, 3)},
+	_add_map_landmass(west_land, Color8(117, 121, 92, 220), Color8(205, 194, 151, 112))
+	_add_map_landmass(center_land, Color8(124, 124, 94, 216), Color8(210, 198, 152, 108))
+	_add_map_landmass(east_land, Color8(116, 122, 99, 208), Color8(201, 191, 151, 96))
+	_add_map_landmass(south_land, Color8(130, 123, 97, 198), Color8(208, 196, 152, 88))
+
+	for relief_variant in [
+		{"points": [
+			Vector2(map_size.x * 0.12, map_size.y * 0.19),
+			Vector2(map_size.x * 0.18, map_size.y * 0.17),
+			Vector2(map_size.x * 0.25, map_size.y * 0.20),
+			Vector2(map_size.x * 0.29, map_size.y * 0.27),
+			Vector2(map_size.x * 0.26, map_size.y * 0.34),
+			Vector2(map_size.x * 0.18, map_size.y * 0.35),
+			Vector2(map_size.x * 0.12, map_size.y * 0.30),
+		], "fill": Color8(146, 138, 101, 84), "coast": Color8(224, 209, 160, 58)},
+		{"points": [
+			Vector2(map_size.x * 0.36, map_size.y * 0.50),
+			Vector2(map_size.x * 0.44, map_size.y * 0.46),
+			Vector2(map_size.x * 0.50, map_size.y * 0.48),
+			Vector2(map_size.x * 0.54, map_size.y * 0.56),
+			Vector2(map_size.x * 0.51, map_size.y * 0.63),
+			Vector2(map_size.x * 0.43, map_size.y * 0.67),
+			Vector2(map_size.x * 0.35, map_size.y * 0.61),
+		], "fill": Color8(106, 132, 96, 76), "coast": Color8(197, 210, 176, 42)},
+		{"points": [
+			Vector2(map_size.x * 0.66, map_size.y * 0.24),
+			Vector2(map_size.x * 0.73, map_size.y * 0.23),
+			Vector2(map_size.x * 0.77, map_size.y * 0.29),
+			Vector2(map_size.x * 0.75, map_size.y * 0.37),
+			Vector2(map_size.x * 0.68, map_size.y * 0.40),
+			Vector2(map_size.x * 0.62, map_size.y * 0.33),
+		], "fill": Color8(152, 132, 102, 72), "coast": Color8(226, 204, 166, 36)},
 	]:
-		var coast_line := ColorRect.new()
-		coast_line.color = coast_variant["color"]
-		coast_line.position = coast_variant["pos"]
-		coast_line.custom_minimum_size = coast_variant["size"]
-		map_layer.add_child(coast_line)
+		_add_map_landmass(relief_variant["points"], relief_variant["fill"], relief_variant["coast"], 1.2)
+
+	for river_variant in [
+		[Vector2(map_size.x * 0.30, map_size.y * 0.16), Vector2(map_size.x * 0.34, map_size.y * 0.23), Vector2(map_size.x * 0.33, map_size.y * 0.34), Vector2(map_size.x * 0.27, map_size.y * 0.44)],
+		[Vector2(map_size.x * 0.48, map_size.y * 0.46), Vector2(map_size.x * 0.50, map_size.y * 0.54), Vector2(map_size.x * 0.46, map_size.y * 0.62), Vector2(map_size.x * 0.40, map_size.y * 0.69)],
+		[Vector2(map_size.x * 0.73, map_size.y * 0.18), Vector2(map_size.x * 0.76, map_size.y * 0.28), Vector2(map_size.x * 0.73, map_size.y * 0.38), Vector2(map_size.x * 0.68, map_size.y * 0.48)],
+	]:
+		_add_map_polyline(river_variant, Color(0.66, 0.79, 0.82, 0.42), 1.4)
+
+	for contour_variant in [
+		[Vector2(map_size.x * 0.09, map_size.y * 0.24), Vector2(map_size.x * 0.17, map_size.y * 0.23), Vector2(map_size.x * 0.25, map_size.y * 0.27), Vector2(map_size.x * 0.30, map_size.y * 0.35)],
+		[Vector2(map_size.x * 0.34, map_size.y * 0.55), Vector2(map_size.x * 0.40, map_size.y * 0.52), Vector2(map_size.x * 0.48, map_size.y * 0.55), Vector2(map_size.x * 0.53, map_size.y * 0.62)],
+		[Vector2(map_size.x * 0.63, map_size.y * 0.26), Vector2(map_size.x * 0.69, map_size.y * 0.27), Vector2(map_size.x * 0.75, map_size.y * 0.33), Vector2(map_size.x * 0.77, map_size.y * 0.41)],
+		[Vector2(map_size.x * 0.74, map_size.y * 0.67), Vector2(map_size.x * 0.80, map_size.y * 0.66), Vector2(map_size.x * 0.86, map_size.y * 0.71)],
+	]:
+		_add_map_polyline(contour_variant, Color(0.96, 0.91, 0.73, 0.10), 1.0)
+
+	for inset_variant in [
+		{"points": [
+			Vector2(map_size.x * 0.18, map_size.y * 0.22),
+			Vector2(map_size.x * 0.25, map_size.y * 0.20),
+			Vector2(map_size.x * 0.30, map_size.y * 0.28),
+			Vector2(map_size.x * 0.26, map_size.y * 0.35),
+			Vector2(map_size.x * 0.18, map_size.y * 0.33),
+		], "color": Color8(126, 132, 101, 94)},
+		{"points": [
+			Vector2(map_size.x * 0.64, map_size.y * 0.26),
+			Vector2(map_size.x * 0.72, map_size.y * 0.24),
+			Vector2(map_size.x * 0.76, map_size.y * 0.33),
+			Vector2(map_size.x * 0.69, map_size.y * 0.38),
+			Vector2(map_size.x * 0.61, map_size.y * 0.33),
+		], "color": Color8(118, 126, 110, 88)},
+	]:
+		var inset := Polygon2D.new()
+		inset.polygon = inset_variant["points"]
+		inset.color = inset_variant["color"]
+		map_layer.add_child(inset)
+
+
+func _add_map_landmass(points: Array, fill_color: Color, coast_color: Color, coast_width: float = 2.0) -> void:
+	var land := Polygon2D.new()
+	land.polygon = PackedVector2Array(points)
+	land.color = fill_color
+	map_layer.add_child(land)
+
+	var coast := Line2D.new()
+	coast.points = PackedVector2Array(points + [points[0]])
+	coast.width = coast_width
+	coast.default_color = coast_color
+	coast.antialiased = true
+	map_layer.add_child(coast)
+
+
+func _add_map_polyline(points: Array, color: Color, width: float) -> void:
+	var line := Line2D.new()
+	line.points = PackedVector2Array(points)
+	line.width = width
+	line.default_color = color
+	line.antialiased = true
+	map_layer.add_child(line)
 
 
 func _build_world_ambience() -> void:
@@ -1129,66 +2820,23 @@ func _build_world_ambience() -> void:
 	var active_pos := Vector2(map_size.x * active_rel.x, map_size.y * active_rel.y)
 	var accent := _active_region_accent()
 
-	for horizon_variant in [
-		{"color": Color(1.0, 1.0, 1.0, 0.03), "pos": Vector2(map_size.x * 0.03, map_size.y * 0.18), "size": Vector2(map_size.x * 0.94, 2)},
-		{"color": Color(1.0, 1.0, 1.0, 0.025), "pos": Vector2(map_size.x * 0.08, map_size.y * 0.46), "size": Vector2(map_size.x * 0.84, 2)},
-		{"color": Color(1.0, 1.0, 1.0, 0.02), "pos": Vector2(map_size.x * 0.12, map_size.y * 0.73), "size": Vector2(map_size.x * 0.76, 2)},
-	]:
-		var horizon_band := ColorRect.new()
-		horizon_band.color = horizon_variant["color"]
-		horizon_band.position = horizon_variant["pos"]
-		horizon_band.custom_minimum_size = horizon_variant["size"]
-		map_layer.add_child(horizon_band)
-
 	for current in [
 		{"from": Vector2(map_size.x * 0.63, map_size.y * 0.22), "to": Vector2(map_size.x * 0.82, map_size.y * 0.30)},
 		{"from": Vector2(map_size.x * 0.70, map_size.y * 0.44), "to": Vector2(map_size.x * 0.90, map_size.y * 0.56)},
 		{"from": Vector2(map_size.x * 0.74, map_size.y * 0.66), "to": Vector2(map_size.x * 0.90, map_size.y * 0.78)},
 	]:
 		var flow := _make_route_line(current["from"], current["to"], 0.85)
-		flow.color = Color(0.70, 0.86, 0.97, 0.14)
-		flow.custom_minimum_size = Vector2(flow.custom_minimum_size.x, 3.0)
+		flow.default_color = Color(0.70, 0.86, 0.97, 0.10)
+		flow.width = 1.1
 		map_layer.add_child(flow)
 
-	for route in [
-		{"from": Vector2(map_size.x * 0.18, map_size.y * 0.28), "to": Vector2(map_size.x * 0.34, map_size.y * 0.42), "strength": 0.62},
-		{"from": Vector2(map_size.x * 0.34, map_size.y * 0.42), "to": Vector2(map_size.x * 0.50, map_size.y * 0.34), "strength": 0.58},
-		{"from": Vector2(map_size.x * 0.50, map_size.y * 0.34), "to": Vector2(map_size.x * 0.68, map_size.y * 0.40), "strength": 0.66},
-		{"from": Vector2(map_size.x * 0.68, map_size.y * 0.40), "to": Vector2(map_size.x * 0.79, map_size.y * 0.62), "strength": 0.54},
-	]:
-		var trunk := _make_route_line(route["from"], route["to"], route["strength"])
-		trunk.color = Color(0.96, 0.88, 0.58, 0.16)
-		trunk.custom_minimum_size = Vector2(trunk.custom_minimum_size.x, 5.0)
-		map_layer.add_child(trunk)
+	var focus_halo := _make_map_dot(62.0, Color(accent.r, accent.g, accent.b, 0.06), Color(accent.r, accent.g, accent.b, 0.12), 1, 0.45)
+	focus_halo.position = active_pos - Vector2(42, 42)
+	map_layer.add_child(focus_halo)
 
-	var horizon := ColorRect.new()
-	horizon.color = Color(accent.r, accent.g, accent.b, 0.10)
-	horizon.position = Vector2(0, active_pos.y - 2)
-	horizon.custom_minimum_size = Vector2(map_size.x, 4)
-	map_layer.add_child(horizon)
-
-	var meridian := ColorRect.new()
-	meridian.color = Color(accent.r, accent.g, accent.b, 0.10)
-	meridian.position = Vector2(active_pos.x - 2, 0)
-	meridian.custom_minimum_size = Vector2(4, map_size.y)
-	map_layer.add_child(meridian)
-
-	var aura := ColorRect.new()
-	aura.color = Color(accent.r, accent.g, accent.b, 0.10)
-	aura.position = active_pos - Vector2(118, 52)
-	aura.custom_minimum_size = Vector2(236, 104)
-	map_layer.add_child(aura)
-
-	for spark_variant in [
-		Vector2(map_size.x * 0.18, map_size.y * 0.22),
-		Vector2(map_size.x * 0.59, map_size.y * 0.28),
-		Vector2(map_size.x * 0.82, map_size.y * 0.67),
-	]:
-		var spark := ColorRect.new()
-		spark.color = Color(1.0, 0.94, 0.72, 0.16)
-		spark.position = spark_variant
-		spark.custom_minimum_size = Vector2(12, 12)
-		map_layer.add_child(spark)
+	var focus_core := _make_map_dot(18.0, Color(1.0, 0.95, 0.78, 0.08), Color(1.0, 0.95, 0.78, 0.20), 1, 0.55)
+	focus_core.position = active_pos - Vector2(12, 12)
+	map_layer.add_child(focus_core)
 
 
 func _campaign_accent(campaign_band: String) -> Color:
@@ -1509,303 +3157,98 @@ func _build_route_lines(regions: Array) -> void:
 		map_size = Vector2(1040, 720)
 
 	var positions := _region_positions(regions, map_size)
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var target_region_id := str(selected_campaign_landing_target_id)
+	if target_region_id == "":
+		target_region_id = str(selected_frontier_target_id)
+	if target_region_id == "":
+		target_region_id = str(_active_frontier_link(active_region).get("target_region_id", ""))
+	if target_region_id == "" or target_region_id == active_region_id:
+		return
+	if not positions.has(active_region_id) or not positions.has(target_region_id):
+		return
 
+	var route_strength := 0.72
+	for connector_variant in active_region.get("connectors", []):
+		var connector: Dictionary = connector_variant
+		if str(connector.get("target_region_id", "")) == target_region_id:
+			route_strength = float(connector.get("strength", 0.72))
+			break
+
+	var line := _make_route_line(
+		Vector2(positions[active_region_id]),
+		Vector2(positions[target_region_id]),
+		route_strength
+	)
+	line.default_color = Color(0.94, 0.89, 0.62, clamp(0.20 + route_strength * 0.18, 0.22, 0.42))
+	line.width = 2.2
+	map_layer.add_child(line)
+
+
+func _build_realistic_map_canvas(regions: Array) -> void:
+	var map_size := map_layer.get_rect().size
+	var viewport_size := get_viewport_rect().size
+	if viewport_size.x > map_size.x or viewport_size.y > map_size.y:
+		map_layer.size = viewport_size
+		map_size = viewport_size
+	if map_layer.get_parent() != null:
+		var parent_size := (map_layer.get_parent() as Control).get_rect().size
+		if parent_size.x > map_size.x or parent_size.y > map_size.y:
+			map_layer.size = parent_size
+			map_size = parent_size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	var target_region_id := str(selected_campaign_landing_target_id)
+	if target_region_id == "":
+		target_region_id = str(selected_frontier_target_id)
+	if target_region_id == "":
+		target_region_id = str(_active_frontier_link(active_region).get("target_region_id", ""))
+
+	var canvas: Control = RealisticWorldMapCanvas.new()
+	canvas.position = Vector2.ZERO
+	canvas.custom_minimum_size = map_size
+	canvas.size = map_size
+	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	map_layer.add_child(canvas)
+	canvas.configure(regions, active_region_id, target_region_id, REGION_LAYOUT, REGION_COLORS)
+
+
+func _build_map_hit_areas(regions: Array) -> void:
+	var map_size := map_layer.get_rect().size
+	if map_size.x <= 0.0 or map_size.y <= 0.0:
+		map_size = Vector2(1040, 720)
 	for region_variant in regions:
 		var region: Dictionary = region_variant
-		var from_id := str(region.get("id", ""))
-		for connector_variant in region.get("connectors", []):
-			var connector: Dictionary = connector_variant
-			var to_id := str(connector.get("target_region_id", ""))
-			if not positions.has(from_id) or not positions.has(to_id):
-				continue
-			if from_id > to_id:
-				continue
-			var is_active_route := from_id == active_region_id or to_id == active_region_id
-			var line := _make_route_line(
-				Vector2(positions[from_id]),
-				Vector2(positions[to_id]),
-				float(connector.get("strength", 0.0))
-			)
-			line.color = Color(
-				0.94 if is_active_route else 0.74,
-				0.89 if is_active_route else 0.80,
-				0.62 if is_active_route else 0.58,
-				clamp((0.42 if is_active_route else 0.18) + float(connector.get("strength", 0.0)) * (0.30 if is_active_route else 0.16), 0.18, 0.72)
-			)
-			line.custom_minimum_size = Vector2(line.custom_minimum_size.x, 6.0 if is_active_route else 3.0)
-			map_layer.add_child(line)
+		var region_id := str(region.get("id", ""))
+		if not REGION_LAYOUT.has(region_id):
+			continue
+		var rel: Vector2 = REGION_LAYOUT.get(region_id, Vector2(0.5, 0.5))
+		var pos := Vector2(map_size.x * rel.x, map_size.y * rel.y)
+		var button := Button.new()
+		button.text = ""
+		button.flat = true
+		button.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		button.custom_minimum_size = Vector2(34, 34)
+		button.position = pos - Vector2(17, 17)
+		button.pressed.connect(_on_region_pressed.bind(region_id))
+		map_layer.add_child(button)
 
 
 func _build_frontier_network_overlay(regions: Array) -> void:
-	var map_size := map_layer.get_rect().size
-	if map_size.x <= 0.0 or map_size.y <= 0.0:
-		map_size = Vector2(1040, 720)
-	var positions := _region_positions(regions, map_size)
-	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
-	var active_frontier := _active_frontier_link(active_region)
-	var active_network := _active_frontier_network(active_region)
-	var active_branch := _active_frontier_branch(active_region)
-	var active_operation := _active_frontier_operation(active_region)
-	if active_frontier.is_empty():
-		return
-
-	var active_pos: Vector2 = positions.get(active_region_id, Vector2(map_size.x * 0.5, map_size.y * 0.5))
-	var target_id := str(active_frontier.get("target_region_id", ""))
-	if not positions.has(target_id):
-		return
-	var target_pos: Vector2 = positions[target_id]
-	var target_accent: Color = REGION_COLORS.get(target_id, _active_region_accent())
-
-	var corridor := _make_route_line(active_pos, target_pos, max(0.35, float(active_frontier.get("strength", 0.0))))
-	corridor.color = Color(target_accent.r, target_accent.g, target_accent.b, 0.42)
-	corridor.custom_minimum_size = Vector2(corridor.custom_minimum_size.x, 8.0)
-	map_layer.add_child(corridor)
-
-	var target_ring := ColorRect.new()
-	target_ring.color = Color(target_accent.r, target_accent.g, target_accent.b, 0.18)
-	target_ring.position = target_pos - Vector2(62, 28)
-	target_ring.custom_minimum_size = Vector2(124, 56)
-	map_layer.add_child(target_ring)
-
-	var target_banner := PanelContainer.new()
-	target_banner.position = target_pos - Vector2(70, 88)
-	target_banner.custom_minimum_size = Vector2(160, 64)
-	map_layer.add_child(target_banner)
-
-	var banner_box := VBoxContainer.new()
-	banner_box.add_theme_constant_override("separation", 4)
-	target_banner.add_child(banner_box)
-
-	var banner_ribbon := ColorRect.new()
-	banner_ribbon.color = target_accent.lightened(0.08)
-	banner_ribbon.custom_minimum_size = Vector2(0, 6)
-	banner_box.add_child(banner_ribbon)
-
-	var banner_title := Label.new()
-	banner_title.text = "前线目标 · %s" % str(active_frontier.get("target_name", target_id))
-	_style_secondary_title(banner_title, 17)
-	banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	banner_box.add_child(banner_title)
-
-	var banner_body := Label.new()
-	banner_body.text = "%s · %s · 分支 %s" % [
-		str(active_frontier.get("connection_label", "区域通道")),
-		str(active_operation.get("posture", "等待前线方案")),
-		str(active_network.get("branch_count", 0)),
-	]
-	banner_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_style_dim(banner_body, 13)
-	banner_box.add_child(banner_body)
-
-	for branch_variant in active_network.get("branches", []):
-		var branch: Dictionary = branch_variant
-		var branch_id := str(branch.get("target_region_id", ""))
-		if not positions.has(branch_id):
-			continue
-		var branch_pos: Vector2 = positions[branch_id]
-		var branch_accent: Color = REGION_COLORS.get(branch_id, Color8(102, 152, 204))
-		var is_selected_branch: bool = branch_id == str(active_branch.get("target_region_id", ""))
-
-		var branch_line := _make_route_line(target_pos, branch_pos, max(0.25, float(branch.get("strength", 0.0))))
-		branch_line.color = Color(branch_accent.r, branch_accent.g, branch_accent.b, 0.46 if is_selected_branch else 0.28)
-		branch_line.custom_minimum_size = Vector2(branch_line.custom_minimum_size.x, 7.0 if is_selected_branch else 5.0)
-		map_layer.add_child(branch_line)
-
-		var branch_badge := PanelContainer.new()
-		branch_badge.position = branch_pos - Vector2(56, 92)
-		branch_badge.custom_minimum_size = Vector2(128, 48)
-		branch_badge.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_selected_branch else 0.94)
-		map_layer.add_child(branch_badge)
-
-		var branch_box := VBoxContainer.new()
-		branch_box.add_theme_constant_override("separation", 2)
-		branch_badge.add_child(branch_box)
-
-		var branch_title := Label.new()
-		branch_title.text = "%s分支 · %s" % ["当前" if is_selected_branch else "", str(branch.get("target_name", branch_id))]
-		_style_body(branch_title, 14)
-		branch_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		branch_title.modulate = branch_accent.lightened(0.24)
-		branch_box.add_child(branch_title)
-
-		var branch_body := Label.new()
-		branch_body.text = "%s %.2f" % [
-			str(branch.get("connection_label", "区域通道")),
-			float(branch.get("strength", 0.0)),
-		]
-		branch_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_style_dim(branch_body, 12)
-		branch_box.add_child(branch_body)
-
-		var branch_button := Button.new()
-		branch_button.flat = true
-		branch_button.text = ""
-		branch_button.set_anchors_preset(PRESET_FULL_RECT)
-		branch_button.pressed.connect(_on_frontier_branch_selected.bind(branch_id))
-		branch_badge.add_child(branch_button)
+	return
 
 
 func _build_campaign_overlay(regions: Array) -> void:
-	var map_size := map_layer.get_rect().size
-	if map_size.x <= 0.0 or map_size.y <= 0.0:
-		map_size = Vector2(1040, 720)
-	var positions := _region_positions(regions, map_size)
-	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
-	var active_campaign := _active_frontier_campaign(active_region)
-	var active_stage := _active_campaign_stage(active_region)
-	var active_frontier := _active_frontier_link(active_region)
-	var active_network := _active_frontier_network(active_region)
-	var landing_candidates: Array = _campaign_landing_candidates(active_region)
-	_sync_campaign_landing(active_region)
-	if active_campaign.is_empty() or active_frontier.is_empty():
-		return
-
-	var active_pos: Vector2 = positions.get(active_region_id, Vector2(map_size.x * 0.5, map_size.y * 0.5))
-	var target_id := str(active_campaign.get("target_region_id", ""))
-	if not positions.has(target_id):
-		return
-	var target_pos: Vector2 = positions[target_id]
-	var campaign_accent := _campaign_accent(str(active_campaign.get("campaign_band", "")))
-	var stage_index := selected_campaign_stage_index
-
-	var target_zone := ColorRect.new()
-	target_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.16 if stage_index == 0 else 0.09)
-	target_zone.position = target_pos - Vector2(104, 64)
-	target_zone.custom_minimum_size = Vector2(208, 128)
-	map_layer.add_child(target_zone)
-
-	var active_zone := ColorRect.new()
-	active_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.12 if stage_index == 0 else 0.05)
-	active_zone.position = active_pos - Vector2(84, 48)
-	active_zone.custom_minimum_size = Vector2(168, 96)
-	map_layer.add_child(active_zone)
-
-	var stage_line := _make_route_line(active_pos, target_pos, 0.9)
-	stage_line.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.60 if stage_index == 0 else 0.34)
-	stage_line.custom_minimum_size = Vector2(stage_line.custom_minimum_size.x, 10.0 if stage_index == 0 else 6.0)
-	map_layer.add_child(stage_line)
-
-	var stage_one := PanelContainer.new()
-	stage_one.position = active_pos.lerp(target_pos, 0.36) - Vector2(62, 18)
-	stage_one.custom_minimum_size = Vector2(124, 34)
-	stage_one.modulate = Color(1.0, 1.0, 1.0, 1.0 if stage_index == 0 else 0.72)
-	map_layer.add_child(stage_one)
-
-	var stage_one_text := "第一阶段 · 推进"
-	if stage_index == 0:
-		stage_one_text = "第一阶段 · %s" % str(active_stage.get("title", "推进"))
-	var stage_one_label := Label.new()
-	stage_one_label.text = stage_one_text
-	_style_dim(stage_one_label, 13)
-	stage_one_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stage_one.add_child(stage_one_label)
-
-	var stage_one_button := Button.new()
-	stage_one_button.flat = true
-	stage_one_button.text = ""
-	stage_one_button.set_anchors_preset(PRESET_FULL_RECT)
-	stage_one_button.pressed.connect(_on_region_pressed.bind(target_id))
-	stage_one.add_child(stage_one_button)
-
-	var branches: Array = active_network.get("branches", [])
-	for branch_variant in branches:
-		var branch: Dictionary = branch_variant
-		var branch_id := str(branch.get("target_region_id", ""))
-		if not positions.has(branch_id):
-			continue
-		var branch_pos: Vector2 = positions[branch_id]
-		var is_active_stage_branch := stage_index == 1 and branch_id == str(active_stage.get("target_region_id", ""))
-
-		var branch_zone := ColorRect.new()
-		branch_zone.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.16 if is_active_stage_branch else 0.05)
-		branch_zone.position = branch_pos - Vector2(76, 42)
-		branch_zone.custom_minimum_size = Vector2(152, 84)
-		map_layer.add_child(branch_zone)
-
-		var branch_line := _make_route_line(target_pos, branch_pos, 0.72)
-		branch_line.color = Color(campaign_accent.r, campaign_accent.g, campaign_accent.b, 0.56 if is_active_stage_branch else 0.24)
-		branch_line.custom_minimum_size = Vector2(branch_line.custom_minimum_size.x, 8.0 if is_active_stage_branch else 4.0)
-		map_layer.add_child(branch_line)
-
-		var stage_two := PanelContainer.new()
-		stage_two.position = target_pos.lerp(branch_pos, 0.54) - Vector2(54, 16)
-		stage_two.custom_minimum_size = Vector2(108, 30)
-		stage_two.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active_stage_branch else 0.70)
-		map_layer.add_child(stage_two)
-
-		var stage_two_label := Label.new()
-		stage_two_label.text = "二阶段 · %s" % str(branch.get("target_name", branch_id))
-		_style_dim(stage_two_label, 12)
-		stage_two_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		stage_two.add_child(stage_two_label)
-
-		var stage_two_button := Button.new()
-		stage_two_button.flat = true
-		stage_two_button.text = ""
-		stage_two_button.set_anchors_preset(PRESET_FULL_RECT)
-		stage_two_button.pressed.connect(_on_region_pressed.bind(branch_id))
-		stage_two.add_child(stage_two_button)
-
-	for landing_variant in landing_candidates:
-		var landing: Dictionary = landing_variant
-		var landing_id := str(landing.get("target_region_id", ""))
-		if landing_id == target_id or not positions.has(landing_id):
-			continue
-		var landing_pos: Vector2 = positions[landing_id]
-		var is_active_landing := landing_id == selected_campaign_landing_target_id
-		var is_best_landing: bool = landing_variant == landing_candidates[0]
-		var landing_badge := PanelContainer.new()
-		landing_badge.position = landing_pos - Vector2(68, 118)
-		landing_badge.custom_minimum_size = Vector2(136, 56)
-		landing_badge.modulate = Color(1.0, 1.0, 1.0, 1.0 if is_active_landing else (0.90 if is_best_landing else 0.72))
-		map_layer.add_child(landing_badge)
-
-		var landing_box := VBoxContainer.new()
-		landing_box.add_theme_constant_override("separation", 2)
-		landing_badge.add_child(landing_box)
-
-		var landing_title := Label.new()
-		landing_title.text = "%s%s · %s" % [
-			"优选 · " if is_best_landing and not is_active_landing else "",
-			str(landing.get("stage_label", "落点")),
-			str(landing.get("name", landing_id)),
-		]
-		_style_body(landing_title, 13)
-		landing_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		landing_box.add_child(landing_title)
-
-		var landing_body := Label.new()
-		landing_body.text = "繁荣 %.2f · 风险 %.2f" % [
-			float(landing.get("prosperity", 0.0)),
-			float(landing.get("risk", 0.0)),
-		]
-		landing_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_style_dim(landing_body, 12)
-		landing_box.add_child(landing_body)
-
-		var score_body := Label.new()
-		score_body.text = "推进评分 %.2f" % float(landing.get("score", 0.0))
-		score_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_style_dim(score_body, 12)
-		landing_box.add_child(score_body)
-
-		var landing_button := Button.new()
-		landing_button.flat = true
-		landing_button.text = ""
-		landing_button.set_anchors_preset(PRESET_FULL_RECT)
-		landing_button.pressed.connect(_on_campaign_landing_selected.bind(landing_id))
-		landing_badge.add_child(landing_button)
+	return
 
 
-func _make_route_line(from_pos: Vector2, to_pos: Vector2, strength: float) -> ColorRect:
-	var delta: Vector2 = to_pos - from_pos
-	var length: float = max(1.0, delta.length())
-	var angle: float = delta.angle()
-	var line := ColorRect.new()
-	line.color = Color(0.88, 0.89, 0.70, clamp(0.18 + strength * 0.24, 0.20, 0.46))
-	line.position = from_pos.lerp(to_pos, 0.5) - Vector2(length * 0.5, 2.5)
-	line.custom_minimum_size = Vector2(length, 5.0)
-	line.rotation = angle
+func _make_route_line(from_pos: Vector2, to_pos: Vector2, strength: float) -> Line2D:
+	var line := Line2D.new()
+	line.points = PackedVector2Array([from_pos, to_pos])
+	line.width = lerpf(0.9, 2.2, clamp(strength, 0.0, 1.0))
+	line.default_color = Color(0.88, 0.89, 0.70, clamp(0.10 + strength * 0.12, 0.10, 0.28))
+	line.antialiased = true
 	return line
 
 
@@ -1821,74 +3264,49 @@ func _build_map_nodes(regions: Array) -> void:
 		var pos: Vector2 = Vector2(map_size.x * rel.x, map_size.y * rel.y)
 		var accent: Color = REGION_COLORS.get(region_id, Color8(110, 140, 170))
 		var is_active: bool = region_id == active_region_id
+		var node_size := 13.0 if is_active else 9.0
 
-		var shadow := ColorRect.new()
-		shadow.color = Color(0.03, 0.06, 0.09, 0.28 if is_active else 0.05)
-		var shadow_base := pos - Vector2(14, 14) + Vector2(3, 4)
+		var shadow := _make_map_dot(node_size + 8.0, Color(0.03, 0.06, 0.09, 0.16 if is_active else 0.08), Color(0.0, 0.0, 0.0, 0.0), 0)
+		var shadow_base := pos - Vector2((node_size + 8.0) * 0.5, (node_size + 8.0) * 0.5) + Vector2(1.5, 2.5)
 		shadow.position = shadow_base
-		shadow.custom_minimum_size = Vector2(28, 28)
 		map_layer.add_child(shadow)
 
-		var outer_ring := ColorRect.new()
-		outer_ring.color = Color(accent.r, accent.g, accent.b, 0.16 if is_active else 0.03)
-		outer_ring.position = pos - Vector2(15, 15)
-		outer_ring.custom_minimum_size = Vector2(30, 30)
+		var outer_ring := _make_map_dot(node_size + 10.0, Color(accent.r, accent.g, accent.b, 0.04 if is_active else 0.02), Color(accent.r, accent.g, accent.b, 0.24 if is_active else 0.12), 1)
+		outer_ring.position = pos - Vector2((node_size + 10.0) * 0.5, (node_size + 10.0) * 0.5)
 		map_layer.add_child(outer_ring)
 
-		var shell := ColorRect.new()
-		var shell_base := pos - Vector2(12, 12)
+		var shell := _make_map_dot(node_size, Color(accent.r, accent.g, accent.b, 0.88 if is_active else 0.76), Color(1.0, 0.98, 0.92, 0.70 if is_active else 0.30), 1)
+		var shell_base := pos - Vector2(node_size * 0.5, node_size * 0.5)
 		shell.position = shell_base
-		shell.custom_minimum_size = Vector2(24, 24)
-		shell.color = Color(accent.r, accent.g, accent.b, 0.18 if is_active else 0.08)
 		map_layer.add_child(shell)
 
-		var stem := ColorRect.new()
-		stem.color = Color(accent.r, accent.g, accent.b, 0.20 if is_active else 0.08)
-		stem.position = pos + Vector2(-1, 12)
-		stem.custom_minimum_size = Vector2(2, 10)
-		map_layer.add_child(stem)
+		var report := _region_report(region_id)
+		if not report.is_empty():
+			var report_badge := _make_map_dot(7.0, Color8(225, 196, 110, 220), Color8(255, 241, 194, 210), 1, 0.50)
+			report_badge.position = pos + Vector2(6, -10)
+			map_layer.add_child(report_badge)
 
 		if is_active:
-			var glow := ColorRect.new()
-			glow.color = Color(1.0, 0.92, 0.58, 0.14)
-			glow.position = shell.position - Vector2(6, 6)
-			glow.custom_minimum_size = shell.custom_minimum_size + Vector2(12, 12)
+			var glow := _make_map_dot(node_size + 16.0, Color(1.0, 0.92, 0.58, 0.06), Color(1.0, 0.92, 0.58, 0.14), 1, 0.46)
+			glow.position = shell.position - Vector2(9, 9)
 			map_layer.add_child(glow)
 			map_layer.move_child(glow, map_layer.get_child_count() - 2)
 
-			var focus_frame := ColorRect.new()
-			focus_frame.color = Color(1.0, 0.92, 0.58, 0.22)
-			focus_frame.position = shell.position - Vector2(2, 2)
-			focus_frame.custom_minimum_size = shell.custom_minimum_size + Vector2(4, 4)
+			var focus_frame := _make_map_dot(node_size + 5.0, Color(1.0, 0.92, 0.58, 0.02), Color(1.0, 0.92, 0.58, 0.18), 1, 0.46)
+			focus_frame.position = shell.position - Vector2(3, 3)
 			map_layer.add_child(focus_frame)
 			map_layer.move_child(focus_frame, map_layer.get_child_count() - 2)
 			_animate_region_focus_entry(shell, outer_ring, shadow, shell_base, shadow_base)
 			_animate_focus_glow(glow, focus_frame)
 
-		var icon := Label.new()
-		icon.text = REGION_ICONS.get(region_id, "区")
-		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		icon.custom_minimum_size = Vector2(24, 24)
-		icon.position = shell.position
-		icon.add_theme_font_size_override("font_size", 14)
-		icon.modulate = accent.lightened(0.34)
-		map_layer.add_child(icon)
-
-		var pip := ColorRect.new()
-		pip.color = accent.lightened(0.16) if is_active else Color8(112, 132, 156)
-		pip.custom_minimum_size = Vector2(3, 3)
-		pip.position = shell.position + Vector2(10, 20)
-		map_layer.add_child(pip)
-
 		var button := Button.new()
 		button.text = ""
 		button.flat = true
-		button.custom_minimum_size = Vector2(36, 42)
-		button.position = shell.position - Vector2(6, 5)
+		button.custom_minimum_size = Vector2(26, 26)
+		button.position = shell.position - Vector2(4, 4)
 		button.pressed.connect(_on_region_pressed.bind(region_id))
 		button.mouse_entered.connect(func() -> void:
-			shadow.position = shadow_base + Vector2(6, 8)
+			shadow.position = shadow_base + Vector2(2, 3)
 			_animate_region_hover(shell, outer_ring, shadow, true)
 		)
 		button.mouse_exited.connect(func() -> void:
@@ -1904,15 +3322,43 @@ func _build_map_nodes(regions: Array) -> void:
 		)
 		map_layer.add_child(button)
 
-		var plaque_label := Label.new()
-		plaque_label.text = str(region.get("name", region_id))
-		_style_secondary_title(plaque_label, 5)
-		plaque_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		plaque_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		plaque_label.position = shell.position + Vector2(-12, 35)
-		plaque_label.custom_minimum_size = Vector2(44, 8)
-		plaque_label.modulate = accent.lightened(0.22) if is_active else Color(accent.r, accent.g, accent.b, 0.12)
-		map_layer.add_child(plaque_label)
+		if is_active:
+			var label_shell := PanelContainer.new()
+			var label_style := StyleBoxFlat.new()
+			label_style.corner_radius_top_left = 8
+			label_style.corner_radius_top_right = 8
+			label_style.corner_radius_bottom_left = 8
+			label_style.corner_radius_bottom_right = 8
+			label_style.content_margin_left = 7
+			label_style.content_margin_right = 7
+			label_style.content_margin_top = 3
+			label_style.content_margin_bottom = 3
+			label_style.bg_color = Color(0.12, 0.16, 0.18, 0.56)
+			label_style.border_color = Color(accent.r, accent.g, accent.b, 0.28)
+			label_style.set_border_width_all(1)
+			label_shell.add_theme_stylebox_override("panel", label_style)
+			label_shell.position = shell.position + Vector2(13, -5)
+			var plaque_label := Label.new()
+			plaque_label.text = str(region.get("name", region_id))
+			_style_dim(plaque_label, 8)
+			plaque_label.modulate = Color(0.98, 0.95, 0.88, 0.88)
+			label_shell.add_child(plaque_label)
+			map_layer.add_child(label_shell)
+
+
+func _make_map_dot(size: float, fill_color: Color, border_color: Color, border_width: int = 1, alpha_scale: float = 1.0) -> PanelContainer:
+	var dot := PanelContainer.new()
+	dot.custom_minimum_size = Vector2(size, size)
+	var style := StyleBoxFlat.new()
+	style.corner_radius_top_left = int(size * 0.5)
+	style.corner_radius_top_right = int(size * 0.5)
+	style.corner_radius_bottom_left = int(size * 0.5)
+	style.corner_radius_bottom_right = int(size * 0.5)
+	style.bg_color = Color(fill_color.r, fill_color.g, fill_color.b, fill_color.a * alpha_scale)
+	style.border_color = Color(border_color.r, border_color.g, border_color.b, border_color.a * alpha_scale)
+	style.set_border_width_all(border_width)
+	dot.add_theme_stylebox_override("panel", style)
+	return dot
 
 
 func _build_map_command_layer() -> void:
@@ -1920,13 +3366,70 @@ func _build_map_command_layer() -> void:
 	if map_size.x <= 0.0 or map_size.y <= 0.0:
 		map_size = Vector2(1040, 720)
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
-	var header_bar := _make_world_header_bar(active_region, map_size)
-	header_bar.position = Vector2(20, 18)
-	map_layer.add_child(header_bar)
+	var minimal_hud := _make_minimal_map_hud(active_region)
+	minimal_hud.position = Vector2(24, 22)
+	map_layer.add_child(minimal_hud)
 
-	var frontier_belt := _make_frontier_transfer_belt(active_region)
-	frontier_belt.position = Vector2(max(48, map_size.x * 0.18), map_size.y - 142)
-	map_layer.add_child(frontier_belt)
+	var minimal_hint := _make_minimal_map_hint(active_region)
+	minimal_hint.position = Vector2(24, map_size.y - 86)
+	map_layer.add_child(minimal_hint)
+
+
+func _make_minimal_map_hud(active_region: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(340, 76)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 3)
+	panel.add_child(box)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = _active_region_accent().lightened(0.06)
+	ribbon.custom_minimum_size = Vector2(0, 4)
+	box.add_child(ribbon)
+
+	var title := Label.new()
+	title.text = str(active_region.get("name", "未选择区域"))
+	_style_primary_title(title, 20)
+	box.add_child(title)
+
+	var summary: Dictionary = active_region.get("region_summary", {})
+	var subtitle := Label.new()
+	subtitle.text = str(summary.get("one_liner", active_region.get("region_role", "生态观测区")))
+	_style_dim(subtitle, 12)
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(subtitle)
+
+	var loop := Label.new()
+	loop.text = "玩法：先选下一片区，再进去追踪、记录、撤离。"
+	_style_dim(loop, 11)
+	loop.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(loop)
+	return panel
+
+
+func _make_minimal_map_hint(active_region: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(340, 56)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	panel.add_child(box)
+
+	var ribbon := ColorRect.new()
+	ribbon.color = Color8(210, 182, 96)
+	ribbon.custom_minimum_size = Vector2(0, 3)
+	box.add_child(ribbon)
+
+	var hint := Label.new()
+	hint.text = "这张图只做一件事：决定下一站去哪里。"
+	_style_secondary_title(hint, 12)
+	box.add_child(hint)
+
+	var sub := Label.new()
+	sub.text = "地图上只看当前区域、下一站和一条路线。进区后再做调查。"
+	_style_dim(sub, 10)
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(sub)
+	return panel
 
 
 func _make_world_header_bar(active_region: Dictionary, map_size: Vector2) -> PanelContainer:
@@ -1964,6 +3467,9 @@ func _make_world_header_bar(active_region: Dictionary, map_size: Vector2) -> Pan
 func _make_world_bulletin_panel(active_region: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(188, 56)
+	var report := _region_report(str(active_region.get("id", active_region_id)))
+	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
+	var chain_focus: Array = active_region.get("chain_focus", [])
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 3)
@@ -1981,9 +3487,27 @@ func _make_world_bulletin_panel(active_region: Dictionary) -> PanelContainer:
 
 	var focus_line := Label.new()
 	focus_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	focus_line.text = str(active_region.get("name", "未选择区域"))
+	focus_line.text = "%s · %s" % [
+		str(active_region.get("name", "未选择区域")),
+		str(report.get("top_intel_channel", "未建立回执线")) if not report.is_empty() else "尚无最近回执",
+	]
 	_style_dim(focus_line, 9)
 	box.add_child(focus_line)
+
+	var reason_line := Label.new()
+	reason_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	reason_line.text = "%s · %s" % [
+		_region_event_window_text(active_region),
+		_route_identity_text(active_region),
+	]
+	_style_dim(reason_line, 9)
+	box.add_child(reason_line)
+
+	var strategy_line := Label.new()
+	strategy_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	strategy_line.text = _region_run_profile_strategy_text(report)
+	_style_dim(strategy_line, 9)
+	box.add_child(strategy_line)
 
 	return panel
 
@@ -2413,34 +3937,458 @@ func _frontier_network_for_target(active_region: Dictionary, target_region_id: S
 
 
 func _build_side_panel() -> void:
+	side_panel.visible = false
+	for child in side_box.get_children():
+		child.queue_free()
+
+
+func _refresh_game_hud() -> void:
+	if game_hud == null:
+		return
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
-	var chains: Dictionary = active_region.get("chains", world_data.get("chains", {}))
-	var narrative: Dictionary = active_region.get("narrative", world_data.get("narrative", {}))
-	var top_species: Array = active_region.get("top_species", [])
-	var route_summary: Array = active_region.get("route_summary", [])
-	var pressure_headlines: Array = active_region.get("pressure_headlines", [])
-	var chain_focus: Array = active_region.get("chain_focus", [])
-	var region_accent := _active_region_accent()
+	if active_region.is_empty():
+		hud_region_label.text = "生态指挥"
+		hud_summary_label.text = "等待世界状态数据。"
+		hud_world_label.text = ""
+		hud_loop_label.text = ""
+		hud_metric_label.text = ""
+		hud_species_label.text = ""
+		hud_objective_label.text = ""
+		hud_action_label.text = ""
+		return
 
-	side_box.add_child(_make_region_hero(active_region, pressure_headlines, chain_focus, region_accent))
-	var tab_content := VBoxContainer.new()
-	tab_content.add_theme_constant_override("separation", 14)
+	var health: Dictionary = active_region.get("health_state", {})
+	var resources: Dictionary = active_region.get("resource_state", {})
+	var hazards: Dictionary = active_region.get("hazard_state", {})
+	var frontier_links: Array = active_region.get("frontier_links", [])
+	var accent := _active_region_accent()
+	hud_region_label.text = str(active_region.get("name", "未选择区域"))
+	hud_region_label.modulate = accent.lightened(0.30)
+	hud_summary_label.text = _region_plain_summary(active_region)
+	hud_world_label.text = _world_goal_line()
+	hud_loop_label.text = "玩法闭环：选区域 -> 选行动 -> 应用回合影响后端 -> 进入区域完成世界任务 -> 撤离后回灌生态系统"
+	hud_metric_label.text = "多样性 %s   韧性 %s   风险 %s   关键资源 %s" % [
+		_percent_text(float(health.get("biodiversity", 0.0))),
+		_percent_text(float(health.get("resilience", 0.0))),
+		_percent_text(_max_dictionary_value(hazards)),
+		_top_dictionary_label(resources),
+	]
+	hud_species_label.text = "代表物种：%s" % _top_species_line(active_region)
+	hud_objective_label.text = "推荐行动：%s。当前目标：%s" % [
+		_recommended_action_line(active_region, frontier_links),
+		_game_objective_line(active_region, frontier_links),
+	]
+	var backend_intent: Dictionary = active_region.get("player_intent", {})
+	if backend_intent.is_empty():
+		backend_intent = active_region.get("incoming_player_intent", {})
+	if backend_intent.is_empty():
+		if pending_strategy_message != "":
+			hud_action_label.text = pending_strategy_message
+		elif _latest_expedition_report_pending():
+			hud_action_label.text = _pending_expedition_report_line()
+		else:
+			hud_action_label.text = _game_action_hint(selected_game_action, active_region, frontier_links)
+	else:
+		pending_strategy_message = ""
+		hud_action_label.text = "后端回执：%s" % str(backend_intent.get("summary", "策略已接入世界状态。"))
 
-	match selected_tab:
-		"overview":
-			tab_content.add_child(_make_tab_banner("地图首页", "当前区域的最短入口。", _tab_accent_color("overview"), region_accent, active_region))
-			tab_content.add_child(_make_overview_cover(active_region, pressure_headlines, route_summary, region_accent))
-		"chains":
-			tab_content.add_child(_make_tab_banner("生态链菜单", "读取当前区域最强的三组生态信号。", _tab_accent_color("chains"), region_accent, active_region))
-			tab_content.add_child(_make_chains_cover(active_region, chains, chain_focus, pressure_headlines, region_accent))
-		"species":
-			tab_content.add_child(_make_tab_banner("物种图鉴", "只显示当前区域的领衔物种阵容。", _tab_accent_color("species"), region_accent, active_region))
-			tab_content.add_child(_make_species_cover(active_region, top_species, region_accent))
-		"story":
-			tab_content.add_child(_make_tab_banner("区域播报", "只保留当前区域最重要的即时播报。", _tab_accent_color("story"), region_accent, active_region))
-			tab_content.add_child(_make_story_cover(active_region, narrative, region_accent))
 
-	side_box.add_child(_make_dossier_shell(active_region, region_accent, tab_content))
+func _region_plain_summary(region: Dictionary) -> String:
+	var role := str(region.get("region_role", "生态区"))
+	var biomes := _localized_biome_line(region.get("dominant_biomes", []))
+	return "%s。这里的主地貌是%s，玩法重点是看资源、风险、物种之间是否形成稳定循环。" % [role, biomes]
+
+
+func _localized_biome_line(biomes: Array) -> String:
+	var names := PackedStringArray()
+	for biome_variant in biomes.slice(0, 3):
+		names.append(_localized_biome_name(str(biome_variant)))
+	if names.is_empty():
+		return "未识别地貌"
+	return "、".join(names)
+
+
+func _localized_biome_name(biome: String) -> String:
+	return {
+		"temperate_forest": "温带森林",
+		"mixed_forest": "混交林",
+		"river_valley": "河谷",
+		"grassland": "草原",
+		"shrubland": "灌丛",
+		"seasonal_waterhole": "季节水洼",
+		"wetland": "湿地",
+		"lake_shore": "湖岸",
+		"reed_belt": "芦苇带",
+		"tropical_rainforest": "热带雨林",
+		"floodplain": "泛洪平原",
+		"major_river": "大河",
+		"coast": "海岸",
+		"estuary": "河口",
+		"shallow_sea": "浅海",
+		"mangrove": "红树林",
+		"coral_reef": "珊瑚礁",
+		"seagrass": "海草床",
+		"lagoon": "潟湖",
+		"open_coast": "外海岸",
+	}.get(biome, biome)
+
+
+func _percent_text(value: float) -> String:
+	return "%d%%" % roundi(clampf(value, 0.0, 1.0) * 100.0)
+
+
+func _max_dictionary_value(values: Dictionary) -> float:
+	var max_value := 0.0
+	for value_variant in values.values():
+		max_value = max(max_value, float(value_variant))
+	return max_value
+
+
+func _world_goal_line() -> String:
+	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var world_goal: Dictionary = gameplay_state.get("world_goal", {})
+	var backend_summary := str(world_goal.get("summary", ""))
+	if backend_summary != "":
+		return "世界目标：" + backend_summary
+	var regions: Dictionary = world_data.get("region_details", {})
+	if regions.is_empty():
+		return "世界目标：等待后端生态区数据。"
+	var safe_count := 0
+	var weak_count := 0
+	var worst_name := "未知区域"
+	var worst_risk := -1.0
+	var weakest_name := "未知区域"
+	var weakest_score := 2.0
+	for region_variant in regions.values():
+		var region: Dictionary = region_variant
+		var health: Dictionary = region.get("health_state", {})
+		var biodiversity := float(health.get("biodiversity", 0.0))
+		var resilience := float(health.get("resilience", 0.0))
+		var risk := _max_dictionary_value(region.get("hazard_state", {}))
+		if biodiversity >= 0.60 and resilience >= 0.60 and risk < 0.55:
+			safe_count += 1
+		else:
+			weak_count += 1
+		if risk > worst_risk:
+			worst_risk = risk
+			worst_name = str(region.get("name", region.get("id", "未知区域")))
+		var health_score := biodiversity + resilience - risk
+		if health_score < weakest_score:
+			weakest_score = health_score
+			weakest_name = str(region.get("name", region.get("id", "未知区域")))
+	return "世界目标：让全部生态区保持多样性/韧性 60%% 以上且风险低于 55%%。当前安全 %d/%d，优先关注 %s，最高风险 %s %s。" % [
+		safe_count,
+		regions.size(),
+		weakest_name,
+		worst_name,
+		_percent_text(max(worst_risk, 0.0)),
+	]
+
+
+func _top_dictionary_label(values: Dictionary) -> String:
+	var best_key := ""
+	var best_value := -1.0
+	for key_variant in values.keys():
+		var value := float(values.get(key_variant, 0.0))
+		if value > best_value:
+			best_value = value
+			best_key = str(key_variant)
+	if best_key == "":
+		return "暂无"
+	return "%s %s" % [_localized_resource_name(best_key), _percent_text(best_value)]
+
+
+func _localized_resource_name(key: String) -> String:
+	return {
+		"freshwater": "淡水",
+		"canopy_cover": "冠层",
+		"understory": "林下层",
+		"flower_pulse": "花期",
+		"deadwood": "枯木",
+		"surface_water": "地表水",
+		"open_water": "开阔水面",
+		"reed_cover": "芦苇覆盖",
+		"shore_hatch": "岸线孵化",
+		"night_insects": "夜行昆虫",
+		"grazing_biomass": "可食草量",
+		"browse_cover": "灌木食源",
+		"open_visibility": "开阔视野",
+		"dung_cycle": "粪肥循环",
+		"carcass_availability": "腐食资源",
+		"fruit_pulse": "果实期",
+		"river_nutrients": "河流营养",
+		"floodplain_productivity": "泛洪生产力",
+		"benthic_food": "底栖食物",
+		"nesting_cover": "筑巢掩护",
+		"seagrass_cover": "海草覆盖",
+		"tidal_exchange": "潮汐交换",
+		"nursery_habitat": "育幼地",
+		"shellfish_beds": "贝类床",
+		"salinity_gradient": "盐度梯度",
+		"reef_complexity": "礁体复杂度",
+		"clear_water": "清澈水体",
+		"plankton_pulse": "浮游生物",
+		"cleaning_network": "清洁共生网",
+		"grazing_pressure_balance": "啃食平衡",
+	}.get(key, key)
+
+
+func _top_species_line(region: Dictionary) -> String:
+	var species: Array = region.get("top_species", [])
+	var names := PackedStringArray()
+	for species_variant in species.slice(0, 4):
+		var item: Dictionary = species_variant
+		names.append("%s×%s" % [str(item.get("label", "未知")), str(roundi(float(item.get("count", 0))))])
+	if names.is_empty():
+		return "暂无记录"
+	return "、".join(names)
+
+
+func _latest_expedition_report_pending() -> bool:
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+	if latest_report.is_empty():
+		return false
+	var region_id := str(latest_report.get("region_id", ""))
+	if region_id == "":
+		return false
+	var applied_reports: Dictionary = world_data.get("expedition_reports", {})
+	var applied_last: Dictionary = applied_reports.get("last", {})
+	if str(applied_last.get("summary", "")) == str(latest_report.get("summary", "")):
+		return false
+	var region: Dictionary = detail_cache.get(region_id, {})
+	var applied_region_report: Dictionary = region.get("expedition_report", {})
+	if str(applied_region_report.get("summary", "")) == str(latest_report.get("summary", "")):
+		return false
+	return true
+
+
+func _pending_expedition_report_line() -> String:
+	var latest_report: Dictionary = expedition_reports.get("_last", {})
+	return "撤离报告待回灌：%s。点击“应用回合”，后端会把本轮情报写回生态系统。" % str(latest_report.get("summary", "刚完成一轮区域探索"))
+
+
+func _recommended_action_line(region: Dictionary, frontier_links: Array) -> String:
+	var gameplay_hint: Dictionary = region.get("gameplay_hint", {})
+	var backend_action := str(gameplay_hint.get("action", ""))
+	var backend_reason := str(gameplay_hint.get("reason", ""))
+	if backend_action != "" and backend_reason != "":
+		return "%s（%s）" % [backend_action, backend_reason]
+	var hazard := _top_hazard(region.get("hazard_state", {}))
+	var health: Dictionary = region.get("health_state", {})
+	var biodiversity := float(health.get("biodiversity", 0.0))
+	var resilience := float(health.get("resilience", 0.0))
+	if float(hazard.get("value", 0.0)) >= 0.55:
+		return "修复（压低%s %s）" % [
+			_localized_hazard_name(str(hazard.get("key", "风险"))),
+			_percent_text(float(hazard.get("value", 0.0))),
+		]
+	if biodiversity < 0.60 or resilience < 0.60:
+		return "调查（补齐情报，找出薄弱生态链）"
+	if not frontier_links.is_empty():
+		var link: Dictionary = frontier_links[0]
+		if float(link.get("strength", 0.0)) < 0.80:
+			return "通道（加强到%s的%s）" % [
+				str(link.get("target_name", "相邻区域")),
+				str(link.get("connection_label", "生态通道")),
+			]
+	return "调查（稳定区继续扩充物种与热点记录）"
+
+
+func _recommended_game_action(region: Dictionary) -> String:
+	if region.is_empty():
+		return "调查"
+	var gameplay_hint: Dictionary = region.get("gameplay_hint", {})
+	var backend_action := str(gameplay_hint.get("action", ""))
+	if backend_action in ["调查", "修复", "通道"]:
+		return backend_action
+	var frontier_links: Array = region.get("frontier_links", [])
+	var hazard := _top_hazard(region.get("hazard_state", {}))
+	var health: Dictionary = region.get("health_state", {})
+	if float(hazard.get("value", 0.0)) >= 0.55:
+		return "修复"
+	if float(health.get("biodiversity", 0.0)) < 0.60 or float(health.get("resilience", 0.0)) < 0.60:
+		return "调查"
+	if not frontier_links.is_empty():
+		var link: Dictionary = frontier_links[0]
+		if float(link.get("strength", 0.0)) < 0.80:
+			return "通道"
+	return "调查"
+
+
+func _top_hazard(values: Dictionary) -> Dictionary:
+	var best_key := ""
+	var best_value := 0.0
+	for key_variant in values.keys():
+		var value := float(values.get(key_variant, 0.0))
+		if value > best_value:
+			best_value = value
+			best_key = str(key_variant)
+	return {"key": best_key, "value": best_value}
+
+
+func _localized_hazard_name(key: String) -> String:
+	return {
+		"fire_risk": "火灾风险",
+		"flood_risk": "洪水风险",
+		"disease_pressure": "疾病压力",
+		"predation_pressure": "捕食压力",
+		"drought_risk": "干旱风险",
+		"pollution_pressure": "污染压力",
+		"storm_risk": "风暴风险",
+		"bleaching_risk": "白化风险",
+	}.get(key, key)
+
+
+func _game_objective_line(region: Dictionary, frontier_links: Array) -> String:
+	var hazards: Dictionary = region.get("hazard_state", {})
+	var risk := _max_dictionary_value(hazards)
+	if risk >= 0.55:
+		return "先压低最高风险，再扩大物种循环。"
+	if frontier_links.size() > 0:
+		var link: Dictionary = frontier_links[0]
+		return "保持%s通畅，把本区生态链延伸到%s。" % [
+			str(link.get("connection_label", "生态通道")),
+			str(link.get("target_name", "相邻区域")),
+		]
+	return "稳定本区资源和代表物种，等待新通道解锁。"
+
+
+func _game_action_hint(action_name: String, region: Dictionary, frontier_links: Array) -> String:
+	match action_name:
+		"修复":
+			return "修复：优先补足%s；如果风险超过 55%，先治理风险最高的压力源。" % _top_dictionary_label(region.get("resource_state", {}))
+		"通道":
+			if frontier_links.is_empty():
+				return "通道：当前没有已知相邻区域，先调查本区以解锁生态连接。"
+			var link: Dictionary = frontier_links[0]
+			return "通道：下一步关注%s，连接到%s；通道强度 %s。" % [
+				str(link.get("connection_label", "生态通道")),
+				str(link.get("target_name", "相邻区域")),
+				_percent_text(float(link.get("strength", 0.0))),
+			]
+		_:
+			return "调查：点击地图小点切换区域，比较多样性、韧性、风险和代表物种，决定先修复哪里。"
+
+
+func _on_game_action_pressed(action_name: String) -> void:
+	selected_game_action = action_name
+	_write_strategy_intent(action_name)
+	_refresh_game_hud()
+
+
+func _on_apply_turn_pressed() -> void:
+	pending_strategy_message = "正在调用后端生态系统，应用本回合策略..."
+	_refresh_game_hud()
+	var repo_root := ProjectSettings.globalize_path("res://").path_join("..").simplify_path()
+	var command := "cd %s && PYTHONPATH=. python3 scripts/export_world_state.py --pretty" % _shell_quote(repo_root)
+	var output: Array = []
+	var exit_code := OS.execute("/bin/zsh", PackedStringArray(["-lc", command]), output, true, false)
+	if exit_code == 0:
+		_clear_strategy_intent_files()
+		pending_strategy_message = "后端回合已应用，世界状态已刷新。"
+		_load_world_data()
+	else:
+		pending_strategy_message = "后端应用失败：%s" % _short_command_output(output)
+		_refresh_game_hud()
+
+
+func _clear_strategy_intent_files() -> void:
+	for path in [STRATEGY_PATH, PROJECT_STRATEGY_PATH]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func _on_enter_region_pressed() -> void:
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	if active_region.is_empty():
+		pending_strategy_message = "当前没有可进入的生态区。"
+		_refresh_game_hud()
+		return
+	var request := _build_expedition_region_request(active_region)
+	get_tree().set_meta("selected_expedition_region", request)
+	_write_expedition_region_request(request)
+	get_tree().change_scene_to_file(EXPLORER_SCENE)
+
+
+func _build_expedition_region_request(active_region: Dictionary) -> Dictionary:
+	return {
+		"schema_version": 1,
+		"created_at": Time.get_datetime_string_from_system(),
+		"region_id": active_region_id,
+		"region_name": str(active_region.get("name", active_region_id)),
+		"recommended_action": _recommended_game_action(active_region),
+		"gameplay_hint": active_region.get("gameplay_hint", {}),
+	}
+
+
+func _write_expedition_region_request(payload: Dictionary) -> void:
+	var payload_text := JSON.stringify(payload, "\t", false)
+	var file := FileAccess.open(EXPEDITION_REGION_PATH, FileAccess.WRITE)
+	if file != null:
+		file.store_string(payload_text)
+	var project_file := FileAccess.open(PROJECT_EXPEDITION_REGION_PATH, FileAccess.WRITE)
+	if project_file != null:
+		project_file.store_string(payload_text)
+
+
+func _shell_quote(value: String) -> String:
+	return "'" + value.replace("'", "'\"'\"'") + "'"
+
+
+func _short_command_output(output: Array) -> String:
+	var lines := PackedStringArray()
+	for item in output:
+		lines.append(str(item))
+	var text := "\n".join(lines).strip_edges()
+	if text == "":
+		return "没有返回错误信息。"
+	if text.length() > 160:
+		return text.substr(0, 160) + "..."
+	return text
+
+
+func _write_strategy_intent(action_name: String) -> void:
+	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
+	if active_region.is_empty():
+		return
+	var frontier_links: Array = active_region.get("frontier_links", [])
+	var primary_link: Dictionary = {}
+	if not frontier_links.is_empty():
+		primary_link = frontier_links[0]
+	var payload := {
+		"schema_version": 1,
+		"created_at": Time.get_datetime_string_from_system(),
+		"region_id": active_region_id,
+		"region_name": str(active_region.get("name", active_region_id)),
+		"action": action_name,
+		"action_key": _strategy_action_key(action_name),
+		"target_region_id": str(primary_link.get("target_region_id", "")),
+		"target_region_name": str(primary_link.get("target_name", "")),
+		"connection_type": str(primary_link.get("connection_type", "")),
+		"connection_strength": float(primary_link.get("strength", 0.0)),
+		"health": active_region.get("health_state", {}),
+		"resources": active_region.get("resource_state", {}),
+		"hazards": active_region.get("hazard_state", {}),
+	}
+	var file := FileAccess.open(STRATEGY_PATH, FileAccess.WRITE)
+	var payload_text := JSON.stringify(payload, "\t", false)
+	if file != null:
+		file.store_string(payload_text)
+	var project_file := FileAccess.open(PROJECT_STRATEGY_PATH, FileAccess.WRITE)
+	if project_file != null:
+		project_file.store_string(payload_text)
+	pending_strategy_message = "已写入策略：%s。运行后端导出命令应用本回合，然后刷新地图查看回执。" % action_name
+	if project_file == null:
+		pending_strategy_message = "策略只写入了本地用户目录，项目策略文件写入失败；后端可能读不到。"
+	status_label.text = "系统栏 · 已写入策略意图：%s · %s" % [str(active_region.get("name", active_region_id)), action_name]
+
+
+func _strategy_action_key(action_name: String) -> String:
+	return {
+		"调查": "survey",
+		"修复": "restore",
+		"通道": "corridor",
+	}.get(action_name, "survey")
 
 
 func _make_dossier_shell(active_region: Dictionary, region_accent: Color, content: Control) -> PanelContainer:
@@ -2518,17 +4466,50 @@ func _make_tabs(region_accent: Color) -> HBoxContainer:
 func _make_status_strip(active_region: Dictionary, region_accent: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.set_meta("status_strip", true)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	panel.add_child(row)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 6)
+	panel.add_child(root)
 
 	var prosperity := float(active_region.get("health_state", {}).get("prosperity", 0.0))
 	var stability := float(active_region.get("health_state", {}).get("stability", 0.0))
 	var collapse_risk := float(active_region.get("health_state", {}).get("collapse_risk", 0.0))
+	var report := _region_report(str(active_region.get("id", active_region_id)))
 
-	row.add_child(_make_status_chip("繁荣", "◎", "%.2f" % prosperity, prosperity, region_accent))
-	row.add_child(_make_status_chip("稳定", "▲", "%.2f" % stability, stability, region_accent))
-	row.add_child(_make_status_chip("风险", "◆", "%.2f" % collapse_risk, collapse_risk, region_accent))
+	root.add_child(_make_section_label("生态层"))
+
+	var ecology_row := HBoxContainer.new()
+	ecology_row.add_theme_constant_override("separation", 10)
+	root.add_child(ecology_row)
+
+	ecology_row.add_child(_make_status_chip("繁荣", "◎", "%.2f" % prosperity, prosperity, region_accent))
+	ecology_row.add_child(_make_status_chip("稳定", "▲", "%.2f" % stability, stability, region_accent))
+	ecology_row.add_child(_make_status_chip("风险", "◆", "%.2f" % collapse_risk, collapse_risk, region_accent))
+	if not report.is_empty():
+		var management_accent := _region_management_chip_color(report)
+		var backbone_accent := _region_backbone_chip_color(report)
+		var consolidation_accent := _region_consolidation_chip_color(report)
+		ecology_row.add_child(_make_status_chip("窗口", "◌", str(report.get("event_window_title", _region_event_window_tag(active_region))), 0.62, region_accent))
+
+		root.add_child(_make_section_label("进展层"))
+
+		var progress_row := HBoxContainer.new()
+		progress_row.add_theme_constant_override("separation", 10)
+		root.add_child(progress_row)
+		progress_row.add_child(_make_status_chip("回执", "✦", "%s / %s" % [str(report.get("top_intel_channel", "未分类")), str(report.get("intel", 0))], clamp(float(report.get("intel", 0)) / 10.0, 0.0, 1.0), region_accent))
+		progress_row.add_child(_make_status_chip("回线", "↺", "风险 %.2f" % float(report.get("risk", 0.0)), clamp(1.0 - float(report.get("risk", 0.0)), 0.0, 1.0), region_accent))
+		progress_row.add_child(_make_status_chip("档案", "▤", "%s / %d" % [_region_archive_tier(report), _region_archive_progress(report)], _region_archive_ratio(report), region_accent))
+		progress_row.add_child(_make_status_chip("专精", "⇢", _region_specialization_tag(report), 0.68, region_accent))
+		progress_row.add_child(_make_status_chip("跑法", "▣", _region_specialization_run_tag(report), 0.68, region_accent))
+		progress_row.add_child(_make_status_chip("惯性", "◎", _region_run_profile_tag(report), 0.66, region_accent))
+
+		root.add_child(_make_section_label("经营层"))
+
+		var management_row := HBoxContainer.new()
+		management_row.add_theme_constant_override("separation", 10)
+		root.add_child(management_row)
+		management_row.add_child(_make_status_chip("经营", "▦", _region_management_short_display(report), 0.78 if _region_management_display(report) != "常规经营区" else 0.34, management_accent))
+		management_row.add_child(_make_status_chip("骨干", "⬢", _region_backbone_short_display(report), 0.80 if _region_management_backbone_tag(report) != "" else 0.24, backbone_accent))
+		management_row.add_child(_make_status_chip("巩固", "⟲", _region_consolidation_short_display(report), _region_consolidation_ratio(report), consolidation_accent))
 	return panel
 
 
@@ -2635,13 +4616,51 @@ func _make_region_hero(active_region: Dictionary, pressure_headlines: Array, cha
 	title.modulate = region_accent.lightened(0.35)
 	text_col.add_child(title)
 
+	var report := _region_report(str(active_region.get("id", active_region_id)))
+	if not report.is_empty():
+		var report_line := Label.new()
+		report_line.text = "%s · 最近回线 %s / 情报 %s / 风险 %.2f" % [
+			_region_focus_brief(report),
+			str(report.get("top_intel_channel", "未分类")),
+			str(report.get("intel", 0)),
+			float(report.get("risk", 0.0)),
+		]
+		_style_dim(report_line, 10)
+		text_col.add_child(report_line)
+
 	root.add_child(_make_status_strip(active_region, region_accent))
 
-	var badge_row := HBoxContainer.new()
-	badge_row.add_theme_constant_override("separation", 4)
-	root.add_child(badge_row)
-	badge_row.add_child(_make_hero_chip("地貌", " / ".join(active_region.get("dominant_biomes", []).slice(0, 2)), region_accent))
-	badge_row.add_child(_make_hero_chip("通道", str(active_region.get("connector_count", active_region.get("connectors", []).size())), Color8(102, 152, 204)))
+	root.add_child(_make_section_label("生态层"))
+
+	var ecology_badge_row := HBoxContainer.new()
+	ecology_badge_row.add_theme_constant_override("separation", 4)
+	root.add_child(ecology_badge_row)
+	ecology_badge_row.add_child(_make_hero_chip("地貌", " / ".join(active_region.get("dominant_biomes", []).slice(0, 2)), region_accent))
+	ecology_badge_row.add_child(_make_hero_chip("通道", str(active_region.get("connector_count", active_region.get("connectors", []).size())), Color8(102, 152, 204)))
+	if not report.is_empty():
+		ecology_badge_row.add_child(_make_hero_chip("已知标签", _region_focus_brief(report), Color8(104, 171, 144)))
+
+	root.add_child(_make_section_label("进展层"))
+
+	var progress_badge_row := HBoxContainer.new()
+	progress_badge_row.add_theme_constant_override("separation", 4)
+	root.add_child(progress_badge_row)
+	progress_badge_row.add_child(_make_hero_chip("最近回执", _region_report_summary(str(active_region.get("id", active_region_id))), Color8(210, 182, 96)))
+	if not report.is_empty():
+		progress_badge_row.add_child(_make_hero_chip("档案成长", "%s · 进度 %d" % [_region_archive_tier(report), _region_archive_progress(report)], Color8(102, 152, 204)))
+
+	if not report.is_empty():
+		var management_accent := _region_management_chip_color(report)
+		var backbone_accent := _region_backbone_chip_color(report)
+		var consolidation_accent := _region_consolidation_chip_color(report)
+		root.add_child(_make_section_label("经营层"))
+
+		var management_badge_row := HBoxContainer.new()
+		management_badge_row.add_theme_constant_override("separation", 4)
+		root.add_child(management_badge_row)
+		management_badge_row.add_child(_make_hero_chip("经营层级", _region_management_display(report), management_accent))
+		management_badge_row.add_child(_make_hero_chip("骨干状态", _region_backbone_display(report), backbone_accent))
+		management_badge_row.add_child(_make_hero_chip("巩固状态", _region_consolidation_display(report), consolidation_accent))
 
 	return panel
 
@@ -2664,6 +4683,124 @@ func _make_hero_chip(label_text: String, value_text: String, accent: Color) -> P
 	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(value)
 	return panel
+
+
+func _make_section_label(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	_style_dim(label, 10)
+	return label
+
+
+func _make_compact_hero_chip(label_text: String, value_text: String, accent: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 0)
+	panel.add_child(box)
+
+	var label := Label.new()
+	label.text = label_text
+	_style_dim(label, 9)
+	box.add_child(label)
+
+	var value := Label.new()
+	value.text = value_text
+	_style_secondary_title(value, 10)
+	value.modulate = accent.lightened(0.08)
+	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(value)
+	return panel
+
+
+func _make_compact_section_label(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	_style_dim(label, 9)
+	return label
+
+
+func _make_candidate_header_card(title_text: String, meta_text: String, accent: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 1)
+	panel.add_child(box)
+
+	var title := Label.new()
+	title.text = title_text
+	_style_primary_title(title, 15)
+	title.modulate = accent.lightened(0.26)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(title)
+
+	var meta := Label.new()
+	meta.text = meta_text
+	_style_dim(meta, 9)
+	meta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(meta)
+	return panel
+
+
+func _make_state_badge(text: String, accent: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
+	style.bg_color = Color(accent.r, accent.g, accent.b, 0.12)
+	style.border_color = Color(accent.r, accent.g, accent.b, 0.42)
+	style.set_border_width_all(1)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var label := Label.new()
+	label.text = text
+	_style_dim(label, 9)
+	label.modulate = accent.lightened(0.18)
+	panel.add_child(label)
+	return panel
+
+
+func _candidate_state_accent(is_locked: bool, is_preferred: bool, default_accent: Color) -> Color:
+	if is_locked:
+		return default_accent
+	if is_preferred:
+		return Color8(224, 186, 92)
+	return default_accent
+
+
+func _make_candidate_shell(is_locked: bool, is_preferred: bool, accent: Color) -> PanelContainer:
+	var shell := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	if is_locked:
+		style.bg_color = Color(accent.r, accent.g, accent.b, 0.10)
+		style.border_color = Color(accent.r, accent.g, accent.b, 0.58)
+		style.set_border_width_all(2)
+	elif is_preferred:
+		style.content_margin_left = 10
+		style.content_margin_right = 10
+		style.content_margin_top = 10
+		style.content_margin_bottom = 10
+		style.bg_color = Color(accent.r, accent.g, accent.b, 0.12)
+		style.border_color = Color(accent.r, accent.g, accent.b, 0.72)
+		style.set_border_width_all(2)
+	else:
+		style.bg_color = Color(accent.r, accent.g, accent.b, 0.05)
+		style.border_color = Color(accent.r, accent.g, accent.b, 0.26)
+		style.set_border_width_all(1)
+	shell.add_theme_stylebox_override("panel", style)
+	return shell
 
 
 func _make_meter_chip(label_text: String, value: float, accent: Color, icon_text: String = "◎") -> PanelContainer:
@@ -2885,11 +5022,15 @@ func _make_overview_cover(active_region: Dictionary, pressure_headlines: Array, 
 	var active_stage := _active_campaign_stage(active_region)
 	var active_landing := _active_campaign_landing(active_region)
 	var summary: Dictionary = active_region.get("region_summary", {})
+	var report := _region_report(str(active_region.get("id", active_region_id)))
 
 	box.add_child(_make_menu_entry_card(
 		"当前区域",
 		str(active_region.get("name", "未选择")),
-		str(summary.get("one_liner", active_region.get("region_role", "生态观测区"))),
+		"%s · %s" % [
+			str(summary.get("one_liner", active_region.get("region_role", "生态观测区"))),
+			_region_known_tag(report),
+		],
 		region_accent,
 		REGION_ICONS.get(str(active_region.get("id", active_region_id)), "区")
 	))
@@ -2905,13 +5046,29 @@ func _make_overview_cover(active_region: Dictionary, pressure_headlines: Array, 
 	box.add_child(_make_menu_entry_card(
 		"推进目标",
 		str(active_landing.get("name", active_stage.get("title", "待命"))),
-		"%s · %s" % [
+		"%s · %s · %s" % [
 			str(active_stage.get("stage", "阶段待命")),
-			str(pressure_headlines[0]) if pressure_headlines.size() > 0 else (str(route_summary[0]) if route_summary.size() > 0 else "暂无")
+			_route_identity_text(active_region),
+			_region_specialization_tag(report),
 		],
 		Color8(171, 132, 196),
 		"✦"
 	))
+
+	if not report.is_empty():
+		box.add_child(_make_menu_entry_card(
+			"最近回执",
+			"%s · 情报 %s" % [
+				str(report.get("top_intel_channel", "未分类")),
+				str(report.get("intel", 0)),
+			],
+			"风险 %.2f · %s" % [
+				float(report.get("risk", 0.0)),
+				str(report.get("summary", "暂无回执摘要")),
+			],
+			Color8(210, 182, 96),
+			"回"
+		))
 
 	return _wrap_menu_card(box, Color8(210, 182, 96))
 
@@ -3771,17 +5928,49 @@ func _make_campaign_landing_network_card(active_region: Dictionary, region_accen
 	var active_stage := _active_campaign_stage(active_region)
 	var candidates: Array = _campaign_landing_candidates(active_region)
 	var active_landing := _active_campaign_landing(active_region)
+	var rotation_plan := _campaign_management_rotation_plan(candidates)
+	var preferred_rotation_target_id := _preferred_rotation_candidate_id(candidates)
 
 	var title := Label.new()
 	title.text = "%s · 落点网络总板" % _region_type_chip(active_region)
 	_style_primary_title(title, 22)
 	box.add_child(title)
 
+	box.add_child(_make_section_label("筛选层"))
+
 	var filter_chip_row := HBoxContainer.new()
 	filter_chip_row.add_theme_constant_override("separation", 8)
 	box.add_child(filter_chip_row)
 	filter_chip_row.add_child(_make_hero_chip("当前筛选", _campaign_filter_label(), region_accent))
 	filter_chip_row.add_child(_make_hero_chip("排序依据", "评分从高到低", Color8(102, 152, 204)))
+
+	var report := _region_report(str(active_region.get("id", active_region_id)))
+	if not report.is_empty():
+		box.add_child(_make_section_label("进展层"))
+
+		var progress_chip_row := HBoxContainer.new()
+		progress_chip_row.add_theme_constant_override("separation", 8)
+		box.add_child(progress_chip_row)
+
+		var management_accent := _region_management_chip_color(report)
+		var backbone_accent := _region_backbone_chip_color(report)
+		var consolidation_accent := _region_consolidation_chip_color(report)
+		progress_chip_row.add_child(_make_hero_chip("默认路线", _region_archive_route_tag(report), Color8(210, 182, 96)))
+
+		box.add_child(_make_section_label("经营层"))
+
+		var management_chip_row := HBoxContainer.new()
+		management_chip_row.add_theme_constant_override("separation", 8)
+		box.add_child(management_chip_row)
+		management_chip_row.add_child(_make_hero_chip("经营建议", _management_rotation_tag_from_management(_region_management_priority_tag(report)), management_accent))
+		management_chip_row.add_child(_make_hero_chip("经营层级", _region_management_short_display(report), management_accent))
+		management_chip_row.add_child(_make_hero_chip("骨干状态", _region_backbone_short_display(report), backbone_accent))
+		management_chip_row.add_child(_make_hero_chip("巩固状态", _region_consolidation_short_display(report), consolidation_accent))
+	if not rotation_plan.is_empty():
+		var rotation_row := HBoxContainer.new()
+		rotation_row.add_theme_constant_override("separation", 8)
+		box.add_child(rotation_row)
+		rotation_row.add_child(_make_hero_chip("经营轮换", str(rotation_plan.get("tag", "常规经营")), Color8(104, 171, 144)))
 
 	if not candidates.is_empty():
 		var summary_row := HBoxContainer.new()
@@ -3797,12 +5986,12 @@ func _make_campaign_landing_network_card(active_region: Dictionary, region_accen
 
 		summary_row.add_child(_make_hero_chip(
 			"优选推进",
-			"%s · %.2f" % [str(best_candidate.get("name", "")), float(best_candidate.get("score", 0.0))],
+			"%s · %.2f · %s" % [str(best_candidate.get("name", "")), float(best_candidate.get("score", 0.0)), str(best_candidate.get("run_profile_tag", "基础观察"))],
 			region_accent
 		))
 		summary_row.add_child(_make_hero_chip(
 			"当前落点",
-			"%s" % str(active_landing.get("name", active_stage.get("title", "等待落点"))),
+			"%s · %s" % [str(active_landing.get("name", active_stage.get("title", "等待落点"))), str(active_landing.get("run_profile_tag", "基础观察"))],
 			Color8(102, 152, 204)
 		))
 		summary_row.add_child(_make_hero_chip(
@@ -3810,34 +5999,122 @@ func _make_campaign_landing_network_card(active_region: Dictionary, region_accen
 			"%s · %.2f" % [str(riskiest_candidate.get("name", "")), float(riskiest_candidate.get("risk", 0.0))],
 			Color8(171, 132, 196)
 		))
+		summary_row.add_child(_make_hero_chip(
+			"经营顺序",
+			str(rotation_plan.get("summary", "当前按总态推进")),
+			Color8(104, 171, 144)
+		))
+		if preferred_rotation_target_id != "":
+			var preferred_name := str((candidates[0] as Dictionary).get("name", preferred_rotation_target_id))
+			for candidate_variant in candidates:
+				var candidate: Dictionary = candidate_variant
+				if str(candidate.get("target_region_id", "")) == preferred_rotation_target_id:
+					preferred_name = str(candidate.get("name", preferred_rotation_target_id))
+					break
+			summary_row.add_child(_make_hero_chip(
+				"下一段默认落点",
+				preferred_name,
+				Color8(210, 182, 96)
+			))
 
 	for landing_variant in candidates:
 		var landing: Dictionary = landing_variant
 		var landing_id := str(landing.get("target_region_id", ""))
 		var is_stage := landing_id == str(active_stage.get("target_region_id", ""))
 		var is_locked := landing_id == selected_campaign_landing_target_id
-		var chip_row := HBoxContainer.new()
-		chip_row.add_theme_constant_override("separation", 8)
-		chip_row.add_child(_make_hero_chip(
-			"%s%s%s" % [
+		var is_preferred := landing_id == preferred_rotation_target_id and preferred_rotation_target_id != ""
+		var candidate_accent := _candidate_state_accent(is_locked, is_preferred, Color8(171, 132, 196))
+		var landing_shell := _make_candidate_shell(is_locked, is_preferred, region_accent if is_locked else candidate_accent)
+		var landing_card := VBoxContainer.new()
+		landing_card.add_theme_constant_override("separation", 6 if is_preferred else 4)
+		landing_shell.add_child(landing_card)
+
+		var state_ribbon := ColorRect.new()
+		state_ribbon.color = (region_accent if is_locked else candidate_accent).lightened(0.08)
+		state_ribbon.custom_minimum_size = Vector2(0, 6 if is_preferred else 4)
+		landing_card.add_child(state_ribbon)
+		landing_card.add_child(_make_compact_section_label("生态层"))
+		var state_badge_row := HBoxContainer.new()
+		state_badge_row.add_theme_constant_override("separation", 6)
+		landing_card.add_child(state_badge_row)
+		if is_preferred and not is_locked:
+			state_badge_row.add_child(_make_state_badge("默认", Color8(224, 186, 92)))
+		if is_locked:
+			state_badge_row.add_child(_make_state_badge("已锁定", region_accent))
+		if is_stage and not is_locked:
+			state_badge_row.add_child(_make_state_badge(str(landing.get("stage_label", "落点")), Color8(102, 152, 204)))
+		var ecology_row := HBoxContainer.new()
+		ecology_row.add_theme_constant_override("separation", 6)
+		landing_card.add_child(ecology_row)
+		var header_card := _make_candidate_header_card(
+			str(landing.get("name", landing_id)),
+			"%s%s%s%s · 评分 %.2f · 繁荣 %.2f · 风险 %.2f" % [
+				"默认落点 · " if is_preferred and not is_locked else "",
 				"锁定 · " if is_locked else "",
 				"阶段 · " if is_stage and not is_locked else "",
-				str(landing.get("stage_label", "落点"))
-			],
-			"%s · 评分 %.2f · 繁荣 %.2f · 风险 %.2f" % [
-				str(landing.get("name", landing_id)),
+				str(landing.get("stage_label", "落点")),
 				float(landing.get("score", 0.0)),
 				float(landing.get("prosperity", 0.0)),
 				float(landing.get("risk", 0.0)),
 			],
-			region_accent if is_locked else Color8(171, 132, 196)
-		))
+			region_accent if is_locked else candidate_accent
+		)
+		header_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		header_card.modulate = Color(1.0, 1.0, 1.0, 1.0) if is_locked else (Color(1.0, 1.0, 1.0, 0.98) if is_preferred else Color(1.0, 1.0, 1.0, 0.90))
+		ecology_row.add_child(header_card)
+
 		var lock_button := Button.new()
-		lock_button.text = "锁定推进"
+		lock_button.text = "已锁定" if is_locked else ("默认推进" if is_preferred else "锁定推进")
 		lock_button.disabled = is_locked
+		lock_button.custom_minimum_size = Vector2(92, 30)
+		lock_button.modulate = region_accent if is_locked else (Color8(224, 186, 92) if is_preferred else Color8(162, 168, 176))
 		lock_button.pressed.connect(_on_campaign_landing_selected.bind(landing_id))
-		chip_row.add_child(lock_button)
-		box.add_child(chip_row)
+		ecology_row.add_child(lock_button)
+
+		landing_card.add_child(_make_compact_section_label("进展层"))
+		var progress_row := HBoxContainer.new()
+		progress_row.add_theme_constant_override("separation", 6)
+		landing_card.add_child(progress_row)
+		progress_row.add_child(_make_compact_hero_chip(
+			"路线",
+			"%s · %s" % [
+				str(landing.get("run_profile_tag", "基础观察")),
+				str(landing.get("archive_tier", "未建档")),
+			],
+			Color8(102, 152, 204)
+		))
+
+		var management_tag := str(landing.get("management_priority_tag", "常规经营区"))
+		var backbone_tag := _region_management_backbone_tag({
+			"management_priority_tag": landing.get("management_priority_tag", "常规经营区"),
+			"branch_mode": landing.get("branch_mode", ""),
+			"branch_completed": landing.get("branch_completed", false),
+			"branch_completion_tag": landing.get("branch_completion_tag", ""),
+			"branch_completion_counts": landing.get("branch_completion_counts", {}),
+			"branch_completion_streak": landing.get("branch_completion_streak", 0),
+		})
+		var management_report := {
+			"management_priority_tag": management_tag,
+			"backbone_completion_tag": landing.get("backbone_completion_tag", ""),
+			"backbone_completion_streak": landing.get("backbone_completion_streak", 0),
+			"branch_mode": landing.get("branch_mode", ""),
+			"branch_completed": landing.get("branch_completed", false),
+			"branch_completion_tag": landing.get("branch_completion_tag", ""),
+			"branch_completion_counts": landing.get("branch_completion_counts", {}),
+			"branch_completion_streak": landing.get("branch_completion_streak", 0),
+		}
+		var management_chip_accent := _region_management_chip_color(management_report)
+		var backbone_chip_accent := _region_backbone_chip_color(management_report)
+		var consolidation_chip_accent := _region_consolidation_chip_color(management_report)
+		if management_tag != "常规经营区" or backbone_tag != "" or str(landing.get("backbone_completion_tag", "")) != "":
+			landing_card.add_child(_make_compact_section_label("经营层"))
+			var management_row := HBoxContainer.new()
+			management_row.add_theme_constant_override("separation", 6)
+			landing_card.add_child(management_row)
+			management_row.add_child(_make_compact_hero_chip("经营层级", _region_management_short_display(management_report), management_chip_accent))
+			management_row.add_child(_make_compact_hero_chip("骨干状态", _region_backbone_short_display(management_report), backbone_chip_accent))
+			management_row.add_child(_make_compact_hero_chip("巩固状态", _region_consolidation_short_display(management_report), consolidation_chip_accent))
+		box.add_child(landing_shell)
 
 	return _wrap_menu_card(box, Color8(171, 132, 196))
 
@@ -4385,6 +6662,7 @@ func _make_section(
 
 func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
+	selected_game_action = _recommended_game_action(detail_cache.get(active_region_id, world_data.get("active_region", {})))
 	selected_campaign_stage_index = 0
 	selected_campaign_landing_target_id = ""
 	selected_schedule_route_key = "primary_route"

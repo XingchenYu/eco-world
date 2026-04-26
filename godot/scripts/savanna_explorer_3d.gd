@@ -313,6 +313,7 @@ func _setup_world() -> void:
 	env.fog_sun_scatter = 0.18
 	world_environment.environment = env
 	add_child(world_environment)
+	_apply_real_biome_environment()
 
 	sun_light = DirectionalLight3D.new()
 	sun_light.rotation_degrees = Vector3(-48.0, 34.0, 0.0)
@@ -584,7 +585,8 @@ func _apply_region(region_id: String, spawn_gate: String = "") -> void:
 		}
 		player_body.global_position = Vector3(pending_arrival_intro.get("start_position", spawn))
 		smoothed_route_focus = player_body.global_position
-		_add_arrival_entry_runway(spawn, arrival_dir)
+		if not _using_real_terrain_asset():
+			_add_arrival_entry_runway(spawn, arrival_dir)
 	_start_region_transition(region_detail.get("name", "新区域"), _biome_label(current_biome), spawn_gate != "")
 	_update_camera(true)
 	_refresh_ui()
@@ -606,7 +608,7 @@ func _build_world_geometry() -> void:
 	current_route_focus.clear()
 
 	if world_environment.environment != null:
-		world_environment.environment.background_color = current_theme.get("sky", Color8(164, 206, 236))
+		_apply_real_biome_environment()
 
 	var floor_size := Vector3(current_world_bounds.size.x, 1.0, current_world_bounds.size.y)
 	var floor_center := Vector3(current_world_bounds.position.x + current_world_bounds.size.x * 0.5, -0.5, current_world_bounds.position.y + current_world_bounds.size.y * 0.5)
@@ -619,25 +621,50 @@ func _build_world_geometry() -> void:
 	_build_hotspots()
 	_build_obstacles()
 	_build_vegetation_layer()
-	_build_biome_structures()
-	_build_route_barriers()
-	_build_route_chokepoints()
-	_build_navigation_blocks()
-	_build_visibility_screens()
-	_build_boundary_landmarks()
+	# Large procedural blocker layers stay disabled until the environment pass is rebuilt.
 
 
 func _build_terrain_layer() -> void:
-	if _try_instance_biome_asset(terrain_asset_root, AssetBindings.biome_terrain_scene_path(current_biome)):
-		return
 	_build_ground_surface()
 	_build_terrain_layers()
+	_instance_real_surface_floor()
 
 
 func _build_vegetation_layer() -> void:
-	if _try_instance_biome_asset(vegetation_asset_root, AssetBindings.biome_vegetation_scene_path(current_biome)):
-		return
 	_build_props()
+
+
+func _using_real_terrain_asset() -> bool:
+	return false
+
+
+func _sanitize_real_terrain_instance(node: Node) -> void:
+	if node == null:
+		return
+	if node is Node3D:
+		var node3d := node as Node3D
+		var hidden_tokens := [
+			"Far",
+			"Wall",
+			"Ridge",
+			"Shelf",
+			"Shoulder",
+			"Skirt",
+			"Rise",
+			"Spur",
+			"Face",
+			"Cut",
+			"Berm",
+			"Dune",
+			"Ravine",
+			"Cliff",
+		]
+		for token in hidden_tokens:
+			if node3d.name.contains(token):
+				node3d.visible = false
+				break
+	for child in node.get_children():
+		_sanitize_real_terrain_instance(child)
 
 
 func _try_instance_biome_asset(root: Node3D, scene_path: String) -> bool:
@@ -647,11 +674,211 @@ func _try_instance_biome_asset(root: Node3D, scene_path: String) -> bool:
 	if instance is Node3D:
 		(instance as Node3D).position = Vector3.ZERO
 	root.add_child(instance)
+	if root == terrain_asset_root:
+		_sanitize_real_terrain_instance(instance)
 	return true
+
+
+func _apply_real_biome_environment() -> void:
+	if world_environment == null or world_environment.environment == null:
+		return
+	var env := world_environment.environment
+	var hdri_path := AssetBindings.biome_real_hdri_path(current_biome)
+	if hdri_path != "":
+		var panorama := load(hdri_path) as Texture2D
+		if panorama != null:
+			var sky_material := PanoramaSkyMaterial.new()
+			sky_material.panorama = panorama
+			var sky := Sky.new()
+			sky.sky_material = sky_material
+			env.background_mode = Environment.BG_SKY
+			env.sky = sky
+			env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+			env.ambient_light_energy = 1.1
+			return
+	env.background_mode = Environment.BG_COLOR
+	env.sky = null
+	env.background_color = current_theme.get("sky", Color8(164, 206, 236))
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color8(195, 204, 214)
+	env.ambient_light_energy = 1.15
+
+
+func _instance_real_surface_floor() -> void:
+	var texture_paths := AssetBindings.biome_real_surface_texture_paths(current_biome)
+	if texture_paths.is_empty():
+		return
+	var floor_root := Node3D.new()
+	floor_root.name = "RealSurfaceFloor"
+	terrain_asset_root.add_child(floor_root)
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.name = "Surface"
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(current_world_bounds.size.x, current_world_bounds.size.y)
+	mesh_instance.mesh = mesh
+	mesh_instance.rotation = Vector3(-PI * 0.5, 0.0, 0.0)
+	mesh_instance.position = Vector3(
+		current_world_bounds.position.x + current_world_bounds.size.x * 0.5,
+		_ground_contact_height_at(
+			current_world_bounds.position.x + current_world_bounds.size.x * 0.5,
+			current_world_bounds.position.y + current_world_bounds.size.y * 0.5
+		) + 0.03,
+		current_world_bounds.position.y + current_world_bounds.size.y * 0.5
+	)
+	var material := StandardMaterial3D.new()
+	material.roughness = 1.0
+	material.metallic = 0.0
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.uv1_scale = Vector3(
+		maxf(1.0, current_world_bounds.size.x / 18.0),
+		maxf(1.0, current_world_bounds.size.y / 18.0),
+		1.0
+	)
+	var albedo := load(str(texture_paths.get("albedo", ""))) as Texture2D
+	var normal := load(str(texture_paths.get("normal", ""))) as Texture2D
+	var roughness := load(str(texture_paths.get("roughness", ""))) as Texture2D
+	if albedo != null:
+		material.albedo_texture = albedo
+	if normal != null:
+		material.normal_enabled = true
+		material.normal_texture = normal
+	if roughness != null:
+		material.roughness_texture = roughness
+	mesh_instance.material_override = material
+	floor_root.add_child(mesh_instance)
+
+
+func _instance_real_vegetation_assets() -> void:
+	return
+
+
+func _real_vegetation_layouts() -> Array[Dictionary]:
+	match current_biome:
+		"wetland":
+			return [
+				{"kind": "tree", "x": -34.0, "z": 18.0, "scale": 1.8, "yaw": 14.0},
+				{"kind": "ground_cover", "x": -14.0, "z": 24.0, "scale": 2.2, "yaw": 0.0},
+				{"kind": "shrub", "x": 20.0, "z": 12.0, "scale": 1.5, "yaw": -18.0},
+				{"kind": "root", "x": 6.0, "z": -8.0, "scale": 1.6, "yaw": 26.0},
+			]
+		"forest":
+			return [
+				{"kind": "tree", "x": -18.0, "z": -22.0, "scale": 2.6, "yaw": 8.0},
+				{"kind": "tree", "x": 32.0, "z": 16.0, "scale": 2.2, "yaw": -12.0},
+				{"kind": "moss", "x": -8.0, "z": 14.0, "scale": 2.0, "yaw": 0.0},
+				{"kind": "root", "x": 14.0, "z": -6.0, "scale": 1.8, "yaw": 32.0},
+				{"kind": "deadwood", "x": 26.0, "z": -18.0, "scale": 1.5, "yaw": -22.0},
+			]
+		"coast":
+			return [
+				{"kind": "ground_cover", "x": 8.0, "z": 6.0, "scale": 2.2, "yaw": 0.0},
+				{"kind": "shrub", "x": -12.0, "z": -8.0, "scale": 1.4, "yaw": 24.0},
+				{"kind": "deadwood", "x": 20.0, "z": -18.0, "scale": 1.4, "yaw": -36.0},
+			]
+		_:
+			return [
+				{"kind": "tree", "x": -42.0, "z": 22.0, "scale": 2.0, "yaw": 12.0},
+				{"kind": "tree", "x": 36.0, "z": 18.0, "scale": 1.8, "yaw": -10.0},
+				{"kind": "shrub", "x": 10.0, "z": 16.0, "scale": 1.5, "yaw": 18.0},
+				{"kind": "ground_cover", "x": -8.0, "z": 10.0, "scale": 2.6, "yaw": 0.0},
+			]
 
 
 func _species_asset_scene_path(species_id: String) -> String:
 	return AssetBindings.species_scene_path(species_id)
+
+
+func _is_imported_visual_scene_path(scene_path: String) -> bool:
+	return scene_path.ends_with(".gltf") or scene_path.ends_with(".glb")
+
+
+func _real_species_display_scale_factor(species_id: String) -> float:
+	match species_id:
+		"african_elephant":
+			return 0.0024
+		"zebra":
+			return 0.0075
+		"nile_crocodile":
+			return 0.014
+		"vulture":
+			return 0.32
+		"lion":
+			return 1.36
+		_:
+			return 1.0
+
+
+func _real_species_target_height(species_id: String, category: String) -> float:
+	match species_id:
+		"lion":
+			return 1.3
+		"zebra":
+			return 1.7
+		"nile_crocodile":
+			return 0.9
+		"vulture", "eagle":
+			return 0.9
+	match category:
+		"掠食者":
+			return 1.2
+		"飞行动物":
+			return 0.8
+		"水域动物":
+			return 0.9
+		_:
+			return 1.6
+
+
+func _bounds_accumulate_mesh(node: Node3D, parent_transform: Transform3D, state: Dictionary) -> void:
+	var local_transform := parent_transform * node.transform
+	if node is MeshInstance3D:
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.mesh != null:
+			var aabb := mesh_instance.mesh.get_aabb()
+			var corners := [
+				aabb.position,
+				aabb.position + Vector3(aabb.size.x, 0.0, 0.0),
+				aabb.position + Vector3(0.0, aabb.size.y, 0.0),
+				aabb.position + Vector3(0.0, 0.0, aabb.size.z),
+				aabb.position + Vector3(aabb.size.x, aabb.size.y, 0.0),
+				aabb.position + Vector3(aabb.size.x, 0.0, aabb.size.z),
+				aabb.position + Vector3(0.0, aabb.size.y, aabb.size.z),
+				aabb.position + aabb.size,
+			]
+			for corner in corners:
+				var world_corner: Vector3 = local_transform * corner
+				if not bool(state.get("has_bounds", false)):
+					state["min"] = world_corner
+					state["max"] = world_corner
+					state["has_bounds"] = true
+				else:
+					var min_corner: Vector3 = state.get("min", world_corner)
+					var max_corner: Vector3 = state.get("max", world_corner)
+					state["min"] = Vector3(minf(min_corner.x, world_corner.x), minf(min_corner.y, world_corner.y), minf(min_corner.z, world_corner.z))
+					state["max"] = Vector3(maxf(max_corner.x, world_corner.x), maxf(max_corner.y, world_corner.y), maxf(max_corner.z, world_corner.z))
+	for child in node.get_children():
+		var child_node := child as Node3D
+		if child_node != null:
+			_bounds_accumulate_mesh(child_node, local_transform, state)
+
+
+func _fit_imported_visual_display_scale(visual: Node3D, species_id: String, category: String, fallback_scale: float) -> float:
+	if visual == null:
+		return fallback_scale
+	var bounds_state := {
+		"has_bounds": false,
+		"min": Vector3.ZERO,
+		"max": Vector3.ZERO,
+	}
+	_bounds_accumulate_mesh(visual, Transform3D.IDENTITY, bounds_state)
+	if not bool(bounds_state.get("has_bounds", false)):
+		return fallback_scale
+	var min_corner: Vector3 = bounds_state.get("min", Vector3.ZERO)
+	var max_corner: Vector3 = bounds_state.get("max", Vector3.ZERO)
+	var size := max_corner - min_corner
+	var height := maxf(size.y, 0.001)
+	var target_height := _real_species_target_height(species_id, category)
+	return clampf(target_height / height, 0.001, 8.0)
 
 
 func _try_make_species_asset_member(species_id: String, category: String, primary: bool) -> Node3D:
@@ -677,7 +904,19 @@ func _try_make_species_asset_member(species_id: String, category: String, primar
 			base_scale *= 0.98
 		_:
 			base_scale *= 1.0
+	if _is_imported_visual_scene_path(scene_path):
+		base_scale *= _real_species_display_scale_factor(species_id)
 	root.scale = Vector3.ONE * base_scale
+	if _is_imported_visual_scene_path(scene_path):
+		var display_rig := Node3D.new()
+		display_rig.name = "DisplayRig"
+		root.add_child(display_rig)
+		display_rig.add_child(visual)
+		display_rig.scale = Vector3.ONE * _fit_imported_visual_display_scale(visual, species_id, category, 1.0)
+		visual.name = "AssetVisual"
+		root.set_meta("focus_rigs", {"body": display_rig, "head": null})
+		root.set_meta("asset_display_only", true)
+		return root
 	root.add_child(visual)
 	if _bind_asset_member_runtime_rigs(root, visual):
 		_apply_asset_member_visibility_profile(root, species_id, category)
@@ -690,19 +929,26 @@ func _try_make_species_asset_member(species_id: String, category: String, primar
 func _bind_asset_member_runtime_rigs(member_root: Node3D, visual_root: Node3D) -> bool:
 	if visual_root == null:
 		return false
+	var grounded_body := visual_root.get_node_or_null("GroundAnchor/BodyRig") as Node3D
+	var grounded_head := visual_root.get_node_or_null("GroundAnchor/HeadRig") as Node3D
+	if grounded_body != null:
+		var grounded_rigs := {"body": grounded_body, "head": grounded_head if grounded_head != null else grounded_body}
+		member_root.set_meta("focus_rigs", grounded_rigs)
+		member_root.set_meta("asset_actor_scene", true)
+		return true
 	var existing_body := visual_root.find_child("BodyRig", true, false) as Node3D
 	var existing_head := visual_root.find_child("HeadRig", true, false) as Node3D
 	if existing_body != null:
 		if existing_body.get_parent() != member_root:
-			var body_global := existing_body.global_transform
+			var body_local := existing_body.transform
 			existing_body.get_parent().remove_child(existing_body)
 			member_root.add_child(existing_body)
-			existing_body.global_transform = body_global
+			existing_body.transform = body_local
 		if existing_head != null and existing_head.get_parent() != member_root:
-			var head_global := existing_head.global_transform
+			var head_local := existing_head.transform
 			existing_head.get_parent().remove_child(existing_head)
 			member_root.add_child(existing_head)
-			existing_head.global_transform = head_global
+			existing_head.transform = head_local
 		var rigs := {"body": existing_body, "head": existing_head if existing_head != null else existing_body}
 		member_root.set_meta("focus_rigs", rigs)
 		return true
@@ -768,6 +1014,8 @@ func _is_asset_head_part_name(node_name: String) -> bool:
 func _apply_asset_member_visibility_profile(member_root: Node3D, species_id: String, category: String) -> void:
 	if member_root == null or member_root.has_meta("asset_visibility_tuned"):
 		return
+	if bool(member_root.get_meta("asset_actor_scene", false)):
+		return
 	var focus_rigs: Dictionary = member_root.get_meta("focus_rigs", {})
 	var body_rig := focus_rigs.get("body", null) as Node3D
 	var head_rig := focus_rigs.get("head", null) as Node3D
@@ -800,6 +1048,43 @@ func _apply_asset_member_visibility_profile(member_root: Node3D, species_id: Str
 			)
 			leg_rig.position.y += float(profile.get("leg_anchor_drop", 0.0))
 	member_root.set_meta("asset_visibility_tuned", true)
+
+
+func _member_body_rig(member: Node3D) -> Node3D:
+	if member == null:
+		return null
+	var focus_rigs: Dictionary = _ensure_member_focus_rigs(member)
+	var body_rig := focus_rigs.get("body", null) as Node3D
+	if body_rig != null:
+		return body_rig
+	body_rig = member.get_node_or_null("BodyRig") as Node3D
+	if body_rig != null:
+		return body_rig
+	return member.get_node_or_null("GroundAnchor/BodyRig") as Node3D
+
+
+func _member_head_rig(member: Node3D) -> Node3D:
+	if member == null:
+		return null
+	if bool(member.get_meta("asset_display_only", false)):
+		return null
+	var focus_rigs: Dictionary = _ensure_member_focus_rigs(member)
+	var head_rig := focus_rigs.get("head", null) as Node3D
+	if head_rig != null:
+		return head_rig
+	head_rig = member.get_node_or_null("HeadRig") as Node3D
+	if head_rig != null:
+		return head_rig
+	return member.get_node_or_null("GroundAnchor/HeadRig") as Node3D
+
+
+func _member_leg_rig(member: Node3D, leg_name: String) -> Node3D:
+	var body_rig := _member_body_rig(member)
+	if body_rig != null:
+		var direct_leg := body_rig.get_node_or_null("Leg_%s" % leg_name) as Node3D
+		if direct_leg != null:
+			return direct_leg
+	return member.get_node_or_null("Leg_%s" % leg_name) as Node3D
 
 
 func _asset_member_visibility_profile(species_id: String, category: String) -> Dictionary:
@@ -2822,22 +3107,10 @@ func _add_boundary_post(pos: Vector3, color: Color) -> void:
 
 func _build_exit_zones() -> void:
 	exit_zones.clear()
-	var spread_scale := _world_spread_scale()
 	var links: Array = region_detail.get("frontier_links", [])
 	for index in range(min(links.size(), current_exit_layouts.size())):
 		var link: Dictionary = links[index]
 		var layout: Dictionary = current_exit_layouts[index]
-		var marker := MeshInstance3D.new()
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = 1.1 * lerpf(1.0, spread_scale, 0.54)
-		mesh.bottom_radius = 1.4 * lerpf(1.0, spread_scale, 0.62)
-		mesh.height = 2.4 * lerpf(1.0, spread_scale, 0.42)
-		marker.mesh = mesh
-		marker.position = layout.get("pos", Vector3.ZERO) + Vector3(0.0, 1.2 * lerpf(1.0, spread_scale, 0.38), 0.0)
-		marker.material_override = _material(Color8(240, 222, 172), 0.55)
-		exit_root.add_child(marker)
-		_add_exit_arch(layout.get("pos", Vector3.ZERO))
-		_add_exit_threshold(layout.get("pos", Vector3.ZERO))
 		exit_zones.append(
 			{
 				"id": str(layout.get("id", "")),
@@ -2847,7 +3120,6 @@ func _build_exit_zones() -> void:
 				"target_region_id": str(link.get("target_region_id", "")),
 			}
 		)
-		exit_visuals[str(layout.get("id", ""))] = {"marker": marker}
 
 
 func _add_exit_threshold(pos: Vector3) -> void:
@@ -3052,11 +3324,15 @@ func _build_wildlife() -> void:
 	var spawn2 := Vector2(spawn3.x, spawn3.z)
 	for index in range(capped_manifest.size()):
 		var entry: Dictionary = capped_manifest[index]
+		var species_id := str(entry.get("species_id", ""))
+		var species_scene_path := _species_asset_scene_path(species_id)
+		if not _is_imported_visual_scene_path(species_scene_path):
+			continue
 		var category := str(entry.get("category", "区域生物"))
 		var dynamic_cluster := _dynamic_cluster_profile(category)
-		var anchor_id := _anchor_for_species(str(entry.get("species_id", "")))
+		var anchor_id := _anchor_for_species(species_id)
 		var anchor3 := _hotspot_pos(anchor_id)
-		var group_size := _group_size_for_species(str(entry.get("species_id", "")), category, int(entry.get("count", 0)))
+		var group_size := _group_size_for_species(species_id, category, int(entry.get("count", 0)))
 		group_size = int(clampi(roundi(group_size * float(dynamic_cluster.get("group_scale", 1.0))), 1, 8))
 		var role := "member"
 		if category == "草食动物" and group_size >= 4:
@@ -3113,7 +3389,7 @@ func _build_wildlife() -> void:
 		marker_beacon.material_override = _material(marker_color.lightened(0.18), 0.78)
 		marker_root.add_child(marker_beacon)
 		for member_index in range(group_size):
-			member_root.add_child(_make_animal_member(str(entry.get("species_id", "")), category, member_index == 0))
+			member_root.add_child(_make_animal_member(species_id, category, member_index == 0))
 		var initial_position := Vector2(anchor3.x, anchor3.z)
 		var radius_scale := 1.0
 		if index < 6:
@@ -3142,21 +3418,22 @@ func _build_wildlife() -> void:
 		wildlife.append(
 			{
 				"species_id": str(entry.get("species_id", "")),
+				"scene_path": species_scene_path,
 				"label": str(entry.get("label", entry.get("species_id", ""))),
 				"count": int(entry.get("count", 0)),
 				"category": category,
 				"anchor_id": anchor_id,
 				"anchor": Vector2(anchor3.x, anchor3.z),
-				"radius": _wildlife_radius_for(index, str(entry.get("species_id", "")), category) * float(dynamic_cluster.get("spread_scale", 1.0)) * radius_scale,
+				"radius": _wildlife_radius_for(index, species_id, category) * float(dynamic_cluster.get("spread_scale", 1.0)) * radius_scale,
 				"phase": float(index) * 0.72,
-				"speed": _wildlife_speed_for(index, str(entry.get("species_id", "")), category),
+				"speed": _wildlife_speed_for(index, species_id, category),
 				"position": initial_position,
-				"route_points": _wildlife_route_points(str(entry.get("species_id", "")), anchor_id, category, _behavior_for_species(str(entry.get("species_id", "")), category)),
+				"route_points": _wildlife_route_points(species_id, anchor_id, category, _behavior_for_species(species_id, category)),
 				"route_index": index % 3,
 				"group_size": group_size,
-				"behavior": _behavior_for_species(str(entry.get("species_id", "")), category),
+				"behavior": _behavior_for_species(species_id, category),
 				"role": role,
-				"alert_radius": _wildlife_alert_radius_for(index, str(entry.get("species_id", "")), category, role),
+				"alert_radius": _wildlife_alert_radius_for(index, species_id, category, role),
 				"alerted": false,
 				"look_back": false,
 				"regrouping": false,
@@ -4661,7 +4938,7 @@ func _animal_attention_mode_response(mode: String) -> Dictionary:
 
 
 func _apply_member_locomotion(member: Node3D, species_id: String, category: String, behavior: String, role: String, member_index: int, phase: float, travel_speed: float, alerted: bool, signal_timer: float) -> void:
-	var body_rig := member.get_node_or_null("BodyRig") as Node3D
+	var body_rig := _member_body_rig(member)
 	if body_rig != null and not body_rig.has_meta("base_position"):
 		body_rig.set_meta("base_position", body_rig.position)
 	if body_rig != null and not body_rig.has_meta("locomotion_pitch"):
@@ -4732,9 +5009,7 @@ func _apply_member_locomotion(member: Node3D, species_id: String, category: Stri
 		body_rig.rotation.x += (body_pitch - previous_pitch) * 0.42
 		body_rig.set_meta("locomotion_pitch", body_pitch)
 	for leg_name in ["FrontLeft", "FrontRight", "BackLeft", "BackRight"]:
-		var leg_rig := member.get_node_or_null("BodyRig/Leg_%s" % leg_name) as Node3D
-		if leg_rig == null:
-			leg_rig = member.get_node_or_null("Leg_%s" % leg_name) as Node3D
+		var leg_rig := _member_leg_rig(member, leg_name)
 		if leg_rig == null:
 			continue
 		var knee := leg_rig.get_node_or_null("Knee") as Node3D
@@ -4874,6 +5149,13 @@ func _member_meta_lerpf(member: Node3D, key: String, target: float, rate: float)
 func _ensure_member_focus_rigs(member: Node3D) -> Dictionary:
 	if member.has_meta("focus_rigs"):
 		return member.get_meta("focus_rigs", {})
+	if bool(member.get_meta("asset_display_only", false)):
+		var display_rig := member.get_node_or_null("DisplayRig") as Node3D
+		if display_rig != null:
+			var display_rigs := {"body": display_rig, "head": null}
+			member.set_meta("focus_rigs", display_rigs)
+			return display_rigs
+		return {}
 	var existing_body := member.get_node_or_null("BodyRig") as Node3D
 	var existing_head := member.get_node_or_null("HeadRig") as Node3D
 	if existing_body != null or existing_head != null:

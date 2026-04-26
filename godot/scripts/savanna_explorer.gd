@@ -1,6 +1,10 @@
 extends Control
 
 const DATA_PATH := "res://data/world_state.json"
+const REPORT_PATH := "user://expedition_reports.json"
+const PROJECT_REPORT_PATH := "res://data/expedition_reports.json"
+const SELECTED_REGION_PATH := "user://selected_expedition_region.json"
+const PROJECT_SELECTED_REGION_PATH := "res://data/selected_expedition_region.json"
 const WORLD_MAP_SCENE := "res://scenes/world_map.tscn"
 const WORLD_SIZE := Vector2(2800, 1700)
 const PLAYER_RADIUS := Vector2(18, 22)
@@ -164,6 +168,13 @@ var current_interaction: Dictionary = {}
 var current_chase: Dictionary = {}
 var current_chase_result: Dictionary = {}
 var current_task: Dictionary = {}
+var world_task: Dictionary = {}
+var entry_request: Dictionary = {}
+var incoming_handoff: Dictionary = {}
+var handoff_task_completed := false
+var region_event_chain: Array = []
+var region_event_index := 0
+var region_event_timer := 0.0
 var discovered_species_ids: Dictionary = {}
 var discovered_hotspot_ids: Dictionary = {}
 var visited_region_ids: Dictionary = {}
@@ -173,6 +184,25 @@ var witnessed_pressure := false
 var witnessed_chase_result := false
 var hotspot_focus_time := 0.0
 var chase_focus_time := 0.0
+var survey_target_kind := ""
+var survey_target_id := ""
+var survey_target_label := ""
+var survey_progress := 0.0
+var survey_required_time := 0.0
+var survey_target_data: Dictionary = {}
+var nearby_threat_level := 0.0
+var expedition_phase := "追踪"
+var extraction_ready := false
+var species_intel_score := 0
+var hotspot_intel_score := 0
+var specialization_chain_bonus_claimed := false
+var intel_breakdown := {
+	"水源": 0,
+	"迁徙": 0,
+	"压迫": 0,
+	"腐食": 0,
+	"栖地": 0,
+}
 var ui_font: Font
 
 
@@ -194,6 +224,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_M:
 			get_tree().change_scene_to_file(WORLD_MAP_SCENE)
 		elif event.keycode == KEY_E and not current_exit_zone.is_empty():
+			_record_exit_summary(current_exit_zone)
 			var target_region_id := str(current_exit_zone.get("target_region_id", ""))
 			if target_region_id != "":
 				_apply_region(target_region_id, str(current_exit_zone.get("id", "")))
@@ -209,6 +240,9 @@ func _process(delta: float) -> void:
 	_update_encounter()
 	_update_hotspot_focus(delta)
 	_update_exit_zone()
+	_update_field_survey(delta)
+	_update_expedition_state()
+	_update_region_event_chain(delta)
 	_update_event_focus()
 	queue_redraw()
 
@@ -237,16 +271,58 @@ func _load_region_payload() -> void:
 		return
 
 	world_data = parsed
-	var target_region_id := ""
 	var region_details: Dictionary = world_data.get("region_details", {})
-	for region_id in region_details.keys():
-		var detail: Dictionary = region_details[region_id]
-		if "grassland" in detail.get("dominant_biomes", []):
-			target_region_id = str(region_id)
-			break
+	entry_request = _load_entry_request(region_details)
+	var target_region_id := str(entry_request.get("region_id", ""))
 	if target_region_id == "":
 		target_region_id = str(world_data.get("active_region", {}).get("id", ""))
+	if target_region_id == "" or not region_details.has(target_region_id):
+		for region_id in region_details.keys():
+			var detail: Dictionary = region_details[region_id]
+			if "grassland" in detail.get("dominant_biomes", []):
+				target_region_id = str(region_id)
+				break
+	if target_region_id == "" and not region_details.is_empty():
+		target_region_id = str(region_details.keys()[0])
 	_apply_region(target_region_id)
+
+
+func _load_entry_request(region_details: Dictionary) -> Dictionary:
+	var tree_request = get_tree().get_meta("selected_expedition_region", {})
+	if typeof(tree_request) == TYPE_DICTIONARY:
+		var normalized_tree_request := _normalize_entry_request(tree_request, region_details)
+		if not normalized_tree_request.is_empty():
+			return normalized_tree_request
+	var request := _read_entry_request(PROJECT_SELECTED_REGION_PATH, region_details)
+	if not request.is_empty():
+		return request
+	return _read_entry_request(SELECTED_REGION_PATH, region_details)
+
+
+func _read_entry_request(path: String, region_details: Dictionary) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
+	return _normalize_entry_request(parsed, region_details)
+
+
+func _normalize_entry_request(raw_request: Dictionary, region_details: Dictionary) -> Dictionary:
+	var region_id := str(raw_request.get("region_id", ""))
+	if region_details.has(region_id):
+		return raw_request
+
+	var region_name := str(raw_request.get("region_name", ""))
+	for candidate_id in region_details.keys():
+		var detail: Dictionary = region_details[candidate_id]
+		if region_name != "" and region_name == str(detail.get("name", "")):
+			raw_request["region_id"] = str(candidate_id)
+			return raw_request
+	return {}
 
 
 func _apply_region(region_id: String, spawn_gate: String = "") -> void:
@@ -272,9 +348,33 @@ func _apply_region(region_id: String, spawn_gate: String = "") -> void:
 	current_chase.clear()
 	current_chase_result.clear()
 	current_task.clear()
+	world_task.clear()
+	incoming_handoff.clear()
+	handoff_task_completed = false
+	region_event_chain.clear()
+	region_event_index = 0
+	region_event_timer = 0.0
 	visited_region_ids[region_id] = true
+	hotspots = _sort_hotspots_by_priority(hotspots)
 	hotspot_focus_time = 0.0
 	chase_focus_time = 0.0
+	survey_target_kind = ""
+	survey_target_id = ""
+	survey_target_label = ""
+	survey_progress = 0.0
+	survey_required_time = 0.0
+	survey_target_data.clear()
+	nearby_threat_level = 0.0
+	expedition_phase = "追踪"
+	extraction_ready = false
+	species_intel_score = 0
+	hotspot_intel_score = 0
+	specialization_chain_bonus_claimed = false
+	for key in intel_breakdown.keys():
+		intel_breakdown[key] = 0
+	_build_region_event_chain()
+	_ensure_world_task_request()
+	_apply_region_entry_prompt()
 	if spawn_gate != "" and GATE_SPAWNS.has(spawn_gate):
 		player_pos = _find_safe_spawn(GATE_SPAWNS[spawn_gate])
 	else:
@@ -299,28 +399,196 @@ func _build_exit_zones() -> void:
 		)
 
 
+func _sort_hotspots_by_priority(raw_hotspots: Array) -> Array:
+	var sorted_hotspots := raw_hotspots.duplicate(true)
+	sorted_hotspots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return _hotspot_priority_score(a) > _hotspot_priority_score(b)
+	)
+	return sorted_hotspots
+
+
+func _hotspot_priority_score(hotspot: Dictionary) -> float:
+	var hotspot_id := str(hotspot.get("hotspot_id", ""))
+	var intensity := float(hotspot.get("intensity", 0.0))
+	var resource_state: Dictionary = region_detail.get("resource_state", {})
+	var pressure_state: Dictionary = region_detail.get("ecological_pressures", {})
+	var health_state: Dictionary = region_detail.get("health_state", {})
+	var event_bonus := float(_active_event_hotspot_bonus(hotspot) + _report_hotspot_priority_bonus(hotspot))
+	match hotspot_id:
+		"waterhole":
+			return intensity + float(resource_state.get("surface_water", 0.0)) * 1.4 + float(resource_state.get("freshwater", 0.0)) * 0.5 + event_bonus
+		"migration_corridor":
+			return intensity + float(resource_state.get("grazing_pressure", 0.0)) * 1.1 + float(resource_state.get("understory", 0.0)) * 0.35 + event_bonus
+		"predator_ridge":
+			return intensity + float(pressure_state.get("predation_load", 0.0)) * 1.2 + float(pressure_state.get("territorial_stress", 0.0)) * 0.5 + event_bonus
+		"carrion_field":
+			return intensity + float(resource_state.get("carcass_availability", 0.0)) * 1.6 + float(pressure_state.get("aerial_carrion_cycle", 0.0)) * 0.4 + event_bonus
+		_:
+			return intensity + float(health_state.get("resilience", 0.0)) * 0.9 + float(resource_state.get("canopy_cover", 0.0)) * 0.4 + event_bonus
+
+
+func _report_hotspot_priority_bonus(hotspot: Dictionary) -> int:
+	var reports := _load_expedition_reports()
+	var report: Dictionary = reports.get(current_region_id, {})
+	var channel := str(report.get("top_intel_channel", ""))
+	var dominant_channel := str(report.get("dominant_intel_channel", channel))
+	var hotspot_id := str(hotspot.get("hotspot_id", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	var archive_tier := str(report.get("archive_tier", "初勘档案"))
+	var bonus := 0
+	match channel:
+		"水源":
+			bonus += 1 if hotspot_id == "waterhole" else 0
+		"迁徙":
+			bonus += 1 if hotspot_id == "migration_corridor" else 0
+		"压迫":
+			bonus += 1 if hotspot_id == "predator_ridge" else 0
+		"腐食":
+			bonus += 1 if hotspot_id == "carrion_field" else 0
+		"栖地":
+			bonus += 1 if hotspot_id == "shade_grove" else 0
+	if dominant_channel != channel:
+		match dominant_channel:
+			"水源":
+				bonus += 1 if hotspot_id == "waterhole" else 0
+			"迁徙":
+				bonus += 1 if hotspot_id == "migration_corridor" else 0
+			"压迫":
+				bonus += 1 if hotspot_id == "predator_ridge" else 0
+			"腐食":
+				bonus += 1 if hotspot_id == "carrion_field" else 0
+			"栖地":
+				bonus += 1 if hotspot_id == "shade_grove" else 0
+	if visit_count >= 3:
+		match dominant_channel:
+			"水源":
+				bonus += 2 if hotspot_id == "waterhole" else 0
+			"迁徙":
+				bonus += 2 if hotspot_id == "migration_corridor" else 0
+			"压迫":
+				bonus += 2 if hotspot_id == "predator_ridge" else 0
+			"腐食":
+				bonus += 2 if hotspot_id == "carrion_field" else 0
+			"栖地":
+				bonus += 2 if hotspot_id == "shade_grove" else 0
+	match archive_tier:
+		"熟悉档案":
+			match dominant_channel:
+				"水源":
+					bonus += 1 if hotspot_id == "waterhole" else 0
+				"迁徙":
+					bonus += 1 if hotspot_id == "migration_corridor" else 0
+				"压迫":
+					bonus += 1 if hotspot_id == "predator_ridge" else 0
+				"腐食":
+					bonus += 1 if hotspot_id == "carrion_field" else 0
+				"栖地":
+					bonus += 1 if hotspot_id == "shade_grove" else 0
+		"定型档案":
+			match dominant_channel:
+				"水源":
+					bonus += 2 if hotspot_id == "waterhole" else 0
+				"迁徙":
+					bonus += 2 if hotspot_id == "migration_corridor" else 0
+				"压迫":
+					bonus += 2 if hotspot_id == "predator_ridge" else 0
+				"腐食":
+					bonus += 2 if hotspot_id == "carrion_field" else 0
+				"栖地":
+					bonus += 2 if hotspot_id == "shade_grove" else 0
+	var route_style := str(report.get("dominant_route_style", "base"))
+	var route_streak := int(report.get("route_style_streak", 0))
+	var route_lock_tag := str(report.get("route_lock_tag", "未锁定"))
+	var lock_completion_streak := int(report.get("lock_completion_streak", 0))
+	if route_style == "quick" and route_streak >= 3 and hotspot_id == _specialization_target_hotspot_id():
+		bonus += 1 if route_streak < 5 else 2
+	elif route_style == "deep" and route_streak >= 3:
+		if hotspot_id == _specialization_target_hotspot_id():
+			bonus += 1
+		elif hotspot_id == _specialization_followup_hotspot_id():
+			bonus += 1 if route_streak < 5 else 2
+	if route_lock_tag == "快取锁定" and hotspot_id == _specialization_target_hotspot_id():
+		bonus += 1 if lock_completion_streak < 3 else 2
+	elif route_lock_tag == "深挖锁定" and hotspot_id in [_specialization_target_hotspot_id(), _specialization_followup_hotspot_id()]:
+		bonus += 1 if lock_completion_streak < 3 else 2
+	var management_phase := str(report.get("management_rotation_phase", "常规经营"))
+	var handoff_streak := int(report.get("handoff_completion_streak", 0))
+	var branch_stability_tag := _region_branch_stability_tag()
+	var backbone_tag := _region_management_backbone_tag()
+	var backbone_streak := _region_backbone_completion_streak()
+	if management_phase in ["主经营第一段", "单区快取主经营", "单区深挖主经营"]:
+		if hotspot_id == _specialization_target_hotspot_id():
+			bonus += 2 if handoff_streak >= 2 else 1
+		elif _region_specialization_mode() == "深挖线" and hotspot_id == _specialization_followup_hotspot_id() and handoff_streak >= 3:
+			bonus += 1
+	if not incoming_handoff.is_empty() and not handoff_task_completed:
+		var branch_mode := str(incoming_handoff.get("branch_mode", ""))
+		var branch_completed := bool(incoming_handoff.get("branch_completed", false))
+		if branch_mode == "deep_expand":
+			if hotspot_id == _specialization_target_hotspot_id():
+				bonus += 4 if branch_completed else 2
+			elif hotspot_id == _specialization_followup_hotspot_id():
+				bonus += 3 if branch_completed else 2
+		elif branch_mode == "quick_close" and hotspot_id == _specialization_target_hotspot_id():
+			bonus += 4 if branch_completed else 2
+	if branch_stability_tag == "稳定扩线区":
+		if hotspot_id == _specialization_target_hotspot_id():
+			bonus += 3
+		elif hotspot_id == _specialization_followup_hotspot_id():
+			bonus += 3
+	elif branch_stability_tag == "扩线塑形中":
+		if hotspot_id == _specialization_target_hotspot_id():
+			bonus += 2
+		elif hotspot_id == _specialization_followup_hotspot_id():
+			bonus += 1
+	elif branch_stability_tag == "稳定收束区" and hotspot_id == _specialization_target_hotspot_id():
+		bonus += 3
+	elif branch_stability_tag == "收束塑形中" and hotspot_id == _specialization_target_hotspot_id():
+		bonus += 2
+	if backbone_tag == "快取经营骨干区" and hotspot_id == _specialization_target_hotspot_id():
+		bonus += 3
+	elif backbone_tag == "深挖经营骨干区":
+		if hotspot_id == _specialization_target_hotspot_id():
+			bonus += 3
+		elif hotspot_id == _specialization_followup_hotspot_id():
+			bonus += 2
+	if backbone_streak >= 2:
+		if backbone_tag == "快取经营骨干区" and hotspot_id == _specialization_target_hotspot_id():
+			bonus += 2
+		elif backbone_tag == "深挖经营骨干区":
+			if hotspot_id == _specialization_target_hotspot_id():
+				bonus += 2
+			elif hotspot_id == _specialization_followup_hotspot_id():
+				bonus += 1
+	return bonus
+
+
 func _build_wildlife() -> void:
 	wildlife.clear()
 	var capped_manifest := species_manifest.slice(0, min(species_manifest.size(), 18))
 	for index in range(capped_manifest.size()):
 		var entry: Dictionary = capped_manifest[index]
-		var anchor_id := _anchor_for_species(str(entry.get("species_id", "")))
+		var species_id := str(entry.get("species_id", ""))
+		var category := str(entry.get("category", "区域生物"))
+		var anchor_id := _identity_anchor_for_species(species_id, category, _anchor_for_species(species_id))
 		var anchor: Vector2 = _hotspot_position(anchor_id)
 		var phase := float(index) * 0.67
-		var color: Color = CATEGORY_COLORS.get(str(entry.get("category", "区域生物")), Color8(174, 191, 126))
-		var behavior := _behavior_for_species(str(entry.get("species_id", "")), str(entry.get("category", "区域生物")))
-		var group_size := _group_size_for_species(str(entry.get("species_id", "")), str(entry.get("category", "区域生物")), int(entry.get("count", 0)))
+		var color: Color = CATEGORY_COLORS.get(category, Color8(174, 191, 126))
+		var behavior := _identity_behavior_for_species(species_id, category, _behavior_for_species(species_id, category))
+		var group_size := maxi(1, _group_size_for_species(species_id, category, int(entry.get("count", 0))) + _identity_group_size_bonus(species_id, category))
+		var radius := _identity_radius_for_species(category, Vector2(34 + (index % 4) * 18, 20 + (index % 3) * 14))
+		var speed := _identity_speed_for_species(category, 0.28 + float((index % 5) + 1) * 0.06)
 		wildlife.append(
 			{
-				"species_id": str(entry.get("species_id", "")),
-				"label": str(entry.get("label", entry.get("species_id", ""))),
+				"species_id": species_id,
+				"label": str(entry.get("label", species_id)),
 				"count": int(entry.get("count", 0)),
-				"category": str(entry.get("category", "区域生物")),
+				"category": category,
 				"anchor_id": anchor_id,
 				"anchor": anchor,
-				"radius": Vector2(34 + (index % 4) * 18, 20 + (index % 3) * 14),
+				"radius": radius,
 				"phase": phase,
-				"speed": 0.28 + float((index % 5) + 1) * 0.06,
+				"speed": speed,
 				"position": anchor,
 				"color": color,
 				"behavior": behavior,
@@ -380,12 +648,159 @@ func _group_size_for_species(species_id: String, category: String, count: int) -
 	return clampi(int(round(count / 5.0)), 1, 4)
 
 
+func _identity_anchor_for_species(species_id: String, category: String, default_anchor: String) -> String:
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	if visit_count < 3:
+		return default_anchor
+	match dominant_channel:
+		"水源":
+			if category == "水域动物" or species_id in ["african_elephant", "zebra", "antelope", "deer"]:
+				return "waterhole"
+		"迁徙":
+			if category == "草食动物":
+				return "migration_corridor"
+		"压迫":
+			if category == "掠食者":
+				return "predator_ridge"
+		"腐食":
+			if category == "飞行动物":
+				return "carrion_field"
+		"栖地":
+			if category == "区域生物" or species_id in ["giraffe", "boar", "wild_boar"]:
+				return "shade_grove"
+	if _region_archive_tier() == "定型档案":
+		match dominant_channel:
+			"水源":
+				if category in ["水域动物", "草食动物"]:
+					return "waterhole"
+			"迁徙":
+				if category == "草食动物":
+					return "migration_corridor"
+			"压迫":
+				if category == "掠食者":
+					return "predator_ridge"
+			"腐食":
+				if category == "飞行动物":
+					return "carrion_field"
+			"栖地":
+				if category == "区域生物":
+					return "shade_grove"
+	return default_anchor
+
+
+func _identity_behavior_for_species(species_id: String, category: String, default_behavior: String) -> String:
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	if visit_count < 3:
+		return default_behavior
+	match dominant_channel:
+		"压迫":
+			if category == "掠食者":
+				return "stalk"
+		"腐食":
+			if category == "飞行动物":
+				return "glide"
+		"水源":
+			if category == "水域动物":
+				return "swim"
+		"栖地":
+			if species_id in ["african_elephant", "white_rhino", "hippopotamus"]:
+				return "heavy_roam"
+	return default_behavior
+
+
+func _identity_group_size_bonus(species_id: String, category: String) -> int:
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	if visit_count < 3:
+		return 0
+	var archive_tier := _region_archive_tier()
+	match dominant_channel:
+		"迁徙":
+			if category == "草食动物":
+				return 2 if archive_tier == "定型档案" else 1
+			return 0
+		"压迫":
+			if category == "掠食者":
+				return 2 if archive_tier == "定型档案" else 1
+			return 0
+		"腐食":
+			if category == "飞行动物":
+				return 2 if archive_tier == "定型档案" else 1
+			return 0
+		"水源":
+			if category == "水域动物":
+				return 2 if archive_tier == "定型档案" else 1
+			return 0
+		"栖地":
+			if category == "区域生物" or species_id in ["giraffe", "boar", "wild_boar"]:
+				return 2 if archive_tier == "定型档案" else 1
+			return 0
+		_:
+			return 0
+
+
+func _identity_radius_for_species(category: String, default_radius: Vector2) -> Vector2:
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	if visit_count < 3:
+		return default_radius
+	var archive_tier := _region_archive_tier()
+	match dominant_channel:
+		"迁徙":
+			if category == "草食动物":
+				return default_radius * (Vector2(1.32, 1.14) if archive_tier == "定型档案" else Vector2(1.24, 1.10))
+		"压迫":
+			if category == "掠食者":
+				return default_radius * (Vector2(1.20, 1.10) if archive_tier == "定型档案" else Vector2(1.12, 1.06))
+		"水源":
+			if category == "水域动物":
+				return default_radius * (Vector2(1.28, 1.12) if archive_tier == "定型档案" else Vector2(1.18, 1.08))
+		"腐食":
+			if category == "飞行动物":
+				return default_radius * (Vector2(1.32, 1.24) if archive_tier == "定型档案" else Vector2(1.20, 1.18))
+	return default_radius
+
+
+func _identity_speed_for_species(category: String, default_speed: float) -> float:
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	if visit_count < 3:
+		return default_speed
+	var archive_tier := _region_archive_tier()
+	match dominant_channel:
+		"迁徙":
+			if category == "草食动物":
+				return default_speed + (0.07 if archive_tier == "定型档案" else 0.04)
+			return default_speed
+		"压迫":
+			if category == "掠食者":
+				return default_speed + (0.05 if archive_tier == "定型档案" else 0.03)
+			return default_speed
+		"水源":
+			if category == "水域动物":
+				return default_speed - (0.05 if archive_tier == "定型档案" else 0.03)
+			return default_speed
+		"栖地":
+			if category == "区域生物":
+				return default_speed - (0.04 if archive_tier == "定型档案" else 0.02)
+			return default_speed
+		_:
+			return default_speed
+
+
 func _theme_for_region(detail: Dictionary) -> Dictionary:
 	var biomes: Array = detail.get("dominant_biomes", [])
-	if "wetland" in biomes or "lake_shore" in biomes or "floodplain" in biomes:
-		return BIOME_THEMES["wetland"]
 	if "temperate_forest" in biomes or "mixed_forest" in biomes or "tropical_rainforest" in biomes:
 		return BIOME_THEMES["forest"]
+	if "wetland" in biomes or "lake_shore" in biomes or "floodplain" in biomes:
+		return BIOME_THEMES["wetland"]
 	if "coast" in biomes or "seagrass" in biomes or "coral_reef" in biomes or "estuary" in biomes:
 		return BIOME_THEMES["coast"]
 	return BIOME_THEMES["grassland"]
@@ -393,13 +808,28 @@ func _theme_for_region(detail: Dictionary) -> Dictionary:
 
 func _layout_for_region(detail: Dictionary) -> Dictionary:
 	var biomes: Array = detail.get("dominant_biomes", [])
-	if "wetland" in biomes or "lake_shore" in biomes or "floodplain" in biomes:
-		return REGION_LAYOUTS["wetland"]
 	if "temperate_forest" in biomes or "mixed_forest" in biomes or "tropical_rainforest" in biomes:
 		return REGION_LAYOUTS["forest"]
+	if "wetland" in biomes or "lake_shore" in biomes or "floodplain" in biomes:
+		return REGION_LAYOUTS["wetland"]
 	if "coast" in biomes or "seagrass" in biomes or "coral_reef" in biomes or "estuary" in biomes:
 		return REGION_LAYOUTS["coast"]
 	return REGION_LAYOUTS["grassland"]
+
+
+func _exploration_title() -> String:
+	var biomes: Array = region_detail.get("dominant_biomes", [])
+	if "tropical_rainforest" in biomes:
+		return "雨林河道 · 探索中"
+	if "temperate_forest" in biomes or "mixed_forest" in biomes or "tropical_rainforest" in biomes:
+		return "森林前线 · 探索中"
+	if "wetland" in biomes or "lake_shore" in biomes or "floodplain" in biomes:
+		return "湿地前线 · 探索中"
+	if "coast" in biomes or "seagrass" in biomes or "coral_reef" in biomes or "estuary" in biomes:
+		return "海岸前线 · 探索中"
+	if "grassland" in biomes or "shrubland" in biomes or "seasonal_waterhole" in biomes:
+		return "草原前线 · 探索中"
+	return "生态前线 · 探索中"
 
 
 func _hotspot_position(hotspot_id: String) -> Vector2:
@@ -665,14 +1095,53 @@ func _update_camera() -> void:
 
 func _update_encounter() -> void:
 	current_encounter.clear()
-	var nearest_distance := 100000.0
+	var best_score := -100000.0
 	for animal in wildlife:
 		var distance := player_pos.distance_to(animal.get("position", Vector2.ZERO))
-		if distance < 116.0 and distance < nearest_distance:
-			current_encounter = animal
-			nearest_distance = distance
-	if not current_encounter.is_empty():
-		_record_species_discovery(current_encounter)
+		if distance < 116.0:
+			var score := (116.0 - distance) + _active_event_encounter_bias(animal) * 24.0 + _run_profile_encounter_bias(animal) * 20.0
+			if score > best_score:
+				best_score = score
+				current_encounter = animal
+
+
+func _active_event_encounter_bias(animal: Dictionary) -> float:
+	match _active_region_event_tag():
+		"predation":
+			return 1.0 if str(animal.get("category", "")) == "掠食者" else 0.0
+		"carrion":
+			return 1.0 if str(animal.get("category", "")) == "飞行动物" else 0.0
+		"territory":
+			return 0.8 if str(animal.get("category", "")) == "草食动物" else 0.0
+		"pressure":
+			return 0.8 if str(animal.get("category", "")) == "掠食者" else 0.2
+		"symbiosis":
+			return 0.8 if str(animal.get("category", "")) == "区域生物" else 0.0
+		"focus":
+			if hotspots.is_empty():
+				return 0.0
+			return 0.8 if str(animal.get("anchor_id", "")) == str(hotspots[0].get("hotspot_id", "")) else 0.0
+		_:
+			return 0.0
+
+
+func _run_profile_encounter_bias(animal: Dictionary) -> float:
+	var archive_tier := _region_archive_tier()
+	match _region_run_profile():
+		"快取完成":
+			if _species_intel_channel(animal) == _region_specialization_target_channel():
+				return 1.15 if archive_tier == "定型档案" else 1.0
+			return 0.0
+		"深挖完成":
+			if str(animal.get("anchor_id", "")) == _specialization_followup_hotspot_id():
+				return 1.1 if archive_tier == "定型档案" else 0.9
+			if _species_intel_channel(animal) == _region_specialization_target_channel():
+				return 0.58 if archive_tier == "定型档案" else 0.45
+			return 0.0
+		_:
+			if archive_tier in ["熟悉档案", "定型档案"] and _species_intel_channel(animal) == _region_specialization_target_channel():
+				return 0.18 if archive_tier == "熟悉档案" else 0.30
+			return 0.0
 
 
 func _update_hotspot_focus(delta: float) -> void:
@@ -712,7 +1181,7 @@ func _update_event_focus() -> void:
 	if not current_exit_zone.is_empty():
 		current_event = {
 			"title": "区域出口已锁定",
-			"body": str(current_exit_zone.get("label", "")) + " 已可进入。",
+			"body": _exit_event_body(),
 			"accent": Color8(246, 220, 158),
 		}
 		return
@@ -728,18 +1197,1921 @@ func _update_event_focus() -> void:
 	if not current_task.is_empty():
 		current_event = current_task
 		return
+	var handoff_task := _active_handoff_task()
+	if not handoff_task.is_empty():
+		current_event = handoff_task
+		return
 	if not current_hotspot.is_empty():
 		current_event = {
 			"title": "生态观察",
-			"body": str(current_hotspot.get("label", "")) + " · " + str(current_hotspot.get("summary", "")),
+			"body": str(current_hotspot.get("label", "")) + " · " + str(current_hotspot.get("summary", "")) + " · 按住 Space 开始采样。",
 			"accent": Color8(170, 224, 198),
 		}
 		return
 	if not current_encounter.is_empty():
 		current_event = {
 			"title": "动物偶遇",
-			"body": str(current_encounter.get("label", "")) + " · " + str(current_encounter.get("category", "")),
+			"body": str(current_encounter.get("label", "")) + " · " + str(current_encounter.get("category", "")) + " · 按住 Space 记录。",
 			"accent": Color8(244, 213, 142),
+		}
+		return
+	if not region_event_chain.is_empty():
+		current_event = region_event_chain[region_event_index % region_event_chain.size()]
+
+
+func _update_region_event_chain(delta: float) -> void:
+	if region_event_chain.is_empty():
+		return
+	region_event_timer += delta
+	if region_event_timer >= 4.8:
+		region_event_timer = 0.0
+		region_event_index = (region_event_index + 1) % region_event_chain.size()
+
+
+func _build_region_event_chain() -> void:
+	region_event_chain.clear()
+	var pressure_headlines: Array = region_detail.get("pressure_headlines", [])
+	var narrative: Dictionary = region_detail.get("narrative", {})
+	var seen := {}
+	_append_region_event("区域总态", "%s · %s" % [_region_state_label(), _chain_focus_text()], Color8(170, 224, 198), seen, "focus")
+	if pressure_headlines.size() > 0:
+		_append_region_event("压力播报", str(pressure_headlines[0]), Color8(214, 132, 132), seen, "pressure")
+	if pressure_headlines.size() > 1:
+		_append_region_event("风险抬头", str(pressure_headlines[1]), Color8(196, 148, 214), seen, "risk")
+	_append_region_event("主线播报", _story_line(narrative.get("grassland_chain", narrative.get("wetland_chain", []))), Color8(170, 224, 198), seen, "focus")
+	_append_region_event("捕食播报", _story_line(narrative.get("predation", [])), Color8(214, 132, 132), seen, "predation")
+	_append_region_event("领地播报", _story_line(narrative.get("territory", [])), Color8(196, 148, 214), seen, "territory")
+	_append_region_event("趋势播报", _story_line(narrative.get("social_trends", [])), Color8(124, 176, 224), seen, "trend")
+	_append_region_event("共生播报", _story_line(narrative.get("symbiosis", [])), Color8(210, 182, 96), seen, "symbiosis")
+	_append_region_event("腐食播报", _story_line(narrative.get("carrion_chain", [])), Color8(184, 186, 122), seen, "carrion")
+
+
+func _apply_region_entry_prompt() -> void:
+	_apply_world_task_entry_prompt()
+	var reports := _load_expedition_reports()
+	var report: Dictionary = reports.get(current_region_id, {})
+	if report.is_empty():
+		return
+	incoming_handoff = _incoming_handoff_context(reports)
+	var channel := str(report.get("top_intel_channel", "未分类"))
+	var window_title := str(report.get("event_window_title", "当前窗口"))
+	var archive_tier := str(report.get("archive_tier", "初勘档案"))
+	var archive_progress := int(report.get("archive_progress", 0))
+	var strategy := _archive_entry_strategy_note(report)
+	var incoming_note := str(incoming_handoff.get("note", ""))
+	var backbone_note := _region_backbone_entry_note()
+	var handoff_prefix := ""
+	if incoming_note != "":
+		handoff_prefix = incoming_note + " "
+	var first_segment_note := _region_first_segment_entry_note(report)
+	var prompt_title := "区域承接"
+	var backbone_completion_tag := str(report.get("backbone_completion_tag", ""))
+	if backbone_completion_tag != "":
+		prompt_title = "骨干巩固"
+	var prompt := {
+		"title": prompt_title,
+		"body": "%s上次在这里带回的是%s · %s。当前已建立%s（进度 %d），这轮优先沿%s线推进。%s%s%s" % [
+			handoff_prefix,
+			channel,
+			window_title,
+			archive_tier,
+			archive_progress,
+			channel,
+			first_segment_note,
+			backbone_note,
+			strategy,
+		],
+		"accent": Color8(210, 182, 96),
+		"tag": "handoff",
+	}
+	region_event_chain.insert(0, prompt)
+
+
+func _ensure_world_task_request() -> void:
+	if not entry_request.is_empty() and str(entry_request.get("region_id", "")) == current_region_id:
+		return
+	var gameplay_hint: Dictionary = region_detail.get("gameplay_hint", {})
+	var action := str(gameplay_hint.get("action", "调查"))
+	if action not in ["调查", "修复", "通道"]:
+		action = _fallback_region_action()
+	entry_request = {
+		"schema_version": 1,
+		"created_at": Time.get_datetime_string_from_system(),
+		"region_id": current_region_id,
+		"region_name": str(region_detail.get("name", current_region_id)),
+		"recommended_action": action,
+		"gameplay_hint": gameplay_hint,
+		"source": "region_gameplay_hint",
+	}
+
+
+func _fallback_region_action() -> String:
+	var hazard := _top_hazard(region_detail.get("hazard_state", {}))
+	var health: Dictionary = region_detail.get("health_state", {})
+	if float(hazard.get("value", 0.0)) >= 0.55:
+		return "修复"
+	if float(health.get("biodiversity", 0.0)) < 0.60 or float(health.get("resilience", 0.0)) < 0.60:
+		return "调查"
+	var frontier_links: Array = region_detail.get("frontier_links", [])
+	if not frontier_links.is_empty() and float(frontier_links[0].get("strength", 0.0)) < 0.80:
+		return "通道"
+	return "调查"
+
+
+func _top_hazard(hazard_state: Dictionary) -> Dictionary:
+	var top_key := ""
+	var top_value := -1.0
+	for key in hazard_state.keys():
+		var value := float(hazard_state.get(key, 0.0))
+		if value > top_value:
+			top_key = str(key)
+			top_value = value
+	return {"key": top_key, "value": maxf(top_value, 0.0)}
+
+
+func _apply_world_task_entry_prompt() -> void:
+	if entry_request.is_empty():
+		return
+	var gameplay_hint: Dictionary = entry_request.get("gameplay_hint", {})
+	var action := str(entry_request.get("recommended_action", gameplay_hint.get("action", "调查")))
+	var reason := str(gameplay_hint.get("reason", "按世界图推荐目标执行本轮调查。"))
+	var target_region_id := str(gameplay_hint.get("target_region_id", ""))
+	var body := "世界图推荐：%s。%s" % [action, reason]
+	world_task = {
+		"title": "世界任务",
+		"body": body,
+		"accent": Color8(210, 182, 96),
+		"action": action,
+		"reason": reason,
+		"target_region_id": target_region_id,
+	}
+	region_event_chain.insert(0, world_task)
+
+
+func _region_first_segment_entry_note(report: Dictionary) -> String:
+	var management_phase := str(report.get("management_rotation_phase", "常规经营"))
+	var handoff_streak := int(report.get("handoff_completion_streak", 0))
+	var backbone_tag := _region_management_backbone_tag()
+	var backbone_streak := _region_backbone_completion_streak()
+	if management_phase == "主经营第一段":
+		if backbone_tag != "" and backbone_streak >= 2:
+			return "这片区当前是经营轮换第一站，而且%s已经连成 %d 轮，开局就该直压主力目标组。 " % [backbone_tag, backbone_streak]
+		if handoff_streak >= 3:
+			return "这片区当前是经营轮换第一站，而且承接已经连成 %d 轮，优先直压主热点。 " % handoff_streak
+		if handoff_streak >= 1:
+			return "这片区当前是经营轮换第一站，优先先把第一批主线样本接稳。 "
+	if management_phase in ["单区快取主经营", "单区深挖主经营"]:
+		if backbone_tag != "" and backbone_streak >= 2:
+			return "这片区当前是单区主经营站，而且%s已经跑成 %d 轮，本轮直接沿主力目标组推进。 " % [backbone_tag, backbone_streak]
+		return "这片区当前是单区主经营站，本轮先沿默认主线拿稳关键样本。 "
+	return ""
+
+
+func _region_backbone_completed() -> bool:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return false
+	if not bool(report.get("backbone_completed", false)):
+		return false
+	return str(report.get("management_backbone_tag", "")) == _region_management_backbone_tag()
+
+
+func _region_backbone_completion_streak() -> int:
+	if not _region_backbone_completed():
+		return 0
+	var report := _region_identity_report()
+	return int(report.get("backbone_completion_streak", 0))
+
+
+func _region_backbone_entry_note() -> String:
+	var backbone_tag := _region_management_backbone_tag()
+	var backbone_streak := _region_backbone_completion_streak()
+	if backbone_tag == "":
+		return ""
+	if backbone_streak >= 3:
+		return "这片区已经形成%s，并且连成 %d 轮。 " % [backbone_tag, backbone_streak]
+	if _region_backbone_completed():
+		return "这片区已经形成%s，本轮可以直接按主力目标组推进。 " % backbone_tag
+	return ""
+
+
+func _incoming_handoff_context(reports: Dictionary) -> Dictionary:
+	var latest_report: Dictionary = reports.get("_last", {})
+	if latest_report.is_empty():
+		return {}
+	if str(latest_report.get("target_region_id", "")) != current_region_id:
+		return {}
+	var source_region := str(latest_report.get("region_name", latest_report.get("region_id", "")))
+	if source_region == "" or source_region == current_region_id:
+		return {}
+	var source_channel := str(latest_report.get("top_intel_channel", "未分类"))
+	var source_window := str(latest_report.get("event_window_title", "当前窗口"))
+	var source_phase := str(latest_report.get("management_rotation_phase", "常规经营"))
+	var first_segment_completed := bool(latest_report.get("first_segment_completed", false))
+	var second_segment_completed := bool(latest_report.get("second_segment_completed", false))
+	var branch_completed := bool(latest_report.get("branch_completed", false))
+	var branch_completion_tag := str(latest_report.get("branch_completion_tag", "非分支段"))
+	var branch_mode := ""
+	var management_tag := str(latest_report.get("management_priority_tag", "常规经营区"))
+	var route_lock_tag := str(latest_report.get("route_lock_tag", "未锁定"))
+	var specialization_mode := str(latest_report.get("specialization_mode", "基础线"))
+	var note := "你刚从%s转入这里，上轮带回的是%s · %s（%s）。" % [source_region, source_channel, source_window, source_phase]
+	if first_segment_completed:
+		note = "你刚从%s转入这里，上轮已经把第一站跑成，带回的是%s · %s（%s）。" % [source_region, source_channel, source_window, source_phase]
+	if second_segment_completed:
+		if management_tag in ["主力深挖经营区", "重点深挖经营区"] or route_lock_tag == "深挖锁定" or specialization_mode == "深挖线":
+			branch_mode = "deep_expand"
+			note = "你刚从%s转入这里，上轮已经把第二段接稳，当前进入深挖扩线段。" % source_region
+		elif management_tag in ["主力快取经营区", "重点快取经营区"] or route_lock_tag == "快取锁定" or specialization_mode == "快取线":
+			branch_mode = "quick_close"
+			note = "你刚从%s转入这里，上轮已经把第二段接稳，当前进入快取收束段。" % source_region
+	if branch_completed:
+		if branch_mode == "deep_expand":
+			note = "你刚从%s转入这里，上轮已%s，当前继续执行深挖扩线后续段。" % [source_region, branch_completion_tag]
+		elif branch_mode == "quick_close":
+			note = "你刚从%s转入这里，上轮已%s，当前继续执行快取收束后续段。" % [source_region, branch_completion_tag]
+	return {
+		"source_region": source_region,
+		"channel": source_channel,
+		"window": source_window,
+		"phase": source_phase,
+		"first_segment_completed": first_segment_completed,
+		"second_segment_completed": second_segment_completed,
+		"branch_completed": branch_completed,
+		"branch_completion_tag": branch_completion_tag,
+		"branch_mode": branch_mode,
+		"note": note,
+	}
+
+
+func _active_handoff_task() -> Dictionary:
+	if handoff_task_completed or survey_progress > 0.0 or specialization_chain_bonus_claimed:
+		return {}
+	var backbone_task := _active_backbone_consolidation_task()
+	if not backbone_task.is_empty():
+		return backbone_task
+	if incoming_handoff.is_empty():
+		return {}
+	var first_segment_completed := bool(incoming_handoff.get("first_segment_completed", false))
+	var second_segment_completed := bool(incoming_handoff.get("second_segment_completed", false))
+	var branch_completed := bool(incoming_handoff.get("branch_completed", false))
+	var branch_mode := str(incoming_handoff.get("branch_mode", ""))
+	var branch_stability_tag := _region_branch_stability_tag()
+	var title := "第二段任务" if first_segment_completed else "承接任务"
+	var body := ""
+	if second_segment_completed and branch_mode == "deep_expand":
+		title = "扩线后续任务" if branch_completed else "扩线任务"
+		body = "从%s转入 · 上轮%s，当前进入深挖扩线段。先压主线复核，再补第二复核点和对应样本，把经营线继续往外推。" % [
+			str(incoming_handoff.get("source_region", "上一段区域")),
+			str(incoming_handoff.get("branch_completion_tag", "第二段已接稳")),
+		]
+	elif second_segment_completed and branch_mode == "quick_close":
+		title = "收束后续任务" if branch_completed else "收束任务"
+		body = "从%s转入 · 上轮%s，当前进入快取收束段。先拿关键样本和高值速查点，再准备短线撤离。" % [
+			str(incoming_handoff.get("source_region", "上一段区域")),
+			str(incoming_handoff.get("branch_completion_tag", "第二段已接稳")),
+		]
+	elif first_segment_completed:
+		body = "从%s转入 · 上轮第一站已跑成，带回%s · %s（%s）。这轮直接执行第二段：先沿当前主线拿到第一批落地样本，再按本区决定快取还是深挖。" % [
+			str(incoming_handoff.get("source_region", "上一段区域")),
+			str(incoming_handoff.get("channel", "未分类")),
+			str(incoming_handoff.get("window", "当前窗口")),
+			str(incoming_handoff.get("phase", "常规经营")),
+		]
+	else:
+		body = "从%s转入 · 上轮带回%s · %s（%s）。先沿当前主线找到第一批承接样本，再决定是快取还是深挖。" % [
+			str(incoming_handoff.get("source_region", "上一段区域")),
+			str(incoming_handoff.get("channel", "未分类")),
+			str(incoming_handoff.get("window", "当前窗口")),
+			str(incoming_handoff.get("phase", "常规经营")),
+		]
+	if branch_stability_tag == "稳定扩线区":
+		body += " 当前区已稳定成扩线区，主线复核和第二复核点会更早成型。"
+	elif branch_stability_tag == "扩线塑形中":
+		body += " 当前区正在扩线塑形，优先把主热点和后续复核点接稳。"
+	elif branch_stability_tag == "稳定收束区":
+		body += " 当前区已稳定成收束区，高值速查点会更早打开，接稳后应短线撤离。"
+	elif branch_stability_tag == "收束塑形中":
+		body += " 当前区正在收束塑形，优先吃主速查点再准备收束。"
+	return {
+		"title": title,
+		"body": body,
+		"accent": Color8(210, 182, 96),
+	}
+
+
+func _active_backbone_consolidation_task() -> Dictionary:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return {}
+	var backbone_tag := str(report.get("management_backbone_tag", ""))
+	var backbone_completion_tag := str(report.get("backbone_completion_tag", ""))
+	if backbone_tag == "":
+		return {}
+	var backbone_streak := int(report.get("backbone_completion_streak", 0))
+	var body := ""
+	match backbone_tag:
+		"快取经营骨干区":
+			body = "这片区已经进入%s，当前应先拿主力速查组和关键样本，再按短推进节奏准备撤离。" % [backbone_completion_tag if backbone_completion_tag != "" else backbone_tag]
+			if backbone_streak >= 3:
+				body += " 连成 %d 轮后，开局就该直压主速查点。" % backbone_streak
+		"深挖经营骨干区":
+			body = "这片区已经进入%s，当前应先压主力主复核，再补主力次复核和对应样本。" % [backbone_completion_tag if backbone_completion_tag != "" else backbone_tag]
+			if backbone_streak >= 3:
+				body += " 连成 %d 轮后，开局就该直接拉起整条主力复核链。" % backbone_streak
+		_:
+			return {}
+	return {
+		"title": "巩固任务",
+		"body": body,
+		"accent": Color8(210, 182, 96),
+	}
+
+
+func _maybe_complete_handoff(trigger_label: String, channel: String) -> void:
+	if incoming_handoff.is_empty() or handoff_task_completed:
+		return
+	handoff_task_completed = true
+	var first_segment_completed := bool(incoming_handoff.get("first_segment_completed", false))
+	var second_segment_completed := bool(incoming_handoff.get("second_segment_completed", false))
+	var branch_mode := str(incoming_handoff.get("branch_mode", ""))
+	var branch_bonus := _branch_mode_completion_bonus(branch_mode, channel)
+	var completion_label := "承接完成"
+	if second_segment_completed and branch_mode == "deep_expand":
+		completion_label = "扩线接稳"
+	elif second_segment_completed and branch_mode == "quick_close":
+		completion_label = "收束接稳"
+	elif first_segment_completed:
+		completion_label = "第二段接稳"
+	discovery_log.push_front("%s：%s · %s线已接上" % [completion_label, trigger_label, channel])
+	discovery_log = discovery_log.slice(0, 6)
+	var title := completion_label
+	var body := ""
+	if second_segment_completed and branch_mode == "deep_expand":
+		body = "已用%s把深挖扩线段接稳，当前%s调查已经落地。本轮接下来继续按%s往外扩线。" % [
+			trigger_label,
+			channel,
+			_region_specialization_mode(),
+		]
+	elif second_segment_completed and branch_mode == "quick_close":
+		body = "已用%s把快取收束段接稳，当前%s调查已经落地。本轮接下来按%s完成收束。" % [
+			trigger_label,
+			channel,
+			_region_specialization_mode(),
+		]
+	elif first_segment_completed:
+		body = "已用%s把第二段经营线接稳，当前%s调查已经落地。本轮接下来按%s继续推进。" % [
+			trigger_label,
+			channel,
+			_region_specialization_mode(),
+		]
+	else:
+		body = "已用%s接上跨区经营线，当前%s调查已经落地。本轮接下来按%s继续推进。" % [
+			trigger_label,
+			channel,
+			_region_specialization_mode(),
+		]
+	if branch_bonus > 0:
+		hotspot_intel_score += branch_bonus
+		intel_breakdown[channel] = int(intel_breakdown.get(channel, 0)) + branch_bonus
+		var branch_bonus_label := "分支奖励"
+		if branch_mode == "deep_expand":
+			branch_bonus_label = "扩线奖励"
+		elif branch_mode == "quick_close":
+			branch_bonus_label = "收束奖励"
+		discovery_log.push_front("%s：%s +%d" % [completion_label, branch_bonus_label, branch_bonus])
+		discovery_log = discovery_log.slice(0, 6)
+		body += " %s +%d。" % [branch_bonus_label, branch_bonus]
+	current_task = {
+		"title": title,
+		"body": body,
+		"accent": Color8(198, 222, 160),
+	}
+
+
+func _archive_entry_strategy_note(report: Dictionary) -> String:
+	var shaping_tag := _region_route_shaping_tag()
+	var lock_tag := _region_route_lock_tag()
+	var management_tag := _region_management_priority_tag()
+	var management_rotation := _region_management_rotation_note()
+	var management_prefix := ""
+	if management_tag != "常规经营区":
+		management_prefix = "%s，" % management_tag
+	match str(report.get("archive_tier", "初勘档案")):
+		"定型档案":
+			return "%s这片区已经定型，适合按既有档案直接压主线和高值复核。当前%s / %s。%s" % [management_prefix, shaping_tag, lock_tag, management_rotation]
+		"熟悉档案":
+			return "%s这片区已经熟悉，开局就能更快补主线样本。当前%s / %s。%s" % [management_prefix, shaping_tag, lock_tag, management_rotation]
+		"已知档案":
+			return "%s这片区已有稳定记录，适合顺着既有线索继续推进。当前%s / %s。%s" % [management_prefix, shaping_tag, lock_tag, management_rotation]
+		_:
+			return "%s这片区仍在初勘阶段，先补足基础样本。当前%s / %s。%s" % [management_prefix, shaping_tag, lock_tag, management_rotation]
+
+
+func _append_region_event(title: String, body: String, accent: Color, seen: Dictionary, tag: String) -> void:
+	var cleaned := body.strip_edges()
+	if cleaned == "" or seen.has(cleaned):
+		return
+	seen[cleaned] = true
+	region_event_chain.append(
+		{
+			"title": title,
+			"body": cleaned,
+			"accent": accent,
+			"tag": tag,
+		}
+	)
+
+
+func _story_line(rows: Array) -> String:
+	if rows.is_empty():
+		return ""
+	var first = rows[0]
+	if typeof(first) == TYPE_STRING:
+		return str(first)
+	if typeof(first) == TYPE_DICTIONARY:
+		for key in ["summary", "line", "headline", "label", "text", "body", "description"]:
+			if first.has(key):
+				return str(first.get(key, ""))
+	return str(first)
+
+
+func _active_region_event() -> Dictionary:
+	if region_event_chain.is_empty():
+		return {}
+	return region_event_chain[region_event_index % region_event_chain.size()]
+
+
+func _active_region_event_tag() -> String:
+	return str(_active_region_event().get("tag", ""))
+
+
+func _update_expedition_state() -> void:
+	var threat_target := 0.0
+	var pressure_state: Dictionary = region_detail.get("ecological_pressures", {})
+	threat_target = maxf(threat_target, float(pressure_state.get("predation_load", 0.0)) * 0.42)
+	threat_target = maxf(threat_target, float(pressure_state.get("collapse_pressure", 0.0)) * 0.78)
+	for animal in wildlife:
+		if str(animal.get("category", "")) != "掠食者":
+			continue
+		var distance := player_pos.distance_to(animal.get("position", Vector2.ZERO))
+		if distance < 320.0:
+			threat_target = maxf(threat_target, inverse_lerp(320.0, 70.0, distance))
+	if not current_interaction.is_empty():
+		threat_target = maxf(threat_target, 0.68)
+	if not current_chase.is_empty():
+		threat_target = maxf(threat_target, 0.92)
+	if not current_chase_result.is_empty():
+		threat_target = maxf(threat_target, 0.56)
+	threat_target = clampf(threat_target + _active_event_threat_bias(), 0.0, 1.0)
+	nearby_threat_level = lerpf(nearby_threat_level, threat_target, 0.18)
+	extraction_ready = _expedition_intel_points() >= _required_extraction_intel() or (completed_task_ids.size() >= 1 and discovered_species_ids.size() >= 2 and _required_extraction_intel() <= 4)
+	expedition_phase = _current_expedition_phase()
+
+
+func _required_extraction_intel() -> int:
+	var report := _region_identity_report()
+	var visit_count := int(report.get("visit_count", 0))
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var current_channel := _top_intel_channel()
+	var threshold := 4
+	if visit_count >= 5:
+		threshold = 3 if dominant_channel != "" and dominant_channel == current_channel else 5
+	elif visit_count >= 3:
+		threshold = 4
+	var specialization_mode := _region_specialization_mode()
+	if dominant_channel != "" and dominant_channel == current_channel:
+		if specialization_mode == "快取线":
+			threshold -= 1
+		elif specialization_mode == "深挖线":
+			threshold += 1
+	match _region_archive_tier():
+		"已知档案":
+			if dominant_channel != "" and dominant_channel == current_channel:
+				threshold -= 1
+		"熟悉档案":
+			threshold -= 1
+		"定型档案":
+			threshold -= 1 if specialization_mode != "深挖线" else 0
+	match _region_archive_route_mode():
+		"short":
+			if specialization_chain_bonus_claimed:
+				threshold -= 1
+		"deep":
+			if not specialization_chain_bonus_claimed:
+				threshold += 1
+	match _region_route_shaping_tag():
+		"快取塑形稳固":
+			if _region_archive_route_mode() == "short":
+				threshold -= 1
+		"深挖塑形稳固":
+			if _region_archive_route_mode() == "deep" and not specialization_chain_bonus_claimed:
+				threshold += 1
+	match _region_route_lock_tag():
+		"快取锁定":
+			if specialization_chain_bonus_claimed:
+				threshold -= 1
+		"深挖锁定":
+			if not specialization_chain_bonus_claimed:
+				threshold += 1
+	return clampi(threshold, 2, 6)
+
+
+func _active_event_threat_bias() -> float:
+	match _active_region_event_tag():
+		"pressure":
+			return 0.12
+		"risk":
+			return 0.16
+		"predation":
+			return 0.18
+		"territory":
+			return 0.08
+		"symbiosis":
+			return -0.06
+		_:
+			return 0.0
+
+
+func _expedition_intel_points() -> int:
+	return species_intel_score + hotspot_intel_score + int(witnessed_pressure) + int(witnessed_chase_result)
+
+
+func _current_expedition_phase() -> String:
+	if extraction_ready:
+		return "撤离"
+	if completed_task_ids.size() >= 1 or discovered_species_ids.size() >= 2:
+		return "记录"
+	return "追踪"
+
+
+func _threat_label() -> String:
+	if nearby_threat_level >= 0.82:
+		return "极高"
+	if nearby_threat_level >= 0.58:
+		return "高"
+	if nearby_threat_level >= 0.32:
+		return "中"
+	return "低"
+
+
+func _region_state_label() -> String:
+	var health_state: Dictionary = region_detail.get("health_state", {})
+	var resilience := float(health_state.get("resilience", 0.0))
+	var collapse_risk := float(health_state.get("collapse_risk", 0.0))
+	var stability := float(health_state.get("stability", 0.0))
+	if collapse_risk >= 0.58:
+		return "崩塌边缘"
+	if resilience >= 0.72 and collapse_risk <= 0.18:
+		return "恢复窗口"
+	if stability >= 0.45:
+		return "稳态区"
+	return "脆弱区"
+
+
+func _chain_focus_text() -> String:
+	var focus: Array = region_detail.get("chain_focus", [])
+	if focus.is_empty():
+		return "区域主线未明确，优先靠近水源与迁徙带。"
+	return str(focus[0])
+
+
+func _species_intel_reward(animal: Dictionary) -> int:
+	var base := 1
+	match str(animal.get("category", "")):
+		"掠食者":
+			base = 3
+		"飞行动物":
+			base = 2
+		"水域动物":
+			base = 2
+		_:
+			base = 1
+	var scaled := maxi(1, int(round(float(base) * _active_event_species_reward_multiplier(animal))))
+	var channel := _species_intel_channel(animal)
+	return scaled + _identity_chain_bonus_for_channel(channel, "species") + _first_segment_handoff_reward_bonus(channel, "species") + _branch_followup_reward_bonus(channel, "species") + _management_backbone_reward_bonus(channel, "species")
+
+
+func _active_event_species_reward_multiplier(animal: Dictionary) -> float:
+	match _active_region_event_tag():
+		"predation":
+			return 1.45 if str(animal.get("category", "")) == "掠食者" else 1.0
+		"pressure":
+			return 1.30 if str(animal.get("category", "")) == "掠食者" else 1.0
+		"territory":
+			return 1.25 if str(animal.get("category", "")) == "草食动物" else 1.0
+		"carrion":
+			return 1.35 if str(animal.get("category", "")) == "飞行动物" else 1.0
+		"symbiosis":
+			return 1.25 if str(animal.get("category", "")) == "区域生物" else 1.0
+		"focus":
+			if hotspots.is_empty():
+				return 1.0
+			return 1.20 if str(animal.get("anchor_id", "")) == str(hotspots[0].get("hotspot_id", "")) else 1.0
+		_:
+			return 1.0
+
+
+func _species_intel_channel(animal: Dictionary) -> String:
+	match str(animal.get("category", "")):
+		"掠食者":
+			return "压迫"
+		"飞行动物":
+			return "腐食"
+		"水域动物":
+			return "水源"
+		"草食动物":
+			return "迁徙"
+		_:
+			return "栖地"
+
+
+func _hotspot_intel_reward(hotspot: Dictionary) -> int:
+	var intensity := float(hotspot.get("intensity", 0.0))
+	var channel := _hotspot_intel_channel(hotspot)
+	return maxi(2, int(round(intensity * 4.0)) + 1 + _active_event_hotspot_bonus(hotspot) + _identity_special_hotspot_bonus(hotspot) + _identity_chain_bonus_for_channel(channel, "hotspot") + _run_profile_hotspot_bonus(hotspot) + _archive_hotspot_bonus(channel) + _archive_strategy_hotspot_bonus(hotspot) + _region_route_shaping_bonus() + _region_lock_completion_bonus() + _first_segment_handoff_reward_bonus(channel, "hotspot") + _branch_followup_reward_bonus(channel, "hotspot") + _management_backbone_reward_bonus(channel, "hotspot", str(hotspot.get("hotspot_id", ""))))
+
+
+func _management_backbone_reward_bonus(channel: String, source_kind: String, hotspot_id: String = "") -> int:
+	var backbone_tag := _region_management_backbone_tag()
+	var target_channel := _region_specialization_target_channel()
+	match backbone_tag:
+		"快取经营骨干区":
+			if channel != target_channel:
+				return 0
+			if source_kind == "hotspot" and hotspot_id == _specialization_target_hotspot_id():
+				return 3
+			return 2 if source_kind == "species" else 1
+		"深挖经营骨干区":
+			if channel != target_channel:
+				return 0
+			if source_kind == "hotspot":
+				if hotspot_id == _specialization_target_hotspot_id():
+					return 3
+				if hotspot_id == _specialization_followup_hotspot_id():
+					return 2
+				return 1
+			return 2
+		_:
+			return 0
+
+
+func _first_segment_handoff_reward_bonus(channel: String, source_kind: String) -> int:
+	if incoming_handoff.is_empty() or handoff_task_completed:
+		return 0
+	var report := _region_identity_report()
+	var management_phase := str(report.get("management_rotation_phase", "常规经营"))
+	if management_phase not in ["主经营第一段", "单区快取主经营", "单区深挖主经营"]:
+		return 0
+	var bonus := 1
+	if channel == _region_specialization_target_channel():
+		bonus += 1
+	var handoff_streak := int(report.get("handoff_completion_streak", 0))
+	if handoff_streak >= 2:
+		bonus += 1
+	if source_kind == "hotspot" and _region_specialization_mode() == "深挖线" and channel == _region_specialization_target_channel():
+		bonus += 1
+	return bonus
+
+
+func _branch_mode_completion_bonus(branch_mode: String, channel: String) -> int:
+	var bonus := 0
+	match branch_mode:
+		"deep_expand":
+			bonus = 4
+			if channel == _region_specialization_target_channel():
+				bonus += 1
+		"quick_close":
+			bonus = 3
+			if channel == _region_specialization_target_channel():
+				bonus += 1
+		_:
+			bonus = 0
+	return bonus
+
+
+func _branch_followup_reward_bonus(channel: String, source_kind: String) -> int:
+	if incoming_handoff.is_empty() or handoff_task_completed:
+		return 0
+	if not bool(incoming_handoff.get("branch_completed", false)):
+		return 0
+	var branch_mode := str(incoming_handoff.get("branch_mode", ""))
+	var bonus := 0
+	match branch_mode:
+		"deep_expand":
+			bonus = 2 if source_kind == "hotspot" else 1
+			if channel == _region_specialization_target_channel():
+				bonus += 1
+			if source_kind == "hotspot" and channel == _region_specialization_target_channel():
+				bonus += 1
+		"quick_close":
+			bonus = 2
+			if channel == _region_specialization_target_channel():
+				bonus += 1
+		_:
+			bonus = 0
+	return bonus
+
+
+func _archive_hotspot_bonus(channel: String) -> int:
+	var dominant_channel := str(_region_identity_report().get("dominant_intel_channel", ""))
+	if dominant_channel == "" or channel != dominant_channel:
+		return 0
+	match _region_archive_tier():
+		"熟悉档案":
+			return 1
+		"定型档案":
+			return 2
+		_:
+			return 0
+
+
+func _archive_strategy_hotspot_bonus(hotspot: Dictionary) -> int:
+	var hotspot_id := str(hotspot.get("hotspot_id", ""))
+	if _archive_has_stable_quicktake_window() and hotspot_id == _specialization_target_hotspot_id():
+		return 2 if _region_archive_tier() == "定型档案" else 1
+	if _archive_has_stable_followup_chain() and hotspot_id == _specialization_followup_hotspot_id():
+		return 2 if _region_archive_tier() == "定型档案" else 1
+	if _region_route_style() == "quick" and _region_route_style_streak() >= 3 and hotspot_id == _specialization_target_hotspot_id():
+		return 1
+	if _region_route_style() == "deep" and _region_route_style_streak() >= 3 and hotspot_id == _specialization_followup_hotspot_id():
+		return 1
+	return 0
+
+
+func _active_event_hotspot_bonus(hotspot: Dictionary) -> int:
+	var hotspot_id := str(hotspot.get("hotspot_id", ""))
+	match _active_region_event_tag():
+		"predation":
+			return 2 if hotspot_id == "predator_ridge" else 0
+		"carrion":
+			return 2 if hotspot_id == "carrion_field" else 0
+		"territory":
+			return 2 if hotspot_id == "migration_corridor" else 0
+		"symbiosis":
+			return 2 if hotspot_id == "shade_grove" else 0
+		"focus":
+			if hotspots.is_empty():
+				return 0
+			return 1 if hotspot_id == str(hotspots[0].get("hotspot_id", "")) else 0
+		_:
+			return 0
+
+
+func _identity_special_hotspot_bonus(hotspot: Dictionary) -> int:
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	if visit_count < 5:
+		return 0
+	match dominant_channel:
+		"水源":
+			return 2 if str(hotspot.get("hotspot_id", "")) == "waterhole" else 0
+		"迁徙":
+			return 2 if str(hotspot.get("hotspot_id", "")) == "migration_corridor" else 0
+		"压迫":
+			return 2 if str(hotspot.get("hotspot_id", "")) == "predator_ridge" else 0
+		"腐食":
+			return 2 if str(hotspot.get("hotspot_id", "")) == "carrion_field" else 0
+		"栖地":
+			return 2 if str(hotspot.get("hotspot_id", "")) == "shade_grove" else 0
+		_:
+			return 0
+
+
+func _identity_special_hotspot_note(hotspot: Dictionary) -> String:
+	var bonus := _identity_special_hotspot_bonus(hotspot)
+	if bonus <= 0:
+		return ""
+	var report := _region_identity_report()
+	return " · 高价值复核 · 额外情报 +%d (%s)" % [bonus, str(report.get("dominant_intel_channel", "主线"))]
+
+
+func _hotspot_intel_channel(hotspot: Dictionary) -> String:
+	match str(hotspot.get("hotspot_id", "")):
+		"waterhole":
+			return "水源"
+		"migration_corridor":
+			return "迁徙"
+		"predator_ridge":
+			return "压迫"
+		"carrion_field":
+			return "腐食"
+		_:
+			return "栖地"
+
+
+func _top_intel_channel() -> String:
+	var best_key := "栖地"
+	var best_value := -1
+	for key in intel_breakdown.keys():
+		var value := int(intel_breakdown[key])
+		if value > best_value:
+			best_value = value
+			best_key = str(key)
+	return best_key
+
+
+func _exit_event_body() -> String:
+	if extraction_ready:
+		return "%s 已可进入 · %s" % [str(current_exit_zone.get("label", "区域出口")), _exit_value_text(current_exit_zone, true)]
+	return "%s 已可进入 · %s" % [str(current_exit_zone.get("label", "区域出口")), _exit_value_text(current_exit_zone, false)]
+
+
+func _exit_value_text(zone: Dictionary, ready: bool) -> String:
+	var target_region_id := str(zone.get("target_region_id", ""))
+	var target_detail: Dictionary = world_data.get("region_details", {}).get(target_region_id, {})
+	var target_name := str(target_detail.get("name", zone.get("label", "下一片区域")))
+	var target_health: Dictionary = target_detail.get("health_state", {})
+	var target_risk := float(target_health.get("collapse_risk", 0.0))
+	var target_resilience := float(target_health.get("resilience", 0.0))
+	var event_note := _active_event_exit_note() + _run_profile_exit_note()
+	var rotation_note := _region_management_rotation_note()
+	var route_mode := _region_archive_route_mode()
+	var route_lock := _region_route_lock_tag()
+	var backbone_tag := _region_management_backbone_tag()
+	var branch_mode := str(incoming_handoff.get("branch_mode", ""))
+	var branch_completed := bool(incoming_handoff.get("branch_completed", false))
+	var branch_stability_tag := _region_branch_stability_tag()
+	var world_task_note := _world_task_exit_note(zone)
+	if ready:
+		if world_task_note != "":
+			return "%s 可以撤离去 %s。%s" % [world_task_note, target_name, event_note]
+		if backbone_tag == "快取经营骨干区" and handoff_task_completed:
+			return "这片区已经是快取经营骨干区，主力速查组和关键样本都已到手，现在就是最优短线撤离点，建议立刻把结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if backbone_tag == "深挖经营骨干区" and handoff_task_completed:
+			return "这片区已经是深挖经营骨干区，主复核和次复核链都已接稳，现在撤离价值最高，建议把整条复核结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if branch_stability_tag == "稳定收束区" and handoff_task_completed:
+			return "这片区已稳定成收束区，关键样本和速查点都已接稳，现在就是最优短线撤离窗口，建议立刻带着结果去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if branch_stability_tag == "稳定扩线区" and handoff_task_completed:
+			return "这片区已稳定成扩线区，主线复核链已经落地，现在撤离最值，建议把扩线结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if branch_completed and branch_mode == "quick_close" and handoff_task_completed:
+			return "这片区正在承接收束后续段，关键样本和速查点都已接稳，现在就是短线撤离窗口，建议立刻带着结果去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if branch_completed and branch_mode == "deep_expand" and handoff_task_completed:
+			return "这片区正在承接扩线后续段，主线复核和跟进样本都已落地，现在撤离最值，建议把扩线结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if route_lock == "快取锁定" and specialization_chain_bonus_claimed:
+			return "这片区已经锁定为短推进区，现在就是最佳撤离点，拿到关键样本后应立即撤离并把结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if route_lock == "深挖锁定" and specialization_chain_bonus_claimed:
+			return "这片区已经锁定为连续复核区，整条深挖链已跑成，现在撤离价值最高，建议把结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if route_mode == "short" and specialization_chain_bonus_claimed:
+			return "这片区已进入短推进最佳撤离点，关键样本和专精链都已到手，建议立即撤离并把结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if route_mode == "deep" and specialization_chain_bonus_claimed:
+			return "这片区的连续复核链已经跑成，现在撤离最值，建议把整条深挖结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+		if target_resilience >= 0.65 and target_risk <= 0.2:
+			return "情报已够，且 %s 是稳定接应区，建议撤离切过去。%s%s" % [target_name, event_note, rotation_note]
+		return "情报已够，建议撤离并把这轮结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+	if backbone_tag == "快取经营骨干区":
+		return "这片区已经是快取经营骨干区，优先拿主力速查组和关键样本，接稳后就该立即短线撤离。%s%s" % [event_note, rotation_note]
+	if backbone_tag == "深挖经营骨干区":
+		return "这片区已经是深挖经营骨干区，主复核和次复核链没跑稳前，延后撤离通常更值。%s%s" % [event_note, rotation_note]
+	if route_lock == "快取锁定" and specialization_chain_bonus_claimed:
+		return "这片区已锁定为短推进区，关键样本到手后应立刻收束撤离。%s%s" % [event_note, rotation_note]
+	if route_lock == "深挖锁定" and not specialization_chain_bonus_claimed:
+		return "这片区已锁定为连续复核区，主热点、第二复核点和对应样本没补齐前，延后撤离通常更值。%s%s" % [event_note, rotation_note]
+	if branch_stability_tag == "稳定收束区":
+		return "这片区已稳定成收束区，优先拿关键样本和主速查点，接稳后就该立即短线撤离。%s%s" % [event_note, rotation_note]
+	if branch_stability_tag == "稳定扩线区":
+		return "这片区已稳定成扩线区，主热点和第二复核点没接稳前，延后撤离通常更值。%s%s" % [event_note, rotation_note]
+	if branch_completed and branch_mode == "quick_close" and not handoff_task_completed:
+		return "这片区正在承接收束后续段，优先拿关键样本和高值速查点，接稳后就该短线撤离。%s%s" % [event_note, rotation_note]
+	if branch_completed and branch_mode == "deep_expand" and not handoff_task_completed:
+		return "这片区正在承接扩线后续段，先压主线复核和第二复核点，未接稳前延后撤离更值。%s%s" % [event_note, rotation_note]
+	if route_mode == "short" and _archive_has_stable_quicktake_window() and specialization_chain_bonus_claimed:
+		return "这片区偏短推进，最佳撤离点已经接近成熟，再补一点就该走。%s%s" % [event_note, rotation_note]
+	if route_mode == "deep" and _archive_has_stable_followup_chain():
+		return "这片区偏连续复核，若主热点、第二复核点和对应样本还没补齐，可以接受更晚撤离。%s%s" % [event_note, rotation_note]
+	if target_risk >= 0.45:
+		return "%s 风险也偏高，这轮可以再多拿一点情报再走。%s%s" % [target_name, event_note, rotation_note]
+	if world_task_note != "":
+		return "%s %s%s" % [world_task_note, event_note, rotation_note]
+	return "这轮记录还偏少，但 %s 是安全出口，随时可以保守撤离。%s%s" % [target_name, event_note, rotation_note]
+
+
+func _world_task_exit_note(zone: Dictionary) -> String:
+	var action := str(world_task.get("action", ""))
+	if action == "":
+		return ""
+	if _world_task_completed(zone):
+		return "世界任务已完成"
+	match action:
+		"调查":
+			return "世界任务未完成：至少拿到 3 情报、发现 3 种动物，或完成 1 个热点。"
+		"修复":
+			return "世界任务未完成：需要完成 1 个热点，并把情报提高到 3。"
+		"通道":
+			var expected_target := str(world_task.get("target_region_id", ""))
+			if expected_target != "":
+				var expected_detail: Dictionary = world_data.get("region_details", {}).get(expected_target, {})
+				return "世界任务未完成：需要从通往%s的出口撤离。" % str(expected_detail.get("name", expected_target))
+			return "世界任务未完成：需要从任意有效目标出口撤离。"
+		_:
+			return ""
+
+
+func _active_event_exit_note() -> String:
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	var specialization_mode := _region_specialization_mode()
+	var specialization_note := ""
+	if specialization_mode == "快取线":
+		specialization_note = "这片区更适合短跑快取，拿到关键样本就走。"
+	elif specialization_mode == "深挖线":
+		specialization_note = "这片区更适合深挖复核，继续补样的回报更高。"
+	match _active_region_event_tag():
+		"pressure":
+			return "当前压力抬头，久留的边际收益在下降。%s%s" % [("这片压迫调查区更适合带着样本及时转场。" if dominant_channel == "压迫" and visit_count >= 3 else ""), specialization_note]
+		"risk":
+			return "风险事件正在放大，这轮更适合保守撤出。%s" % specialization_note
+		"predation":
+			return "捕食线正活跃，如果还要贪情报要接受更高危险。%s%s" % [("这片区已经有较完整压迫档案，继续停留更偏向高风险扩样。" if dominant_channel == "压迫" and visit_count >= 5 else ""), specialization_note]
+		"territory":
+			return "领地冲突升温，路线窗口可能很快收窄。%s" % specialization_note
+		"symbiosis":
+			return "共生窗口还开着，可以接受更稳一点的补采样。%s%s" % [("这片栖地调查区适合继续补稳态样本。" if dominant_channel == "栖地" and visit_count >= 3 else ""), specialization_note]
+		"carrion":
+			return "腐食线活跃，若要补采样优先看腐食热点。%s%s" % [("这片腐食调查区更适合短停快取。" if dominant_channel == "腐食" and visit_count >= 3 else ""), specialization_note]
+		_:
+			if visit_count >= 5:
+				return "按当前区域总态判断撤离值。这片区已有较成熟调查档案，更适合定向扩样。%s" % specialization_note
+			return "按当前区域总态判断撤离值。"
+
+
+func _run_profile_exit_note() -> String:
+	match _region_run_profile():
+		"快取完成":
+			return " 最近几轮这片区更适合短跑快取，这轮拿到关键样本后不必久留。"
+		"深挖完成":
+			return " 最近几轮这片区更适合深挖复核，若双复核链未跑完可以接受更晚撤离。"
+		"快取未完成":
+			return " 这片区此前多是快取试探，若关键样本还没拿到，继续贪的性价比不高。"
+		"深挖未完成":
+			return " 这片区此前多是深挖试探，若主链已起手，继续补完复核回报更高。"
+		_:
+			return ""
+
+
+func _record_exit_summary(zone: Dictionary) -> void:
+	var zone_label := str(zone.get("label", "区域出口"))
+	var summary := "%s撤离：情报 %d · 热点 %d · 危险 %s" % [
+		zone_label,
+		_expedition_intel_points(),
+		completed_task_ids.size(),
+		_threat_label(),
+	]
+	var backbone_summary_tag := _region_backbone_summary_tag()
+	if backbone_summary_tag != "":
+		summary += " · %s" % backbone_summary_tag
+	if not world_task.is_empty():
+		summary += " · 世界任务%s" % ("完成" if _world_task_completed(zone) else "未完成")
+	discovery_log.push_front(summary)
+	discovery_log = discovery_log.slice(0, 6)
+	_write_expedition_report(zone, summary)
+
+
+func _world_task_completed(zone: Dictionary) -> bool:
+	var action := str(world_task.get("action", ""))
+	if action == "":
+		return false
+	match action:
+		"调查":
+			return _expedition_intel_points() >= 3 or discovered_species_ids.size() >= 3 or completed_task_ids.size() >= 1
+		"修复":
+			return completed_task_ids.size() >= 1 and _expedition_intel_points() >= 3
+		"通道":
+			var expected_target := str(world_task.get("target_region_id", ""))
+			var exit_target := str(zone.get("target_region_id", ""))
+			if expected_target != "":
+				return exit_target == expected_target
+			return exit_target != ""
+		_:
+			return false
+
+
+func _write_expedition_report(zone: Dictionary, summary: String) -> void:
+	var reports := _load_expedition_reports()
+	var previous: Dictionary = reports.get(current_region_id, {})
+	var cumulative_breakdown: Dictionary = previous.get("cumulative_intel_breakdown", {}).duplicate(true) if previous.has("cumulative_intel_breakdown") else {}
+	for key in intel_breakdown.keys():
+		cumulative_breakdown[key] = int(cumulative_breakdown.get(key, 0)) + int(intel_breakdown.get(key, 0))
+	var window_counts: Dictionary = previous.get("window_counts", {}).duplicate(true) if previous.has("window_counts") else {}
+	var current_window := _active_region_event_tag()
+	window_counts[current_window] = int(window_counts.get(current_window, 0)) + 1
+	var specialization_run_counts: Dictionary = previous.get("specialization_run_counts", {}).duplicate(true) if previous.has("specialization_run_counts") else {}
+	var current_run_tag := _specialization_run_tag()
+	specialization_run_counts[current_run_tag] = int(specialization_run_counts.get(current_run_tag, 0)) + 1
+	var current_route_style := _run_style_family(current_run_tag)
+	var route_style_counts: Dictionary = previous.get("route_style_counts", {}).duplicate(true) if previous.has("route_style_counts") else {}
+	route_style_counts[current_route_style] = int(route_style_counts.get(current_route_style, 0)) + 1
+	var previous_route_style := str(previous.get("last_route_style", ""))
+	var previous_route_streak := int(previous.get("route_style_streak", 0))
+	var route_style_streak := 1
+	if current_route_style != "" and current_route_style == previous_route_style:
+		route_style_streak = previous_route_streak + 1
+	var previous_handoff_completed := bool(previous.get("handoff_completed", false))
+	var previous_handoff_streak := int(previous.get("handoff_completion_streak", 0))
+	var handoff_completion_count := int(previous.get("handoff_completion_count", 0))
+	var handoff_completion_streak := 0
+	if handoff_task_completed:
+		handoff_completion_count += 1
+		handoff_completion_streak = 1
+		if previous_handoff_completed:
+			handoff_completion_streak = previous_handoff_streak + 1
+	var archive_progress := int(previous.get("archive_progress", 0)) + _archive_progress_gain(previous, current_run_tag, route_style_streak)
+	archive_progress += _handoff_archive_progress_bonus(handoff_task_completed, handoff_completion_streak, handoff_completion_count)
+	var route_lock_tag := _region_route_lock_tag()
+	var route_lock_completed := _locked_route_completed()
+	var management_backbone_tag := _region_management_backbone_tag()
+	var backbone_completed := management_backbone_tag != "" and specialization_chain_bonus_claimed
+	var backbone_completion_tag := _region_backbone_summary_tag()
+	var backbone_completion_counts: Dictionary = previous.get("backbone_completion_counts", {}).duplicate(true) if previous.has("backbone_completion_counts") else {}
+	var previous_backbone_tag := str(previous.get("management_backbone_tag", ""))
+	var previous_backbone_completed := bool(previous.get("backbone_completed", false))
+	var backbone_completion_streak := 0
+	if management_backbone_tag != "" and backbone_completed:
+		backbone_completion_counts[management_backbone_tag] = int(backbone_completion_counts.get(management_backbone_tag, 0)) + 1
+		backbone_completion_streak = 1
+		if previous_backbone_completed and previous_backbone_tag == management_backbone_tag:
+			backbone_completion_streak = int(previous.get("backbone_completion_streak", 0)) + 1
+	archive_progress += _backbone_archive_progress_bonus(management_backbone_tag, backbone_completed, backbone_completion_streak, backbone_completion_counts)
+	var route_lock_counts: Dictionary = previous.get("route_lock_counts", {}).duplicate(true) if previous.has("route_lock_counts") else {}
+	if route_lock_tag != "未锁定":
+		route_lock_counts[route_lock_tag] = int(route_lock_counts.get(route_lock_tag, 0)) + 1
+	var previous_lock_tag := str(previous.get("last_route_lock_tag", ""))
+	var previous_lock_completed := bool(previous.get("route_lock_completed", false))
+	var lock_completion_streak := 0
+	if route_lock_tag != "未锁定" and route_lock_completed:
+		lock_completion_streak = 1
+		if previous_lock_tag == route_lock_tag and previous_lock_completed:
+			lock_completion_streak = int(previous.get("lock_completion_streak", 0)) + 1
+	var management_priority_tag := _region_management_priority_tag()
+	var management_rotation_phase := _region_management_rotation_phase()
+	var first_segment_completed := handoff_task_completed and management_rotation_phase in ["主经营第一段", "单区快取主经营", "单区深挖主经营"]
+	var second_segment_completed := handoff_task_completed and bool(incoming_handoff.get("first_segment_completed", false))
+	var branch_mode := str(incoming_handoff.get("branch_mode", ""))
+	var branch_completed := second_segment_completed and branch_mode in ["deep_expand", "quick_close"]
+	var branch_completion_tag := "非分支段"
+	if branch_mode == "deep_expand":
+		branch_completion_tag = "扩线接稳" if branch_completed else "扩线未接稳"
+	elif branch_mode == "quick_close":
+		branch_completion_tag = "收束接稳" if branch_completed else "收束未接稳"
+	var branch_completion_counts: Dictionary = previous.get("branch_completion_counts", {}).duplicate(true) if previous.has("branch_completion_counts") else {}
+	var previous_branch_mode := str(previous.get("branch_mode", ""))
+	var previous_branch_completed := bool(previous.get("branch_completed", false))
+	var branch_completion_streak := 0
+	if branch_mode != "" and branch_completed:
+		branch_completion_counts[branch_mode] = int(branch_completion_counts.get(branch_mode, 0)) + 1
+		branch_completion_streak = 1
+		if previous_branch_completed and previous_branch_mode == branch_mode:
+			branch_completion_streak = int(previous.get("branch_completion_streak", 0)) + 1
+	var handoff_source_region := str(incoming_handoff.get("source_region", ""))
+	var handoff_source_channel := str(incoming_handoff.get("channel", ""))
+	var handoff_source_window := str(incoming_handoff.get("window", ""))
+	var handoff_source_phase := str(incoming_handoff.get("phase", ""))
+	var record := {
+		"region_id": current_region_id,
+		"region_name": str(region_detail.get("name", current_region_id)),
+		"visit_count": int(previous.get("visit_count", 0)) + 1,
+		"archive_progress": archive_progress,
+		"archive_tier": _archive_tier_from_progress(archive_progress),
+		"phase": expedition_phase,
+		"intel": _expedition_intel_points(),
+		"cumulative_intel": int(previous.get("cumulative_intel", 0)) + _expedition_intel_points(),
+		"species_intel": species_intel_score,
+		"hotspot_intel": hotspot_intel_score,
+		"risk": _threat_label(),
+		"summary": summary,
+		"world_task_action": str(world_task.get("action", "")),
+		"world_task_reason": str(world_task.get("reason", "")),
+		"world_task_target_region_id": str(world_task.get("target_region_id", "")),
+		"world_task_completed": _world_task_completed(zone),
+		"chain_focus": _chain_focus_text(),
+		"event_window": _active_region_event_tag(),
+		"event_window_title": str(_active_region_event().get("title", "当前窗口")),
+		"top_intel_channel": _top_intel_channel(),
+		"intel_breakdown": intel_breakdown.duplicate(true),
+		"cumulative_intel_breakdown": cumulative_breakdown,
+		"dominant_intel_channel": _dominant_breakdown_key(cumulative_breakdown, "栖地"),
+		"window_counts": window_counts,
+		"dominant_window": _dominant_breakdown_key(window_counts, "focus"),
+		"specialization_mode": _region_specialization_mode(),
+		"specialization_target": _region_specialization_target_channel(),
+		"specialization_chain_completed": specialization_chain_bonus_claimed,
+		"specialization_chain_bonus": (_specialization_chain_bonus_value() if specialization_chain_bonus_claimed else 0),
+		"specialization_run_tag": current_run_tag,
+		"specialization_run_counts": specialization_run_counts,
+		"dominant_run_style": _dominant_breakdown_key(specialization_run_counts, "基础观察"),
+		"last_route_style": current_route_style,
+		"route_style_counts": route_style_counts,
+		"route_style_streak": route_style_streak,
+		"route_style_streak_style": current_route_style,
+		"dominant_route_style": _dominant_breakdown_key(route_style_counts, current_route_style),
+		"route_lock_tag": route_lock_tag,
+		"route_lock_completed": route_lock_completed,
+		"last_route_lock_tag": route_lock_tag,
+		"route_lock_counts": route_lock_counts,
+		"lock_completion_streak": lock_completion_streak,
+		"management_priority_tag": management_priority_tag,
+		"management_backbone_tag": management_backbone_tag,
+		"management_rotation_phase": management_rotation_phase,
+		"first_segment_completed": first_segment_completed,
+		"second_segment_completed": second_segment_completed,
+		"branch_mode": branch_mode,
+		"branch_completed": branch_completed,
+		"branch_completion_tag": branch_completion_tag,
+		"branch_completion_counts": branch_completion_counts,
+		"branch_completion_streak": branch_completion_streak,
+		"primary_lock_zone": _region_is_primary_lock_zone(),
+		"backbone_completed": backbone_completed,
+		"backbone_completion_tag": backbone_completion_tag,
+		"backbone_completion_counts": backbone_completion_counts,
+		"backbone_completion_streak": backbone_completion_streak,
+		"handoff_completed": handoff_task_completed,
+		"handoff_completion_count": handoff_completion_count,
+		"handoff_completion_streak": handoff_completion_streak,
+		"handoff_source_region": handoff_source_region,
+		"handoff_source_channel": handoff_source_channel,
+		"handoff_source_window": handoff_source_window,
+		"handoff_source_phase": handoff_source_phase,
+		"exit_label": str(zone.get("label", "区域出口")),
+		"target_region_id": str(zone.get("target_region_id", "")),
+	}
+	reports[current_region_id] = record
+	reports["_last"] = record
+	var file := FileAccess.open(REPORT_PATH, FileAccess.WRITE)
+	if file == null:
+		return
+	var report_text := JSON.stringify(reports)
+	file.store_string(report_text)
+	var project_file := FileAccess.open(PROJECT_REPORT_PATH, FileAccess.WRITE)
+	if project_file != null:
+		project_file.store_string(report_text)
+
+
+func _region_backbone_summary_tag() -> String:
+	var backbone_tag := _region_management_backbone_tag()
+	if backbone_tag == "" or not specialization_chain_bonus_claimed:
+		return ""
+	var streak := _region_backbone_completion_streak()
+	if streak >= 3:
+		return "%s巩固" % backbone_tag
+	return "%s跑成" % backbone_tag
+
+
+func _handoff_archive_progress_bonus(handoff_completed: bool, handoff_streak: int, handoff_count: int) -> int:
+	if not handoff_completed:
+		return 0
+	var bonus := 1
+	if handoff_streak >= 3:
+		bonus += 1
+	if handoff_count >= 5:
+		bonus += 1
+	return bonus
+
+
+func _backbone_archive_progress_bonus(backbone_tag: String, backbone_completed: bool, backbone_streak: int, backbone_counts: Dictionary) -> int:
+	if backbone_tag == "" or not backbone_completed:
+		return 0
+	var count := int(backbone_counts.get(backbone_tag, 0))
+	var bonus := 1
+	if backbone_streak >= 2:
+		bonus += 1
+	if backbone_streak >= 4 or count >= 5:
+		bonus += 1
+	return bonus
+
+
+func _branch_archive_progress_bonus(previous: Dictionary = {}) -> int:
+	var report := previous if not previous.is_empty() else _region_identity_report()
+	if report.is_empty():
+		return 0
+	var branch_mode := str(report.get("branch_mode", ""))
+	var branch_completed := bool(report.get("branch_completed", false))
+	var branch_streak := int(report.get("branch_completion_streak", 0))
+	var branch_counts: Dictionary = report.get("branch_completion_counts", {}) if report.has("branch_completion_counts") else {}
+	if branch_mode == "deep_expand":
+		var deep_count := int(branch_counts.get("deep_expand", 0))
+		if branch_completed and branch_streak >= 3:
+			return 2
+		if deep_count >= 2:
+			return 1
+	elif branch_mode == "quick_close":
+		var quick_count := int(branch_counts.get("quick_close", 0))
+		if branch_completed and branch_streak >= 3:
+			return 2
+		if quick_count >= 2:
+			return 1
+	return 0
+
+
+func _archive_progress_gain(previous: Dictionary = {}, run_tag: String = "", route_style_streak: int = 0) -> int:
+	var current_run_tag := run_tag if run_tag != "" else _specialization_run_tag()
+	var bonus := 1
+	match current_run_tag:
+		"快取完成":
+			bonus = 2
+		"深挖完成":
+			bonus = 3
+		"快取未完成":
+			bonus = 1
+		"深挖未完成":
+			bonus = 1
+		_:
+			bonus = 1
+	var style_key := _run_style_family(current_run_tag)
+	var streak := route_style_streak
+	if streak <= 0 and not previous.is_empty():
+		var previous_style := str(previous.get("last_route_style", ""))
+		var previous_streak := int(previous.get("route_style_streak", 0))
+		streak = previous_streak + 1 if style_key != "" and previous_style == style_key else 1
+	match style_key:
+		"quick":
+			if streak >= 2:
+				bonus += 1
+			if current_run_tag == "快取完成" and streak >= 4:
+				bonus += 1
+		"deep":
+			if streak >= 2:
+				bonus += 1
+			if current_run_tag == "深挖完成" and streak >= 3:
+				bonus += 1
+		"base":
+			if streak >= 3:
+				bonus += 1
+	var previous_tier := str(previous.get("archive_tier", "初勘档案"))
+	if style_key == "quick" and previous_tier in ["已知档案", "熟悉档案"] and current_run_tag == "快取完成":
+		bonus += 1
+	if style_key == "deep" and previous_tier in ["已知档案", "熟悉档案"] and current_run_tag == "深挖完成":
+		bonus += 1
+	bonus += _branch_archive_progress_bonus(previous)
+	return bonus
+
+
+func _archive_tier_from_progress(progress: int) -> String:
+	if progress >= 12:
+		return "定型档案"
+	if progress >= 7:
+		return "熟悉档案"
+	if progress >= 3:
+		return "已知档案"
+	return "初勘档案"
+
+
+func _dominant_breakdown_key(data: Dictionary, fallback: String) -> String:
+	var best_key := fallback
+	var best_value := -1
+	for key_variant in data.keys():
+		var key := str(key_variant)
+		var value := int(data.get(key, 0))
+		if value > best_value:
+			best_value = value
+			best_key = key
+	return best_key
+
+
+func _load_expedition_reports() -> Dictionary:
+	if not FileAccess.file_exists(REPORT_PATH):
+		return {}
+	var file := FileAccess.open(REPORT_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return {}
+	return parsed
+
+
+func _region_identity_report() -> Dictionary:
+	var reports := _load_expedition_reports()
+	return reports.get(current_region_id, {})
+
+
+func _region_archive_tier() -> String:
+	var report := _region_identity_report()
+	return str(report.get("archive_tier", "初勘档案"))
+
+
+func _region_archive_progress() -> int:
+	var report := _region_identity_report()
+	return int(report.get("archive_progress", 0))
+
+
+func _region_specialization_target_channel() -> String:
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	if dominant_channel != "":
+		return dominant_channel
+	return _top_intel_channel()
+
+
+func _region_specialization_mode() -> String:
+	var report := _region_identity_report()
+	var visit_count := int(report.get("visit_count", 0))
+	if visit_count < 3:
+		return "基础线"
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var dominant_window := str(report.get("dominant_window", "focus"))
+	if dominant_channel in ["压迫", "腐食"] or dominant_window in ["predation", "pressure", "risk", "carrion"]:
+		return "快取线"
+	if dominant_channel in ["水源", "栖地"] or dominant_window in ["symbiosis", "focus", "handoff"]:
+		return "深挖线"
+	if dominant_channel == "迁徙" or dominant_window in ["territory", "trend"]:
+		return "深挖线" if visit_count >= 5 else "快取线"
+	return "基础线"
+
+
+func _region_specialization_note() -> String:
+	var target := _region_specialization_target_channel()
+	match _region_specialization_mode():
+		"快取线":
+			return "专精链：快取%s，拿到关键样本后尽早撤离" % target
+		"深挖线":
+			return "专精链：深挖%s，适合连续补样和复核" % target
+		_:
+			return "专精链：基础观察，先建立区域样本"
+
+
+func _archive_has_stable_quicktake_window() -> bool:
+	if _region_specialization_mode() != "快取线":
+		return false
+	if _region_route_lock_tag() == "快取锁定":
+		return true
+	if _region_archive_tier() in ["熟悉档案", "定型档案"]:
+		return true
+	return _region_route_style() == "quick" and _region_route_style_streak() >= 4
+
+
+func _archive_has_stable_followup_chain() -> bool:
+	if _region_specialization_mode() != "深挖线":
+		return false
+	if _region_route_lock_tag() == "深挖锁定":
+		return true
+	if _region_archive_tier() in ["熟悉档案", "定型档案"]:
+		return true
+	return _region_route_style() == "deep" and _region_route_style_streak() >= 4
+
+
+func _region_archive_route_mode() -> String:
+	if _region_route_lock_tag() == "快取锁定":
+		return "short"
+	if _region_route_lock_tag() == "深挖锁定":
+		return "deep"
+	if _region_archive_tier() == "定型档案" and _region_run_profile() == "快取完成":
+		return "short"
+	if _region_archive_tier() == "定型档案" and _region_run_profile() == "深挖完成":
+		return "deep"
+	if _region_archive_tier() == "熟悉档案" and _region_run_profile() in ["快取完成", "快取未完成"]:
+		return "short"
+	if _region_archive_tier() == "熟悉档案" and _region_run_profile() in ["深挖完成", "深挖未完成"]:
+		return "deep"
+	if _region_archive_tier() == "已知档案" and _region_route_style() == "quick" and _region_route_style_streak() >= 4:
+		return "short"
+	if _region_archive_tier() == "已知档案" and _region_route_style() == "deep" and _region_route_style_streak() >= 4:
+		return "deep"
+	return "base"
+
+
+func _region_run_profile() -> String:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return "基础观察"
+	return str(report.get("dominant_run_style", report.get("specialization_run_tag", "基础观察")))
+
+
+func _run_style_family(run_tag: String) -> String:
+	match run_tag:
+		"快取完成", "快取未完成":
+			return "quick"
+		"深挖完成", "深挖未完成":
+			return "deep"
+		_:
+			return "base"
+
+
+func _region_route_style() -> String:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return "base"
+	return str(report.get("dominant_route_style", _run_style_family(_region_run_profile())))
+
+
+func _region_route_style_streak() -> int:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return 0
+	if str(report.get("route_style_streak_style", _region_route_style())) != _region_route_style():
+		return 0
+	return int(report.get("route_style_streak", 0))
+
+
+func _region_route_shaping_tag() -> String:
+	var route_style := _region_route_style()
+	var streak := _region_route_style_streak()
+	match route_style:
+		"quick":
+			if streak >= 5:
+				return "快取塑形稳固"
+			if streak >= 3:
+				return "快取塑形中"
+		"deep":
+			if streak >= 4:
+				return "深挖塑形稳固"
+			if streak >= 3:
+				return "深挖塑形中"
+		"base":
+			if streak >= 3:
+				return "基础塑形中"
+	return "塑形待定"
+
+
+func _region_route_shaping_bonus() -> int:
+	match _region_route_shaping_tag():
+		"快取塑形稳固", "深挖塑形稳固":
+			return 2
+		"快取塑形中", "深挖塑形中", "基础塑形中":
+			return 1
+		_:
+			return 0
+
+
+func _region_route_lock_tag() -> String:
+	var route_style := _region_route_style()
+	var streak := _region_route_style_streak()
+	match route_style:
+		"quick":
+			if streak >= 6 and _region_archive_tier() in ["已知档案", "熟悉档案", "定型档案"]:
+				return "快取锁定"
+		"deep":
+			if streak >= 5 and _region_archive_tier() in ["已知档案", "熟悉档案", "定型档案"]:
+				return "深挖锁定"
+	return "未锁定"
+
+
+func _locked_route_completed() -> bool:
+	match _region_route_lock_tag():
+		"快取锁定":
+			return _region_archive_route_mode() == "short" and specialization_chain_bonus_claimed
+		"深挖锁定":
+			return _region_archive_route_mode() == "deep" and specialization_chain_bonus_claimed
+		_:
+			return false
+
+
+func _region_lock_completion_streak() -> int:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return 0
+	if not bool(report.get("route_lock_completed", false)):
+		return 0
+	if str(report.get("last_route_lock_tag", _region_route_lock_tag())) != _region_route_lock_tag():
+		return 0
+	return int(report.get("lock_completion_streak", 0))
+
+
+func _region_lock_completion_bonus() -> int:
+	var streak := _region_lock_completion_streak()
+	if streak >= 5:
+		return 2
+	if streak >= 3:
+		return 1
+	return 0
+
+
+func _region_handoff_completion_count() -> int:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return 0
+	return int(report.get("handoff_completion_count", 0))
+
+
+func _region_handoff_completion_streak() -> int:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return 0
+	if not bool(report.get("handoff_completed", false)):
+		return 0
+	return int(report.get("handoff_completion_streak", 0))
+
+
+func _region_handoff_completion_bonus() -> int:
+	var streak := _region_handoff_completion_streak()
+	var count := _region_handoff_completion_count()
+	if streak >= 3:
+		return 2
+	if streak >= 2 or count >= 4:
+		return 1
+	return 0
+
+
+func _region_branch_stability_tag() -> String:
+	var report := _region_identity_report()
+	if report.is_empty():
+		return "分支未定型"
+	var branch_mode := str(report.get("branch_mode", ""))
+	var branch_completed := bool(report.get("branch_completed", false))
+	var branch_streak := int(report.get("branch_completion_streak", 0))
+	var branch_counts: Dictionary = report.get("branch_completion_counts", {}) if report.has("branch_completion_counts") else {}
+	if branch_mode == "deep_expand":
+		var count := int(branch_counts.get("deep_expand", 0))
+		if branch_completed and branch_streak >= 3:
+			return "稳定扩线区"
+		if count >= 2:
+			return "扩线塑形中"
+	elif branch_mode == "quick_close":
+		var count := int(branch_counts.get("quick_close", 0))
+		if branch_completed and branch_streak >= 3:
+			return "稳定收束区"
+		if count >= 2:
+			return "收束塑形中"
+	return "分支未定型"
+
+
+func _region_is_primary_lock_zone() -> bool:
+	if _region_management_backbone_tag() != "":
+		return true
+	return _region_route_lock_tag() != "未锁定" and (_region_lock_completion_streak() + _region_handoff_completion_bonus()) >= 3
+
+
+func _region_management_priority_tag() -> String:
+	var lock_tag := _region_route_lock_tag()
+	var streak := _region_lock_completion_streak() + _region_handoff_completion_bonus()
+	var branch_stability_tag := _region_branch_stability_tag()
+	if branch_stability_tag == "稳定收束区":
+		if streak >= 4:
+			return "主力快取经营区"
+		return "重点快取经营区"
+	if branch_stability_tag == "稳定扩线区":
+		if streak >= 4:
+			return "主力深挖经营区"
+		return "重点深挖经营区"
+	if lock_tag == "快取锁定":
+		if streak >= 6:
+			return "主力快取经营区"
+		if streak >= 3:
+			return "重点快取经营区"
+	if lock_tag == "深挖锁定":
+		if streak >= 5:
+			return "主力深挖经营区"
+		if streak >= 3:
+			return "重点深挖经营区"
+	return "常规经营区"
+
+
+func _region_management_backbone_tag() -> String:
+	var management_tag := _region_management_priority_tag()
+	var branch_stability_tag := _region_branch_stability_tag()
+	if management_tag == "主力快取经营区" and branch_stability_tag == "稳定收束区":
+		return "快取经营骨干区"
+	if management_tag == "主力深挖经营区" and branch_stability_tag == "稳定扩线区":
+		return "深挖经营骨干区"
+	return ""
+
+
+func _management_candidate_score(report: Dictionary) -> float:
+	var score := float(report.get("lock_completion_streak", 0)) * 3.0 + float(report.get("handoff_completion_streak", 0)) * 1.5 + float(report.get("handoff_completion_count", 0)) * 0.35 + float(report.get("archive_progress", 0)) + float(report.get("intel", 0)) * 0.05
+	var branch_tag := _region_branch_stability_tag()
+	match branch_tag:
+		"稳定扩线区", "稳定收束区":
+			score += 2.5
+		"扩线塑形中", "收束塑形中":
+			score += 1.2
+	match _region_management_backbone_tag():
+		"快取经营骨干区", "深挖经营骨干区":
+			score += 4.0
+	return score
+
+
+func _region_management_rotation_note() -> String:
+	var reports := _load_expedition_reports()
+	var best_quick: Dictionary = {}
+	var best_deep: Dictionary = {}
+	for key_variant in reports.keys():
+		var key := str(key_variant)
+		if key == "_last":
+			continue
+		var report: Dictionary = reports.get(key, {})
+		var tag := str(report.get("management_priority_tag", ""))
+		if tag == "":
+			continue
+		var score := _management_candidate_score(report)
+		var enriched := report.duplicate(true)
+		enriched["score"] = score
+		enriched["region_id"] = key
+		match tag:
+			"主力快取经营区":
+				if best_quick.is_empty() or score > float(best_quick.get("score", -1.0)):
+					best_quick = enriched
+			"主力深挖经营区":
+				if best_deep.is_empty() or score > float(best_deep.get("score", -1.0)):
+					best_deep = enriched
+	var current_tag := _region_management_priority_tag()
+	if best_quick.is_empty() and best_deep.is_empty():
+		return "当前没有主力经营区，先按本区主线推进。"
+	var backbone_tag := _region_management_backbone_tag()
+	if backbone_tag == "快取经营骨干区":
+		if not best_deep.is_empty():
+			return "当前经营顺序：本区是快取经营骨干区，先稳吃主速查组，再转去 %s 深挖。" % str(best_deep.get("region_name", best_deep.get("region_id", "目标区")))
+		return "当前经营顺序：本区是快取经营骨干区，默认作为短推进第一站。"
+	if backbone_tag == "深挖经营骨干区":
+		if not best_quick.is_empty():
+			return "当前经营顺序：本区是深挖经营骨干区，先稳压主复核，再转去 %s 快取。" % str(best_quick.get("region_name", best_quick.get("region_id", "目标区")))
+		return "当前经营顺序：本区是深挖经营骨干区，默认作为扩线主轴。"
+	if current_tag == "主力快取经营区":
+		if not best_deep.is_empty():
+			if float(best_quick.get("score", 0.0)) >= float(best_deep.get("score", 0.0)):
+				return "当前经营顺序：先在本区完成主力快取，再转去 %s 深挖。" % str(best_deep.get("region_name", best_deep.get("region_id", "目标区")))
+			return "当前经营顺序：先去 %s 深挖，再回本区收主力快取。" % str(best_deep.get("region_name", best_deep.get("region_id", "目标区")))
+		return "当前经营顺序：本区是主力快取经营区，先拿关键样本再转场。"
+	if current_tag == "主力深挖经营区":
+		if not best_quick.is_empty():
+			if float(best_deep.get("score", 0.0)) >= float(best_quick.get("score", 0.0)):
+				return "当前经营顺序：先在本区完成主力深挖，再转去 %s 快取。" % str(best_quick.get("region_name", best_quick.get("region_id", "目标区")))
+			return "当前经营顺序：先去 %s 快取，再回本区补主力深挖链。" % str(best_quick.get("region_name", best_quick.get("region_id", "目标区")))
+		return "当前经营顺序：本区是主力深挖经营区，先补完整条复核链再转场。"
+	if current_tag == "重点快取经营区":
+		return "当前经营顺序：本区是快取后续经营区，适合在主力深挖结束后补短推进样本。"
+	if current_tag == "重点深挖经营区":
+		return "当前经营顺序：本区是深挖后续经营区，适合在主力快取结束后补复核链。"
+	return "当前经营顺序：本区仍以常规经营为主，先顺着主线建立稳定样本。"
+
+
+func _region_management_rotation_phase() -> String:
+	var reports := _load_expedition_reports()
+	var best_quick: Dictionary = {}
+	var best_deep: Dictionary = {}
+	for key_variant in reports.keys():
+		var key := str(key_variant)
+		if key == "_last":
+			continue
+		var report: Dictionary = reports.get(key, {})
+		var tag := str(report.get("management_priority_tag", ""))
+		if tag == "":
+			continue
+		var score := _management_candidate_score(report)
+		var enriched := report.duplicate(true)
+		enriched["score"] = score
+		enriched["region_id"] = key
+		match tag:
+			"主力快取经营区":
+				if best_quick.is_empty() or score > float(best_quick.get("score", -1.0)):
+					best_quick = enriched
+			"主力深挖经营区":
+				if best_deep.is_empty() or score > float(best_deep.get("score", -1.0)):
+					best_deep = enriched
+	var current_tag := _region_management_priority_tag()
+	var backbone_tag := _region_management_backbone_tag()
+	if best_quick.is_empty() and best_deep.is_empty():
+		return "常规经营"
+	if backbone_tag == "快取经营骨干区":
+		if best_deep.is_empty():
+			return "单区快取主经营"
+		return "主经营第一段"
+	if backbone_tag == "深挖经营骨干区":
+		if best_quick.is_empty():
+			return "单区深挖主经营"
+		return "主经营第一段"
+	if current_tag == "主力快取经营区":
+		if best_deep.is_empty():
+			return "单区快取主经营"
+		return "主经营第一段" if float(best_quick.get("score", 0.0)) >= float(best_deep.get("score", 0.0)) else "主经营第二段"
+	if current_tag == "主力深挖经营区":
+		if best_quick.is_empty():
+			return "单区深挖主经营"
+		return "主经营第一段" if float(best_deep.get("score", 0.0)) > float(best_quick.get("score", 0.0)) else "主经营第二段"
+	if current_tag in ["重点快取经营区", "重点深挖经营区"]:
+		return "后续经营段"
+	return "常规经营"
+
+
+func _specialization_run_tag() -> String:
+	match _region_specialization_mode():
+		"快取线":
+			return "快取完成" if specialization_chain_bonus_claimed else "快取未完成"
+		"深挖线":
+			return "深挖完成" if specialization_chain_bonus_claimed else "深挖未完成"
+		_:
+			return "基础观察"
+
+
+func _specialization_target_hotspot_id() -> String:
+	match _region_specialization_target_channel():
+		"水源":
+			return "waterhole"
+		"迁徙":
+			return "migration_corridor"
+		"压迫":
+			return "predator_ridge"
+		"腐食":
+			return "carrion_field"
+		"栖地":
+			return "shade_grove"
+		_:
+			return ""
+
+
+func _specialization_target_category() -> String:
+	match _region_specialization_target_channel():
+		"水源":
+			return "水域动物"
+		"迁徙":
+			return "草食动物"
+		"压迫":
+			return "掠食者"
+		"腐食":
+			return "飞行动物"
+		"栖地":
+			return "区域生物"
+		_:
+			return ""
+
+
+func _specialization_followup_hotspot_id() -> String:
+	match _region_specialization_target_channel():
+		"水源":
+			return "shade_grove"
+		"迁徙":
+			return "waterhole"
+		"压迫":
+			return "migration_corridor"
+		"腐食":
+			return "predator_ridge"
+		"栖地":
+			return "waterhole"
+		_:
+			return ""
+
+
+func _specialization_chain_state_text() -> String:
+	var hotspot_id := _specialization_target_hotspot_id()
+	var followup_hotspot_id := _specialization_followup_hotspot_id()
+	var category := _specialization_target_category()
+	var backbone_tag := _region_management_backbone_tag()
+	var hotspot_done := hotspot_id != "" and completed_task_ids.has("task_" + hotspot_id)
+	var followup_done := followup_hotspot_id != "" and completed_task_ids.has("task_" + followup_hotspot_id)
+	var deep_inertia := _region_run_profile() == "深挖完成"
+	var category_seen := false
+	for species_id_variant in discovered_species_ids.keys():
+		var species_id := str(species_id_variant)
+		for animal in wildlife:
+			if str(animal.get("species_id", "")) == species_id and str(animal.get("category", "")) == category:
+				category_seen = true
+				break
+		if category_seen:
+			break
+	match _region_specialization_mode():
+		"快取线":
+			if backbone_tag == "快取经营骨干区" and specialization_chain_bonus_claimed:
+				return "链进度：主力速查组已跑成，本轮应按骨干快取节奏立即撤离"
+			if _region_route_lock_tag() == "快取锁定" and specialization_chain_bonus_claimed:
+				return "链进度：锁定速查组已跑成，本轮应按短推进节奏立即撤离"
+			if specialization_chain_bonus_claimed:
+				return "链进度：快取链已完成，本轮可直接按高值样本撤离"
+			if category_seen:
+				return "链进度：关键样本已拿到，回到出口可按快取线收束"
+			return "链进度：优先记录%s，再决定是否立刻撤离" % category
+		"深挖线":
+			if backbone_tag == "深挖经营骨干区" and specialization_chain_bonus_claimed:
+				return "链进度：主力复核链已跑成，本轮应带着骨干深挖结果撤离"
+			if _region_route_lock_tag() == "深挖锁定" and specialization_chain_bonus_claimed:
+				return "链进度：锁定复核链已跑成，本轮应带着整条深挖结果撤离"
+			if specialization_chain_bonus_claimed:
+				return "链进度：深挖链已完成，本轮适合带着复核结果撤离"
+			if deep_inertia and hotspot_done and not followup_done:
+				return "链进度：主热点已复核，下一步补第二复核点"
+			if deep_inertia and hotspot_done and followup_done and category_seen:
+				return "链进度：主热点、第二复核点和对应样本都已完成"
+			if deep_inertia and hotspot_done and followup_done:
+				return "链进度：双复核已完成，下一步补%s样本" % category
+			if hotspot_done and category_seen:
+				return "链进度：主热点复核和对应样本都已完成"
+			if hotspot_done:
+				return "链进度：主热点已复核，下一步补%s样本" % category
+			return "链进度：先完成主热点复核，再补%s样本" % category
+		_:
+			return "链进度：先建立基础观察样本"
+
+
+func _identity_chain_bonus_for_channel(channel: String, source_kind: String) -> int:
+	var report := _region_identity_report()
+	var visit_count := int(report.get("visit_count", 0))
+	if visit_count < 3:
+		return 0
+	if channel != _region_specialization_target_channel():
+		return 0
+	match _region_specialization_mode():
+		"快取线":
+			return 1 if source_kind == "species" else 0
+		"深挖线":
+			return 2 if source_kind == "hotspot" else 1
+		_:
+			return 0
+
+
+func _identity_chain_note_for_channel(channel: String, source_kind: String) -> String:
+	var bonus := _identity_chain_bonus_for_channel(channel, source_kind)
+	if bonus <= 0:
+		return ""
+	return " · 专精链 %s · 额外情报 +%d" % [_region_specialization_mode(), bonus]
+
+
+func _run_profile_hotspot_bonus(hotspot: Dictionary) -> int:
+	var hotspot_id := str(hotspot.get("hotspot_id", ""))
+	match _region_run_profile():
+		"快取完成":
+			return 2 if hotspot_id == _specialization_target_hotspot_id() else 0
+		"深挖完成":
+			return 2 if hotspot_id == _specialization_followup_hotspot_id() else 0
+		_:
+			return 0
+
+
+func _specialization_chain_ready() -> bool:
+	var hotspot_id := _specialization_target_hotspot_id()
+	var followup_hotspot_id := _specialization_followup_hotspot_id()
+	var category := _specialization_target_category()
+	var hotspot_done := hotspot_id != "" and completed_task_ids.has("task_" + hotspot_id)
+	var followup_done := followup_hotspot_id != "" and completed_task_ids.has("task_" + followup_hotspot_id)
+	var category_seen := false
+	for species_id_variant in discovered_species_ids.keys():
+		var species_id := str(species_id_variant)
+		for animal in wildlife:
+			if str(animal.get("species_id", "")) == species_id and str(animal.get("category", "")) == category:
+				category_seen = true
+				break
+		if category_seen:
+			break
+	match _region_specialization_mode():
+		"快取线":
+			return category_seen
+		"深挖线":
+			if _region_run_profile() == "深挖完成":
+				return hotspot_done and followup_done and category_seen
+			return hotspot_done and category_seen
+		_:
+			return false
+
+
+func _specialization_chain_bonus_value() -> int:
+	var bonus := 0
+	match _region_specialization_mode():
+		"快取线":
+			bonus = 2
+		"深挖线":
+			bonus = 3
+		_:
+			bonus = 0
+	match _region_archive_tier():
+		"熟悉档案":
+			bonus += 1
+		"定型档案":
+			bonus += 2
+	match _region_archive_route_mode():
+		"short":
+			bonus += 1
+		"deep":
+			bonus += 2
+	match _region_route_lock_tag():
+		"快取锁定":
+			bonus += 1
+		"深挖锁定":
+			bonus += 2
+	match _region_management_backbone_tag():
+		"快取经营骨干区":
+			bonus += 2
+		"深挖经营骨干区":
+			bonus += 3
+	return bonus
+
+
+func _maybe_award_specialization_chain_bonus(trigger_label: String) -> void:
+	if specialization_chain_bonus_claimed:
+		return
+	if not _specialization_chain_ready():
+		return
+	var bonus := _specialization_chain_bonus_value()
+	if bonus <= 0:
+		return
+	var channel := _region_specialization_target_channel()
+	var backbone_tag := _region_management_backbone_tag()
+	specialization_chain_bonus_claimed = true
+	hotspot_intel_score += bonus
+	intel_breakdown[channel] = int(intel_breakdown.get(channel, 0)) + bonus
+	if backbone_tag != "":
+		discovery_log.push_front("骨干巩固完成：%s · %s情报 +%d" % [trigger_label, channel, bonus])
+	else:
+		discovery_log.push_front("专精链完成：%s · %s情报 +%d" % [trigger_label, channel, bonus])
+	discovery_log = discovery_log.slice(0, 6)
+	if backbone_tag != "":
+		current_task = {
+			"title": "骨干巩固完成",
+			"body": "%s 已完成本轮%s，当前%s已被再次接稳，%s情报 +%d。%s" % [trigger_label, _region_specialization_mode(), backbone_tag, channel, bonus, _specialization_chain_state_text()],
+			"accent": Color8(198, 222, 160),
+		}
+	else:
+		current_task = {
+			"title": "专精链完成",
+			"body": "%s 已完成本轮%s，%s情报 +%d。%s" % [trigger_label, _region_specialization_mode(), channel, bonus, _specialization_chain_state_text()],
+			"accent": Color8(198, 222, 160),
 		}
 
 
@@ -753,6 +3125,8 @@ func _update_hotspot_task() -> void:
 	var required_time := float(task_config.get("required_time", 2.0))
 	var required_category := str(task_config.get("required_category", ""))
 	var required_presence := required_category == "" or _has_nearby_category(required_category, _hotspot_position(hotspot_id), 210.0)
+	var is_active_target := survey_target_kind == "hotspot" and survey_target_id == hotspot_id
+	var progress_value := survey_progress if is_active_target else 0.0
 	if completed_task_ids.has(task_id):
 		current_task = {
 			"title": "观察完成",
@@ -760,48 +3134,420 @@ func _update_hotspot_task() -> void:
 			"accent": Color8(150, 216, 176),
 		}
 		return
-	if hotspot_focus_time >= required_time:
-		if not required_presence:
-			current_task = {
-				"title": str(task_config.get("title", "观察目标")),
-				"body": "%s 还缺少%s，继续等待对应生物进入观察区。" % [hotspot_label, required_category],
-				"accent": Color8(232, 194, 118),
-			}
-			return
-		completed_task_ids[task_id] = true
-		discovery_log.push_front("%s完成：%s" % [str(task_config.get("noun", "观察")), hotspot_label])
-		discovery_log = discovery_log.slice(0, 6)
+	if not required_presence:
 		current_task = {
-			"title": "观察完成",
-			"body": "%s 的%s已完成，继续寻找下一处目标。" % [hotspot_label, str(task_config.get("noun", "观察"))],
-			"accent": Color8(150, 216, 176),
+			"title": str(task_config.get("title", "观察目标")),
+			"body": "%s 还缺少%s，先把目标生物等进观察区。" % [hotspot_label, required_category],
+			"accent": Color8(232, 194, 118),
 		}
 		return
 	current_task = {
 		"title": str(task_config.get("title", "观察目标")),
-		"body": "%s · %s %.1f / %.1f 秒%s" % [
+		"body": "%s · 按住 Space %s %.1f / %.1f 秒%s" % [
 			hotspot_label,
 			str(task_config.get("prompt", "停留记录")),
-			hotspot_focus_time,
+			progress_value,
 			required_time,
-			("" if required_category == "" else " · 目标生物：" + required_category),
+			("" if required_category == "" else " · 目标生物：" + required_category) + _identity_special_hotspot_note(current_hotspot) + " · " + _region_specialization_note(),
 		],
 		"accent": Color8(170, 224, 198),
 	}
+	current_task["body"] += " · " + _specialization_chain_state_text()
+
+
+func _update_field_survey(delta: float) -> void:
+	var target := _current_survey_target()
+	if target.is_empty():
+		_decay_survey(delta)
+		return
+	var target_kind := str(target.get("kind", ""))
+	var target_id := str(target.get("id", ""))
+	if target_kind != survey_target_kind or target_id != survey_target_id:
+		survey_target_kind = target_kind
+		survey_target_id = target_id
+		survey_target_label = str(target.get("label", ""))
+		survey_required_time = float(target.get("required_time", 0.0))
+		survey_target_data = target.get("data", {})
+		survey_progress = 0.0
+	if not Input.is_key_pressed(KEY_SPACE):
+		_decay_survey(delta)
+		return
+	survey_progress = minf(survey_required_time, survey_progress + delta)
+	if survey_progress >= survey_required_time:
+		_complete_survey_target()
+
+
+func _current_survey_target() -> Dictionary:
+	var specialization_mode := _region_specialization_mode()
+	var target_hotspot_id := _specialization_target_hotspot_id()
+	var followup_hotspot_id := _specialization_followup_hotspot_id()
+	var target_category := _specialization_target_category()
+	var branch_stability_tag := _region_branch_stability_tag()
+	var backbone_tag := _region_management_backbone_tag()
+	var backbone_streak := _region_backbone_completion_streak()
+	var stable_quicktake_window := _archive_has_stable_quicktake_window() or branch_stability_tag == "稳定收束区" or backbone_tag == "快取经营骨干区"
+	var stable_followup_chain := _archive_has_stable_followup_chain() or branch_stability_tag == "稳定扩线区" or backbone_tag == "深挖经营骨干区"
+	if stable_quicktake_window and not current_hotspot.is_empty():
+		var quick_hotspot_id := str(current_hotspot.get("hotspot_id", ""))
+		var quick_task_id := "task_" + quick_hotspot_id
+		if quick_hotspot_id == target_hotspot_id and not completed_task_ids.has(quick_task_id):
+			var quick_task_config := _hotspot_task_config(quick_hotspot_id)
+			var quick_required_category := str(quick_task_config.get("required_category", ""))
+			var quick_required_presence := quick_required_category == "" or _has_nearby_category(quick_required_category, _hotspot_position(quick_hotspot_id), 210.0)
+			if quick_required_presence:
+				return {
+					"kind": "hotspot",
+					"id": quick_hotspot_id,
+					"label": str(current_hotspot.get("label", quick_hotspot_id)),
+					"required_time": maxf(1.0, float(quick_task_config.get("required_time", 2.0)) - (0.15 if backbone_streak >= 2 else 0.0)),
+					"data": current_hotspot,
+				}
+	if stable_followup_chain and not current_hotspot.is_empty():
+		var deep_hotspot_id := str(current_hotspot.get("hotspot_id", ""))
+		var deep_task_id := "task_" + deep_hotspot_id
+		if not completed_task_ids.has(deep_task_id):
+			var deep_task_config := _hotspot_task_config(deep_hotspot_id)
+			var deep_required_category := str(deep_task_config.get("required_category", ""))
+			var deep_required_presence := deep_required_category == "" or _has_nearby_category(deep_required_category, _hotspot_position(deep_hotspot_id), 210.0)
+			var target_done := completed_task_ids.has("task_" + target_hotspot_id)
+			if deep_required_presence:
+				if deep_hotspot_id == target_hotspot_id:
+					return {
+						"kind": "hotspot",
+						"id": deep_hotspot_id,
+						"label": str(current_hotspot.get("label", deep_hotspot_id)),
+						"required_time": maxf(1.0, float(deep_task_config.get("required_time", 2.0)) - (0.12 if backbone_streak >= 2 else 0.0)),
+						"data": current_hotspot,
+					}
+				if deep_hotspot_id == followup_hotspot_id and (target_done or backbone_tag == "深挖经营骨干区"):
+					return {
+						"kind": "hotspot",
+						"id": deep_hotspot_id,
+						"label": str(current_hotspot.get("label", deep_hotspot_id)),
+						"required_time": maxf(1.0, float(deep_task_config.get("required_time", 2.0)) - (0.10 if backbone_streak >= 2 else 0.0)),
+						"data": current_hotspot,
+					}
+	if specialization_mode == "快取线" and not current_encounter.is_empty():
+		var encounter_species_id := str(current_encounter.get("species_id", ""))
+		var encounter_category := str(current_encounter.get("category", ""))
+		if encounter_species_id != "" and encounter_category == target_category and not discovered_species_ids.has(encounter_species_id):
+			return {
+				"kind": "species",
+				"id": encounter_species_id,
+				"label": str(current_encounter.get("label", encounter_species_id)),
+				"required_time": _species_survey_time(encounter_category),
+				"data": current_encounter,
+			}
+	if not current_hotspot.is_empty():
+		var hotspot_id := str(current_hotspot.get("hotspot_id", ""))
+		var task_id := "task_" + hotspot_id
+		if not completed_task_ids.has(task_id):
+			var task_config := _hotspot_task_config(hotspot_id)
+			var required_category := str(task_config.get("required_category", ""))
+			var required_presence := required_category == "" or _has_nearby_category(required_category, _hotspot_position(hotspot_id), 210.0)
+			var deep_ready := specialization_mode != "深挖线"
+			if specialization_mode == "深挖线":
+				if _region_run_profile() == "深挖完成" or stable_followup_chain:
+					deep_ready = target_hotspot_id == "" \
+						or hotspot_id == target_hotspot_id \
+						or (completed_task_ids.has("task_" + target_hotspot_id) and hotspot_id == followup_hotspot_id) \
+						or (completed_task_ids.has("task_" + target_hotspot_id) and completed_task_ids.has("task_" + followup_hotspot_id))
+				else:
+					deep_ready = target_hotspot_id == "" or hotspot_id == target_hotspot_id or completed_task_ids.has("task_" + target_hotspot_id)
+			if required_presence and deep_ready:
+				return {
+					"kind": "hotspot",
+					"id": hotspot_id,
+					"label": str(current_hotspot.get("label", hotspot_id)),
+					"required_time": float(task_config.get("required_time", 2.0)),
+					"data": current_hotspot,
+				}
+	if not current_encounter.is_empty():
+		var species_id := str(current_encounter.get("species_id", ""))
+		if species_id != "" and not discovered_species_ids.has(species_id):
+			return {
+				"kind": "species",
+				"id": species_id,
+				"label": str(current_encounter.get("label", species_id)),
+				"required_time": _species_survey_time(str(current_encounter.get("category", ""))),
+				"data": current_encounter,
+			}
+	return {}
+
+
+func _species_survey_time(category: String) -> float:
+	var base := 1.5
+	match category:
+		"掠食者":
+			base = 1.8
+		"飞行动物":
+			base = 1.4
+		"水域动物":
+			base = 1.6
+		_:
+			base = 1.5
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	var branch_stability_tag := _region_branch_stability_tag()
+	if visit_count >= 3:
+		match dominant_channel:
+			"水源":
+				if category == "水域动物":
+					base -= 0.2
+			"迁徙":
+				if category == "草食动物":
+					base -= 0.2
+			"压迫":
+				if category == "掠食者":
+					base -= 0.2
+			"腐食":
+				if category == "飞行动物":
+					base -= 0.2
+			"栖地":
+				if category == "区域生物":
+					base -= 0.15
+		if _region_specialization_mode() == "快取线" and _species_intel_channel({"category": category}) == dominant_channel:
+			base -= 0.1
+		elif _region_specialization_mode() == "深挖线" and _species_intel_channel({"category": category}) == dominant_channel:
+			base += 0.1
+	if _species_intel_channel({"category": category}) == dominant_channel:
+		match _region_archive_tier():
+			"已知档案":
+				base -= 0.05
+			"熟悉档案":
+				base -= 0.12
+			"定型档案":
+				base -= 0.20
+	if branch_stability_tag == "稳定扩线区" and _species_intel_channel({"category": category}) == dominant_channel:
+		base -= 0.12
+	elif branch_stability_tag == "扩线塑形中" and _species_intel_channel({"category": category}) == dominant_channel:
+		base -= 0.06
+	if branch_stability_tag == "稳定收束区" and _species_intel_channel({"category": category}) == dominant_channel:
+		base -= 0.14
+	elif branch_stability_tag == "收束塑形中" and _species_intel_channel({"category": category}) == dominant_channel:
+		base -= 0.08
+	if _region_route_style() == "quick" and _species_intel_channel({"category": category}) == dominant_channel:
+		base -= 0.04 * float(_region_route_shaping_bonus())
+	elif _region_route_style() == "deep" and _species_intel_channel({"category": category}) == dominant_channel and _archive_has_stable_followup_chain():
+		base -= 0.03 * float(_region_route_shaping_bonus())
+	return maxf(1.0, base)
+
+
+func _decay_survey(delta: float) -> void:
+	if survey_progress > 0.0:
+		survey_progress = maxf(0.0, survey_progress - delta * 1.35)
+	if survey_progress <= 0.0 and _current_survey_target().is_empty():
+		survey_target_kind = ""
+		survey_target_id = ""
+		survey_target_label = ""
+		survey_required_time = 0.0
+		survey_target_data.clear()
+
+
+func _complete_survey_target() -> void:
+	if survey_target_kind == "species":
+		_record_species_discovery(survey_target_data)
+	elif survey_target_kind == "hotspot":
+		_complete_hotspot_task(survey_target_data)
+	survey_progress = 0.0
+	survey_target_kind = ""
+	survey_target_id = ""
+	survey_target_label = ""
+	survey_required_time = 0.0
+	survey_target_data.clear()
+
+
+func _complete_hotspot_task(hotspot: Dictionary) -> void:
+	var hotspot_id := str(hotspot.get("hotspot_id", ""))
+	if hotspot_id == "":
+		return
+	var task_id := "task_" + hotspot_id
+	if completed_task_ids.has(task_id):
+		return
+	var hotspot_label := str(hotspot.get("label", hotspot_id))
+	var task_config := _hotspot_task_config(hotspot_id)
+	var reward := _hotspot_intel_reward(hotspot)
+	var channel := _hotspot_intel_channel(hotspot)
+	var handoff_bonus := _first_segment_handoff_reward_bonus(channel, "hotspot")
+	var followup_bonus := _branch_followup_reward_bonus(channel, "hotspot")
+	var backbone_bonus := _management_backbone_reward_bonus(channel, "hotspot", hotspot_id)
+	hotspot_intel_score += reward
+	intel_breakdown[channel] = int(intel_breakdown.get(channel, 0)) + reward
+	completed_task_ids[task_id] = true
+	var bonus_note := ""
+	if handoff_bonus > 0:
+		bonus_note += " · 第一站奖励 +%d" % handoff_bonus
+	if followup_bonus > 0:
+		var followup_label := "扩线后续奖励" if str(incoming_handoff.get("branch_mode", "")) == "deep_expand" else "收束后续奖励"
+		bonus_note += " · %s +%d" % [followup_label, followup_bonus]
+	if backbone_bonus > 0:
+		bonus_note += " · 骨干奖励 +%d" % backbone_bonus
+	discovery_log.push_front("%s完成：%s · %s情报 +%d%s" % [str(task_config.get("noun", "观察")), hotspot_label, channel, reward, bonus_note])
+	discovery_log = discovery_log.slice(0, 6)
+	current_task = {
+		"title": "观察完成",
+		"body": "%s 的%s已完成，%s情报 +%d%s%s%s，继续寻找下一处目标。" % [hotspot_label, str(task_config.get("noun", "观察")), channel, reward, bonus_note, _identity_special_hotspot_note(hotspot), _identity_chain_note_for_channel(channel, "hotspot")],
+		"accent": Color8(150, 216, 176),
+	}
+	_maybe_complete_handoff(hotspot_label, channel)
+	_maybe_award_specialization_chain_bonus(hotspot_label)
 
 
 func _hotspot_task_config(hotspot_id: String) -> Dictionary:
+	var config := {}
 	match hotspot_id:
 		"waterhole":
-			return {"required_time": 1.8, "title": "水源采样", "prompt": "记录水源驻留", "noun": "水源观察", "required_category": "水域动物"}
+			config = {"required_time": 1.8, "title": "水源采样", "prompt": "记录水源驻留", "noun": "水源观察", "required_category": "水域动物"}
 		"migration_corridor":
-			return {"required_time": 2.2, "title": "迁徙观察", "prompt": "跟进迁徙带活动", "noun": "迁徙观察", "required_category": "草食动物"}
+			config = {"required_time": 2.2, "title": "迁徙观察", "prompt": "跟进迁徙带活动", "noun": "迁徙观察", "required_category": "草食动物"}
 		"predator_ridge":
-			return {"required_time": 2.4, "title": "掠食观察", "prompt": "盯防掠食巡猎", "noun": "掠食观察", "required_category": "掠食者"}
+			config = {"required_time": 2.4, "title": "掠食观察", "prompt": "盯防掠食巡猎", "noun": "掠食观察", "required_category": "掠食者"}
 		"carrion_field":
-			return {"required_time": 2.0, "title": "腐食观察", "prompt": "记录腐食活动", "noun": "腐食观察", "required_category": "飞行动物"}
+			config = {"required_time": 2.0, "title": "腐食观察", "prompt": "记录腐食活动", "noun": "腐食观察", "required_category": "飞行动物"}
 		_:
-			return {"required_time": 2.1, "title": "林荫观察", "prompt": "记录林荫驻留", "noun": "栖地观察"}
+			config = {"required_time": 2.1, "title": "林荫观察", "prompt": "记录林荫驻留", "noun": "栖地观察"}
+	var report := _region_identity_report()
+	var dominant_channel := str(report.get("dominant_intel_channel", ""))
+	var visit_count := int(report.get("visit_count", 0))
+	var followup_hotspot_id := _specialization_followup_hotspot_id()
+	var backbone_tag := _region_management_backbone_tag()
+	var stable_quicktake_window := _archive_has_stable_quicktake_window()
+	var stable_followup_chain := _archive_has_stable_followup_chain()
+	if visit_count >= 3:
+		match dominant_channel:
+			"水源":
+				if hotspot_id == "waterhole":
+					config["title"] = "水线复测"
+					config["prompt"] = "核验水源驻留与补给窗口"
+					config["noun"] = "水线复测"
+				elif hotspot_id == "shade_grove":
+					config["prompt"] = "补查岸带外缘的庇护反应"
+			"迁徙":
+				if hotspot_id == "migration_corridor":
+					config["title"] = "迁徙复测"
+					config["prompt"] = "核验迁徙带通行与聚群节奏"
+					config["noun"] = "迁徙复测"
+				elif hotspot_id == "waterhole":
+					config["prompt"] = "核验迁徙补给点"
+			"压迫":
+				if hotspot_id == "predator_ridge":
+					config["title"] = "压迫复盘"
+					config["prompt"] = "复盘掠食压迫与切入线路"
+					config["noun"] = "压迫复盘"
+				elif hotspot_id == "migration_corridor":
+					config["prompt"] = "记录逃散走廊与回避反应"
+			"腐食":
+				if hotspot_id == "carrion_field":
+					config["title"] = "腐食复测"
+					config["prompt"] = "核验腐食聚集与空中回线"
+					config["noun"] = "腐食复测"
+				elif hotspot_id == "predator_ridge":
+					config["prompt"] = "补查高地对腐食线的牵引"
+			"栖地":
+				if hotspot_id == "shade_grove":
+					config["title"] = "庇护复测"
+					config["prompt"] = "核验庇护点稳定性与停留窗口"
+					config["noun"] = "庇护复测"
+				elif hotspot_id == "waterhole":
+					config["prompt"] = "补查栖地边缘的取水联系"
+		match dominant_channel:
+			"水源":
+				if hotspot_id == "waterhole":
+					config["required_time"] = maxf(1.3, float(config.get("required_time", 2.0)) - 0.3)
+			"迁徙":
+				if hotspot_id == "migration_corridor":
+					config["required_time"] = maxf(1.5, float(config.get("required_time", 2.0)) - 0.4)
+			"压迫":
+				if hotspot_id == "predator_ridge":
+					config["required_time"] = maxf(1.6, float(config.get("required_time", 2.0)) - 0.4)
+			"腐食":
+				if hotspot_id == "carrion_field":
+					config["required_time"] = maxf(1.4, float(config.get("required_time", 2.0)) - 0.3)
+			"栖地":
+				if hotspot_id == "shade_grove":
+					config["required_time"] = maxf(1.5, float(config.get("required_time", 2.0)) - 0.3)
+	if visit_count >= 5:
+		config["prompt"] = "%s · 按既有调查档案快速补样" % str(config.get("prompt", "停留记录"))
+	match _region_archive_tier():
+		"熟悉档案":
+			if hotspot_id == _specialization_target_hotspot_id():
+				config["prompt"] = "%s · 熟悉档案已建立，主线热点可以快速复核" % str(config.get("prompt", "停留记录"))
+				config["required_time"] = maxf(1.0, float(config.get("required_time", 2.0)) - 0.12)
+		"定型档案":
+			if hotspot_id == _specialization_target_hotspot_id():
+				config["title"] = "定型复核"
+				config["noun"] = "定型复核"
+				config["prompt"] = "%s · 定型档案已建立，主线复核会给出稳定高值样本" % str(config.get("prompt", "停留记录"))
+				config["required_time"] = maxf(1.0, float(config.get("required_time", 2.0)) - 0.22)
+			elif hotspot_id == followup_hotspot_id and _region_specialization_mode() == "深挖线":
+				config["title"] = "稳定复核"
+				config["noun"] = "稳定复核"
+				config["prompt"] = "%s · 定型档案支持连续复核，补完这一点后再收对应样本" % str(config.get("prompt", "停留记录"))
+				config["required_time"] = maxf(1.1, float(config.get("required_time", 2.0)) - 0.20)
+	if stable_followup_chain and _region_specialization_mode() == "深挖线":
+		if hotspot_id == _specialization_target_hotspot_id():
+			if backbone_tag == "深挖经营骨干区" or (_region_is_primary_lock_zone() and _region_route_lock_tag() == "深挖锁定"):
+				config["title"] = "主力主复核"
+				config["noun"] = "主力主复核"
+			else:
+				config["title"] = "锁定主复核" if _region_route_lock_tag() == "深挖锁定" else "主线复核"
+				config["noun"] = "锁定主复核" if _region_route_lock_tag() == "深挖锁定" else "主线复核"
+			config["prompt"] = "%s · %s" % [
+				str(config.get("prompt", "停留记录")),
+				"这片区已成深挖经营骨干区，先完成主力主复核" if backbone_tag == "深挖经营骨干区" else ("这片区已成主力深挖区，先完成主力主复核" if _region_is_primary_lock_zone() and _region_route_lock_tag() == "深挖锁定" else ("这片区已锁定为连续复核区，先完成锁定主复核" if _region_route_lock_tag() == "深挖锁定" else "这片区已形成稳定深挖链，先完成主热点复核"))
+			]
+		elif hotspot_id == followup_hotspot_id:
+			if backbone_tag == "深挖经营骨干区" or (_region_is_primary_lock_zone() and _region_route_lock_tag() == "深挖锁定"):
+				config["title"] = "主力次复核"
+				config["noun"] = "主力次复核"
+			else:
+				config["title"] = "锁定次复核" if _region_route_lock_tag() == "深挖锁定" else "第二复核点"
+				config["noun"] = "锁定次复核" if _region_route_lock_tag() == "深挖锁定" else "第二复核点"
+			config["prompt"] = "%s · %s" % [
+				str(config.get("prompt", "停留记录")),
+				"主力主复核完成后，这里会稳定成为主力次复核点" if backbone_tag == "深挖经营骨干区" else ("主复核完成后，这里会稳定成为主力次复核点" if _region_is_primary_lock_zone() and _region_route_lock_tag() == "深挖锁定" else ("主复核完成后，这里会稳定成为锁定次复核点" if _region_route_lock_tag() == "深挖锁定" else "主热点完成后，这里会稳定成为第二复核点"))
+			]
+	if stable_quicktake_window and hotspot_id == _specialization_target_hotspot_id():
+		if backbone_tag == "快取经营骨干区" or (_region_is_primary_lock_zone() and _region_route_lock_tag() == "快取锁定"):
+			config["title"] = "主力速查组"
+			config["noun"] = "主力速查组"
+		else:
+			config["title"] = "锁定速查组" if _region_route_lock_tag() == "快取锁定" else "高值速查"
+			config["noun"] = "锁定速查组" if _region_route_lock_tag() == "快取锁定" else "高值速查"
+		config["prompt"] = "%s · %s" % [
+			str(config.get("prompt", "停留记录")),
+			"这片区已成快取经营骨干区，这里会稳定产出主力速查组" if backbone_tag == "快取经营骨干区" else ("这片区已形成稳定快取窗%s，这里会稳定产出高值短窗目标" % ["并完成快取锁定" if _region_route_lock_tag() == "快取锁定" else ""])
+		]
+		config["required_time"] = maxf(1.0, float(config.get("required_time", 2.0)) - (0.20 if _region_archive_tier() == "熟悉档案" else 0.30))
+	elif _region_route_style() == "quick" and _region_route_style_streak() >= 3 and hotspot_id == _specialization_target_hotspot_id():
+		config["title"] = "塑形速查"
+		config["noun"] = "塑形速查"
+		config["prompt"] = "%s · 快取塑形正在形成，先抓关键样本建立短推进节奏" % str(config.get("prompt", "停留记录"))
+		config["required_time"] = maxf(1.1, float(config.get("required_time", 2.0)) - 0.15)
+	elif _region_route_style() == "deep" and _region_route_style_streak() >= 3 and hotspot_id == followup_hotspot_id:
+		config["title"] = "塑形复核"
+		config["noun"] = "塑形复核"
+		config["prompt"] = "%s · 深挖塑形正在形成，先补第二复核点把链路拉稳" % str(config.get("prompt", "停留记录"))
+		config["required_time"] = maxf(1.2, float(config.get("required_time", 2.0)) - 0.10)
+	var specialization_mode := _region_specialization_mode()
+	if specialization_mode == "快取线" and _hotspot_intel_channel({"hotspot_id": hotspot_id}) == dominant_channel:
+		config["prompt"] = "%s · 当前是快取窗口，取到关键样本就撤" % str(config.get("prompt", "停留记录"))
+		config["required_time"] = maxf(1.1, float(config.get("required_time", 2.0)) - 0.2)
+	elif specialization_mode == "深挖线" and _hotspot_intel_channel({"hotspot_id": hotspot_id}) == dominant_channel:
+		config["prompt"] = "%s · 当前适合深挖复核，建议补完连续样本" % str(config.get("prompt", "停留记录"))
+		config["required_time"] = minf(3.0, float(config.get("required_time", 2.0)) + 0.15)
+	if _region_run_profile() == "深挖完成" and hotspot_id == followup_hotspot_id:
+		config["title"] = "链路复核"
+		config["noun"] = "链路复核"
+		config["prompt"] = "%s · 按既有调查档案继续补第二复核点" % str(config.get("prompt", "停留记录"))
+		config["required_time"] = maxf(1.4, float(config.get("required_time", 2.0)) - 0.15)
+	elif _region_run_profile() == "快取完成" and hotspot_id == _specialization_target_hotspot_id():
+		config["title"] = "高值速查"
+		config["noun"] = "高值速查"
+		config["prompt"] = "%s · 当前回线偏快取，优先完成这一处高值点" % str(config.get("prompt", "停留记录"))
+		config["required_time"] = maxf(1.0, float(config.get("required_time", 2.0)) - 0.25)
+	return config
 
 
 func _has_nearby_category(category: String, center: Vector2, radius: float) -> bool:
@@ -814,34 +3560,64 @@ func _has_nearby_category(category: String, center: Vector2, radius: float) -> b
 
 
 func _objective_rows() -> Array:
+	var rows: Array = []
+	var task_action := str(world_task.get("action", ""))
+	if task_action != "":
+		rows.append(
+			{
+				"title": "世界任务 · %s" % task_action,
+				"label": str(world_task.get("reason", world_task.get("body", ""))),
+				"done": _world_task_completed(current_exit_zone),
+			}
+		)
 	var stage := 1
 	if discovered_species_ids.size() >= 3 and discovered_hotspot_ids.size() >= 2:
 		stage = 2
 	if witnessed_pressure and visited_region_ids.size() >= 2:
 		stage = 3
 	if stage == 1:
-		return [
+		rows.append_array([
 			{"title": "阶段一 · 建立观察", "label": "发现 3 种动物", "done": discovered_species_ids.size() >= 3},
 			{"title": "", "label": "完成 1 个热点采样", "done": completed_task_ids.size() >= 1},
-		]
+		])
+		return rows
 	if stage == 2:
-		return [
+		rows.append_array([
 			{"title": "阶段二 · 见证压力", "label": "观察一次掠食追逐", "done": witnessed_pressure},
 			{"title": "", "label": "完成 2 个不同热点任务", "done": completed_task_ids.size() >= 2},
-		]
-	return [
+		])
+		return rows
+	rows.append_array([
 		{"title": "阶段三 · 扩展生态图", "label": "进入下一个区域", "done": visited_region_ids.size() >= 2},
 		{"title": "", "label": "见证一次追猎命中或落空", "done": witnessed_chase_result},
-	]
+	])
+	return rows
 
 
 func _record_species_discovery(animal: Dictionary) -> void:
 	var species_id := str(animal.get("species_id", ""))
 	if species_id == "" or discovered_species_ids.has(species_id):
 		return
+	var reward := _species_intel_reward(animal)
+	var channel := _species_intel_channel(animal)
+	var handoff_bonus := _first_segment_handoff_reward_bonus(channel, "species")
+	var followup_bonus := _branch_followup_reward_bonus(channel, "species")
+	var backbone_bonus := _management_backbone_reward_bonus(channel, "species")
+	species_intel_score += reward
+	intel_breakdown[channel] = int(intel_breakdown.get(channel, 0)) + reward
 	discovered_species_ids[species_id] = true
-	discovery_log.push_front("发现动物：%s" % str(animal.get("label", species_id)))
+	var bonus_note := ""
+	if handoff_bonus > 0:
+		bonus_note += " · 第一站奖励 +%d" % handoff_bonus
+	if followup_bonus > 0:
+		var followup_label := "扩线后续奖励" if str(incoming_handoff.get("branch_mode", "")) == "deep_expand" else "收束后续奖励"
+		bonus_note += " · %s +%d" % [followup_label, followup_bonus]
+	if backbone_bonus > 0:
+		bonus_note += " · 骨干奖励 +%d" % backbone_bonus
+	discovery_log.push_front("发现动物：%s · %s情报 +%d%s%s" % [str(animal.get("label", species_id)), channel, reward, bonus_note, _identity_chain_note_for_channel(channel, "species")])
 	discovery_log = discovery_log.slice(0, 6)
+	_maybe_complete_handoff(str(animal.get("label", species_id)), channel)
+	_maybe_award_specialization_chain_bonus(str(animal.get("label", species_id)))
 
 
 func _record_hotspot_discovery(hotspot: Dictionary) -> void:
@@ -899,8 +3675,18 @@ func _draw_world_ground() -> void:
 
 
 func _draw_grass_patch(center: Vector2, width: float, height: float, color: Color) -> void:
-	var p := _screen_point(center)
-	_draw_panel(Rect2(p - Vector2(width * 0.5, height * 0.5), Vector2(width, height)), color, Color(1, 1, 1, 0.04), 44, 1)
+	_draw_natural_blob(center, width, height, color, 28)
+
+
+func _draw_natural_blob(center: Vector2, width: float, height: float, color: Color, segments: int = 24) -> void:
+	var points := PackedVector2Array()
+	var screen_center := _screen_point(center)
+	for index in range(segments):
+		var angle := TAU * float(index) / float(segments)
+		var ripple := 1.0 + sin(angle * 3.0 + center.x * 0.003) * 0.10 + cos(angle * 5.0 + center.y * 0.002) * 0.07
+		points.append(screen_center + Vector2(cos(angle) * width * 0.5 * ripple, sin(angle) * height * 0.5 * ripple))
+	draw_colored_polygon(points, color)
+	draw_polyline(points + PackedVector2Array([points[0]]), Color(color.r, color.g, color.b, minf(color.a + 0.08, 0.32)), 1.4, true)
 
 
 func _draw_river() -> void:
@@ -989,11 +3775,21 @@ func _draw_dust_trails() -> void:
 
 
 func _draw_ridge() -> void:
-	var points = PackedVector2Array()
-	for point in [Vector2(1870, 430), Vector2(2200, 350), Vector2(2360, 520), Vector2(2160, 660), Vector2(1860, 600)]:
-		points.append(_screen_point(point))
-	draw_colored_polygon(points, Color8(114, 101, 84, 220))
-	draw_polyline(points + PackedVector2Array([points[0]]), Color8(232, 213, 162, 110), 3.0)
+	var contours := [
+		[Vector2(1840, 575), Vector2(1980, 515), Vector2(2150, 500), Vector2(2320, 545)],
+		[Vector2(1880, 520), Vector2(2035, 455), Vector2(2200, 458), Vector2(2380, 508)],
+		[Vector2(1930, 468), Vector2(2090, 410), Vector2(2260, 430)],
+	]
+	for contour in contours:
+		var points := PackedVector2Array()
+		for point in contour:
+			points.append(_screen_point(point))
+		draw_polyline(points, Color8(118, 104, 82, 118), 5.0, true)
+		draw_polyline(points, Color8(238, 222, 176, 72), 1.8, true)
+	for rock in [Vector2(1988, 540), Vector2(2144, 492), Vector2(2268, 515), Vector2(2070, 438)]:
+		var p := _screen_point(rock)
+		draw_circle(p, 9.0, Color8(126, 112, 88, 128))
+		draw_circle(p + Vector2(-2, -2), 4.0, Color8(220, 204, 164, 84))
 
 
 func _draw_carcass_field() -> void:
@@ -1005,22 +3801,6 @@ func _draw_carcass_field() -> void:
 
 
 func _draw_world_routes() -> void:
-	var route_lines = [
-		[Vector2(430, 1280), Vector2(780, 1040), Vector2(1180, 930), Vector2(1560, 820), Vector2(2040, 540)],
-		[Vector2(1180, 930), Vector2(1510, 760), Vector2(2140, 960)],
-		[Vector2(720, 650), Vector2(1180, 930), Vector2(2040, 540)],
-	]
-	for route in route_lines:
-		var poly = PackedVector2Array()
-		for point in route:
-			poly.append(_screen_point(point))
-		draw_polyline(poly, current_theme.get("route_a", Color8(123, 97, 63, 150)), 18.0, true)
-		draw_polyline(poly, current_theme.get("route_b", Color8(235, 219, 168, 235)), 6.0, true)
-
-	for point in [Vector2(430, 1280), Vector2(2040, 540), Vector2(2490, 710)]:
-		var screen_point := _screen_point(point)
-		draw_circle(screen_point, 14.0, Color8(246, 233, 190, 230))
-		draw_circle(screen_point, 6.0, Color8(112, 86, 54, 230))
 	if not current_interaction.is_empty():
 		var predator_pos := _screen_point(current_interaction.get("predator", {}).get("position", Vector2.ZERO))
 		var target_pos := _screen_point(current_interaction.get("target", Vector2.ZERO))
@@ -1039,13 +3819,16 @@ func _draw_world_routes() -> void:
 func _draw_exit_markers() -> void:
 	for zone in exit_zones:
 		var rect: Rect2 = zone["rect"]
-		var local_rect := Rect2(_screen_point(rect.position), rect.size)
-		var accent := Color(0.92, 0.84, 0.56, 0.16)
+		var marker := _screen_point(rect.position + rect.size * 0.5)
+		var accent := Color8(232, 210, 142, 190)
 		if not current_exit_zone.is_empty() and str(current_exit_zone.get("id", "")) == str(zone["id"]):
-			accent = Color(0.96, 0.9, 0.66, 0.28)
-		_draw_panel(local_rect, Color(0.18, 0.12, 0.09, 0.08), accent, 22, 2)
-		_draw_text(local_rect.position + Vector2(18, 28), str(zone["label"]), 17, Color8(245, 239, 220))
-		_draw_text(local_rect.position + Vector2(18, 52), "出口", 12, Color8(188, 194, 198))
+			draw_arc(marker, 40.0, 0.0, TAU, 42, Color(0.96, 0.86, 0.46, 0.34), 5.0, true)
+			accent = Color8(255, 232, 150, 230)
+		draw_circle(marker, 10.0, Color(0.08, 0.08, 0.06, 0.22))
+		draw_circle(marker, 6.0, accent)
+		draw_line(marker + Vector2(0, 7), marker + Vector2(0, 28), Color8(96, 70, 42, 180), 3.0)
+		_draw_text(marker + Vector2(14, -8), str(zone["label"]), 14, Color8(245, 239, 220, 210))
+		_draw_text(marker + Vector2(14, 10), "按 E 前往", 11, Color8(194, 204, 202, 180))
 
 
 func _draw_hotspots() -> void:
@@ -1065,17 +3848,87 @@ func _draw_wildlife() -> void:
 		var pos := _screen_point(animal.get("position", Vector2.ZERO))
 		var color: Color = animal.get("color", Color8(174, 191, 126))
 		var group_size := int(animal.get("group_size", 1))
-		for group_index in range(group_size):
+		var visual_count := mini(group_size, 3)
+		for group_index in range(visual_count):
 			var orbit := elapsed * (0.7 + 0.14 * group_index) + float(group_index) * 1.15
-			var member_offset := Vector2(cos(orbit) * (8.0 + group_index * 5.0), sin(orbit * 1.2) * (5.0 + group_index * 4.0))
+			var member_offset := Vector2(cos(orbit) * (14.0 + group_index * 9.0), sin(orbit * 1.2) * (7.0 + group_index * 5.0))
 			var member_pos := pos + member_offset
-			var radius := 16.0 if group_index == 0 else maxf(9.0, 13.0 - float(group_index))
-			draw_circle(member_pos + Vector2(0, 12), radius * 0.62, Color(0, 0, 0, 0.12))
-			draw_circle(member_pos, radius, color)
-			draw_circle(member_pos, radius * 0.42, Color8(31, 38, 43, 200))
-			if group_index == 0:
-				_draw_text(member_pos + Vector2(-8, 6), CATEGORY_ICONS.get(str(animal.get("category", "")), "•"), 13, Color8(248, 245, 236))
+			var scale := 1.0 if group_index == 0 else 0.74
+			var facing := -1.0 if sin(orbit) < 0.0 else 1.0
+			_draw_animal_silhouette(animal, member_pos, color, scale, facing)
 		_draw_text(pos + Vector2(-26, 24), str(animal.get("label", "")), 11, Color8(242, 241, 230, 210))
+
+
+func _draw_animal_silhouette(animal: Dictionary, pos: Vector2, color: Color, scale: float, facing: float) -> void:
+	var category := str(animal.get("category", "区域生物"))
+	var species_id := str(animal.get("species_id", ""))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_draw_ellipse(pos + Vector2(0, 12 * scale), Vector2(19, 6) * scale, Color(0, 0, 0, 0.13), 16)
+	if category == "飞行动物":
+		_draw_bird_silhouette(pos, color, scale, facing)
+	elif category == "水域动物" or species_id in ["small_fish", "minnow", "carp", "catfish", "pike", "blackfish", "pufferfish", "shrimp", "crab", "frog"]:
+		_draw_fish_silhouette(pos, color, scale, facing)
+	elif category == "掠食者" or species_id in ["lion", "hyena", "wolf", "fox"]:
+		_draw_quadruped_silhouette(pos, color, scale, facing, true)
+	else:
+		_draw_quadruped_silhouette(pos, color, scale, facing, false)
+
+
+func _draw_quadruped_silhouette(pos: Vector2, color: Color, scale: float, facing: float, predator: bool) -> void:
+	var body := Vector2(24, 11) * scale
+	var head_offset := Vector2(19 * facing, -5) * scale
+	_draw_ellipse(pos, body, color, 18)
+	_draw_ellipse(pos + Vector2(-7 * facing, -8) * scale, Vector2(10, 7) * scale, color.darkened(0.05), 14)
+	_draw_ellipse(pos + head_offset, Vector2(9, 7) * scale, color.lightened(0.05), 14)
+	var leg_color := color.darkened(0.18)
+	for x in [-11, -3, 7, 14]:
+		var foot_sway := sin(elapsed * 6.0 + float(x)) * 3.0 * scale
+		var hip := pos + Vector2(float(x) * facing, 7) * scale
+		draw_line(hip, hip + Vector2(foot_sway, 15 * scale), leg_color, maxf(1.6, 2.4 * scale), true)
+	var tail_end := pos + Vector2(-27 * facing, (-7 if predator else -2)) * scale
+	draw_line(pos + Vector2(-20 * facing, -4) * scale, tail_end, leg_color, maxf(1.5, 2.2 * scale), true)
+	if predator:
+		draw_circle(pos + head_offset + Vector2(4 * facing, -2) * scale, 1.8 * scale, Color8(250, 230, 176))
+	else:
+		draw_line(pos + head_offset + Vector2(1 * facing, -5) * scale, pos + head_offset + Vector2(5 * facing, -13) * scale, leg_color, 1.4 * scale, true)
+		draw_line(pos + head_offset + Vector2(-2 * facing, -5) * scale, pos + head_offset + Vector2(-5 * facing, -12) * scale, leg_color, 1.4 * scale, true)
+
+
+func _draw_bird_silhouette(pos: Vector2, color: Color, scale: float, facing: float) -> void:
+	_draw_ellipse(pos, Vector2(10, 6) * scale, color, 14)
+	var wing_color := color.darkened(0.08)
+	var left_wing := PackedVector2Array([
+		pos + Vector2(-4 * facing, 0) * scale,
+		pos + Vector2(-25 * facing, -13) * scale,
+		pos + Vector2(-12 * facing, 7) * scale,
+	])
+	var right_wing := PackedVector2Array([
+		pos + Vector2(4 * facing, 0) * scale,
+		pos + Vector2(24 * facing, -10) * scale,
+		pos + Vector2(11 * facing, 8) * scale,
+	])
+	draw_colored_polygon(left_wing, wing_color)
+	draw_colored_polygon(right_wing, wing_color.lightened(0.04))
+	draw_circle(pos + Vector2(10 * facing, -3) * scale, 3.4 * scale, color.lightened(0.08))
+
+
+func _draw_fish_silhouette(pos: Vector2, color: Color, scale: float, facing: float) -> void:
+	_draw_ellipse(pos, Vector2(17, 8) * scale, color, 16)
+	var tail := PackedVector2Array([
+		pos + Vector2(-16 * facing, 0) * scale,
+		pos + Vector2(-27 * facing, -8) * scale,
+		pos + Vector2(-25 * facing, 8) * scale,
+	])
+	draw_colored_polygon(tail, color.darkened(0.10))
+	draw_circle(pos + Vector2(9 * facing, -2) * scale, 1.8 * scale, Color8(236, 245, 238))
+
+
+func _draw_ellipse(center: Vector2, radius: Vector2, color: Color, segments: int = 18) -> void:
+	var points := PackedVector2Array()
+	for index in range(segments):
+		var angle := TAU * float(index) / float(segments)
+		points.append(center + Vector2(cos(angle) * radius.x, sin(angle) * radius.y))
+	draw_colored_polygon(points, color)
 
 
 func _draw_player() -> void:
@@ -1099,8 +3952,13 @@ func _draw_overlay() -> void:
 
 func _draw_top_banner() -> void:
 	_draw_panel(Rect2(24, 20, 360, 82), Color(0.05, 0.08, 0.11, 0.78), Color(0.92, 0.85, 0.62, 0.18), 28, 2)
-	_draw_text(Vector2(42, 48), "生态草原 · 探索中", 28, Color8(245, 242, 228))
-	_draw_text(Vector2(42, 76), str(region_detail.get("name", "草原区")) + "  自由探索 / 动物偶遇 / 区域跳转", 15, Color8(190, 205, 212))
+	_draw_text(Vector2(42, 48), _exploration_title(), 28, Color8(245, 242, 228))
+	_draw_text(Vector2(42, 76), "%s  阶段 %s · 情报 %d · 危险 %s" % [
+		str(region_detail.get("name", "草原区")),
+		expedition_phase,
+		_expedition_intel_points(),
+		_threat_label(),
+	], 15, Color8(190, 205, 212))
 
 	_draw_panel(Rect2(size.x - 258, 20, 224, 64), Color(0.05, 0.08, 0.11, 0.68), Color(0.67, 0.8, 0.9, 0.14), 24, 2)
 	var health: Dictionary = region_detail.get("health_state", {})
@@ -1109,6 +3967,10 @@ func _draw_top_banner() -> void:
 		int(round(float(health.get("stability", 0.0)) * 100.0)),
 		int(round(float(health.get("collapse_risk", 0.0)) * 100.0)),
 	], 16, Color8(236, 242, 244))
+	_draw_text(Vector2(size.x - 236, 68), "撤离 %s · 阈值 %d" % [("已准备" if extraction_ready else "未准备"), _required_extraction_intel()], 13, Color8(184, 203, 208))
+	_draw_panel(Rect2(398, 20, 308, 64), Color(0.05, 0.08, 0.11, 0.68), Color(0.61, 0.77, 0.72, 0.14), 24, 2)
+	_draw_text(Vector2(418, 44), "%s · %s" % [_region_state_label(), _chain_focus_text()], 14, Color8(226, 235, 229))
+	_draw_text(Vector2(418, 67), "热点优先：%s · 主情报：%s" % [("" if hotspots.is_empty() else str(hotspots[0].get("label", "主热点"))), _top_intel_channel()], 13, Color8(184, 203, 208))
 
 
 func _draw_event_banner() -> void:
@@ -1127,79 +3989,138 @@ func _draw_encounter_card() -> void:
 	if not current_exit_zone.is_empty():
 		_draw_text(rect.position + Vector2(22, 34), "出口 · " + str(current_exit_zone.get("label", "")), 22, Color8(245, 242, 228))
 		_draw_text(rect.position + Vector2(22, 66), str(current_exit_zone.get("hint", "")), 14, Color8(187, 201, 208))
-		_draw_text(rect.position + Vector2(22, 96), "按 E 直接进入目标区域，不再只是返回世界图。", 14, Color8(170, 184, 191))
+		_draw_text(rect.position + Vector2(22, 96), "按 E 撤离 / 切区 · 当前情报 %d · 危险 %s" % [_expedition_intel_points(), _threat_label()], 14, Color8(170, 184, 191))
+		_draw_text(rect.position + Vector2(22, 118), _exit_value_text(current_exit_zone, extraction_ready), 13, Color8(160, 176, 184))
 		return
 	if not current_hotspot.is_empty():
 		_draw_text(rect.position + Vector2(22, 34), "热点 · " + str(current_hotspot.get("label", "")), 22, Color8(245, 242, 228))
 		_draw_text(rect.position + Vector2(22, 66), str(current_hotspot.get("summary", "")), 14, Color8(187, 201, 208))
-		_draw_text(rect.position + Vector2(22, 96), "靠近这里会自动记录观察，图鉴里会累计生态发现。", 14, Color8(170, 184, 191))
+		if survey_target_kind == "hotspot":
+			_draw_text(rect.position + Vector2(22, 96), "按住 Space 采样 %.1f / %.1f 秒 · 完成后情报 +%d" % [survey_progress, survey_required_time, _hotspot_intel_reward(current_hotspot)], 14, Color8(170, 184, 191))
+			_draw_progress_bar(Rect2(rect.position + Vector2(22, 104), Vector2(292, 10)), survey_progress, survey_required_time, Color8(110, 195, 164))
+		else:
+			_draw_text(rect.position + Vector2(22, 96), "站稳位置后按住 Space 开始采样 · 完成后情报 +%d。" % _hotspot_intel_reward(current_hotspot), 14, Color8(170, 184, 191))
+		_draw_text(rect.position + Vector2(22, 118), _specialization_chain_state_text(), 13, Color8(160, 176, 184))
 		return
 	if current_encounter.is_empty():
+		var handoff_task := _active_handoff_task()
+		if not handoff_task.is_empty():
+			_draw_text(rect.position + Vector2(22, 34), str(handoff_task.get("title", "承接任务")), 20, Color8(240, 240, 228))
+			_draw_text(rect.position + Vector2(22, 66), str(handoff_task.get("body", "")), 14, Color8(182, 198, 205))
+			_draw_text(rect.position + Vector2(22, 96), "先沿主线移动，贴近首个热点或目标生物后按住 Space 开始承接调查。", 14, Color8(164, 180, 188))
+			return
 		_draw_text(rect.position + Vector2(22, 34), "偶遇区域", 20, Color8(240, 240, 228))
-		_draw_text(rect.position + Vector2(22, 66), "继续沿草地、水源和断崖移动，靠近动物群即可触发观察。", 14, Color8(182, 198, 205))
-		_draw_text(rect.position + Vector2(22, 96), "这里先给你可探索场景和可见生态，不再是总控面板。", 14, Color8(164, 180, 188))
+		_draw_text(rect.position + Vector2(22, 66), "继续沿草地、水源和断崖移动，贴近动物或热点后主动调查。", 14, Color8(182, 198, 205))
+		_draw_text(rect.position + Vector2(22, 96), "当前不是自动完成，按住 Space 才会把记录写进图鉴。", 14, Color8(164, 180, 188))
 		return
 
 	_draw_text(rect.position + Vector2(22, 34), "偶遇 · " + str(current_encounter.get("label", "")), 22, Color8(245, 242, 228))
 	_draw_text(rect.position + Vector2(22, 66), "数量 %d · %s" % [int(current_encounter.get("count", 0)), str(current_encounter.get("category", ""))], 15, Color8(208, 219, 222))
-	_draw_text(rect.position + Vector2(22, 96), "观察它们在当前热点附近的活动，再继续沿路径推进。", 14, Color8(184, 198, 205))
+	if discovered_species_ids.has(str(current_encounter.get("species_id", ""))):
+		_draw_text(rect.position + Vector2(22, 96), "这类动物已经记录过，继续追踪它们在热点附近的行为。", 14, Color8(184, 198, 205))
+	elif survey_target_kind == "species":
+		_draw_text(rect.position + Vector2(22, 96), "按住 Space 记录 %.1f / %.1f 秒 · 完成后情报 +%d" % [survey_progress, survey_required_time, _species_intel_reward(current_encounter)], 14, Color8(184, 198, 205))
+		_draw_progress_bar(Rect2(rect.position + Vector2(22, 104), Vector2(292, 10)), survey_progress, survey_required_time, Color8(230, 188, 102))
+	else:
+		_draw_text(rect.position + Vector2(22, 96), "贴近目标后按住 Space 记录，再继续沿路径推进 · 情报 +%d。" % _species_intel_reward(current_encounter), 14, Color8(184, 198, 205))
+	_draw_text(rect.position + Vector2(22, 118), _specialization_chain_state_text(), 13, Color8(160, 176, 184))
 
 
 func _draw_codex_panel() -> void:
 	var rect := Rect2(size.x - 360, 110, 320, size.y - 210)
-	_draw_panel(rect, Color(0.05, 0.08, 0.11, 0.76), Color(0.78, 0.86, 0.9, 0.14), 30, 2)
-	_draw_text(rect.position + Vector2(24, 34), "区域生态图鉴", 24, Color8(244, 243, 235))
-	_draw_text(rect.position + Vector2(24, 60), "当前区域所有生物 / 已发现物种 %d / 热点 %d" % [
+	_draw_panel(rect, Color(0.05, 0.08, 0.11, 0.72), Color(0.78, 0.86, 0.9, 0.13), 30, 2)
+	var action := str(world_task.get("action", "调查"))
+	_draw_text(rect.position + Vector2(24, 34), "本轮生态任务", 24, Color8(244, 243, 235))
+	_draw_text(rect.position + Vector2(24, 60), "%s · %s" % [action, _world_task_status_line()], 14, Color8(218, 229, 222))
+
+	var task_rect := Rect2(rect.position + Vector2(18, 78), Vector2(rect.size.x - 36, 96))
+	_draw_panel(task_rect, Color(0.18, 0.16, 0.10, 0.34), Color(0.92, 0.78, 0.42, 0.18), 20, 1)
+	_draw_text(task_rect.position + Vector2(16, 26), _action_instruction_line(action), 15, Color8(246, 236, 198))
+	_draw_text(task_rect.position + Vector2(16, 52), str(world_task.get("reason", "完成调查后撤离，结果会回灌世界。")), 12, Color8(210, 214, 202))
+	_draw_text(task_rect.position + Vector2(16, 78), _world_task_backend_effect(action), 12, Color8(166, 206, 184))
+
+	var objective_y := rect.position.y + 202
+	_draw_text(Vector2(rect.position.x + 24, objective_y), "完成条件", 17, Color8(236, 230, 210))
+	var objectives := _objective_rows()
+	var objective_cursor_y := objective_y + 22.0
+	for index in range(objectives.size()):
+		if index >= 4:
+			break
+		var objective: Dictionary = objectives[index]
+		if str(objective.get("title", "")) != "":
+			_draw_text(Vector2(rect.position.x + 24, objective_cursor_y), str(objective.get("title", "")), 12, Color8(146, 169, 180))
+			objective_cursor_y += 14.0
+		var marker := "✓" if bool(objective.get("done", false)) else "·"
+		_draw_text(Vector2(rect.position.x + 24, objective_cursor_y), "%s %s" % [marker, str(objective.get("label", ""))], 12, Color8(188, 203, 209))
+		objective_cursor_y += 20.0
+
+	var intel_y := objective_cursor_y + 10.0
+	_draw_text(Vector2(rect.position.x + 24, intel_y), "已记录", 17, Color8(233, 230, 213))
+	_draw_text(Vector2(rect.position.x + 24, intel_y + 24), "动物 %d 种 · 热点 %d 处 · 情报 %d / %d" % [
 		discovered_species_ids.size(),
 		discovered_hotspot_ids.size(),
-	], 13, Color8(178, 197, 205))
+		_expedition_intel_points(),
+		_required_extraction_intel(),
+	], 13, Color8(190, 205, 212))
 
-	var objective_y := rect.position.y + 86
-	_draw_text(Vector2(rect.position.x + 24, objective_y), "探索目标", 17, Color8(236, 230, 210))
-	var objectives := _objective_rows()
-	for index in range(objectives.size()):
-		var objective: Dictionary = objectives[index]
-		var y := objective_y + 22 + index * 18
-		if str(objective.get("title", "")) != "":
-			_draw_text(Vector2(rect.position.x + 24, y), str(objective.get("title", "")), 12, Color8(146, 169, 180))
-			y += 14
-		var marker := "✓" if bool(objective.get("done", false)) else "·"
-		_draw_text(Vector2(rect.position.x + 24, y), "%s %s" % [marker, str(objective.get("label", ""))], 12, Color8(188, 203, 209))
-
-	var columns: Array = [rect.position.x + 24.0, rect.position.x + 166.0]
-	var row_height := 24
-	for index in range(min(species_manifest.size(), 18)):
+	var species_y := intel_y + 58.0
+	_draw_text(Vector2(rect.position.x + 24, species_y), "代表物种", 17, Color8(233, 230, 213))
+	for index in range(min(species_manifest.size(), 6)):
 		var entry: Dictionary = species_manifest[index]
-		var column := index % 2
-		var row := int(index / 2)
-		var x: float = float(columns[column])
-		var y: float = rect.position.y + 164.0 + row * row_height
+		var x := rect.position.x + 24.0
+		var y := species_y + 24.0 + index * 22.0
 		var category := str(entry.get("category", "区域生物"))
 		var color: Color = CATEGORY_COLORS.get(category, Color8(174, 191, 126))
 		draw_circle(Vector2(x + 7, y + 7), 5.0, color)
 		_draw_text(Vector2(x + 18, y + 10), "%s  %d" % [str(entry.get("label", "")), int(entry.get("count", 0))], 13, Color8(234, 238, 236))
 
-	var hotspot_y := rect.position.y + rect.size.y - 154
-	_draw_text(Vector2(rect.position.x + 24, hotspot_y), "热点生态", 18, Color8(233, 230, 213))
-	for index in range(min(hotspots.size(), 3)):
-		var hotspot: Dictionary = hotspots[index]
-		var y := hotspot_y + 26 + index * 24
-		_draw_text(Vector2(rect.position.x + 24, y), "• " + str(hotspot.get("label", "")) + "  " + str(hotspot.get("summary", "")), 13, Color8(176, 194, 202))
-	var pressure_y := hotspot_y + 100
-	_draw_text(Vector2(rect.position.x + 24, pressure_y), "生态压力", 17, Color8(232, 227, 208))
-	if current_interaction.is_empty():
-		_draw_text(Vector2(rect.position.x + 24, pressure_y + 22), "暂未观测到掠食追逐。", 12, Color8(164, 181, 189))
+	var bottom_y := rect.position.y + rect.size.y - 72.0
+	if extraction_ready:
+		_draw_text(Vector2(rect.position.x + 24, bottom_y), "可以撤离：靠近出口按 E，把本轮记录写回世界。", 13, Color8(174, 222, 190))
 	else:
-		_draw_text(Vector2(rect.position.x + 24, pressure_y + 22), str(current_interaction.get("body", "")), 12, Color8(204, 188, 174))
-	for index in range(min(discovery_log.size(), 3)):
-		var y := pressure_y + 52 + index * 18
-		_draw_text(Vector2(rect.position.x + 24, y), discovery_log[index], 12, Color8(206, 214, 218))
+		_draw_text(Vector2(rect.position.x + 24, bottom_y), "继续靠近动物或热点，按住 Space 记录。", 13, Color8(196, 205, 210))
+	_draw_text(Vector2(rect.position.x + 24, bottom_y + 22), "Tab 隐藏面板 · M 返回世界地图", 12, Color8(154, 172, 180))
+
+
+func _world_task_status_line() -> String:
+	if world_task.is_empty():
+		return "按区域状态自由调查"
+	return "已完成" if _world_task_completed(current_exit_zone) else "进行中"
+
+
+func _action_instruction_line(action: String) -> String:
+	match action:
+		"修复":
+			return "采样热点，压低本区最高风险"
+		"通道":
+			return "找到出口，把本区接到目标区域"
+		_:
+			return "记录动物和热点，补齐生态情报"
+
+
+func _world_task_backend_effect(action: String) -> String:
+	match action:
+		"修复":
+			return "撤离回灌后：风险下降，生态韧性上升。"
+		"通道":
+			return "撤离回灌后：区域连接增强，物种流动更稳定。"
+		_:
+			return "撤离回灌后：调查覆盖率上升，资源判断更准确。"
 
 
 func _draw_controls() -> void:
 	var rect := Rect2(size.x * 0.5 - 212, size.y - 48, 424, 30)
 	_draw_panel(rect, Color(0.05, 0.08, 0.11, 0.66), Color(0.76, 0.85, 0.9, 0.12), 16, 1)
-	_draw_text(rect.position + Vector2(18, 20), "WASD / 方向键移动   Shift 冲刺   Tab 图鉴开关   E 区域跳转   M 世界图", 13, Color8(213, 222, 226))
+	_draw_text(rect.position + Vector2(18, 20), "WASD / 方向键移动   Shift 冲刺   Space 调查   Tab 图鉴开关   E 区域跳转   M 世界图", 13, Color8(213, 222, 226))
+
+
+func _draw_progress_bar(rect: Rect2, value: float, max_value: float, fill_color: Color) -> void:
+	draw_rect(rect, Color(1, 1, 1, 0.08), true)
+	if max_value <= 0.0:
+		return
+	var fill_ratio := clampf(value / max_value, 0.0, 1.0)
+	var fill_rect := Rect2(rect.position, Vector2(rect.size.x * fill_ratio, rect.size.y))
+	draw_rect(fill_rect, fill_color, true)
 
 
 func _draw_panel(rect: Rect2, fill: Color, outline: Color, radius: int, border_width: int) -> void:

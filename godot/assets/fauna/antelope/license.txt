@@ -1,0 +1,11 @@
+Model Information:
+* title:	Realistic Animals FULL PACK
+* source:	https://sketchfab.com/3d-models/realistic-animals-full-pack-c80459f995414cf3b7f17221b85d0684
+* author:	WildMesh 3D (https://sketchfab.com/WildMesh_3D)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Realistic Animals FULL PACK" (https://sketchfab.com/3d-models/realistic-animals-full-pack-c80459f995414cf3b7f17221b85d0684) by WildMesh 3D (https://sketchfab.com/WildMesh_3D) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

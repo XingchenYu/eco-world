@@ -1,0 +1,11 @@
+Model Information:
+* title:	Egyptian Vulture (Neophron percnopterus)
+* source:	https://sketchfab.com/3d-models/egyptian-vulture-neophron-percnopterus-c9fb5f9ff1054d1e851554f2cf4d76a4
+* author:	CeDRI (https://sketchfab.com/CeDRI)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Egyptian Vulture (Neophron percnopterus)" (https://sketchfab.com/3d-models/egyptian-vulture-neophron-percnopterus-c9fb5f9ff1054d1e851554f2cf4d76a4) by CeDRI (https://sketchfab.com/CeDRI) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

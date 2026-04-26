@@ -1,0 +1,11 @@
+Model Information:
+* title:	Lion Neutral Standing Pose
+* source:	https://sketchfab.com/3d-models/lion-neutral-standing-pose-cc1cbfc212d74b968bd265509c1b0d84
+* author:	Pigcraft (https://sketchfab.com/s8819296)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Lion Neutral Standing Pose" (https://sketchfab.com/3d-models/lion-neutral-standing-pose-cc1cbfc212d74b968bd265509c1b0d84) by Pigcraft (https://sketchfab.com/s8819296) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
