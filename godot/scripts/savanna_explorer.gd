@@ -39,7 +39,7 @@ const OBSTACLE_RECTS := [
 const EXIT_LAYOUTS := [
 	{"id": "west_gate", "label": "西部迁徙线", "rect": Rect2(40, 1180, 180, 220), "hint": "返回世界图 / 切换战区"},
 	{"id": "north_gate", "label": "断崖高地口", "rect": Rect2(2330, 220, 230, 220), "hint": "进入北部断崖路线"},
-	{"id": "east_gate", "label": "河口联通口", "rect": Rect2(2480, 620, 220, 220), "hint": "沿河口进入下一片区域"},
+	{"id": "east_gate", "label": "河口联通口", "rect": Rect2(2480, 620, 220, 220), "hint": "沿河口撤离并提交报告"},
 ]
 const GATE_SPAWNS := {
 	"west_gate": Vector2(260, 1280),
@@ -227,11 +227,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_tree().change_scene_to_file(WORLD_MAP_SCENE)
 		elif event.keycode == KEY_E and not current_exit_zone.is_empty():
 			_record_exit_summary(current_exit_zone)
-			var target_region_id := str(current_exit_zone.get("target_region_id", ""))
-			if target_region_id != "":
-				_apply_region(target_region_id, str(current_exit_zone.get("id", "")))
-			else:
-				get_tree().change_scene_to_file(WORLD_MAP_SCENE)
+			get_tree().change_scene_to_file(WORLD_MAP_SCENE)
 
 
 func _process(delta: float) -> void:
@@ -259,6 +255,7 @@ func _draw() -> void:
 	_draw_objective_guidance()
 	_draw_objective_marker()
 	_draw_wildlife()
+	_draw_survey_lock_marker()
 	_draw_interaction_prompts()
 	_draw_player()
 	_draw_overlay()
@@ -391,16 +388,27 @@ func _apply_region(region_id: String, spawn_gate: String = "") -> void:
 
 func _build_exit_zones() -> void:
 	exit_zones.clear()
+	var base_layout: Dictionary = EXIT_LAYOUTS[0]
+	exit_zones.append(
+		{
+			"id": str(base_layout.get("id", "base_camp")),
+			"label": "调查营地",
+			"rect": base_layout.get("rect", Rect2()),
+			"hint": "按 E 撤离回世界图；报告会回到调查营地等待回灌",
+			"target_region_id": "",
+			"target_role": "回灌营地",
+		}
+	)
 	var links: Array = region_detail.get("frontier_links", [])
-	for index in range(min(EXIT_LAYOUTS.size(), links.size())):
-		var layout: Dictionary = EXIT_LAYOUTS[index]
+	for index in range(min(maxi(0, EXIT_LAYOUTS.size() - 1), links.size())):
+		var layout: Dictionary = EXIT_LAYOUTS[index + 1]
 		var link: Dictionary = links[index]
 		exit_zones.append(
 			{
 				"id": str(layout.get("id", "")),
 				"label": str(link.get("target_name", layout.get("label", "区域出口"))),
 				"rect": layout.get("rect", Rect2()),
-				"hint": "按 E 进入 " + str(link.get("target_name", "下一片区域")),
+				"hint": "按 E 撤离回世界图；报告会标记通往 " + str(link.get("target_name", "下一片区域")),
 				"target_region_id": str(link.get("target_region_id", "")),
 				"target_role": str(link.get("target_role", "生态观测区")),
 			}
@@ -584,8 +592,8 @@ func _build_wildlife() -> void:
 		var color: Color = CATEGORY_COLORS.get(category, Color8(174, 191, 126))
 		var behavior := _identity_behavior_for_species(species_id, category, _behavior_for_species(species_id, category))
 		var group_size := maxi(1, _group_size_for_species(species_id, category, int(entry.get("count", 0))) + _identity_group_size_bonus(species_id, category))
-		var radius := _identity_radius_for_species(category, Vector2(34 + (index % 4) * 18, 20 + (index % 3) * 14))
-		var speed := _identity_speed_for_species(category, 0.28 + float((index % 5) + 1) * 0.06)
+		var radius := _identity_radius_for_species(category, Vector2(128 + (index % 4) * 34, 72 + (index % 3) * 28))
+		var speed := _identity_speed_for_species(category, 0.16 + float((index % 5) + 1) * 0.035)
 		wildlife.append(
 			{
 				"species_id": species_id,
@@ -603,6 +611,7 @@ func _build_wildlife() -> void:
 				"group_size": group_size,
 				"alert_radius": 110.0 + float(index % 4) * 18.0,
 				"focus": Vector2.ZERO,
+				"activity": "移动",
 			}
 		)
 
@@ -930,9 +939,12 @@ func _update_wildlife() -> void:
 		var speed := float(animal.get("speed", 0.32))
 		var angle := elapsed * speed + phase
 		var behavior := str(animal.get("behavior", "graze"))
+		var activity := _animal_activity(animal, angle)
+		animal["activity"] = activity
 		var base_pos := anchor + Vector2(cos(angle) * radius.x, sin(angle * 1.3) * radius.y)
+		base_pos += Vector2(cos(angle * 0.37 + phase) * radius.x * 0.36, sin(angle * 0.29 + phase * 0.7) * radius.y * 0.42)
 		var bias_target := _behavior_bias_target(animal, phase)
-		base_pos = base_pos.lerp(bias_target, 0.018)
+		base_pos = base_pos.lerp(bias_target, 0.22)
 		var player_delta := base_pos - player_pos
 		var player_distance := player_delta.length()
 		if behavior == "stalk":
@@ -960,14 +972,16 @@ func _update_wildlife() -> void:
 				base_pos = base_pos.lerp(player_pos + player_delta.normalized() * 120.0, 0.018)
 			base_pos.y += sin(angle * 0.45) * 18.0
 		elif behavior == "glide":
-			base_pos = anchor + Vector2(cos(angle * 0.76) * (radius.x + 24.0), sin(angle * 0.42) * (radius.y + 38.0) - 26.0)
+			base_pos = anchor + Vector2(cos(angle * 0.76) * (radius.x + 120.0), sin(angle * 0.42) * (radius.y + 96.0) - 26.0)
+			base_pos = base_pos.lerp(_behavior_bias_target(animal, phase), 0.34)
 			if player_distance < 150.0:
 				base_pos += player_delta.normalized() * 46.0
 		elif behavior == "swim":
 			base_pos = base_pos.lerp(_hotspot_position("waterhole"), 0.026)
-			base_pos = anchor + Vector2(cos(angle) * (radius.x * 0.82), sin(angle * 1.7) * (radius.y * 0.68))
+			base_pos = anchor + Vector2(cos(angle) * (radius.x * 0.72), sin(angle * 1.7) * (radius.y * 0.54))
 		elif behavior == "heavy_roam":
-			base_pos = anchor + Vector2(cos(angle * 0.52) * (radius.x + 12.0), sin(angle * 0.74) * (radius.y + 10.0))
+			base_pos = anchor + Vector2(cos(angle * 0.52) * (radius.x + 96.0), sin(angle * 0.74) * (radius.y + 52.0))
+			base_pos = base_pos.lerp(_behavior_bias_target(animal, phase), 0.20)
 			if player_distance < 140.0:
 				base_pos += player_delta.normalized() * 22.0
 		else:
@@ -977,6 +991,9 @@ func _update_wildlife() -> void:
 				base_pos += flee * (46.0 if base_pos.distance_to(nearest_predator) > 150.0 else 74.0)
 			if player_distance < float(animal.get("alert_radius", 130.0)):
 				base_pos += player_delta.normalized() * 28.0
+		base_pos = _apply_animal_activity_motion(animal, base_pos, activity, player_delta, player_distance)
+		base_pos.x = clampf(base_pos.x, 120.0, WORLD_SIZE.x - 120.0)
+		base_pos.y = clampf(base_pos.y, 120.0, WORLD_SIZE.y - 120.0)
 		animal["position"] = base_pos
 		wildlife[index] = animal
 	current_interaction.clear()
@@ -1043,6 +1060,59 @@ func _behavior_bias_target(animal: Dictionary, phase: float) -> Vector2:
 		return _hotspot_position("predator_ridge").lerp(_hotspot_position("migration_corridor"), 0.45)
 	var migration_weight := 0.48 + 0.28 * sin(elapsed * 0.14 + phase)
 	return _hotspot_position("migration_corridor").lerp(_hotspot_position("waterhole"), migration_weight).lerp(anchor, 0.22)
+
+
+func _animal_activity(animal: Dictionary, angle: float) -> String:
+	var behavior := str(animal.get("behavior", "graze"))
+	var phase := float(animal.get("phase", 0.0))
+	var cycle := sin(elapsed * 0.34 + phase * 1.7)
+	var pulse := sin(angle * 1.9 + phase)
+	if behavior == "glide":
+		return "盘旋" if cycle > -0.25 else "滑翔"
+	if behavior == "swim":
+		return "潜游" if cycle < -0.35 else "巡游"
+	if behavior == "stalk":
+		if cycle > 0.42:
+			return "潜伏"
+		if pulse > 0.55:
+			return "逼近"
+		return "巡猎"
+	if behavior == "heavy_roam":
+		if cycle > 0.36:
+			return "停留"
+		if cycle < -0.42:
+			return "取水"
+		return "漫游"
+	if cycle > 0.40:
+		return "觅食"
+	if cycle < -0.45:
+		return "停留"
+	if pulse > 0.62:
+		return "警觉"
+	return "移动"
+
+
+func _apply_animal_activity_motion(animal: Dictionary, target_pos: Vector2, activity: String, player_delta: Vector2, player_distance: float) -> Vector2:
+	var current_pos: Vector2 = animal.get("position", target_pos)
+	var anchor: Vector2 = animal.get("anchor", target_pos)
+	match activity:
+		"停留", "觅食", "潜伏":
+			var settle_point := current_pos.lerp(anchor, 0.018)
+			return current_pos.lerp(settle_point, 0.22)
+		"取水":
+			return target_pos.lerp(_hotspot_position("waterhole"), 0.34)
+		"警觉":
+			if player_distance < 220.0 and player_delta.length() > 0.01:
+				return target_pos + player_delta.normalized() * 34.0
+			return target_pos.lerp(current_pos, 0.32)
+		"逼近":
+			return current_pos.lerp(target_pos, 0.58)
+		"盘旋":
+			return current_pos.lerp(target_pos + Vector2(0, -34), 0.42)
+		"潜游":
+			return current_pos.lerp(target_pos, 0.26)
+		_:
+			return current_pos.lerp(target_pos, 0.72)
 
 
 func _prey_positions() -> Array:
@@ -1210,9 +1280,10 @@ func _update_event_focus() -> void:
 		current_event = handoff_task
 		return
 	if not current_hotspot.is_empty():
+		var hotspot_id := str(current_hotspot.get("hotspot_id", ""))
 		current_event = {
 			"title": "生态观察",
-			"body": str(current_hotspot.get("label", "")) + " · " + str(current_hotspot.get("summary", "")) + " · 按住 Space 开始采样。",
+			"body": _biome_hotspot_label(hotspot_id) + " · " + _biome_hotspot_summary(current_hotspot) + " · 按住 Space 开始采样。",
 			"accent": Color8(170, 224, 198),
 		}
 		return
@@ -2030,8 +2101,8 @@ func _top_intel_channel() -> String:
 
 func _exit_event_body() -> String:
 	if extraction_ready:
-		return "%s 已可进入 · %s" % [str(current_exit_zone.get("label", "区域出口")), _exit_value_text(current_exit_zone, true)]
-	return "%s 已可进入 · %s" % [str(current_exit_zone.get("label", "区域出口")), _exit_value_text(current_exit_zone, false)]
+		return "%s 已到达 · %s" % [str(current_exit_zone.get("label", "区域出口")), _exit_value_text(current_exit_zone, true)]
+	return "%s 已到达 · %s" % [str(current_exit_zone.get("label", "区域出口")), _exit_value_text(current_exit_zone, false)]
 
 
 func _exit_value_text(zone: Dictionary, ready: bool) -> String:
@@ -2052,7 +2123,7 @@ func _exit_value_text(zone: Dictionary, ready: bool) -> String:
 	var world_task_note := _world_task_exit_note(zone)
 	if ready:
 		if world_task_note != "":
-			return "%s 可以撤离去 %s。%s" % [world_task_note, target_name, event_note]
+			return "%s 可以从这里撤离，报告会把%s标记为下一站。%s" % [world_task_note, target_name, event_note]
 		if backbone_tag == "快取经营骨干区" and handoff_task_completed:
 			return "这片区已经是快取经营骨干区，主力速查组和关键样本都已到手，现在就是最优短线撤离点，建议立刻把结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
 		if backbone_tag == "深挖经营骨干区" and handoff_task_completed:
@@ -2074,8 +2145,8 @@ func _exit_value_text(zone: Dictionary, ready: bool) -> String:
 		if route_mode == "deep" and specialization_chain_bonus_claimed:
 			return "这片区的连续复核链已经跑成，现在撤离最值，建议把整条深挖结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
 		if target_resilience >= 0.65 and target_risk <= 0.2:
-			return "情报已够，且 %s 是稳定接应区，建议撤离切过去。%s%s" % [target_name, event_note, rotation_note]
-		return "情报已够，建议撤离并把这轮结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
+			return "情报已够，且 %s 是稳定接应区，建议撤离并回灌报告。%s%s" % [target_name, event_note, rotation_note]
+		return "情报已够，建议撤离；报告会把这轮结果带去 %s。%s%s" % [target_name, event_note, rotation_note]
 	if backbone_tag == "快取经营骨干区":
 		return "这片区已经是快取经营骨干区，优先拿主力速查组和关键样本，接稳后就该立即短线撤离。%s%s" % [event_note, rotation_note]
 	if backbone_tag == "深挖经营骨干区":
@@ -2100,7 +2171,7 @@ func _exit_value_text(zone: Dictionary, ready: bool) -> String:
 		return "%s 风险也偏高，这轮可以再多拿一点情报再走。%s%s" % [target_name, event_note, rotation_note]
 	if world_task_note != "":
 		return "%s %s%s" % [world_task_note, event_note, rotation_note]
-	return "这轮记录还偏少，但 %s 是安全出口，随时可以保守撤离。%s%s" % [target_name, event_note, rotation_note]
+	return "这轮记录还偏少，但 %s 是安全出口，随时可以保守撤离并回灌报告。%s%s" % [target_name, event_note, rotation_note]
 
 
 func _world_task_exit_note(zone: Dictionary) -> String:
@@ -3150,7 +3221,7 @@ func _update_hotspot_task() -> void:
 		return
 	var hotspot_id := str(current_hotspot.get("hotspot_id", ""))
 	var task_id := "task_" + hotspot_id
-	var hotspot_label := str(current_hotspot.get("label", "热点"))
+	var hotspot_label := _biome_hotspot_label(hotspot_id)
 	var task_config := _hotspot_task_config(hotspot_id)
 	var required_time := float(task_config.get("required_time", 2.0))
 	var required_category := str(task_config.get("required_category", ""))
@@ -3208,6 +3279,9 @@ func _update_field_survey(delta: float) -> void:
 
 
 func _current_survey_target() -> Dictionary:
+	var locked_target := _locked_survey_target()
+	if not locked_target.is_empty():
+		return locked_target
 	var specialization_mode := _region_specialization_mode()
 	var target_hotspot_id := _specialization_target_hotspot_id()
 	var followup_hotspot_id := _specialization_followup_hotspot_id()
@@ -3305,6 +3379,48 @@ func _current_survey_target() -> Dictionary:
 	return {}
 
 
+func _locked_survey_target() -> Dictionary:
+	if survey_progress <= 0.0 or survey_target_kind == "" or survey_target_id == "":
+		return {}
+	if not Input.is_key_pressed(KEY_SPACE):
+		return {}
+	if survey_target_kind == "species":
+		if discovered_species_ids.has(survey_target_id):
+			return {}
+		for animal_variant in wildlife:
+			var animal: Dictionary = animal_variant
+			if str(animal.get("species_id", "")) != survey_target_id:
+				continue
+			var animal_pos: Vector2 = animal.get("position", player_pos)
+			if player_pos.distance_to(animal_pos) > 260.0:
+				return {}
+			return {
+				"kind": "species",
+				"id": survey_target_id,
+				"label": str(animal.get("label", survey_target_label)),
+				"required_time": survey_required_time,
+				"data": animal,
+			}
+	if survey_target_kind == "hotspot":
+		if completed_task_ids.has("task_" + survey_target_id):
+			return {}
+		var hotspot_pos := _hotspot_position(survey_target_id)
+		if player_pos.distance_to(hotspot_pos) > 260.0:
+			return {}
+		for hotspot_variant in hotspots:
+			var hotspot: Dictionary = hotspot_variant
+			if str(hotspot.get("hotspot_id", "")) != survey_target_id:
+				continue
+			return {
+				"kind": "hotspot",
+				"id": survey_target_id,
+				"label": str(hotspot.get("label", survey_target_label)),
+				"required_time": survey_required_time,
+				"data": hotspot,
+			}
+	return {}
+
+
 func _species_survey_time(category: String) -> float:
 	var base := 1.5
 	match category:
@@ -3395,7 +3511,7 @@ func _complete_hotspot_task(hotspot: Dictionary) -> void:
 	var task_id := "task_" + hotspot_id
 	if completed_task_ids.has(task_id):
 		return
-	var hotspot_label := str(hotspot.get("label", hotspot_id))
+	var hotspot_label := _biome_hotspot_label(hotspot_id)
 	var task_config := _hotspot_task_config(hotspot_id)
 	var reward := _hotspot_intel_reward(hotspot)
 	var channel := _hotspot_intel_channel(hotspot)
@@ -3640,7 +3756,7 @@ func _world_task_progress_ratio(action: String) -> float:
 		"通道":
 			var target := str(world_task.get("target_region_id", ""))
 			if target == "":
-				return 1.0 if not current_exit_zone.is_empty() else 0.0
+				return 1.0 if _is_current_exit_a_corridor() else 0.0
 			return 1.0 if not current_exit_zone.is_empty() and str(current_exit_zone.get("target_region_id", "")) == target else 0.0
 		_:
 			var intel_ratio := clampf(float(_expedition_intel_points()) / 3.0, 0.0, 1.0)
@@ -3659,7 +3775,7 @@ func _world_task_progress_label(action: String) -> String:
 		"通道":
 			var target := str(world_task.get("target_region_id", ""))
 			if target == "":
-				return "靠近任意出口，按 E 撤离"
+				return "靠近任意通道出口，按 E 撤离"
 			var zone := _objective_exit_target()
 			var target_name := str(zone.get("label", "目标出口")) if not zone.is_empty() else "目标出口"
 			var ready := not current_exit_zone.is_empty() and str(current_exit_zone.get("target_region_id", "")) == target
@@ -3709,7 +3825,7 @@ func _record_hotspot_discovery(hotspot: Dictionary) -> void:
 	if hotspot_id == "" or discovered_hotspot_ids.has(hotspot_id):
 		return
 	discovered_hotspot_ids[hotspot_id] = true
-	discovery_log.push_front("记录热点：%s" % str(hotspot.get("label", hotspot_id)))
+	discovery_log.push_front("记录热点：%s" % _biome_hotspot_label(hotspot_id))
 	discovery_log = discovery_log.slice(0, 6)
 
 
@@ -3926,14 +4042,14 @@ func _draw_exit_markers() -> void:
 		draw_circle(marker, 6.0, accent)
 		draw_line(marker + Vector2(0, 7), marker + Vector2(0, 28), Color8(96, 70, 42, 180), 3.0)
 		_draw_text(marker + Vector2(14, -8), str(zone["label"]), 14, Color8(245, 239, 220, 210))
-		_draw_text(marker + Vector2(14, 10), "按 E 前往", 11, Color8(194, 204, 202, 180))
+		_draw_text(marker + Vector2(14, 10), "按 E 撤离", 11, Color8(194, 204, 202, 180))
 
 
 func _draw_hotspots() -> void:
 	var objective := _current_objective_target()
 	for hotspot in hotspots:
 		var hotspot_id := str(hotspot.get("hotspot_id", ""))
-		var label := str(hotspot.get("label", "热点"))
+		var label := _biome_hotspot_label(hotspot_id)
 		var center := _screen_point(_hotspot_position(hotspot_id))
 		var is_current := not current_hotspot.is_empty() and str(current_hotspot.get("hotspot_id", "")) == hotspot_id
 		var is_objective := str(objective.get("kind", "")) == "hotspot" and _hotspot_position(hotspot_id).distance_to(objective.get("position", Vector2.ZERO)) < 2.0
@@ -4005,6 +4121,34 @@ func _draw_objective_guidance() -> void:
 	draw_colored_polygon(arrow, Color(1.0, 0.82, 0.32, 0.50))
 
 
+func _draw_survey_lock_marker() -> void:
+	if survey_progress <= 0.0 or survey_target_kind == "" or survey_target_id == "" or survey_required_time <= 0.0:
+		return
+	var world_pos := _survey_lock_world_position()
+	if world_pos == Vector2.INF:
+		return
+	var screen_pos := _screen_point(world_pos)
+	var progress_ratio := clampf(survey_progress / survey_required_time, 0.0, 1.0)
+	var accent := Color8(230, 188, 102) if survey_target_kind == "species" else Color8(118, 214, 164)
+	var pulse := 0.5 + 0.5 * sin(elapsed * 5.0)
+	draw_arc(screen_pos, 44.0 + pulse * 4.0, 0.0, TAU, 52, Color(accent.r, accent.g, accent.b, 0.22), 5.0, true)
+	draw_arc(screen_pos, 44.0, -PI * 0.5, -PI * 0.5 + TAU * progress_ratio, 52, Color(accent.r, accent.g, accent.b, 0.92), 5.0, true)
+	draw_circle(screen_pos, 5.0, Color(accent.r, accent.g, accent.b, 0.95))
+	_draw_text(screen_pos + Vector2(16, -28), "锁定%s %.0f%%" % [("记录" if survey_target_kind == "species" else "采样"), progress_ratio * 100.0], 13, Color8(250, 242, 214))
+	_draw_text(screen_pos + Vector2(16, -10), survey_target_label, 12, Color8(218, 231, 226))
+
+
+func _survey_lock_world_position() -> Vector2:
+	if survey_target_kind == "species":
+		for animal_variant in wildlife:
+			var animal: Dictionary = animal_variant
+			if str(animal.get("species_id", "")) == survey_target_id:
+				return animal.get("position", Vector2.INF)
+	elif survey_target_kind == "hotspot":
+		return _hotspot_position(survey_target_id)
+	return Vector2.INF
+
+
 func _current_objective_target() -> Dictionary:
 	if not world_task.is_empty() and _world_task_completed(current_exit_zone):
 		var ready_exit := _objective_exit_target()
@@ -4025,42 +4169,70 @@ func _current_objective_target() -> Dictionary:
 					"label": "采样修复",
 					"kind": "hotspot",
 				}
+			var repair_animal := _first_undiscovered_animal()
+			if not repair_animal.is_empty():
+				return {
+					"position": repair_animal.get("position", player_pos),
+					"label": "补充记录",
+					"kind": "animal",
+				}
 		"通道":
 			var exit_zone := _objective_exit_target()
-			if not exit_zone.is_empty():
+			if not exit_zone.is_empty() and str(exit_zone.get("target_region_id", "")) != "":
 				return {
 					"position": _exit_center(exit_zone),
 					"label": "前往通道",
 					"kind": "exit",
 				}
+			var corridor_animal := _first_undiscovered_animal(_biome_preferred_categories())
+			if not corridor_animal.is_empty():
+				return {
+					"position": corridor_animal.get("position", player_pos),
+					"label": "先补调查",
+					"kind": "animal",
+				}
 		_:
-			var animal := _first_undiscovered_animal()
+			var preferred_hotspot := _first_incomplete_hotspot(_biome_preferred_hotspot_ids())
+			if _biome_starts_with_hotspot() and not preferred_hotspot.is_empty():
+				return {
+					"position": _hotspot_position(str(preferred_hotspot.get("hotspot_id", ""))),
+					"label": _biome_objective_label("hotspot"),
+					"kind": "hotspot",
+				}
+			var animal := _first_undiscovered_animal(_biome_preferred_categories())
 			if not animal.is_empty():
 				return {
 					"position": animal.get("position", player_pos),
-					"label": "记录物种",
+					"label": _biome_objective_label("animal"),
 					"kind": "animal",
 				}
-			var survey_hotspot := _first_incomplete_hotspot()
+			var survey_hotspot := preferred_hotspot if not preferred_hotspot.is_empty() else _first_incomplete_hotspot()
 			if not survey_hotspot.is_empty():
 				return {
 					"position": _hotspot_position(str(survey_hotspot.get("hotspot_id", ""))),
-					"label": "采样热点",
+					"label": _biome_objective_label("hotspot"),
 					"kind": "hotspot",
 				}
 
-	if extraction_ready:
-		var fallback_exit := _objective_exit_target()
-		if not fallback_exit.is_empty():
-			return {
-				"position": _exit_center(fallback_exit),
-				"label": "撤离回灌",
-				"kind": "exit",
-			}
+	var fallback_exit := _objective_exit_target()
+	if extraction_ready and not fallback_exit.is_empty():
+		return {
+			"position": _exit_center(fallback_exit),
+			"label": "撤离回灌",
+			"kind": "exit",
+		}
 	return {}
 
 
-func _first_incomplete_hotspot() -> Dictionary:
+func _first_incomplete_hotspot(preferred_ids: Array = []) -> Dictionary:
+	for preferred_id_variant in preferred_ids:
+		var preferred_id := str(preferred_id_variant)
+		for hotspot_variant in hotspots:
+			var hotspot: Dictionary = hotspot_variant
+			var hotspot_id := str(hotspot.get("hotspot_id", ""))
+			if hotspot_id == "" or hotspot_id != preferred_id or completed_task_ids.has("task_" + hotspot_id):
+				continue
+			return hotspot
 	for hotspot_variant in hotspots:
 		var hotspot: Dictionary = hotspot_variant
 		var hotspot_id := str(hotspot.get("hotspot_id", ""))
@@ -4070,7 +4242,16 @@ func _first_incomplete_hotspot() -> Dictionary:
 	return {}
 
 
-func _first_undiscovered_animal() -> Dictionary:
+func _first_undiscovered_animal(preferred_categories: Array = []) -> Dictionary:
+	for preferred_category_variant in preferred_categories:
+		var preferred_category := str(preferred_category_variant)
+		for animal_variant in wildlife:
+			var animal: Dictionary = animal_variant
+			var species_id := str(animal.get("species_id", ""))
+			if species_id == "" or discovered_species_ids.has(species_id):
+				continue
+			if str(animal.get("category", "")) == preferred_category:
+				return animal
 	for animal_variant in wildlife:
 		var animal: Dictionary = animal_variant
 		var species_id := str(animal.get("species_id", ""))
@@ -4080,16 +4261,152 @@ func _first_undiscovered_animal() -> Dictionary:
 	return {}
 
 
+func _biome_key() -> String:
+	var biomes: Array = region_detail.get("dominant_biomes", [])
+	if "temperate_forest" in biomes or "mixed_forest" in biomes or "tropical_rainforest" in biomes:
+		return "forest"
+	if "wetland" in biomes or "lake_shore" in biomes or "floodplain" in biomes:
+		return "wetland"
+	if "coast" in biomes or "seagrass" in biomes or "coral_reef" in biomes or "estuary" in biomes:
+		return "coast"
+	return "grassland"
+
+
+func _biome_starts_with_hotspot() -> bool:
+	return _biome_key() in ["wetland", "forest", "coast"]
+
+
+func _biome_preferred_hotspot_ids() -> Array:
+	match _biome_key():
+		"wetland":
+			return ["waterhole", "shade_grove", "migration_corridor"]
+		"forest":
+			return ["shade_grove", "waterhole", "predator_ridge"]
+		"coast":
+			return ["waterhole", "carrion_field", "migration_corridor"]
+		_:
+			return ["migration_corridor", "waterhole", "predator_ridge"]
+
+
+func _biome_preferred_categories() -> Array:
+	match _biome_key():
+		"wetland":
+			return ["水域动物", "飞行动物", "区域生物"]
+		"forest":
+			return ["区域生物", "草食动物", "掠食者"]
+		"coast":
+			return ["水域动物", "飞行动物", "区域生物"]
+		_:
+			return ["草食动物", "掠食者", "飞行动物"]
+
+
+func _biome_objective_label(kind: String) -> String:
+	match _biome_key():
+		"wetland":
+			return "湿地采样" if kind == "hotspot" else "记录水域生物"
+		"forest":
+			return "林荫采样" if kind == "hotspot" else "记录林下生物"
+		"coast":
+			return "潮汐采样" if kind == "hotspot" else "记录海岸生物"
+		_:
+			return "采样迁徙带" if kind == "hotspot" else "记录迁徙物种"
+
+
+func _biome_hotspot_label(hotspot_id: String) -> String:
+	var labels := {
+		"grassland": {
+			"waterhole": "季节水洼",
+			"migration_corridor": "草食迁徙带",
+			"predator_ridge": "掠食高地",
+			"carrion_field": "腐食开阔地",
+			"shade_grove": "稀树荫带",
+		},
+		"wetland": {
+			"waterhole": "浅滩水眼",
+			"migration_corridor": "芦苇通行带",
+			"predator_ridge": "泥洲伏击线",
+			"carrion_field": "湿地腐食滩",
+			"shade_grove": "岸带庇护丛",
+		},
+		"forest": {
+			"waterhole": "林下水洼",
+			"migration_corridor": "兽径通道",
+			"predator_ridge": "岩坡潜伏带",
+			"carrion_field": "倒木腐食点",
+			"shade_grove": "密林荫蔽区",
+		},
+		"coast": {
+			"waterhole": "潮汐水线",
+			"migration_corridor": "海岸通行带",
+			"predator_ridge": "海岸岩脊",
+			"carrion_field": "漂上海滩",
+			"shade_grove": "防风林缘",
+		},
+	}
+	var biome_labels: Dictionary = labels.get(_biome_key(), labels["grassland"])
+	return str(biome_labels.get(hotspot_id, hotspot_id))
+
+
+func _biome_hotspot_summary(hotspot: Dictionary) -> String:
+	var hotspot_id := str(hotspot.get("hotspot_id", ""))
+	var summaries := {
+		"grassland": {
+			"waterhole": "旱季动物会集中取水，是迁徙节奏和捕食压力的交汇点。",
+			"migration_corridor": "草食群沿这里移动，适合记录迁徙密度和追猎压力。",
+			"predator_ridge": "掠食者常在高处观察草食群，风险读数更敏感。",
+			"carrion_field": "腐食者与掠食残留会在这里形成短时聚集。",
+			"shade_grove": "动物在高温时段停留，适合补栖地稳定样本。",
+		},
+		"wetland": {
+			"waterhole": "水位、泥滩和水域动物活动会直接影响湿地恢复判断。",
+			"migration_corridor": "芦苇间的通行痕迹能反映湿地连接是否顺畅。",
+			"predator_ridge": "泥洲边缘容易出现伏击和逃散行为。",
+			"carrion_field": "水鸟和腐食者会把死亡事件带入湿地循环。",
+			"shade_grove": "岸带植被提供庇护，是湿地韧性的关键样本。",
+		},
+		"forest": {
+			"waterhole": "林下水点能反映隐蔽动物的活动窗口。",
+			"migration_corridor": "兽径连接林地斑块，适合判断栖地破碎程度。",
+			"predator_ridge": "岩坡和密林边缘容易留下潜伏与追踪痕迹。",
+			"carrion_field": "倒木附近的腐食活动能说明林下分解链是否活跃。",
+			"shade_grove": "密林荫蔽区是森林调查的主样本点。",
+		},
+		"coast": {
+			"waterhole": "潮汐涨落会改变水域动物停留和营养交换。",
+			"migration_corridor": "海岸通行带连接陆地和浅海生物活动。",
+			"predator_ridge": "岩脊提供观察点，也会放大海岸风险。",
+			"carrion_field": "漂上海滩会吸引鸟类和腐食者，形成短时食物脉冲。",
+			"shade_grove": "防风林缘能缓冲风暴，对海岸韧性很关键。",
+		},
+	}
+	var biome_summaries: Dictionary = summaries.get(_biome_key(), summaries["grassland"])
+	return str(biome_summaries.get(hotspot_id, hotspot.get("summary", "")))
+
+
 func _objective_exit_target() -> Dictionary:
 	var expected_target := str(world_task.get("target_region_id", ""))
 	for zone_variant in exit_zones:
 		var zone: Dictionary = zone_variant
 		if expected_target != "" and str(zone.get("target_region_id", "")) != expected_target:
 			continue
+		if expected_target == "" and str(world_task.get("action", "")) == "通道" and str(zone.get("target_region_id", "")) == "":
+			continue
 		return zone
 	if not exit_zones.is_empty():
 		return exit_zones[0]
 	return {}
+
+
+func _is_current_exit_a_corridor() -> bool:
+	return not current_exit_zone.is_empty() and str(current_exit_zone.get("target_region_id", "")) != ""
+
+
+func _has_corridor_exit() -> bool:
+	for zone_variant in exit_zones:
+		var zone: Dictionary = zone_variant
+		if str(zone.get("target_region_id", "")) != "":
+			return true
+	return false
 
 
 func _exit_center(zone: Dictionary) -> Vector2:
@@ -4100,13 +4417,151 @@ func _exit_center(zone: Dictionary) -> Vector2:
 func _current_objective_summary() -> String:
 	var target := _current_objective_target()
 	if target.is_empty():
-		return "目标：自由调查 · 主情报：%s" % _top_intel_channel()
+		return _mainline_current_instruction()
 	var world_pos: Vector2 = target.get("position", player_pos)
-	return "目标：%s · 距离 %dm · 主情报：%s" % [
+	return "%s · %s · %dm · %s" % [
+		_mainline_short_phase(),
 		str(target.get("label", "现场目标")),
 		int(round(player_pos.distance_to(world_pos))),
-		_top_intel_channel(),
+		_region_biome_line(),
 	]
+
+
+func _mainline_title() -> String:
+	var action := str(world_task.get("action", "调查"))
+	match action:
+		"修复":
+			return "主线：修复生态风险"
+		"通道":
+			return "主线：连接下一片区域"
+		_:
+			return "主线：完成生态调查"
+
+
+func _mainline_short_phase() -> String:
+	if extraction_ready:
+		return "撤离阶段"
+	if completed_task_ids.size() >= 1 and discovered_species_ids.size() >= 1:
+		return "整理情报"
+	if completed_task_ids.size() >= 1:
+		return "补记录"
+	if discovered_species_ids.size() >= 1:
+		return "采样热点"
+	return "寻找目标"
+
+
+func _mainline_current_instruction() -> String:
+	if not current_exit_zone.is_empty() and (extraction_ready or str(world_task.get("action", "")) == "通道"):
+		return "按 E 撤离，把这轮报告带回世界图。"
+	if not current_encounter.is_empty() and not discovered_species_ids.has(str(current_encounter.get("species_id", ""))):
+		return "按住 Space 锁定并记录这只动物；完成后会增加生态情报。"
+	if not current_hotspot.is_empty() and not completed_task_ids.has("task_" + str(current_hotspot.get("hotspot_id", ""))):
+		return "按住 Space 锁定并采样这个热点；完成后会推进本轮任务。"
+	var target := _current_objective_target()
+	if not target.is_empty():
+		var world_pos: Vector2 = target.get("position", player_pos)
+		var distance := int(round(player_pos.distance_to(world_pos)))
+		match str(target.get("kind", "")):
+			"animal":
+				return "跟着黄色目标靠近动物，距离约 %dm，靠近后按住 Space 锁定记录。" % distance
+			"hotspot":
+				return "跟着黄色目标前往生态热点，距离约 %dm，到达后按住 Space 锁定采样。" % distance
+			"exit":
+				return "跟着黄色目标前往出口，距离约 %dm，到达后按 E 撤离。" % distance
+	return "自由调查：靠近动物或热点后按住 Space 锁定调查，情报足够后去出口按 E。"
+
+
+func _mainline_rows() -> Array:
+	var action := str(world_task.get("action", "调查"))
+	if action == "通道":
+		if not _has_corridor_exit():
+			return [
+				{"label": "当前无通道出口", "done": false, "progress": 0.0},
+				{"label": _biome_step_label("animal"), "done": discovered_species_ids.size() >= 1, "progress": clampf(float(discovered_species_ids.size()), 0.0, 1.0)},
+				{"label": _biome_step_label("hotspot"), "done": completed_task_ids.size() >= 1, "progress": clampf(float(completed_task_ids.size()), 0.0, 1.0)},
+				{"label": "撤离回灌以解锁连接", "done": extraction_ready and not current_exit_zone.is_empty(), "progress": 1.0 if extraction_ready else 0.0},
+			]
+		var target_zone := _objective_exit_target()
+		var at_target := not current_exit_zone.is_empty()
+		if not target_zone.is_empty():
+			at_target = at_target and str(current_exit_zone.get("id", "")) == str(target_zone.get("id", ""))
+		return [
+			{"label": "找到黄色通道出口", "done": at_target, "progress": 1.0 if at_target else 0.0},
+			{"label": "按 E 撤离并连接区域", "done": false, "progress": 0.0},
+			{"label": "回世界图点击回灌报告", "done": false, "progress": 0.0},
+		]
+	var species_goal := 1
+	var hotspot_goal := 1
+	var intel_goal := _required_extraction_intel()
+	if action == "修复":
+		return [
+			{"label": _biome_step_label("hotspot"), "done": completed_task_ids.size() >= hotspot_goal, "progress": clampf(float(completed_task_ids.size()) / float(hotspot_goal), 0.0, 1.0)},
+			{"label": "情报达到 %d 点" % intel_goal, "done": _expedition_intel_points() >= intel_goal, "progress": clampf(float(_expedition_intel_points()) / float(intel_goal), 0.0, 1.0)},
+			{"label": "前往出口按 E 撤离", "done": extraction_ready and not current_exit_zone.is_empty(), "progress": 1.0 if extraction_ready else 0.0},
+			{"label": "回世界图点击回灌报告", "done": false, "progress": 0.0},
+		]
+	return [
+		{"label": _biome_step_label("animal"), "done": discovered_species_ids.size() >= species_goal, "progress": clampf(float(discovered_species_ids.size()) / float(species_goal), 0.0, 1.0)},
+		{"label": _biome_step_label("hotspot"), "done": completed_task_ids.size() >= hotspot_goal, "progress": clampf(float(completed_task_ids.size()) / float(hotspot_goal), 0.0, 1.0)},
+		{"label": "情报达到 %d 点" % intel_goal, "done": _expedition_intel_points() >= intel_goal, "progress": clampf(float(_expedition_intel_points()) / float(intel_goal), 0.0, 1.0)},
+		{"label": "前往出口按 E 撤离", "done": extraction_ready and not current_exit_zone.is_empty(), "progress": 1.0 if extraction_ready else 0.0},
+	]
+
+
+func _biome_step_label(kind: String) -> String:
+	match _biome_key():
+		"wetland":
+			return "记录 1 种水域/飞行动物" if kind == "animal" else "采样 1 个水源/芦苇热点"
+		"forest":
+			return "记录 1 种林下生物" if kind == "animal" else "采样 1 个林荫/倒木热点"
+		"coast":
+			return "记录 1 种海岸生物" if kind == "animal" else "采样 1 个潮汐/礁岩热点"
+		_:
+			return "记录 1 种迁徙动物" if kind == "animal" else "采样 1 个迁徙/水源热点"
+
+
+func _region_biome_line() -> String:
+	var names := PackedStringArray()
+	for biome_variant in region_detail.get("dominant_biomes", []).slice(0, 2):
+		names.append(_localized_biome_name(str(biome_variant)))
+	if names.is_empty():
+		return "复合生态区"
+	return " / ".join(names)
+
+
+func _localized_biome_name(biome: String) -> String:
+	return {
+		"temperate_forest": "温带森林",
+		"mixed_forest": "混交林",
+		"river_valley": "河谷",
+		"grassland": "草原",
+		"shrubland": "灌丛",
+		"seasonal_waterhole": "季节水洼",
+		"wetland": "湿地",
+		"lake_shore": "湖岸",
+		"reed_belt": "芦苇带",
+		"tropical_rainforest": "热带雨林",
+		"floodplain": "泛洪平原",
+		"major_river": "大河",
+		"coast": "海岸",
+		"estuary": "河口",
+		"shallow_sea": "浅海",
+		"mangrove": "红树林",
+		"coral_reef": "珊瑚礁",
+		"seagrass": "海草床",
+		"lagoon": "潟湖",
+		"open_coast": "外海岸",
+	}.get(biome, biome)
+
+
+func _region_species_brief() -> String:
+	var names := PackedStringArray()
+	for species_variant in species_manifest.slice(0, 3):
+		var species: Dictionary = species_variant
+		names.append(str(species.get("label", species.get("species_id", "物种"))))
+	if names.is_empty():
+		return "待记录"
+	return "、".join(names)
 
 
 func _draw_wildlife() -> void:
@@ -4244,6 +4699,7 @@ func _draw_player() -> void:
 func _draw_overlay() -> void:
 	_draw_top_banner()
 	_draw_ecology_radar()
+	_draw_mainline_banner()
 	_draw_event_banner()
 	_draw_reward_feedback()
 	_draw_survey_focus_strip()
@@ -4256,14 +4712,18 @@ func _draw_overlay() -> void:
 
 
 func _draw_top_banner() -> void:
-	_draw_panel(Rect2(24, 20, 360, 82), Color(0.05, 0.08, 0.11, 0.78), Color(0.92, 0.85, 0.62, 0.18), 28, 2)
+	_draw_panel(Rect2(24, 20, 390, 104), Color(0.05, 0.08, 0.11, 0.78), Color(0.92, 0.85, 0.62, 0.18), 28, 2)
 	_draw_text(Vector2(42, 48), _exploration_title(), 28, Color8(245, 242, 228))
-	_draw_text(Vector2(42, 76), "%s  阶段 %s · 情报 %d · 危险 %s" % [
+	_draw_text(Vector2(42, 76), "%s · %s" % [
 		str(region_detail.get("name", "草原区")),
+		_region_biome_line(),
+	], 14, Color8(190, 205, 212))
+	_draw_text(Vector2(42, 98), "物种：%s · 阶段 %s · 情报 %d · 危险 %s" % [
+		_region_species_brief(),
 		expedition_phase,
 		_expedition_intel_points(),
 		_threat_label(),
-	], 15, Color8(190, 205, 212))
+	], 13, Color8(176, 196, 202))
 
 	_draw_panel(Rect2(size.x - 258, 20, 224, 64), Color(0.05, 0.08, 0.11, 0.68), Color(0.67, 0.8, 0.9, 0.14), 24, 2)
 	var health: Dictionary = region_detail.get("health_state", {})
@@ -4318,10 +4778,28 @@ func _draw_event_banner() -> void:
 	if current_event.is_empty():
 		return
 	var accent: Color = current_event.get("accent", Color8(244, 213, 142))
-	var rect := Rect2(size.x * 0.5 - 170, 24, 340, 72)
+	var rect := Rect2(size.x * 0.5 - 190, 190, 380, 58)
 	_draw_panel(rect, Color(0.05, 0.08, 0.11, 0.76), Color(accent.r, accent.g, accent.b, 0.22), 24, 2)
-	_draw_text(rect.position + Vector2(20, 30), str(current_event.get("title", "")), 18, Color8(246, 241, 228))
-	_draw_text(rect.position + Vector2(20, 56), str(current_event.get("body", "")), 13, Color8(196, 210, 216))
+	_draw_text(rect.position + Vector2(20, 27), str(current_event.get("title", "")), 17, Color8(246, 241, 228))
+	_draw_text(rect.position + Vector2(20, 49), _short_explorer_text(str(current_event.get("body", "")), 42), 12, Color8(196, 210, 216))
+
+
+func _draw_mainline_banner() -> void:
+	var rect := Rect2(size.x * 0.5 - 264, 104, 528, 74)
+	_draw_panel(rect, Color(0.04, 0.07, 0.09, 0.82), Color(1.0, 0.82, 0.32, 0.24), 26, 2)
+	draw_circle(rect.position + Vector2(30, 36), 12.0, Color(1.0, 0.80, 0.30, 0.22))
+	draw_circle(rect.position + Vector2(30, 36), 5.0, Color8(255, 221, 118, 230))
+	_draw_text(rect.position + Vector2(52, 28), _mainline_title(), 18, Color8(250, 242, 214))
+	_draw_text(rect.position + Vector2(52, 52), _mainline_current_instruction(), 13, Color8(211, 224, 222))
+	var rows := _mainline_rows()
+	var cursor_x := rect.position.x + 52.0
+	var y := rect.position.y + 66.0
+	for index in range(min(rows.size(), 4)):
+		var row: Dictionary = rows[index]
+		var done := bool(row.get("done", false))
+		var x := cursor_x + float(index) * 116.0
+		draw_circle(Vector2(x, y - 4.0), 4.0, Color8(132, 220, 154, 230) if done else Color8(238, 196, 96, 190))
+		_draw_text(Vector2(x + 8.0, y), _short_explorer_text(str(row.get("label", "")), 8), 10, Color8(184, 204, 198))
 
 
 func _draw_reward_feedback() -> void:
@@ -4350,6 +4828,13 @@ func _draw_survey_focus_strip() -> void:
 
 
 func _survey_focus_state() -> Dictionary:
+	if survey_progress > 0.0 and survey_target_kind != "":
+		var verb := "记录" if survey_target_kind == "species" else "采样"
+		var accent := Color8(230, 188, 102) if survey_target_kind == "species" else Color8(118, 214, 164)
+		return {
+			"text": "已锁定%s：%s %.1f/%.1f 秒，继续按住 Space。" % [verb, survey_target_label, survey_progress, survey_required_time],
+			"accent": accent,
+		}
 	if not current_encounter.is_empty():
 		var species_id := str(current_encounter.get("species_id", ""))
 		if discovered_species_ids.has(species_id):
@@ -4359,11 +4844,11 @@ func _survey_focus_state() -> Dictionary:
 			}
 		if survey_target_kind == "species":
 			return {
-				"text": "正在记录 %s %.1f/%.1f 秒" % [str(current_encounter.get("label", "动物")), survey_progress, survey_required_time],
+				"text": "已锁定记录 %s %.1f/%.1f 秒" % [str(current_encounter.get("label", "动物")), survey_progress, survey_required_time],
 				"accent": Color8(230, 188, 102),
 			}
 		return {
-			"text": "可记录：%s，按住 Space。" % str(current_encounter.get("label", "动物")),
+			"text": "可记录：%s，按住 Space 锁定。" % str(current_encounter.get("label", "动物")),
 			"accent": Color8(230, 188, 102),
 		}
 	if not current_hotspot.is_empty():
@@ -4375,11 +4860,11 @@ func _survey_focus_state() -> Dictionary:
 			}
 		if survey_target_kind == "hotspot":
 			return {
-				"text": "正在采样 %s %.1f/%.1f 秒" % [str(current_hotspot.get("label", "热点")), survey_progress, survey_required_time],
+				"text": "已锁定采样 %s %.1f/%.1f 秒" % [str(current_hotspot.get("label", "热点")), survey_progress, survey_required_time],
 				"accent": Color8(118, 214, 164),
 			}
 		return {
-			"text": "可采样：%s，按住 Space。" % str(current_hotspot.get("label", "热点")),
+			"text": "可采样：%s，按住 Space 锁定。" % str(current_hotspot.get("label", "热点")),
 			"accent": Color8(118, 214, 164),
 		}
 	var target := _current_objective_target()
@@ -4399,12 +4884,13 @@ func _draw_encounter_card() -> void:
 	if not current_exit_zone.is_empty():
 		_draw_text(rect.position + Vector2(22, 34), "出口 · " + str(current_exit_zone.get("label", "")), 22, Color8(245, 242, 228))
 		_draw_text(rect.position + Vector2(22, 66), str(current_exit_zone.get("hint", "")), 14, Color8(187, 201, 208))
-		_draw_text(rect.position + Vector2(22, 96), "按 E 撤离 / 切区 · 当前情报 %d · 危险 %s" % [_expedition_intel_points(), _threat_label()], 14, Color8(170, 184, 191))
+		_draw_text(rect.position + Vector2(22, 96), "按 E 撤离回世界图 · 当前情报 %d · 危险 %s" % [_expedition_intel_points(), _threat_label()], 14, Color8(170, 184, 191))
 		_draw_text(rect.position + Vector2(22, 118), _exit_value_text(current_exit_zone, extraction_ready), 13, Color8(160, 176, 184))
 		return
 	if not current_hotspot.is_empty():
-		_draw_text(rect.position + Vector2(22, 34), "热点 · " + str(current_hotspot.get("label", "")), 22, Color8(245, 242, 228))
-		_draw_text(rect.position + Vector2(22, 66), str(current_hotspot.get("summary", "")), 14, Color8(187, 201, 208))
+		var hotspot_id := str(current_hotspot.get("hotspot_id", ""))
+		_draw_text(rect.position + Vector2(22, 34), "热点 · " + _biome_hotspot_label(hotspot_id), 22, Color8(245, 242, 228))
+		_draw_text(rect.position + Vector2(22, 66), _biome_hotspot_summary(current_hotspot), 14, Color8(187, 201, 208))
 		if survey_target_kind == "hotspot":
 			_draw_text(rect.position + Vector2(22, 96), "按住 Space 采样 %.1f / %.1f 秒 · 完成后情报 +%d" % [survey_progress, survey_required_time, _hotspot_intel_reward(current_hotspot)], 14, Color8(170, 184, 191))
 			_draw_progress_bar(Rect2(rect.position + Vector2(22, 104), Vector2(292, 10)), survey_progress, survey_required_time, Color8(110, 195, 164))
@@ -4425,7 +4911,7 @@ func _draw_encounter_card() -> void:
 		return
 
 	_draw_text(rect.position + Vector2(22, 34), "偶遇 · " + str(current_encounter.get("label", "")), 22, Color8(245, 242, 228))
-	_draw_text(rect.position + Vector2(22, 66), "数量 %d · %s" % [int(current_encounter.get("count", 0)), str(current_encounter.get("category", ""))], 15, Color8(208, 219, 222))
+	_draw_text(rect.position + Vector2(22, 66), "数量 %d · %s · %s" % [int(current_encounter.get("count", 0)), str(current_encounter.get("category", "")), str(current_encounter.get("activity", "移动"))], 15, Color8(208, 219, 222))
 	if discovered_species_ids.has(str(current_encounter.get("species_id", ""))):
 		_draw_text(rect.position + Vector2(22, 96), "这类动物已经记录过，继续追踪它们在热点附近的行为。", 14, Color8(184, 198, 205))
 	elif survey_target_kind == "species":
@@ -4497,9 +4983,9 @@ func _draw_compact_task_tracker() -> void:
 	_draw_panel(rect, Color(0.05, 0.08, 0.10, 0.70), Color(0.92, 0.78, 0.42, 0.16), 24, 1)
 	var action := str(world_task.get("action", "调查"))
 	var task_done := _world_task_completed(current_exit_zone)
-	_draw_text(rect.position + Vector2(18, 26), "撤离回灌" if task_done else "任务 · %s" % action, 17, Color8(244, 240, 222))
-	_draw_text(rect.position + Vector2(18, 48), "前往出口，把报告带回世界图" if task_done else _world_task_status_line(), 12, Color8(177, 205, 188))
-	var objectives := _objective_rows()
+	_draw_text(rect.position + Vector2(18, 26), "主线进度", 17, Color8(244, 240, 222))
+	_draw_text(rect.position + Vector2(18, 48), "当前行动：%s · %s" % [action, ("可撤离" if task_done or extraction_ready else "进行中")], 12, Color8(177, 205, 188))
+	var objectives := _mainline_rows()
 	var y := rect.position.y + 72.0
 	var shown := 0
 	for objective_variant in objectives:

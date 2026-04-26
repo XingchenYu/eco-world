@@ -6,3 +6,5 @@ __pycache__/
 .godot/
 godot/.godot/
 godot/data/world_state.json
+godot/data/selected_expedition_region.json
+godot/data/world_strategy_intent.json
