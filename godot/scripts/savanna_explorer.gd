@@ -1417,6 +1417,7 @@ func _build_region_event_chain() -> void:
 	var narrative: Dictionary = region_detail.get("narrative", {})
 	var seen := {}
 	_append_region_event("区域总态", "%s · %s" % [_region_state_label(), _chain_focus_text()], Color8(170, 224, 198), seen, "focus")
+	_append_biome_event_chain(seen)
 	if pressure_headlines.size() > 0:
 		_append_region_event("压力播报", str(pressure_headlines[0]), Color8(214, 132, 132), seen, "pressure")
 	if pressure_headlines.size() > 1:
@@ -1427,6 +1428,42 @@ func _build_region_event_chain() -> void:
 	_append_region_event("趋势播报", _story_line(narrative.get("social_trends", [])), Color8(124, 176, 224), seen, "trend")
 	_append_region_event("共生播报", _story_line(narrative.get("symbiosis", [])), Color8(210, 182, 96), seen, "symbiosis")
 	_append_region_event("腐食播报", _story_line(narrative.get("carrion_chain", [])), Color8(184, 186, 122), seen, "carrion")
+
+
+func _append_biome_event_chain(seen: Dictionary) -> void:
+	for event_variant in _biome_event_specs():
+		var event: Dictionary = event_variant
+		_append_region_event(
+			str(event.get("title", "现场生态")),
+			str(event.get("body", "")),
+			event.get("accent", Color8(170, 224, 198)),
+			seen,
+			str(event.get("tag", "focus"))
+		)
+
+
+func _biome_event_specs() -> Array:
+	match _biome_key():
+		"wetland":
+			return [
+				{"title": "湿地现场", "body": "浅水边缘会聚集水域动物和飞行动物，先看水位，再看芦苇带通行。", "accent": Color8(116, 196, 190), "tag": "water"},
+				{"title": "芦苇动线", "body": "芦苇带不是装饰，它决定动物能否从水眼安全移动到庇护区。", "accent": Color8(138, 206, 148), "tag": "symbiosis"},
+			]
+		"forest":
+			return [
+				{"title": "森林现场", "body": "密林会让动物更分散，优先找林下水洼、倒木和荫蔽边缘。", "accent": Color8(112, 178, 116), "tag": "habitat"},
+				{"title": "庇护窗口", "body": "森林任务重点不是追速度，而是确认庇护点是否能稳定承接动物停留。", "accent": Color8(154, 206, 132), "tag": "symbiosis"},
+			]
+		"coast":
+			return [
+				{"title": "海岸现场", "body": "潮线会改变动物停留位置，先看潮汐水线，再看礁岩和漂上海滩。", "accent": Color8(118, 186, 220), "tag": "water"},
+				{"title": "海岸通道", "body": "海岸区的连接价值来自潮间带和防风林缘，通道线会优先验证出口。", "accent": Color8(210, 190, 128), "tag": "territory"},
+			]
+		_:
+			return [
+				{"title": "草原现场", "body": "草食群会在迁徙带和水洼之间移动，先记录迁徙动物，再采样补给点。", "accent": Color8(220, 194, 112), "tag": "territory"},
+				{"title": "掠食压力", "body": "掠食者会压迫迁徙带边缘，观察追猎能补强后端的捕食压力判断。", "accent": Color8(222, 132, 104), "tag": "predation"},
+			]
 
 
 func _apply_region_entry_prompt() -> void:
@@ -3638,7 +3675,7 @@ func _complete_hotspot_task(hotspot: Dictionary) -> void:
 	_show_reward_feedback(
 		"%s完成" % str(task_config.get("noun", "观察")),
 		"%s情报 +%d%s" % [channel, reward, bonus_note],
-		_world_task_reward_hint_short(),
+		_backend_effect_for_intel(channel, "hotspot"),
 		Color8(118, 214, 164)
 	)
 	current_task = {
@@ -3917,7 +3954,7 @@ func _record_species_discovery(animal: Dictionary) -> void:
 	_show_reward_feedback(
 		"记录新物种",
 		"%s · %s情报 +%d%s" % [str(animal.get("label", species_id)), channel, reward, bonus_note],
-		"回灌后：调查覆盖上升。",
+		_backend_effect_for_intel(channel, "species"),
 		Color8(230, 188, 102)
 	)
 	_maybe_complete_handoff(str(animal.get("label", species_id)), channel)
@@ -5191,6 +5228,23 @@ func _world_task_backend_effect(action: String) -> String:
 			return "撤离回灌后：区域连接增强，物种流动更稳定。"
 		_:
 			return "撤离回灌后：调查覆盖率上升，资源判断更准确。"
+
+
+func _backend_effect_for_intel(channel: String, source: String) -> String:
+	var source_label := "采样" if source == "hotspot" else "记录"
+	match channel:
+		"水源":
+			return "回灌后：水源可靠度上升，缺水风险判断更准。"
+		"迁徙":
+			return "回灌后：迁徙通道判断增强，区域连接更清楚。"
+		"压迫":
+			return "回灌后：捕食/压力模型更新，风险修复更准确。"
+		"腐食":
+			return "回灌后：腐食资源链更新，清道夫生态位更清楚。"
+		"栖地":
+			return "回灌后：庇护地质量更新，韧性和停留判断更准。"
+		_:
+			return "回灌后：%s会补强本区生态档案。" % source_label
 
 
 func _show_reward_feedback(title: String, gain: String, backend: String, accent: Color) -> void:
