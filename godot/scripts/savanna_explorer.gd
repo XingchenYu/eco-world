@@ -145,12 +145,19 @@ const BIOME_THEMES := {
 		"route_b": Color8(240, 228, 182, 226),
 	},
 }
+const REGION_TEXTURE_PATHS := {
+	"grassland": "res://assets/ui/region_maps/grassland.png",
+	"wetland": "res://assets/ui/region_maps/wetland.png",
+	"forest": "res://assets/ui/region_maps/forest.png",
+	"coast": "res://assets/ui/region_maps/coast.png",
+}
 
 var world_data: Dictionary = {}
 var region_detail: Dictionary = {}
 var current_region_id := ""
 var current_theme: Dictionary = BIOME_THEMES["grassland"]
 var current_region_layout: Dictionary = REGION_LAYOUTS["grassland"]
+var current_region_texture: Texture2D
 var species_manifest: Array = []
 var hotspots: Array = []
 var wildlife: Array = []
@@ -233,7 +240,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	elapsed += delta
 	_update_player(delta)
-	_update_wildlife()
+	_update_wildlife(delta)
 	_update_camera()
 	_update_encounter()
 	_update_hotspot_focus(delta)
@@ -337,6 +344,7 @@ func _apply_region(region_id: String, spawn_gate: String = "") -> void:
 	region_detail = next_detail
 	current_theme = _theme_for_region(next_detail)
 	current_region_layout = _layout_for_region(next_detail)
+	current_region_texture = _texture_for_biome_key(_biome_key())
 	species_manifest = region_detail.get("species_manifest", [])
 	if species_manifest.is_empty():
 		species_manifest = region_detail.get("top_species", [])
@@ -605,7 +613,9 @@ func _build_wildlife() -> void:
 				"radius": radius,
 				"phase": phase,
 				"speed": speed,
-				"position": anchor,
+				"position": _wildlife_spawn_position(index, anchor, radius),
+				"target_position": _wildlife_spawn_position(index + 7, anchor, radius),
+				"next_target_time": 0.7 + float(index % 5) * 0.33,
 				"color": color,
 				"behavior": behavior,
 				"group_size": group_size,
@@ -614,6 +624,21 @@ func _build_wildlife() -> void:
 				"activity": "移动",
 			}
 		)
+
+
+func _texture_for_biome_key(biome_key: String) -> Texture2D:
+	var path := str(REGION_TEXTURE_PATHS.get(biome_key, REGION_TEXTURE_PATHS["grassland"]))
+	var image := Image.load_from_file(ProjectSettings.globalize_path(path))
+	if image == null:
+		return null
+	return ImageTexture.create_from_image(image)
+
+
+func _wildlife_spawn_position(index: int, anchor: Vector2, radius: Vector2) -> Vector2:
+	var angle := float(index) * 1.91
+	var spread := Vector2(cos(angle) * radius.x * 0.92, sin(angle * 1.37) * radius.y * 0.82)
+	var offset := Vector2(sin(float(index) * 2.37) * 80.0, cos(float(index) * 1.63) * 46.0)
+	return _clamped_world_position(anchor + spread + offset)
 
 
 func _anchor_for_species(species_id: String) -> String:
@@ -926,33 +951,33 @@ func _find_safe_spawn(preferred: Vector2) -> Vector2:
 	return Vector2(720, 1080)
 
 
-func _update_wildlife() -> void:
+func _update_wildlife(delta: float) -> void:
 	var herd_focus := _herd_center()
 	var prey_positions := _prey_positions()
 	var strongest_pressure: Dictionary = {}
 	var strongest_chase: Dictionary = {}
 	for index in range(wildlife.size()):
 		var animal: Dictionary = wildlife[index]
-		var anchor: Vector2 = animal.get("anchor", Vector2.ZERO)
-		var radius: Vector2 = animal.get("radius", Vector2(40, 24))
 		var phase := float(animal.get("phase", 0.0))
 		var speed := float(animal.get("speed", 0.32))
 		var angle := elapsed * speed + phase
 		var behavior := str(animal.get("behavior", "graze"))
 		var activity := _animal_activity(animal, angle)
 		animal["activity"] = activity
-		var base_pos := anchor + Vector2(cos(angle) * radius.x, sin(angle * 1.3) * radius.y)
-		base_pos += Vector2(cos(angle * 0.37 + phase) * radius.x * 0.36, sin(angle * 0.29 + phase * 0.7) * radius.y * 0.42)
-		var bias_target := _behavior_bias_target(animal, phase)
-		base_pos = base_pos.lerp(bias_target, 0.22)
-		var player_delta := base_pos - player_pos
+		var current_pos: Vector2 = animal.get("position", animal.get("anchor", Vector2.ZERO))
+		var target_pos: Vector2 = animal.get("target_position", _wildlife_next_target(animal, index))
+		if elapsed >= float(animal.get("next_target_time", 0.0)) or current_pos.distance_to(target_pos) < 34.0:
+			target_pos = _wildlife_next_target(animal, index)
+			animal["target_position"] = target_pos
+			animal["next_target_time"] = elapsed + _wildlife_target_duration(animal, index)
+		var player_delta := current_pos - player_pos
 		var player_distance := player_delta.length()
 		if behavior == "stalk":
-			var prey_focus := _nearest_target(base_pos, prey_positions)
+			var prey_focus := _nearest_target(current_pos, prey_positions)
 			if prey_focus != Vector2.ZERO:
-				var chase_distance := base_pos.distance_to(prey_focus)
+				var chase_distance := current_pos.distance_to(prey_focus)
 				var chase_burst := chase_distance < 150.0
-				base_pos = base_pos.lerp(prey_focus, 0.038 if not chase_burst else 0.082)
+				target_pos = target_pos.lerp(prey_focus, 0.48 if chase_burst else 0.24)
 				var pressure_score := 1.0 / maxf(1.0, chase_distance)
 				if strongest_pressure.is_empty() or pressure_score > float(strongest_pressure.get("score", 0.0)):
 					strongest_pressure = {
@@ -967,34 +992,30 @@ func _update_wildlife() -> void:
 						"distance": chase_distance,
 					}
 			elif herd_focus != Vector2.ZERO:
-				base_pos = base_pos.lerp(herd_focus, 0.018)
+				target_pos = target_pos.lerp(herd_focus, 0.12)
 			if player_distance < 260.0:
-				base_pos = base_pos.lerp(player_pos + player_delta.normalized() * 120.0, 0.018)
-			base_pos.y += sin(angle * 0.45) * 18.0
+				target_pos = target_pos.lerp(player_pos + player_delta.normalized() * 170.0, 0.18)
 		elif behavior == "glide":
-			base_pos = anchor + Vector2(cos(angle * 0.76) * (radius.x + 120.0), sin(angle * 0.42) * (radius.y + 96.0) - 26.0)
-			base_pos = base_pos.lerp(_behavior_bias_target(animal, phase), 0.34)
+			target_pos.y -= 34.0
 			if player_distance < 150.0:
-				base_pos += player_delta.normalized() * 46.0
+				target_pos += player_delta.normalized() * 70.0
 		elif behavior == "swim":
-			base_pos = base_pos.lerp(_hotspot_position("waterhole"), 0.026)
-			base_pos = anchor + Vector2(cos(angle) * (radius.x * 0.72), sin(angle * 1.7) * (radius.y * 0.54))
+			target_pos = target_pos.lerp(_hotspot_position("waterhole"), 0.30)
 		elif behavior == "heavy_roam":
-			base_pos = anchor + Vector2(cos(angle * 0.52) * (radius.x + 96.0), sin(angle * 0.74) * (radius.y + 52.0))
-			base_pos = base_pos.lerp(_behavior_bias_target(animal, phase), 0.20)
+			target_pos = target_pos.lerp(_behavior_bias_target(animal, phase), 0.20)
 			if player_distance < 140.0:
-				base_pos += player_delta.normalized() * 22.0
+				target_pos += player_delta.normalized() * 42.0
 		else:
-			var nearest_predator := _nearest_predator_position(base_pos)
-			if nearest_predator != Vector2.ZERO and base_pos.distance_to(nearest_predator) < 240.0:
-				var flee := (base_pos - nearest_predator).normalized()
-				base_pos += flee * (46.0 if base_pos.distance_to(nearest_predator) > 150.0 else 74.0)
+			var nearest_predator := _nearest_predator_position(current_pos)
+			if nearest_predator != Vector2.ZERO and current_pos.distance_to(nearest_predator) < 240.0:
+				var flee := (current_pos - nearest_predator).normalized()
+				target_pos += flee * (180.0 if current_pos.distance_to(nearest_predator) > 150.0 else 260.0)
 			if player_distance < float(animal.get("alert_radius", 130.0)):
-				base_pos += player_delta.normalized() * 28.0
-		base_pos = _apply_animal_activity_motion(animal, base_pos, activity, player_delta, player_distance)
-		base_pos.x = clampf(base_pos.x, 120.0, WORLD_SIZE.x - 120.0)
-		base_pos.y = clampf(base_pos.y, 120.0, WORLD_SIZE.y - 120.0)
-		animal["position"] = base_pos
+				target_pos += player_delta.normalized() * 90.0
+		target_pos = _clamped_world_position(target_pos)
+		var next_pos := _move_animal_toward(current_pos, target_pos, animal, activity, delta)
+		animal["position"] = next_pos
+		animal["target_position"] = target_pos
 		wildlife[index] = animal
 	current_interaction.clear()
 	current_chase.clear()
@@ -1014,7 +1035,7 @@ func _update_wildlife() -> void:
 			witnessed_pressure = true
 	if not strongest_chase.is_empty():
 		var chase_predator: Dictionary = strongest_chase.get("predator", {})
-		chase_focus_time += 0.016
+		chase_focus_time += delta
 		current_chase = {
 			"title": "追猎爆发",
 			"body": "%s 已进入短时冲刺，草食群正在快速逃散。" % str(chase_predator.get("label", "掠食者")),
@@ -1060,6 +1081,89 @@ func _behavior_bias_target(animal: Dictionary, phase: float) -> Vector2:
 		return _hotspot_position("predator_ridge").lerp(_hotspot_position("migration_corridor"), 0.45)
 	var migration_weight := 0.48 + 0.28 * sin(elapsed * 0.14 + phase)
 	return _hotspot_position("migration_corridor").lerp(_hotspot_position("waterhole"), migration_weight).lerp(anchor, 0.22)
+
+
+func _wildlife_next_target(animal: Dictionary, index: int) -> Vector2:
+	var behavior := str(animal.get("behavior", "graze"))
+	var anchor: Vector2 = animal.get("anchor", Vector2.ZERO)
+	var radius: Vector2 = animal.get("radius", Vector2(120, 80))
+	var phase := float(animal.get("phase", 0.0))
+	var seed := elapsed * 0.31 + phase * 8.7 + float(index) * 1.9
+	var wander := Vector2(cos(seed) * radius.x, sin(seed * 1.27) * radius.y)
+	match behavior:
+		"swim":
+			return _clamped_world_position(_hotspot_position("waterhole") + Vector2(cos(seed) * 150.0, sin(seed * 1.4) * 76.0))
+		"glide":
+			var sky_lane := _hotspot_position("carrion_field").lerp(_hotspot_position("predator_ridge"), 0.48)
+			return _clamped_world_position(sky_lane + Vector2(cos(seed * 0.74) * 360.0, sin(seed * 0.58) * 190.0 - 70.0))
+		"stalk":
+			var ambush := _hotspot_position("predator_ridge").lerp(_hotspot_position("migration_corridor"), 0.38)
+			return _clamped_world_position(ambush + wander * 0.72)
+		"heavy_roam":
+			var water_to_shade := _hotspot_position("waterhole").lerp(_hotspot_position("shade_grove"), 0.50 + sin(seed * 0.35) * 0.34)
+			return _clamped_world_position(water_to_shade + wander * 0.88)
+		_:
+			var route := _hotspot_position("migration_corridor").lerp(_hotspot_position("waterhole"), 0.38 + sin(seed * 0.24) * 0.28)
+			return _clamped_world_position(route.lerp(anchor, 0.28) + wander)
+
+
+func _wildlife_target_duration(animal: Dictionary, index: int) -> float:
+	match str(animal.get("behavior", "graze")):
+		"stalk":
+			return 1.3 + fmod(float(index) * 0.41, 0.9)
+		"glide":
+			return 1.0 + fmod(float(index) * 0.29, 0.8)
+		"swim":
+			return 1.8 + fmod(float(index) * 0.37, 1.2)
+		"heavy_roam":
+			return 2.8 + fmod(float(index) * 0.53, 1.8)
+		_:
+			return 2.1 + fmod(float(index) * 0.47, 1.4)
+
+
+func _move_animal_toward(current_pos: Vector2, target_pos: Vector2, animal: Dictionary, activity: String, delta: float) -> Vector2:
+	if activity in ["停留", "觅食", "潜伏"]:
+		target_pos = current_pos.lerp(target_pos, 0.22)
+	var delta_to_target := target_pos - current_pos
+	var distance := delta_to_target.length()
+	if distance < 0.01:
+		return current_pos
+	var speed_px := _wildlife_speed_px(animal, activity)
+	var step := minf(distance, speed_px * delta)
+	var moved := current_pos + delta_to_target.normalized() * step
+	var drift := Vector2(sin(elapsed * 1.7 + float(animal.get("phase", 0.0))) * 4.0, cos(elapsed * 1.1) * 2.4)
+	if activity in ["停留", "觅食", "潜伏"]:
+		drift *= 0.26
+	return _clamped_world_position(moved + drift * delta)
+
+
+func _wildlife_speed_px(animal: Dictionary, activity: String) -> float:
+	var behavior := str(animal.get("behavior", "graze"))
+	var base := 74.0
+	match behavior:
+		"stalk":
+			base = 112.0
+		"glide":
+			base = 150.0
+		"swim":
+			base = 64.0
+		"heavy_roam":
+			base = 52.0
+	match activity:
+		"逼近", "巡猎":
+			base *= 1.32
+		"警觉":
+			base *= 1.42
+		"取水", "觅食", "潜伏", "停留":
+			base *= 0.42
+	return base
+
+
+func _clamped_world_position(value: Vector2) -> Vector2:
+	return Vector2(
+		clampf(value.x, 120.0, WORLD_SIZE.x - 120.0),
+		clampf(value.y, 120.0, WORLD_SIZE.y - 120.0)
+	)
 
 
 func _animal_activity(animal: Dictionary, angle: float) -> String:
@@ -3834,6 +3938,15 @@ func _screen_point(world_point: Vector2) -> Vector2:
 
 
 func _draw_world_ground() -> void:
+	if current_region_texture != null:
+		var texture_region := Rect2(camera_pos, size)
+		draw_texture_rect_region(current_region_texture, Rect2(Vector2.ZERO, size), texture_region)
+		_draw_ground_atmosphere()
+		_draw_waterhole()
+		_draw_carcass_field()
+		_draw_biome_life_details()
+		_draw_exit_markers()
+		return
 	var terrain_points = [
 		Vector2(0, 0),
 		Vector2(size.x, 0),
@@ -3873,6 +3986,33 @@ func _draw_world_ground() -> void:
 	_draw_ridge()
 	_draw_carcass_field()
 	_draw_exit_markers()
+
+
+func _draw_ground_atmosphere() -> void:
+	if current_theme == BIOME_THEMES["forest"]:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.08, 0.04, 0.10), true)
+	elif current_theme == BIOME_THEMES["wetland"]:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.10, 0.11, 0.06), true)
+	elif current_theme == BIOME_THEMES["coast"]:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.10, 0.12, 0.05), true)
+	else:
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.10, 0.07, 0.02, 0.04), true)
+
+
+func _draw_biome_life_details() -> void:
+	match _biome_key():
+		"wetland":
+			_draw_reed_bank(Vector2(700, 670), 6)
+			_draw_reed_bank(Vector2(1870, 730), 5)
+		"forest":
+			_draw_forest_cluster(Vector2(690, 620), 7)
+			_draw_forest_cluster(Vector2(1840, 720), 6)
+		"coast":
+			_draw_palm_cluster(Vector2(690, 640), 5)
+			_draw_palm_cluster(Vector2(1870, 700), 4)
+		_:
+			_draw_acacia_grove(Vector2(710, 650), 5)
+			_draw_acacia_grove(Vector2(1870, 700), 4)
 
 
 func _draw_grass_patch(center: Vector2, width: float, height: float, color: Color) -> void:
