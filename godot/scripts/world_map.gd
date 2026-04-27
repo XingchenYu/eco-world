@@ -4635,6 +4635,12 @@ func _pending_expedition_report_objective_line() -> String:
 	]
 	if action == "通道":
 		action_line += " · 目标连接：%s" % target_name
+	var chapter_goal := str(latest_report.get("mainline_chapter_goal", ""))
+	var chapter_payoff := str(latest_report.get("mainline_chapter_payoff", ""))
+	if chapter_goal != "":
+		action_line += "\n主线贡献：%s" % _short_ui_text(chapter_goal, 54)
+	if chapter_payoff != "":
+		action_line += "\n生态收益：%s" % _short_ui_text(chapter_payoff, 54)
 	return "%s\n下一步：只做一件事，点击“回灌报告”。不要先开始下一轮，否则报告不会写回后端生态系统。" % action_line
 
 
@@ -4717,6 +4723,8 @@ func _mainline_result_payload() -> Dictionary:
 	var task_state := "完成" if bool(last_report.get("world_task_completed", false)) else "未完成"
 	var region_name := str(last_report.get("region_name", "刚探索的区域"))
 	var intel := int(last_report.get("intel", last_report.get("cumulative_intel", 0)))
+	var contribution_goal := _short_ui_text(str(last_report.get("mainline_chapter_goal", "")), 58)
+	var contribution_payoff := _short_ui_text(str(last_report.get("mainline_chapter_payoff", "")), 58)
 	var focus := str(mainline.get("focus_region_name", "下一片区域"))
 	var next_action := str(mainline.get("recommended_action", "调查"))
 	var objective := _short_ui_text(str(mainline.get("objective", "继续推进生态复苏主线。")), 62)
@@ -4733,6 +4741,10 @@ func _mainline_result_payload() -> Dictionary:
 	if previous_chapter != "" and current_chapter != "" and previous_chapter != current_chapter:
 		title = "章节推进"
 		body = "%s -> %s\n%s" % [previous_chapter, current_chapter, body]
+	if contribution_goal != "":
+		body += "\n本轮贡献：%s" % contribution_goal
+	if contribution_payoff != "":
+		body += "\n生态收益：%s" % contribution_payoff
 	var next := "下一轮：去%s，完成%s线。%s" % [focus, next_action, objective]
 	if payoff != "":
 		next += "\n生态意义：%s" % payoff
