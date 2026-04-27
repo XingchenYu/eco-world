@@ -1897,7 +1897,9 @@ func _update_expedition_state() -> void:
 		threat_target = maxf(threat_target, 0.56)
 	threat_target = clampf(threat_target + _active_event_threat_bias(), 0.0, 1.0)
 	nearby_threat_level = lerpf(nearby_threat_level, threat_target, 0.18)
-	extraction_ready = _expedition_intel_points() >= _required_extraction_intel() or (completed_task_ids.size() >= 1 and discovered_species_ids.size() >= 2 and _required_extraction_intel() <= 4)
+	var world_action := str(world_task.get("action", ""))
+	var world_task_ready := world_action != "通道" and _world_task_completed({})
+	extraction_ready = world_task_ready or _expedition_intel_points() >= _required_extraction_intel() or (completed_task_ids.size() >= 1 and discovered_species_ids.size() >= 2 and _required_extraction_intel() <= 4)
 	expedition_phase = _current_expedition_phase()
 
 
@@ -2417,9 +2419,9 @@ func _world_task_completed(zone: Dictionary) -> bool:
 		return false
 	match action:
 		"调查":
-			return _expedition_intel_points() >= 3 or discovered_species_ids.size() >= 3 or completed_task_ids.size() >= 1
+			return discovered_species_ids.size() >= 1 and completed_task_ids.size() >= 1 and _expedition_intel_points() >= _world_task_intel_goal(action)
 		"修复":
-			return completed_task_ids.size() >= 1 and _expedition_intel_points() >= 3
+			return completed_task_ids.size() >= 1 and _expedition_intel_points() >= _world_task_intel_goal(action)
 		"通道":
 			var expected_target := str(world_task.get("target_region_id", ""))
 			var exit_target := str(zone.get("target_region_id", ""))
@@ -2428,6 +2430,16 @@ func _world_task_completed(zone: Dictionary) -> bool:
 			return exit_target != ""
 		_:
 			return false
+
+
+func _world_task_intel_goal(action: String) -> int:
+	match action:
+		"调查":
+			return 3
+		"修复":
+			return 3
+		_:
+			return _required_extraction_intel()
 
 
 func _write_expedition_report(zone: Dictionary, summary: String) -> void:
@@ -3898,7 +3910,7 @@ func _objective_rows() -> Array:
 func _world_task_progress_ratio(action: String) -> float:
 	match action:
 		"修复":
-			var intel_ratio := clampf(float(_expedition_intel_points()) / 3.0, 0.0, 1.0)
+			var intel_ratio := clampf(float(_expedition_intel_points()) / float(_world_task_intel_goal(action)), 0.0, 1.0)
 			var hotspot_ratio := clampf(float(completed_task_ids.size()), 0.0, 1.0)
 			return (intel_ratio + hotspot_ratio) * 0.5
 		"通道":
@@ -3907,17 +3919,19 @@ func _world_task_progress_ratio(action: String) -> float:
 				return 1.0 if _is_current_exit_a_corridor() else 0.0
 			return 1.0 if not current_exit_zone.is_empty() and str(current_exit_zone.get("target_region_id", "")) == target else 0.0
 		_:
-			var intel_ratio := clampf(float(_expedition_intel_points()) / 3.0, 0.0, 1.0)
-			var species_ratio := clampf(float(discovered_species_ids.size()) / 3.0, 0.0, 1.0)
+			var intel_ratio := clampf(float(_expedition_intel_points()) / float(_world_task_intel_goal(action)), 0.0, 1.0)
+			var species_ratio := clampf(float(discovered_species_ids.size()), 0.0, 1.0)
 			var hotspot_ratio := clampf(float(completed_task_ids.size()), 0.0, 1.0)
-			return maxf(intel_ratio, maxf(species_ratio, hotspot_ratio))
+			return (intel_ratio + species_ratio + hotspot_ratio) / 3.0
 
 
 func _world_task_progress_label(action: String) -> String:
 	match action:
 		"修复":
-			return "情报 %d/3 · 热点 %d/1" % [
-				mini(_expedition_intel_points(), 3),
+			var repair_goal := _world_task_intel_goal(action)
+			return "情报 %d/%d · 热点 %d/1" % [
+				mini(_expedition_intel_points(), repair_goal),
+				repair_goal,
 				mini(completed_task_ids.size(), 1),
 			]
 		"通道":
@@ -3929,9 +3943,11 @@ func _world_task_progress_label(action: String) -> String:
 			var ready := not current_exit_zone.is_empty() and str(current_exit_zone.get("target_region_id", "")) == target
 			return "%s · %s" % [target_name, ("已到达" if ready else "未到达")]
 		_:
-			return "情报 %d/3 · 动物 %d/3 · 热点 %d/1" % [
-				mini(_expedition_intel_points(), 3),
-				mini(discovered_species_ids.size(), 3),
+			var survey_goal := _world_task_intel_goal(action)
+			return "情报 %d/%d · 动物 %d/1 · 热点 %d/1" % [
+				mini(_expedition_intel_points(), survey_goal),
+				survey_goal,
+				mini(discovered_species_ids.size(), 1),
 				mini(completed_task_ids.size(), 1),
 			]
 
@@ -4685,7 +4701,7 @@ func _mainline_rows() -> Array:
 		]
 	var species_goal := 1
 	var hotspot_goal := 1
-	var intel_goal := _required_extraction_intel()
+	var intel_goal := _world_task_intel_goal(action)
 	if action == "修复":
 		return [
 			{"label": _biome_step_label("hotspot"), "done": completed_task_ids.size() >= hotspot_goal, "progress": clampf(float(completed_task_ids.size()) / float(hotspot_goal), 0.0, 1.0)},
