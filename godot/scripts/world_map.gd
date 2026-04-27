@@ -4162,7 +4162,7 @@ func _refresh_game_hud() -> void:
 	if hud_mainline_rail_label != null:
 		hud_mainline_rail_label.text = _mainline_chapter_rail()
 	if hud_bulletin_label != null:
-		hud_bulletin_label.text = _latest_world_bulletin_line()
+		hud_bulletin_label.text = "%s\n%s" % [_latest_world_bulletin_line(), _world_bulletin_timeline_line()]
 	hud_metric_label.text = "多样性 %s   韧性 %s   风险 %s   关键资源 %s" % [
 		_percent_text(float(health.get("biodiversity", 0.0))),
 		_percent_text(float(health.get("resilience", 0.0))),
@@ -4500,12 +4500,37 @@ func _mainline_chapter_rail() -> String:
 func _latest_world_bulletin_line() -> String:
 	if bulletin_cache.is_empty():
 		return "世界公告：暂无后端公告。"
-	var bulletin: Dictionary = bulletin_cache[0]
+	var bulletin := _world_bulletin_entry_text(bulletin_cache[0])
 	var title := str(bulletin.get("title", "世界公告"))
 	var body := _short_ui_text(str(bulletin.get("body", "")), 72)
 	if body == "":
 		return "世界公告：%s" % title
 	return "世界公告：%s · %s" % [title, body]
+
+
+func _world_bulletin_entry_text(entry: Variant) -> Dictionary:
+	if typeof(entry) == TYPE_DICTIONARY:
+		var bulletin: Dictionary = entry
+		return {
+			"title": str(bulletin.get("title", "世界公告")),
+			"body": str(bulletin.get("body", "")),
+		}
+	return {
+		"title": "世界公告",
+		"body": str(entry),
+	}
+
+
+func _world_bulletin_timeline_line(limit: int = 3) -> String:
+	if bulletin_cache.is_empty():
+		return "编年史：暂无记录。"
+	var rows: Array = []
+	for entry in bulletin_cache.slice(0, limit):
+		var bulletin := _world_bulletin_entry_text(entry)
+		var title := str(bulletin.get("title", "世界公告"))
+		var body := str(bulletin.get("body", ""))
+		rows.append("%s：%s" % [title, _short_ui_text(body, 24)])
+	return "编年史：" + " / ".join(rows)
 
 
 func _localized_gameplay_reason(text: String) -> String:
