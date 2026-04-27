@@ -202,6 +202,7 @@ var survey_target_data: Dictionary = {}
 var nearby_threat_level := 0.0
 var expedition_phase := "追踪"
 var extraction_ready := false
+var world_task_completion_notified := false
 var species_intel_score := 0
 var hotspot_intel_score := 0
 var specialization_chain_bonus_claimed := false
@@ -380,6 +381,7 @@ func _apply_region(region_id: String, spawn_gate: String = "") -> void:
 	nearby_threat_level = 0.0
 	expedition_phase = "追踪"
 	extraction_ready = false
+	world_task_completion_notified = false
 	species_intel_score = 0
 	hotspot_intel_score = 0
 	specialization_chain_bonus_claimed = false
@@ -1900,6 +1902,14 @@ func _update_expedition_state() -> void:
 	var world_action := str(world_task.get("action", ""))
 	var world_task_ready := world_action != "通道" and _world_task_completed({})
 	extraction_ready = world_task_ready or _expedition_intel_points() >= _required_extraction_intel() or (completed_task_ids.size() >= 1 and discovered_species_ids.size() >= 2 and _required_extraction_intel() <= 4)
+	if world_task_ready and not world_task_completion_notified:
+		world_task_completion_notified = true
+		_show_reward_feedback(
+			"主线目标完成",
+			_world_task_progress_label(world_action),
+			"现在前往出口按 E，回世界图点击回灌报告。",
+			Color8(238, 204, 112)
+		)
 	expedition_phase = _current_expedition_phase()
 
 
@@ -4662,6 +4672,9 @@ func _mainline_short_phase() -> String:
 func _mainline_current_instruction() -> String:
 	if not current_exit_zone.is_empty() and (extraction_ready or str(world_task.get("action", "")) == "通道"):
 		return "按 E 撤离，把这轮报告带回世界图。"
+	var missing_step := _world_task_missing_step()
+	if missing_step != "" and not extraction_ready:
+		return missing_step
 	if not current_encounter.is_empty() and not discovered_species_ids.has(str(current_encounter.get("species_id", ""))):
 		return "按住 Space 锁定并记录这只动物；完成后会增加生态情报。"
 	if not current_hotspot.is_empty() and not completed_task_ids.has("task_" + str(current_hotspot.get("hotspot_id", ""))):
@@ -4678,6 +4691,32 @@ func _mainline_current_instruction() -> String:
 			"exit":
 				return "跟着黄色目标前往出口，距离约 %dm，到达后按 E 撤离。" % distance
 	return "自由调查：靠近动物或热点后按住 Space 锁定调查，情报足够后去出口按 E。"
+
+
+func _world_task_missing_step() -> String:
+	var action := str(world_task.get("action", "调查"))
+	if action == "通道":
+		var target_zone := _objective_exit_target()
+		if target_zone.is_empty():
+			return "当前没有可用通道出口，先记录动物或采样热点，回灌后解锁连接。"
+		if current_exit_zone.is_empty() or str(current_exit_zone.get("id", "")) != str(target_zone.get("id", "")):
+			return "通道线目标：跟着黄色目标去 %s，到达后按 E 撤离。" % str(target_zone.get("label", "通道出口"))
+		return ""
+	if action == "修复":
+		if completed_task_ids.size() < 1:
+			return "修复线还差：采样 1 个生态热点。跟着黄色目标到热点后按住 Space。"
+		var repair_goal := _world_task_intel_goal(action)
+		if _expedition_intel_points() < repair_goal:
+			return "修复线还差：情报 %d/%d。继续记录动物或采样热点。" % [_expedition_intel_points(), repair_goal]
+		return ""
+	if discovered_species_ids.size() < 1:
+		return "调查线还差：记录 1 种动物。跟着黄色目标靠近动物后按住 Space。"
+	if completed_task_ids.size() < 1:
+		return "调查线还差：采样 1 个热点。跟着黄色目标到热点后按住 Space。"
+	var survey_goal := _world_task_intel_goal(action)
+	if _expedition_intel_points() < survey_goal:
+		return "调查线还差：情报 %d/%d。继续记录或采样。" % [_expedition_intel_points(), survey_goal]
+	return ""
 
 
 func _mainline_rows() -> Array:
@@ -5195,7 +5234,9 @@ func _draw_compact_task_tracker() -> void:
 	var task_done := _world_task_completed(current_exit_zone)
 	_draw_text(rect.position + Vector2(18, 26), "主线进度", 17, Color8(244, 240, 222))
 	_draw_text(rect.position + Vector2(18, 48), "当前行动：%s · %s" % [action, ("可撤离" if task_done or extraction_ready else "进行中")], 12, Color8(177, 205, 188))
-	_draw_text(rect.position + Vector2(18, 66), _short_explorer_text(_world_task_backend_effect(action), 30), 11, Color8(154, 196, 168))
+	var missing_step := _world_task_missing_step()
+	var helper_line := missing_step if missing_step != "" else _world_task_backend_effect(action)
+	_draw_text(rect.position + Vector2(18, 66), _short_explorer_text(helper_line, 32), 11, Color8(154, 196, 168))
 	var objectives := _mainline_rows()
 	var y := rect.position.y + 88.0
 	var shown := 0
