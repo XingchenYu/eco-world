@@ -4373,7 +4373,11 @@ func _world_goal_line() -> String:
 		var focus := str(mainline.get("focus_region_name", "优先区域"))
 		var action := str(mainline.get("recommended_action", "调查"))
 		var objective := _short_ui_text(str(mainline.get("objective", "")), 48)
-		return "主线：%s\n目标：去%s，完成%s线。\n%s" % [chapter, focus, action, objective]
+		var payoff := _short_ui_text(str(mainline.get("chapter_payoff", "")), 56)
+		var line := "主线：%s\n目标：去%s，完成%s线。\n%s" % [chapter, focus, action, objective]
+		if payoff != "":
+			line += "\n生态意义：%s" % payoff
+		return line
 	var world_goal: Dictionary = gameplay_state.get("world_goal", {})
 	if not world_goal.is_empty() and world_goal.has("safe_count"):
 		var weakest_region: Dictionary = world_goal.get("weakest_region", {})
@@ -4716,6 +4720,7 @@ func _mainline_result_payload() -> Dictionary:
 	var focus := str(mainline.get("focus_region_name", "下一片区域"))
 	var next_action := str(mainline.get("recommended_action", "调查"))
 	var objective := _short_ui_text(str(mainline.get("objective", "继续推进生态复苏主线。")), 62)
+	var payoff := _short_ui_text(str(mainline.get("chapter_payoff", "")), 58)
 	var progress_label := str(mainline.get("progress_label", ""))
 	var next_unlock := _short_ui_text(str(mainline.get("next_unlock", "")), 56)
 	var title := "主线回灌完成"
@@ -4729,6 +4734,8 @@ func _mainline_result_payload() -> Dictionary:
 		title = "章节推进"
 		body = "%s -> %s\n%s" % [previous_chapter, current_chapter, body]
 	var next := "下一轮：去%s，完成%s线。%s" % [focus, next_action, objective]
+	if payoff != "":
+		next += "\n生态意义：%s" % payoff
 	if progress_label != "":
 		next += "\n主线进度：%s" % progress_label
 	if next_unlock != "":

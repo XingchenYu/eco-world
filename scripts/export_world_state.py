@@ -476,15 +476,15 @@ def _weakest_corridor_region(regions: dict[str, Any]) -> dict[str, Any]:
 
 def _mainline_chapter_route(chapter_index: int) -> list[dict[str, Any]]:
     chapters = [
-        (1, "建档", "第一章：建立生态档案", "记录动物和热点，建立第一份可回灌的生态档案"),
-        (2, "修复", "第二章：压低最高风险", "找到最高风险区，采样并降低生态压力"),
-        (3, "通道", "第三章：打通生态走廊", "强化区域连接，让物种能跨区流动"),
-        (4, "扩展", "第四章：扩展多样性网络", "轮换薄弱区，把更多生态区推到安全线"),
-        (5, "复苏", "第五章：生态复苏完成", "维持全部生态区稳定，防止系统回落"),
+        (1, "建档", "第一章：建立生态档案", "记录动物和热点，建立第一份可回灌的生态档案", "解锁后端对物种、热点、资源和风险的基础判断。"),
+        (2, "修复", "第二章：压低最高风险", "找到最高风险区，采样并降低生态压力", "降低崩溃风险，提高区域韧性，让生态区不继续恶化。"),
+        (3, "通道", "第三章：打通生态走廊", "强化区域连接，让物种能跨区流动", "增强区域连接，提升迁徙、补给和物种扩散稳定性。"),
+        (4, "扩展", "第四章：扩展多样性网络", "轮换薄弱区，把更多生态区推到安全线", "扩大安全生态区数量，让多样性网络从单点恢复变成系统恢复。"),
+        (5, "复苏", "第五章：生态复苏完成", "维持全部生态区稳定，防止系统回落", "进入长期维护目标，保持生态系统稳定和多样性。"),
     ]
     current = max(1, min(5, int(chapter_index)))
     route = []
-    for index, short_title, title, goal in chapters:
+    for index, short_title, title, goal, payoff in chapters:
         if index < current:
             status = "completed"
         elif index == current:
@@ -496,6 +496,7 @@ def _mainline_chapter_route(chapter_index: int) -> list[dict[str, Any]]:
             "short_title": short_title,
             "title": title,
             "goal": goal,
+            "payoff": payoff,
             "status": status,
         })
     return route
@@ -533,7 +534,11 @@ def _finish_mainline_state(
         state["progress_label"] = f"安全生态区 {safe_count}/{total_regions}"
         state["progress_ratio"] = round(ratio, 4)
         state["next_unlock"] = "让所有生态区达到安全线后，主线进入复苏完成态。"
-    state["chapter_route"] = _mainline_chapter_route(chapter_index)
+    route = _mainline_chapter_route(chapter_index)
+    state["chapter_route"] = route
+    current_chapter = next((chapter for chapter in route if chapter["status"] == "current"), {})
+    state["chapter_goal"] = current_chapter.get("goal", "")
+    state["chapter_payoff"] = current_chapter.get("payoff", "")
     return state
 
 
