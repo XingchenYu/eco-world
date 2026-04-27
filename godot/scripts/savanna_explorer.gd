@@ -178,6 +178,7 @@ var current_task: Dictionary = {}
 var reward_feedback: Dictionary = {}
 var reward_feedback_timer := 0.0
 var world_task: Dictionary = {}
+var mission_intro_timer := 0.0
 var entry_request: Dictionary = {}
 var incoming_handoff: Dictionary = {}
 var handoff_task_completed := false
@@ -251,6 +252,7 @@ func _process(delta: float) -> void:
 	_update_region_event_chain(delta)
 	_update_event_focus()
 	_update_reward_feedback(delta)
+	mission_intro_timer = maxf(0.0, mission_intro_timer - delta)
 	queue_redraw()
 
 
@@ -363,6 +365,7 @@ func _apply_region(region_id: String, spawn_gate: String = "") -> void:
 	reward_feedback.clear()
 	reward_feedback_timer = 0.0
 	world_task.clear()
+	mission_intro_timer = 6.0
 	incoming_handoff.clear()
 	handoff_task_completed = false
 	region_event_chain.clear()
@@ -1569,6 +1572,8 @@ func _apply_world_task_entry_prompt() -> void:
 		"accent": Color8(210, 182, 96),
 		"action": action,
 		"reason": reason,
+		"mainline_chapter": chapter,
+		"mainline_objective": objective,
 		"target_region_id": target_region_id,
 	}
 	region_event_chain.insert(0, world_task)
@@ -4948,6 +4953,7 @@ func _draw_overlay() -> void:
 	_draw_top_banner()
 	_draw_ecology_radar()
 	_draw_mainline_banner()
+	_draw_mission_intro_card()
 	_draw_event_banner()
 	_draw_reward_feedback()
 	_draw_survey_focus_strip()
@@ -5049,6 +5055,55 @@ func _draw_mainline_banner() -> void:
 		var x := cursor_x + float(index) * 132.0
 		draw_circle(Vector2(x, y - 4.0), 4.0, Color8(132, 220, 154, 230) if done else Color8(238, 196, 96, 190))
 		_draw_text(Vector2(x + 8.0, y), _short_explorer_text(str(row.get("label", "")), 8), 10, Color8(184, 204, 198))
+
+
+func _draw_mission_intro_card() -> void:
+	if mission_intro_timer <= 0.0 or world_task.is_empty():
+		return
+	var alpha := clampf(mission_intro_timer / 0.8, 0.0, 1.0) if mission_intro_timer < 0.8 else 1.0
+	var rect := Rect2(size.x * 0.5 - 350, size.y * 0.5 - 142, 700, 284)
+	_draw_panel(rect, Color(0.035, 0.055, 0.070, 0.88 * alpha), Color(1.0, 0.80, 0.30, 0.30 * alpha), 30, 2)
+	draw_circle(rect.position + Vector2(44, 48), 18.0, Color(1.0, 0.76, 0.28, 0.18 * alpha))
+	draw_circle(rect.position + Vector2(44, 48), 7.0, Color(1.0, 0.82, 0.34, 0.90 * alpha))
+	var chapter := str(world_task.get("mainline_chapter", "区域主线"))
+	if chapter == "":
+		chapter = "区域主线"
+	var action := str(world_task.get("action", "调查"))
+	_draw_text(rect.position + Vector2(72, 40), chapter, 24, Color(0.98, 0.94, 0.78, alpha))
+	_draw_text(rect.position + Vector2(72, 70), "本轮玩法：%s线 · %s" % [action, _mainline_short_phase()], 15, Color(0.78, 0.88, 0.84, alpha))
+	var objective := str(world_task.get("mainline_objective", world_task.get("reason", "")))
+	if objective == "":
+		objective = str(world_task.get("reason", "跟随黄色目标完成本轮生态任务。"))
+	_draw_text(rect.position + Vector2(36, 112), _short_explorer_text(objective, 56), 15, Color(0.86, 0.89, 0.84, alpha))
+	var steps := _mission_intro_steps(action)
+	for index in range(steps.size()):
+		var y := rect.position.y + 152.0 + float(index) * 30.0
+		draw_circle(Vector2(rect.position.x + 48, y - 5.0), 9.0, Color(1.0, 0.78, 0.28, 0.18 * alpha))
+		_draw_text(Vector2(rect.position.x + 44, y), str(index + 1), 12, Color(0.98, 0.90, 0.62, alpha))
+		_draw_text(Vector2(rect.position.x + 68, y), str(steps[index]), 14, Color(0.82, 0.90, 0.88, alpha))
+	_draw_text(rect.position + Vector2(36, 262), "按 Tab 查看详细任务 · 按 M 返回世界图", 12, Color(0.62, 0.72, 0.74, alpha))
+
+
+func _mission_intro_steps(action: String) -> Array:
+	match action:
+		"修复":
+			return [
+				"跟着黄色目标靠近风险热点",
+				"按住 Space 完成热点采样",
+				"情报达标后去出口按 E 撤离",
+			]
+		"通道":
+			return [
+				"跟着黄色目标找到目标出口",
+				"靠近出口后按 E 完成本轮通道记录",
+				"回世界图点击回灌报告强化连接",
+			]
+		_:
+			return [
+				"跟着黄色目标记录 1 种动物",
+				"再采样 1 个生态热点",
+				"情报达标后去出口按 E 撤离",
+			]
 
 
 func _draw_reward_feedback() -> void:
