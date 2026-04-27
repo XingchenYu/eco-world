@@ -54,6 +54,7 @@ var hud_world_label: Label
 var hud_loop_label: Label
 var hud_mainline_progress_bar: ProgressBar
 var hud_mainline_rail_label: Label
+var hud_bulletin_label: Label
 var hud_metric_label: Label
 var hud_species_label: Label
 var hud_objective_label: Label
@@ -1343,6 +1344,11 @@ func _build_game_hud() -> void:
 	hud_mainline_rail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_dim(hud_mainline_rail_label, 11)
 	box.add_child(hud_mainline_rail_label)
+
+	hud_bulletin_label = Label.new()
+	hud_bulletin_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_dim(hud_bulletin_label, 11)
+	box.add_child(hud_bulletin_label)
 
 	hud_metric_label = Label.new()
 	_style_secondary_title(hud_metric_label, 12)
@@ -4127,6 +4133,8 @@ func _refresh_game_hud() -> void:
 			hud_mainline_progress_bar.visible = false
 		if hud_mainline_rail_label != null:
 			hud_mainline_rail_label.text = ""
+		if hud_bulletin_label != null:
+			hud_bulletin_label.text = ""
 		return
 
 	var health: Dictionary = active_region.get("health_state", {})
@@ -4153,6 +4161,8 @@ func _refresh_game_hud() -> void:
 		hud_mainline_progress_bar.value = clampf(mainline_ratio, 0.0, 1.0) * 100.0
 	if hud_mainline_rail_label != null:
 		hud_mainline_rail_label.text = _mainline_chapter_rail()
+	if hud_bulletin_label != null:
+		hud_bulletin_label.text = _latest_world_bulletin_line()
 	hud_metric_label.text = "多样性 %s   韧性 %s   风险 %s   关键资源 %s" % [
 		_percent_text(float(health.get("biodiversity", 0.0))),
 		_percent_text(float(health.get("resilience", 0.0))),
@@ -4485,6 +4495,17 @@ func _mainline_chapter_rail() -> String:
 		else:
 			parts.append(label)
 	return "主线路线：" + " -> ".join(parts)
+
+
+func _latest_world_bulletin_line() -> String:
+	if bulletin_cache.is_empty():
+		return "世界公告：暂无后端公告。"
+	var bulletin: Dictionary = bulletin_cache[0]
+	var title := str(bulletin.get("title", "世界公告"))
+	var body := _short_ui_text(str(bulletin.get("body", "")), 72)
+	if body == "":
+		return "世界公告：%s" % title
+	return "世界公告：%s · %s" % [title, body]
 
 
 func _localized_gameplay_reason(text: String) -> String:
