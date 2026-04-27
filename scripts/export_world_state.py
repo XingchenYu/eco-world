@@ -348,11 +348,18 @@ def _attach_expedition_reports_to_payload(payload: dict[str, Any], applied_repor
         payload.setdefault("region_details", {}).setdefault(region_id, {})["expedition_report"] = applied
     last_report = reports.get("_last", {})
     if isinstance(last_report, dict) and last_report:
+        bulletin_body = str(last_report.get("summary", "玩家撤离报告已接入生态系统。"))
+        chapter_goal = str(last_report.get("mainline_chapter_goal", ""))
+        chapter_payoff = str(last_report.get("mainline_chapter_payoff", ""))
+        if chapter_goal:
+            bulletin_body += f" 主线贡献：{chapter_goal}"
+        if chapter_payoff:
+            bulletin_body += f" 生态收益：{chapter_payoff}"
         payload.setdefault("world_bulletin", []).insert(
             0,
             {
                 "title": "撤离报告已回灌后端",
-                "body": str(last_report.get("summary", "玩家撤离报告已接入生态系统。")),
+                "body": bulletin_body,
                 "region_id": str(last_report.get("region_id", "")),
                 "action": "expedition_report",
             },
