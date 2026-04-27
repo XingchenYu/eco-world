@@ -1556,7 +1556,11 @@ func _apply_world_task_entry_prompt() -> void:
 	var action := str(entry_request.get("recommended_action", gameplay_hint.get("action", "调查")))
 	var reason := str(gameplay_hint.get("reason", "按世界图推荐目标执行本轮调查。"))
 	var target_region_id := str(gameplay_hint.get("target_region_id", ""))
+	var chapter := str(gameplay_hint.get("mainline_chapter", ""))
+	var objective := str(gameplay_hint.get("mainline_objective", ""))
 	var body := "世界图推荐：%s。%s" % [action, reason]
+	if chapter != "" and objective != "":
+		body = "%s · %s 本轮执行：%s。%s" % [chapter, objective, action, reason]
 	world_task = {
 		"title": "世界任务",
 		"body": body,

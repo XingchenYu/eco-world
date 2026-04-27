@@ -1396,6 +1396,7 @@ func _load_world_data() -> void:
 	expedition_reports = _load_expedition_reports()
 	_apply_recent_expedition_handoff()
 	selected_game_action = _recommended_game_action(detail_cache.get(active_region_id, world_data.get("active_region", {})))
+	selected_game_action = _mainline_action_for_region(active_region_id, selected_game_action)
 	_render_world()
 
 
@@ -4127,6 +4128,9 @@ func _world_next_step_line(active_region: Dictionary) -> String:
 
 
 func _recommended_region_for_world() -> Dictionary:
+	var mainline_region := _mainline_focus_region()
+	if not mainline_region.is_empty():
+		return mainline_region
 	var best := {}
 	var best_score := -9999.0
 	for region_id_variant in detail_cache.keys():
@@ -4144,6 +4148,31 @@ func _recommended_region_for_world() -> Dictionary:
 				"reason": _region_priority_reason(region),
 			}
 	return best
+
+
+func _mainline_focus_region() -> Dictionary:
+	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var mainline: Dictionary = gameplay_state.get("mainline", {})
+	var region_id := str(mainline.get("focus_region_id", ""))
+	if region_id == "" or not detail_cache.has(region_id):
+		return {}
+	var region: Dictionary = detail_cache.get(region_id, {})
+	return {
+		"region_id": region_id,
+		"name": str(mainline.get("focus_region_name", region.get("name", region_id))),
+		"score": 9999.0,
+		"reason": str(mainline.get("objective", "当前主线推荐区域")),
+		"mainline": true,
+	}
+
+
+func _mainline_action_for_region(region_id: String, fallback: String) -> String:
+	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var mainline: Dictionary = gameplay_state.get("mainline", {})
+	if str(mainline.get("focus_region_id", "")) != region_id:
+		return fallback
+	var action := str(mainline.get("recommended_action", ""))
+	return action if action in ["调查", "修复", "通道"] else fallback
 
 
 func _region_world_priority_score(region: Dictionary) -> float:
@@ -4242,6 +4271,13 @@ func _max_dictionary_value(values: Dictionary) -> float:
 
 func _world_goal_line() -> String:
 	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var mainline: Dictionary = gameplay_state.get("mainline", {})
+	if not mainline.is_empty():
+		var chapter := str(mainline.get("chapter_title", "主线目标"))
+		var focus := str(mainline.get("focus_region_name", "优先区域"))
+		var action := str(mainline.get("recommended_action", "调查"))
+		var objective := _short_ui_text(str(mainline.get("objective", "")), 38)
+		return "%s · %s线 · %s · %s" % [chapter, action, focus, objective]
 	var world_goal: Dictionary = gameplay_state.get("world_goal", {})
 	if not world_goal.is_empty() and world_goal.has("safe_count"):
 		var weakest_region: Dictionary = world_goal.get("weakest_region", {})
@@ -4704,6 +4740,7 @@ func _on_focus_recommended_region_pressed() -> void:
 		return
 	active_region_id = region_id
 	selected_game_action = _recommended_game_action(detail_cache.get(active_region_id, world_data.get("active_region", {})))
+	selected_game_action = _mainline_action_for_region(active_region_id, selected_game_action)
 	selected_campaign_stage_index = 0
 	selected_campaign_landing_target_id = ""
 	selected_schedule_route_key = "primary_route"
@@ -4766,6 +4803,11 @@ func _build_expedition_region_request(active_region: Dictionary) -> Dictionary:
 	hint["action"] = selected_game_action
 	if not hint.has("reason") or str(hint.get("reason", "")) == "":
 		hint["reason"] = _game_action_hint(selected_game_action, active_region, active_region.get("frontier_links", []))
+	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var mainline: Dictionary = gameplay_state.get("mainline", {})
+	if not mainline.is_empty():
+		hint["mainline_chapter"] = str(mainline.get("chapter_title", ""))
+		hint["mainline_objective"] = str(mainline.get("objective", ""))
 	return {
 		"schema_version": 1,
 		"created_at": Time.get_datetime_string_from_system(),
@@ -7118,6 +7160,7 @@ func _make_section(
 func _on_region_pressed(region_id: String) -> void:
 	active_region_id = region_id
 	selected_game_action = _recommended_game_action(detail_cache.get(active_region_id, world_data.get("active_region", {})))
+	selected_game_action = _mainline_action_for_region(active_region_id, selected_game_action)
 	selected_campaign_stage_index = 0
 	selected_campaign_landing_target_id = ""
 	selected_schedule_route_key = "primary_route"

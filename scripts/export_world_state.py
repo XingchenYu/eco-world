@@ -426,7 +426,135 @@ def _gameplay_region_hint(region: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _attach_gameplay_state(payload: dict[str, Any], ticks: int) -> None:
+def _report_progress_summary(reports: dict[str, Any]) -> dict[str, Any]:
+    completed_by_action = {"调查": 0, "修复": 0, "通道": 0}
+    completed_reports = 0
+    total_intel = 0
+    stable_archives = 0
+    visited_regions = 0
+    for region_id, report_value in reports.items():
+        if str(region_id).startswith("_") or not isinstance(report_value, dict):
+            continue
+        visited_regions += 1
+        action = str(report_value.get("world_task_action", ""))
+        completed = bool(report_value.get("world_task_completed", False))
+        if completed:
+            completed_reports += 1
+            if action in completed_by_action:
+                completed_by_action[action] += 1
+        total_intel += max(0, int(report_value.get("cumulative_intel", report_value.get("intel", 0))))
+        if str(report_value.get("archive_tier", "")) in ["熟悉档案", "定型档案"]:
+            stable_archives += 1
+    return {
+        "visited_regions": visited_regions,
+        "completed_reports": completed_reports,
+        "completed_by_action": completed_by_action,
+        "total_intel": total_intel,
+        "stable_archives": stable_archives,
+    }
+
+
+def _weakest_corridor_region(regions: dict[str, Any]) -> dict[str, Any]:
+    weakest = {"id": "", "name": "未知区域", "strength": 1.0, "target_region_id": "", "target_name": ""}
+    for region_id, region_value in regions.items():
+        if not isinstance(region_value, dict):
+            continue
+        for link in region_value.get("frontier_links", []):
+            if not isinstance(link, dict):
+                continue
+            strength = float(link.get("strength", 1.0))
+            if strength < float(weakest["strength"]):
+                weakest = {
+                    "id": str(region_id),
+                    "name": str(region_value.get("name", region_id)),
+                    "strength": round(strength, 4),
+                    "target_region_id": str(link.get("target_region_id", "")),
+                    "target_name": str(link.get("target_name", "")),
+                }
+    return weakest
+
+
+def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports: dict[str, Any]) -> dict[str, Any]:
+    progress = _report_progress_summary(reports)
+    completed_by_action = progress["completed_by_action"]
+    weakest_region = world_goal.get("weakest_region", {})
+    riskiest_region = world_goal.get("riskiest_region", {})
+    corridor_region = _weakest_corridor_region(regions)
+    safe_count = int(world_goal.get("safe_count", 0))
+    total_regions = int(world_goal.get("total_regions", 0))
+    weak_count = int(world_goal.get("weak_count", max(0, total_regions - safe_count)))
+    risk_value = float(riskiest_region.get("risk", 0.0)) if isinstance(riskiest_region, dict) else 0.0
+
+    if total_regions > 0 and safe_count >= total_regions:
+        return {
+            "chapter_index": 5,
+            "chapter_title": "第五章：生态复苏完成",
+            "objective": "全部生态区已达安全线，继续轮换调查来维持多样性和通道稳定。",
+            "recommended_action": "调查",
+            "focus_region_id": str(weakest_region.get("id", "")),
+            "focus_region_name": str(weakest_region.get("name", "稳定区域")),
+            "progress": progress,
+            "complete": True,
+        }
+    if int(progress["completed_reports"]) <= 0:
+        return {
+            "chapter_index": 1,
+            "chapter_title": "第一章：建立生态档案",
+            "objective": "完成任意优先区的调查线：记录动物、采样热点、撤离并回灌报告。",
+            "recommended_action": "调查",
+            "focus_region_id": str(weakest_region.get("id", "")),
+            "focus_region_name": str(weakest_region.get("name", "优先区域")),
+            "progress": progress,
+            "complete": False,
+        }
+    if risk_value >= 0.55 and int(completed_by_action.get("修复", 0)) <= 0:
+        return {
+            "chapter_index": 2,
+            "chapter_title": "第二章：压低最高风险",
+            "objective": f"进入{riskiest_region.get('name', '最高风险区')}执行修复线，采样热点后撤离回灌。",
+            "recommended_action": "修复",
+            "focus_region_id": str(riskiest_region.get("id", "")),
+            "focus_region_name": str(riskiest_region.get("name", "最高风险区")),
+            "progress": progress,
+            "complete": False,
+        }
+    if corridor_region["id"] and float(corridor_region["strength"]) < 0.80 and int(completed_by_action.get("通道", 0)) <= 0:
+        return {
+            "chapter_index": 3,
+            "chapter_title": "第三章：打通生态走廊",
+            "objective": f"从{corridor_region['name']}走通道线，强化通往{corridor_region['target_name'] or '相邻区域'}的连接。",
+            "recommended_action": "通道",
+            "focus_region_id": str(corridor_region["id"]),
+            "focus_region_name": str(corridor_region["name"]),
+            "target_region_id": str(corridor_region["target_region_id"]),
+            "target_region_name": str(corridor_region["target_name"]),
+            "progress": progress,
+            "complete": False,
+        }
+    if weak_count > 0:
+        return {
+            "chapter_index": 4,
+            "chapter_title": "第四章：扩展多样性网络",
+            "objective": f"继续轮换薄弱区，优先让{weakest_region.get('name', '薄弱区')}达到多样性和韧性安全线。",
+            "recommended_action": "调查",
+            "focus_region_id": str(weakest_region.get("id", "")),
+            "focus_region_name": str(weakest_region.get("name", "薄弱区")),
+            "progress": progress,
+            "complete": False,
+        }
+    return {
+        "chapter_index": 4,
+        "chapter_title": "第四章：巩固生态网络",
+        "objective": "继续补调查和修复，保证安全区域不掉回风险线以下。",
+        "recommended_action": "调查",
+        "focus_region_id": str(weakest_region.get("id", "")),
+        "focus_region_name": str(weakest_region.get("name", "薄弱区")),
+        "progress": progress,
+        "complete": False,
+    }
+
+
+def _attach_gameplay_state(payload: dict[str, Any], ticks: int, reports: dict[str, Any]) -> None:
     regions = payload.get("region_details", {})
     if not isinstance(regions, dict) or not regions:
         return
@@ -476,9 +604,11 @@ def _attach_gameplay_state(payload: dict[str, Any], ticks: int) -> None:
             f"最高风险 {riskiest_region['name']} {float(riskiest_region['risk']):.0%}。"
         ),
     }
+    mainline = _mainline_state(regions, world_goal, reports)
     gameplay_state = {
         "turn_ticks": ticks,
         "world_goal": world_goal,
+        "mainline": mainline,
         "region_recommendations": recommendations,
     }
     payload["gameplay_state"] = gameplay_state
@@ -509,7 +639,7 @@ def main() -> None:
     payload = build_world_ui_payload(world)
     _attach_strategy_to_payload(payload, applied_intent, intent)
     _attach_expedition_reports_to_payload(payload, applied_reports, reports)
-    _attach_gameplay_state(payload, ticks)
+    _attach_gameplay_state(payload, ticks, reports)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as handle:
