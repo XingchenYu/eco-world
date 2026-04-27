@@ -474,6 +474,41 @@ def _weakest_corridor_region(regions: dict[str, Any]) -> dict[str, Any]:
     return weakest
 
 
+def _finish_mainline_state(
+    state: dict[str, Any],
+    progress: dict[str, Any],
+    safe_count: int,
+    total_regions: int,
+) -> dict[str, Any]:
+    completed_by_action = progress.get("completed_by_action", {})
+    chapter_index = int(state.get("chapter_index", 1))
+    if chapter_index == 1:
+        done = min(1, int(progress.get("completed_reports", 0)))
+        state["progress_label"] = f"撤离报告回灌 {done}/1"
+        state["progress_ratio"] = done / 1.0
+        state["next_unlock"] = "回灌第一份报告后，主线会转入风险修复或通道建设。"
+    elif chapter_index == 2:
+        done = min(1, int(completed_by_action.get("修复", 0)))
+        state["progress_label"] = f"修复线完成 {done}/1"
+        state["progress_ratio"] = done / 1.0
+        state["next_unlock"] = "完成修复线后，主线会检查是否需要打通生态走廊。"
+    elif chapter_index == 3:
+        done = min(1, int(completed_by_action.get("通道", 0)))
+        state["progress_label"] = f"通道线完成 {done}/1"
+        state["progress_ratio"] = done / 1.0
+        state["next_unlock"] = "完成通道线后，主线会进入多样性网络扩展。"
+    elif chapter_index == 5:
+        state["progress_label"] = f"安全生态区 {safe_count}/{total_regions}"
+        state["progress_ratio"] = 1.0
+        state["next_unlock"] = "主线已完成，后续目标是维持生态稳定。"
+    else:
+        ratio = (safe_count / total_regions) if total_regions else 0.0
+        state["progress_label"] = f"安全生态区 {safe_count}/{total_regions}"
+        state["progress_ratio"] = round(ratio, 4)
+        state["next_unlock"] = "让所有生态区达到安全线后，主线进入复苏完成态。"
+    return state
+
+
 def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports: dict[str, Any]) -> dict[str, Any]:
     progress = _report_progress_summary(reports)
     completed_by_action = progress["completed_by_action"]
@@ -486,7 +521,7 @@ def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports
     risk_value = float(riskiest_region.get("risk", 0.0)) if isinstance(riskiest_region, dict) else 0.0
 
     if total_regions > 0 and safe_count >= total_regions:
-        return {
+        return _finish_mainline_state({
             "chapter_index": 5,
             "chapter_title": "第五章：生态复苏完成",
             "objective": "全部生态区已达安全线，继续轮换调查来维持多样性和通道稳定。",
@@ -495,9 +530,9 @@ def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports
             "focus_region_name": str(weakest_region.get("name", "稳定区域")),
             "progress": progress,
             "complete": True,
-        }
+        }, progress, safe_count, total_regions)
     if int(progress["completed_reports"]) <= 0:
-        return {
+        return _finish_mainline_state({
             "chapter_index": 1,
             "chapter_title": "第一章：建立生态档案",
             "objective": "完成任意优先区的调查线：记录动物、采样热点、撤离并回灌报告。",
@@ -506,9 +541,9 @@ def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports
             "focus_region_name": str(weakest_region.get("name", "优先区域")),
             "progress": progress,
             "complete": False,
-        }
+        }, progress, safe_count, total_regions)
     if risk_value >= 0.55 and int(completed_by_action.get("修复", 0)) <= 0:
-        return {
+        return _finish_mainline_state({
             "chapter_index": 2,
             "chapter_title": "第二章：压低最高风险",
             "objective": f"进入{riskiest_region.get('name', '最高风险区')}执行修复线，采样热点后撤离回灌。",
@@ -517,9 +552,9 @@ def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports
             "focus_region_name": str(riskiest_region.get("name", "最高风险区")),
             "progress": progress,
             "complete": False,
-        }
+        }, progress, safe_count, total_regions)
     if corridor_region["id"] and float(corridor_region["strength"]) < 0.80 and int(completed_by_action.get("通道", 0)) <= 0:
-        return {
+        return _finish_mainline_state({
             "chapter_index": 3,
             "chapter_title": "第三章：打通生态走廊",
             "objective": f"从{corridor_region['name']}走通道线，强化通往{corridor_region['target_name'] or '相邻区域'}的连接。",
@@ -530,9 +565,9 @@ def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports
             "target_region_name": str(corridor_region["target_name"]),
             "progress": progress,
             "complete": False,
-        }
+        }, progress, safe_count, total_regions)
     if weak_count > 0:
-        return {
+        return _finish_mainline_state({
             "chapter_index": 4,
             "chapter_title": "第四章：扩展多样性网络",
             "objective": f"继续轮换薄弱区，优先让{weakest_region.get('name', '薄弱区')}达到多样性和韧性安全线。",
@@ -541,8 +576,8 @@ def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports
             "focus_region_name": str(weakest_region.get("name", "薄弱区")),
             "progress": progress,
             "complete": False,
-        }
-    return {
+        }, progress, safe_count, total_regions)
+    return _finish_mainline_state({
         "chapter_index": 4,
         "chapter_title": "第四章：巩固生态网络",
         "objective": "继续补调查和修复，保证安全区域不掉回风险线以下。",
@@ -551,7 +586,7 @@ def _mainline_state(regions: dict[str, Any], world_goal: dict[str, Any], reports
         "focus_region_name": str(weakest_region.get("name", "薄弱区")),
         "progress": progress,
         "complete": False,
-    }
+    }, progress, safe_count, total_regions)
 
 
 def _attach_gameplay_state(payload: dict[str, Any], ticks: int, reports: dict[str, Any]) -> None:

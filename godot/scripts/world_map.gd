@@ -4056,7 +4056,8 @@ func _refresh_game_hud() -> void:
 	else:
 		hud_summary_label.text = _region_plain_summary(active_region)
 		hud_world_label.text = _world_goal_line()
-		hud_loop_label.text = _world_next_step_line(active_region)
+		var progress_line := _mainline_progress_line()
+		hud_loop_label.text = "%s\n%s" % [progress_line, _world_next_step_line(active_region)] if progress_line != "" else _world_next_step_line(active_region)
 	hud_metric_label.text = "多样性 %s   韧性 %s   风险 %s   关键资源 %s" % [
 		_percent_text(float(health.get("biodiversity", 0.0))),
 		_percent_text(float(health.get("resilience", 0.0))),
@@ -4327,6 +4328,20 @@ func _world_goal_line() -> String:
 		worst_name,
 		_percent_text(max(worst_risk, 0.0)),
 	]
+
+
+func _mainline_progress_line() -> String:
+	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var mainline: Dictionary = gameplay_state.get("mainline", {})
+	if mainline.is_empty():
+		return ""
+	var progress_label := str(mainline.get("progress_label", ""))
+	var next_unlock := str(mainline.get("next_unlock", ""))
+	if progress_label == "":
+		return ""
+	if next_unlock != "":
+		return "主线进度：%s · %s" % [progress_label, next_unlock]
+	return "主线进度：%s" % progress_label
 
 
 func _localized_gameplay_reason(text: String) -> String:
