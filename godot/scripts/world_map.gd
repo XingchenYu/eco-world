@@ -56,6 +56,10 @@ var hud_metric_label: Label
 var hud_species_label: Label
 var hud_objective_label: Label
 var hud_action_label: Label
+var mainline_result_card: PanelContainer
+var mainline_result_title_label: Label
+var mainline_result_body_label: Label
+var mainline_result_next_label: Label
 var action_buttons: Dictionary = {}
 var focus_recommended_button: Button
 var apply_turn_button: Button
@@ -1265,6 +1269,7 @@ func _build_ui() -> void:
 	add_child(refresh_timer)
 
 	_build_game_hud()
+	_build_mainline_result_card()
 
 
 func _build_game_hud() -> void:
@@ -1371,6 +1376,56 @@ func _build_game_hud() -> void:
 	hud_action_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_dim(hud_action_label, 12)
 	box.add_child(hud_action_label)
+
+
+func _build_mainline_result_card() -> void:
+	mainline_result_card = PanelContainer.new()
+	mainline_result_card.position = Vector2(580, 28)
+	mainline_result_card.custom_minimum_size = Vector2(430, 0)
+	mainline_result_card.z_index = 42
+	mainline_result_card.visible = false
+	mainline_result_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.035, 0.060, 0.055, 0.84)
+	style.border_color = Color(0.96, 0.78, 0.28, 0.46)
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 16
+	style.corner_radius_top_right = 16
+	style.corner_radius_bottom_left = 16
+	style.corner_radius_bottom_right = 16
+	style.content_margin_left = 16
+	style.content_margin_top = 12
+	style.content_margin_right = 16
+	style.content_margin_bottom = 12
+	mainline_result_card.add_theme_stylebox_override("panel", style)
+	add_child(mainline_result_card)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 7)
+	mainline_result_card.add_child(box)
+
+	mainline_result_title_label = Label.new()
+	_style_primary_title(mainline_result_title_label, 18)
+	mainline_result_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(mainline_result_title_label)
+
+	mainline_result_body_label = Label.new()
+	_style_body(mainline_result_body_label, 13)
+	mainline_result_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(mainline_result_body_label)
+
+	mainline_result_next_label = Label.new()
+	_style_dim(mainline_result_next_label, 12)
+	mainline_result_next_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(mainline_result_next_label)
+
+	var dismiss_button := Button.new()
+	dismiss_button.text = "继续主线"
+	dismiss_button.custom_minimum_size = Vector2(120, 34)
+	dismiss_button.pressed.connect(func() -> void:
+		mainline_result_card.visible = false
+	)
+	box.add_child(dismiss_button)
 
 
 func _load_world_data() -> void:
@@ -4544,6 +4599,59 @@ func _mainline_transition_feedback(last_report: Dictionary) -> String:
 	return ""
 
 
+func _show_mainline_result_card() -> void:
+	if mainline_result_card == null:
+		return
+	var payload := _mainline_result_payload()
+	if payload.is_empty():
+		mainline_result_card.visible = false
+		return
+	mainline_result_title_label.text = str(payload.get("title", "主线回灌完成"))
+	mainline_result_body_label.text = str(payload.get("body", "撤离报告已写回后端生态系统。"))
+	mainline_result_next_label.text = str(payload.get("next", "点击开始主线进入下一轮。"))
+	mainline_result_card.visible = true
+
+
+func _mainline_result_payload() -> Dictionary:
+	var reports: Dictionary = world_data.get("expedition_reports", {})
+	var last_report: Dictionary = reports.get("last", {})
+	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var mainline: Dictionary = gameplay_state.get("mainline", {})
+	if last_report.is_empty() or mainline.is_empty():
+		return {}
+	var previous_chapter := str(last_report.get("mainline_chapter", ""))
+	var current_chapter := str(mainline.get("chapter_title", ""))
+	var action := str(last_report.get("world_task_action", "调查"))
+	var task_state := "完成" if bool(last_report.get("world_task_completed", false)) else "未完成"
+	var region_name := str(last_report.get("region_name", "刚探索的区域"))
+	var intel := int(last_report.get("intel", last_report.get("cumulative_intel", 0)))
+	var focus := str(mainline.get("focus_region_name", "下一片区域"))
+	var next_action := str(mainline.get("recommended_action", "调查"))
+	var objective := _short_ui_text(str(mainline.get("objective", "继续推进生态复苏主线。")), 62)
+	var progress_label := str(mainline.get("progress_label", ""))
+	var next_unlock := _short_ui_text(str(mainline.get("next_unlock", "")), 56)
+	var title := "主线回灌完成"
+	var body := "%s · %s线%s · 情报 %d 已写回后端生态系统。" % [
+		region_name,
+		action,
+		task_state,
+		intel,
+	]
+	if previous_chapter != "" and current_chapter != "" and previous_chapter != current_chapter:
+		title = "章节推进"
+		body = "%s -> %s\n%s" % [previous_chapter, current_chapter, body]
+	var next := "下一轮：去%s，完成%s线。%s" % [focus, next_action, objective]
+	if progress_label != "":
+		next += "\n主线进度：%s" % progress_label
+	if next_unlock != "":
+		next += " · %s" % next_unlock
+	return {
+		"title": title,
+		"body": body,
+		"next": next,
+	}
+
+
 func _applied_expedition_effect_text(action: String, applied: Dictionary) -> String:
 	match action:
 		"修复":
@@ -4812,6 +4920,8 @@ func _on_apply_turn_pressed() -> void:
 		_clear_strategy_intent_files()
 		_load_world_data()
 		pending_strategy_message = _latest_applied_expedition_feedback() if had_pending_report else "策略已写入世界状态，现在可以点击“开始主线”进入区域执行。"
+		if had_pending_report:
+			_show_mainline_result_card()
 		_refresh_game_hud()
 	else:
 		pending_strategy_message = "后端应用失败：%s" % _short_command_output(output)
