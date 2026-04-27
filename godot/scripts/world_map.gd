@@ -4837,13 +4837,19 @@ func _on_enter_region_pressed() -> void:
 func _build_expedition_region_request(active_region: Dictionary) -> Dictionary:
 	var hint: Dictionary = active_region.get("gameplay_hint", {}).duplicate(true)
 	hint["action"] = selected_game_action
-	if not hint.has("reason") or str(hint.get("reason", "")) == "":
-		hint["reason"] = _game_action_hint(selected_game_action, active_region, active_region.get("frontier_links", []))
 	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
 	var mainline: Dictionary = gameplay_state.get("mainline", {})
-	if not mainline.is_empty():
+	if _mainline_applies_to_region(active_region_id, mainline):
+		hint["action"] = selected_game_action
+		hint["action_key"] = _strategy_action_key(selected_game_action)
+		hint["reason"] = str(mainline.get("objective", _game_action_hint(selected_game_action, active_region, active_region.get("frontier_links", []))))
 		hint["mainline_chapter"] = str(mainline.get("chapter_title", ""))
 		hint["mainline_objective"] = str(mainline.get("objective", ""))
+		if str(mainline.get("target_region_id", "")) != "":
+			hint["target_region_id"] = str(mainline.get("target_region_id", ""))
+			hint["target_region_name"] = str(mainline.get("target_region_name", ""))
+	elif not hint.has("reason") or str(hint.get("reason", "")) == "":
+		hint["reason"] = _game_action_hint(selected_game_action, active_region, active_region.get("frontier_links", []))
 	return {
 		"schema_version": 1,
 		"created_at": Time.get_datetime_string_from_system(),
@@ -4852,6 +4858,10 @@ func _build_expedition_region_request(active_region: Dictionary) -> Dictionary:
 		"recommended_action": selected_game_action,
 		"gameplay_hint": hint,
 	}
+
+
+func _mainline_applies_to_region(region_id: String, mainline: Dictionary) -> bool:
+	return not mainline.is_empty() and str(mainline.get("focus_region_id", "")) == region_id
 
 
 func _write_expedition_region_request(payload: Dictionary) -> void:
