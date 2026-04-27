@@ -2565,6 +2565,8 @@ func _write_expedition_report(zone: Dictionary, summary: String) -> void:
 		"world_task_completed": _world_task_completed(zone),
 		"mainline_chapter": str(request_hint.get("mainline_chapter", "")),
 		"mainline_objective": str(request_hint.get("mainline_objective", "")),
+		"mainline_chapter_goal": str(request_hint.get("mainline_chapter_goal", "")),
+		"mainline_chapter_payoff": str(request_hint.get("mainline_chapter_payoff", "")),
 		"chain_focus": _chain_focus_text(),
 		"event_window": _active_region_event_tag(),
 		"event_window_title": str(_active_region_event().get("title", "当前窗口")),
