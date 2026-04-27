@@ -4520,7 +4520,28 @@ func _latest_applied_expedition_feedback() -> String:
 		archive_tier,
 		channel,
 		_applied_expedition_effect_text(action, applied),
-	]
+	] + " " + _mainline_transition_feedback(last_report)
+
+
+func _mainline_transition_feedback(last_report: Dictionary) -> String:
+	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var mainline: Dictionary = gameplay_state.get("mainline", {})
+	if mainline.is_empty():
+		return ""
+	var previous_chapter := str(last_report.get("mainline_chapter", ""))
+	var current_chapter := str(mainline.get("chapter_title", ""))
+	var current_objective := str(mainline.get("objective", ""))
+	if previous_chapter != "" and current_chapter != "" and previous_chapter != current_chapter:
+		return "主线推进：%s -> %s。下一轮：%s" % [
+			previous_chapter,
+			current_chapter,
+			_short_ui_text(current_objective, 44),
+		]
+	var progress_label := str(mainline.get("progress_label", ""))
+	var next_unlock := str(mainline.get("next_unlock", ""))
+	if progress_label != "":
+		return "主线进度：%s。%s" % [progress_label, _short_ui_text(next_unlock, 44)]
+	return ""
 
 
 func _applied_expedition_effect_text(action: String, applied: Dictionary) -> String:

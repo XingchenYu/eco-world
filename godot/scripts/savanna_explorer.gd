@@ -2512,6 +2512,7 @@ func _write_expedition_report(zone: Dictionary, summary: String) -> void:
 	var handoff_source_phase := str(incoming_handoff.get("phase", ""))
 	var created_at := Time.get_datetime_string_from_system()
 	var report_id := "%s:%s:%d" % [current_region_id, created_at, int(previous.get("visit_count", 0)) + 1]
+	var request_hint: Dictionary = entry_request.get("gameplay_hint", {})
 	var record := {
 		"report_id": report_id,
 		"created_at": created_at,
@@ -2531,6 +2532,8 @@ func _write_expedition_report(zone: Dictionary, summary: String) -> void:
 		"world_task_reason": str(world_task.get("reason", "")),
 		"world_task_target_region_id": str(world_task.get("target_region_id", "")),
 		"world_task_completed": _world_task_completed(zone),
+		"mainline_chapter": str(request_hint.get("mainline_chapter", "")),
+		"mainline_objective": str(request_hint.get("mainline_objective", "")),
 		"chain_focus": _chain_focus_text(),
 		"event_window": _active_region_event_tag(),
 		"event_window_title": str(_active_region_event().get("title", "当前窗口")),
