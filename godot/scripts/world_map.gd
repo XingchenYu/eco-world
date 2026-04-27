@@ -52,6 +52,7 @@ var hud_region_label: Label
 var hud_summary_label: Label
 var hud_world_label: Label
 var hud_loop_label: Label
+var hud_mainline_progress_bar: ProgressBar
 var hud_metric_label: Label
 var hud_species_label: Label
 var hud_objective_label: Label
@@ -60,6 +61,7 @@ var mainline_result_card: PanelContainer
 var mainline_result_title_label: Label
 var mainline_result_body_label: Label
 var mainline_result_next_label: Label
+var mainline_result_progress_bar: ProgressBar
 var action_buttons: Dictionary = {}
 var focus_recommended_button: Button
 var apply_turn_button: Button
@@ -1327,6 +1329,14 @@ func _build_game_hud() -> void:
 	_style_body(hud_loop_label, 12)
 	box.add_child(hud_loop_label)
 
+	hud_mainline_progress_bar = ProgressBar.new()
+	hud_mainline_progress_bar.min_value = 0.0
+	hud_mainline_progress_bar.max_value = 100.0
+	hud_mainline_progress_bar.value = 0.0
+	hud_mainline_progress_bar.show_percentage = false
+	hud_mainline_progress_bar.custom_minimum_size = Vector2(0, 8)
+	box.add_child(hud_mainline_progress_bar)
+
 	hud_metric_label = Label.new()
 	_style_secondary_title(hud_metric_label, 12)
 	box.add_child(hud_metric_label)
@@ -1418,6 +1428,14 @@ func _build_mainline_result_card() -> void:
 	_style_dim(mainline_result_next_label, 12)
 	mainline_result_next_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(mainline_result_next_label)
+
+	mainline_result_progress_bar = ProgressBar.new()
+	mainline_result_progress_bar.min_value = 0.0
+	mainline_result_progress_bar.max_value = 100.0
+	mainline_result_progress_bar.value = 0.0
+	mainline_result_progress_bar.show_percentage = false
+	mainline_result_progress_bar.custom_minimum_size = Vector2(0, 9)
+	box.add_child(mainline_result_progress_bar)
 
 	var dismiss_button := Button.new()
 	dismiss_button.text = "继续主线"
@@ -4093,6 +4111,8 @@ func _refresh_game_hud() -> void:
 		hud_species_label.text = ""
 		hud_objective_label.text = ""
 		hud_action_label.text = ""
+		if hud_mainline_progress_bar != null:
+			hud_mainline_progress_bar.visible = false
 		return
 
 	var health: Dictionary = active_region.get("health_state", {})
@@ -4113,6 +4133,10 @@ func _refresh_game_hud() -> void:
 		hud_world_label.text = _world_goal_line()
 		var progress_line := _mainline_progress_line()
 		hud_loop_label.text = "%s\n%s" % [progress_line, _world_next_step_line(active_region)] if progress_line != "" else _world_next_step_line(active_region)
+	if hud_mainline_progress_bar != null:
+		var mainline_ratio := _mainline_progress_ratio()
+		hud_mainline_progress_bar.visible = mainline_ratio >= 0.0
+		hud_mainline_progress_bar.value = clampf(mainline_ratio, 0.0, 1.0) * 100.0
 	hud_metric_label.text = "多样性 %s   韧性 %s   风险 %s   关键资源 %s" % [
 		_percent_text(float(health.get("biodiversity", 0.0))),
 		_percent_text(float(health.get("resilience", 0.0))),
@@ -4399,6 +4423,14 @@ func _mainline_progress_line() -> String:
 	return "主线进度：%s" % progress_label
 
 
+func _mainline_progress_ratio() -> float:
+	var gameplay_state: Dictionary = world_data.get("gameplay_state", {})
+	var mainline: Dictionary = gameplay_state.get("mainline", {})
+	if mainline.is_empty() or not mainline.has("progress_ratio"):
+		return -1.0
+	return clampf(float(mainline.get("progress_ratio", 0.0)), 0.0, 1.0)
+
+
 func _localized_gameplay_reason(text: String) -> String:
 	var localized := text
 	for hazard_key in [
@@ -4609,6 +4641,8 @@ func _show_mainline_result_card() -> void:
 	mainline_result_title_label.text = str(payload.get("title", "主线回灌完成"))
 	mainline_result_body_label.text = str(payload.get("body", "撤离报告已写回后端生态系统。"))
 	mainline_result_next_label.text = str(payload.get("next", "点击开始主线进入下一轮。"))
+	if mainline_result_progress_bar != null:
+		mainline_result_progress_bar.value = clampf(float(payload.get("progress_ratio", 0.0)), 0.0, 1.0) * 100.0
 	mainline_result_card.visible = true
 
 
@@ -4649,6 +4683,7 @@ func _mainline_result_payload() -> Dictionary:
 		"title": title,
 		"body": body,
 		"next": next,
+		"progress_ratio": float(mainline.get("progress_ratio", 0.0)),
 	}
 
 
