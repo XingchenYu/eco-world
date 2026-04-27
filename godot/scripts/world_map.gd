@@ -5064,6 +5064,8 @@ func _build_expedition_region_request(active_region: Dictionary) -> Dictionary:
 		hint["reason"] = str(mainline.get("objective", _game_action_hint(selected_game_action, active_region, active_region.get("frontier_links", []))))
 		hint["mainline_chapter"] = str(mainline.get("chapter_title", ""))
 		hint["mainline_objective"] = str(mainline.get("objective", ""))
+		hint["mainline_chapter_goal"] = str(mainline.get("chapter_goal", ""))
+		hint["mainline_chapter_payoff"] = str(mainline.get("chapter_payoff", ""))
 		if str(mainline.get("target_region_id", "")) != "":
 			hint["target_region_id"] = str(mainline.get("target_region_id", ""))
 			hint["target_region_name"] = str(mainline.get("target_region_name", ""))

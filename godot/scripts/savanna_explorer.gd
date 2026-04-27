@@ -1563,6 +1563,8 @@ func _apply_world_task_entry_prompt() -> void:
 	var target_region_id := str(gameplay_hint.get("target_region_id", ""))
 	var chapter := str(gameplay_hint.get("mainline_chapter", ""))
 	var objective := str(gameplay_hint.get("mainline_objective", ""))
+	var chapter_goal := str(gameplay_hint.get("mainline_chapter_goal", ""))
+	var chapter_payoff := str(gameplay_hint.get("mainline_chapter_payoff", ""))
 	var body := "世界图推荐：%s。%s" % [action, reason]
 	if chapter != "" and objective != "":
 		body = "%s · %s 本轮执行：%s。%s" % [chapter, objective, action, reason]
@@ -1574,6 +1576,8 @@ func _apply_world_task_entry_prompt() -> void:
 		"reason": reason,
 		"mainline_chapter": chapter,
 		"mainline_objective": objective,
+		"mainline_chapter_goal": chapter_goal,
+		"mainline_chapter_payoff": chapter_payoff,
 		"target_region_id": target_region_id,
 	}
 	region_event_chain.insert(0, world_task)
@@ -5075,6 +5079,9 @@ func _draw_mission_intro_card() -> void:
 	if objective == "":
 		objective = str(world_task.get("reason", "跟随黄色目标完成本轮生态任务。"))
 	_draw_text(rect.position + Vector2(36, 112), _short_explorer_text(objective, 56), 15, Color(0.86, 0.89, 0.84, alpha))
+	var payoff := str(world_task.get("mainline_chapter_payoff", ""))
+	if payoff != "":
+		_draw_text(rect.position + Vector2(36, 134), "生态意义：%s" % _short_explorer_text(payoff, 48), 12, Color(0.70, 0.86, 0.74, alpha))
 	var steps := _mission_intro_steps(action)
 	for index in range(steps.size()):
 		var y := rect.position.y + 152.0 + float(index) * 30.0
