@@ -4069,7 +4069,7 @@ func _refresh_game_hud() -> void:
 		hud_objective_label.text = _pending_expedition_report_objective_line()
 	else:
 		hud_objective_label.text = "%s\n%s" % [
-			_world_mainline_plan_line(active_region, frontier_links),
+			_world_mainline_enter_line(selected_game_action, active_region, frontier_links),
 			_world_mainline_controls_line(selected_game_action, active_region, frontier_links),
 		]
 	_sync_action_button_state()
@@ -4122,10 +4122,10 @@ func _world_next_step_line(active_region: Dictionary) -> String:
 	var region_id := str(recommendation.get("region_id", ""))
 	var name := str(recommendation.get("name", region_id))
 	var reason := _localized_gameplay_reason(str(recommendation.get("reason", "")))
-	var prefix := "建议先去：%s" % name
+	var prefix := "主线推荐区：%s" % name
 	if region_id == active_region_id:
-		prefix = "当前选中就是优先区：%s" % name
-	return "%s。原因：%s。下一步：点击“开始主线”进入。" % [prefix, reason]
+		prefix = "当前就是主线区：%s" % name
+	return "%s。原因：%s。点击“开始主线”会自动进入这个区域。" % [prefix, reason]
 
 
 func _recommended_region_for_world() -> Dictionary:
@@ -4277,8 +4277,8 @@ func _world_goal_line() -> String:
 		var chapter := str(mainline.get("chapter_title", "主线目标"))
 		var focus := str(mainline.get("focus_region_name", "优先区域"))
 		var action := str(mainline.get("recommended_action", "调查"))
-		var objective := _short_ui_text(str(mainline.get("objective", "")), 38)
-		return "%s · %s线 · %s · %s" % [chapter, action, focus, objective]
+		var objective := _short_ui_text(str(mainline.get("objective", "")), 48)
+		return "主线：%s\n目标：去%s，完成%s线。\n%s" % [chapter, focus, action, objective]
 	var world_goal: Dictionary = gameplay_state.get("world_goal", {})
 	if not world_goal.is_empty() and world_goal.has("safe_count"):
 		var weakest_region: Dictionary = world_goal.get("weakest_region", {})
@@ -4694,18 +4694,18 @@ func _world_mainline_title(action_name: String) -> String:
 func _world_mainline_enter_line(action_name: String, region: Dictionary, frontier_links: Array) -> String:
 	match action_name:
 		"修复":
-			return "进入后：跟黄色目标到热点，按住 Space 采样，情报够了去出口按 E。"
+			return "本轮玩法：修复线。进区后跟黄色目标到风险热点，按住 Space 采样；情报够了去出口按 E 撤离。"
 		"通道":
 			if frontier_links.is_empty():
-				return "进入后：先调查动物和热点，解锁相邻区域后再走通道线。"
+				return "本轮玩法：通道线。当前区没有已知相邻通道，先记录动物和热点，撤离回灌来解锁连接。"
 			var link: Dictionary = frontier_links[0]
-			return "进入后：跟黄色目标去通往%s的出口，到达后按 E 撤离。" % str(link.get("target_name", "下一片区域"))
+			return "本轮玩法：通道线。进区后跟黄色目标去通往%s的出口，到达后按 E 撤离。" % str(link.get("target_name", "下一片区域"))
 		_:
-			return "进入后：跟黄色目标记录 1 种动物、采样 1 个热点，情报够了去出口按 E。"
+			return "本轮玩法：调查线。进区后跟黄色目标记录 1 种动物、采样 1 个热点；情报够了去出口按 E 撤离。"
 
 
 func _world_mainline_controls_line(action_name: String, region: Dictionary, frontier_links: Array) -> String:
-	return "操作：点击“开始主线” -> WASD 移动 -> Space 记录/采样 -> E 撤离 -> 回世界图点“回灌报告”。"
+	return "怎么玩：1. 点“开始主线”  2. WASD 移动  3. 按住 Space 记录/采样  4. 出口按 E 撤离  5. 回世界图点“回灌报告”。"
 
 
 func _sync_action_button_state() -> void:
@@ -4713,6 +4713,7 @@ func _sync_action_button_state() -> void:
 	for action_name in action_buttons.keys():
 		var button: Button = action_buttons[action_name]
 		var is_selected := str(action_name) == selected_game_action
+		button.visible = false
 		button.button_pressed = is_selected
 		button.disabled = report_pending
 		button.text = {
@@ -4728,10 +4729,15 @@ func _sync_action_button_state() -> void:
 func _sync_primary_button_state(active_region: Dictionary) -> void:
 	var report_pending := _latest_expedition_report_pending()
 	var strategy_pending := _strategy_intent_pending()
+	var recommendation := _recommended_region_for_world()
+	var recommended_region_id := str(recommendation.get("region_id", ""))
 	if focus_recommended_button != null:
+		focus_recommended_button.visible = not report_pending and recommended_region_id != "" and recommended_region_id != active_region_id
+		focus_recommended_button.text = "查看主线区"
 		focus_recommended_button.disabled = report_pending
 		focus_recommended_button.tooltip_text = "先回灌上一轮撤离报告，再切换建议区。" if report_pending else "切到当前全局优先区域。"
 	if apply_turn_button != null:
+		apply_turn_button.visible = report_pending or strategy_pending
 		apply_turn_button.text = "回灌报告" if report_pending else "推进模拟"
 		apply_turn_button.disabled = not report_pending and not strategy_pending
 		if report_pending:
@@ -4741,10 +4747,10 @@ func _sync_primary_button_state(active_region: Dictionary) -> void:
 		else:
 			apply_turn_button.tooltip_text = "先选择一条主线；主要玩法请点击“开始主线”。"
 	if enter_region_button != null:
-		var region_name := str(active_region.get("name", "区域"))
+		var region_name := str(recommendation.get("name", active_region.get("name", "区域")))
 		if region_name.length() > 6:
 			region_name = region_name.substr(0, 6)
-		enter_region_button.text = "开始主线"
+		enter_region_button.text = "开始主线：%s" % region_name
 		enter_region_button.disabled = report_pending
 		enter_region_button.tooltip_text = "先点击“回灌报告”，把上一轮撤离结果写回后端。" if report_pending else "进入%s，执行%s。" % [region_name, _world_mainline_title(selected_game_action)]
 
@@ -4823,6 +4829,12 @@ func _on_enter_region_pressed() -> void:
 		pending_strategy_message = "先点击“回灌报告”，把上一轮撤离结果写回后端，再进入下一片区域。"
 		_refresh_game_hud()
 		return
+	var recommendation := _recommended_region_for_world()
+	var recommended_region_id := str(recommendation.get("region_id", ""))
+	if recommended_region_id != "" and detail_cache.has(recommended_region_id):
+		active_region_id = recommended_region_id
+		selected_game_action = _recommended_game_action(detail_cache.get(active_region_id, world_data.get("active_region", {})))
+		selected_game_action = _mainline_action_for_region(active_region_id, selected_game_action)
 	var active_region: Dictionary = detail_cache.get(active_region_id, world_data.get("active_region", {}))
 	if active_region.is_empty():
 		pending_strategy_message = "当前没有可进入的生态区。"
