@@ -4458,11 +4458,13 @@ func _mainline_chapter_rail() -> String:
 		for item_variant in route:
 			var item: Dictionary = item_variant
 			var label := str(item.get("short_title", item.get("title", "")))
+			var goal := str(item.get("goal", ""))
 			match str(item.get("status", "locked")):
 				"completed":
 					route_parts.append("已完成%s" % label)
 				"current":
-					route_parts.append("当前%s" % label)
+					var current_label := "当前%s（%s）" % [label, _short_ui_text(goal, 12)] if goal != "" else "当前%s" % label
+					route_parts.append(current_label)
 				_:
 					route_parts.append(label)
 		return "主线路线：" + " -> ".join(route_parts)

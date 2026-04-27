@@ -476,15 +476,15 @@ def _weakest_corridor_region(regions: dict[str, Any]) -> dict[str, Any]:
 
 def _mainline_chapter_route(chapter_index: int) -> list[dict[str, Any]]:
     chapters = [
-        (1, "建档", "第一章：建立生态档案"),
-        (2, "修复", "第二章：压低最高风险"),
-        (3, "通道", "第三章：打通生态走廊"),
-        (4, "扩展", "第四章：扩展多样性网络"),
-        (5, "复苏", "第五章：生态复苏完成"),
+        (1, "建档", "第一章：建立生态档案", "记录动物和热点，建立第一份可回灌的生态档案"),
+        (2, "修复", "第二章：压低最高风险", "找到最高风险区，采样并降低生态压力"),
+        (3, "通道", "第三章：打通生态走廊", "强化区域连接，让物种能跨区流动"),
+        (4, "扩展", "第四章：扩展多样性网络", "轮换薄弱区，把更多生态区推到安全线"),
+        (5, "复苏", "第五章：生态复苏完成", "维持全部生态区稳定，防止系统回落"),
     ]
     current = max(1, min(5, int(chapter_index)))
     route = []
-    for index, short_title, title in chapters:
+    for index, short_title, title, goal in chapters:
         if index < current:
             status = "completed"
         elif index == current:
@@ -495,6 +495,7 @@ def _mainline_chapter_route(chapter_index: int) -> list[dict[str, Any]]:
             "index": index,
             "short_title": short_title,
             "title": title,
+            "goal": goal,
             "status": status,
         })
     return route
