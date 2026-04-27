@@ -4452,6 +4452,20 @@ func _mainline_chapter_rail() -> String:
 	var mainline: Dictionary = gameplay_state.get("mainline", {})
 	if mainline.is_empty():
 		return ""
+	var route: Array = mainline.get("chapter_route", [])
+	if not route.is_empty():
+		var route_parts: Array = []
+		for item_variant in route:
+			var item: Dictionary = item_variant
+			var label := str(item.get("short_title", item.get("title", "")))
+			match str(item.get("status", "locked")):
+				"completed":
+					route_parts.append("已完成%s" % label)
+				"current":
+					route_parts.append("当前%s" % label)
+				_:
+					route_parts.append(label)
+		return "主线路线：" + " -> ".join(route_parts)
 	var current := clampi(int(mainline.get("chapter_index", 1)), 1, 5)
 	var names := ["建档", "修复", "通道", "扩展", "复苏"]
 	var parts: Array = []

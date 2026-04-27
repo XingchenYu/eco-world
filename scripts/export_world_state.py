@@ -474,6 +474,32 @@ def _weakest_corridor_region(regions: dict[str, Any]) -> dict[str, Any]:
     return weakest
 
 
+def _mainline_chapter_route(chapter_index: int) -> list[dict[str, Any]]:
+    chapters = [
+        (1, "建档", "第一章：建立生态档案"),
+        (2, "修复", "第二章：压低最高风险"),
+        (3, "通道", "第三章：打通生态走廊"),
+        (4, "扩展", "第四章：扩展多样性网络"),
+        (5, "复苏", "第五章：生态复苏完成"),
+    ]
+    current = max(1, min(5, int(chapter_index)))
+    route = []
+    for index, short_title, title in chapters:
+        if index < current:
+            status = "completed"
+        elif index == current:
+            status = "current"
+        else:
+            status = "locked"
+        route.append({
+            "index": index,
+            "short_title": short_title,
+            "title": title,
+            "status": status,
+        })
+    return route
+
+
 def _finish_mainline_state(
     state: dict[str, Any],
     progress: dict[str, Any],
@@ -506,6 +532,7 @@ def _finish_mainline_state(
         state["progress_label"] = f"安全生态区 {safe_count}/{total_regions}"
         state["progress_ratio"] = round(ratio, 4)
         state["next_unlock"] = "让所有生态区达到安全线后，主线进入复苏完成态。"
+    state["chapter_route"] = _mainline_chapter_route(chapter_index)
     return state
 
 
