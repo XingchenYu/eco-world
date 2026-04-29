@@ -6,7 +6,8 @@ const PROJECT_REPORT_PATH := "res://data/expedition_reports.json"
 const SELECTED_REGION_PATH := "user://selected_expedition_region.json"
 const PROJECT_SELECTED_REGION_PATH := "res://data/selected_expedition_region.json"
 const WORLD_MAP_SCENE := "res://scenes/world_map.tscn"
-const WORLD_SIZE := Vector2(2800, 1700)
+const BASE_WORLD_SIZE := Vector2(2800, 1700)
+const WORLD_SIZE := Vector2(3600, 2300)
 const PLAYER_RADIUS := Vector2(18, 22)
 const DEFAULT_SPAWN := Vector2(860, 1120)
 const HOTSPOT_LAYOUT := {
@@ -394,9 +395,9 @@ func _apply_region(region_id: String, spawn_gate: String = "") -> void:
 	_ensure_world_task_request()
 	_apply_region_entry_prompt()
 	if spawn_gate != "" and GATE_SPAWNS.has(spawn_gate):
-		player_pos = _find_safe_spawn(GATE_SPAWNS[spawn_gate])
+		player_pos = _find_safe_spawn(_scale_world_point(GATE_SPAWNS[spawn_gate]))
 	else:
-		player_pos = _find_safe_spawn(DEFAULT_SPAWN)
+		player_pos = _find_safe_spawn(_scale_world_point(DEFAULT_SPAWN))
 
 
 func _build_exit_zones() -> void:
@@ -406,7 +407,7 @@ func _build_exit_zones() -> void:
 		{
 			"id": str(base_layout.get("id", "base_camp")),
 			"label": "调查营地",
-			"rect": base_layout.get("rect", Rect2()),
+			"rect": _scale_world_rect(base_layout.get("rect", Rect2())),
 			"hint": "按 E 撤离回世界图；报告会回到调查营地等待回灌",
 			"target_region_id": "",
 			"target_role": "回灌营地",
@@ -420,7 +421,7 @@ func _build_exit_zones() -> void:
 			{
 				"id": str(layout.get("id", "")),
 				"label": str(link.get("target_name", layout.get("label", "区域出口"))),
-				"rect": layout.get("rect", Rect2()),
+				"rect": _scale_world_rect(layout.get("rect", Rect2())),
 				"hint": "按 E 撤离回世界图；报告会标记通往 " + str(link.get("target_name", "下一片区域")),
 				"target_region_id": str(link.get("target_region_id", "")),
 				"target_role": str(link.get("target_role", "生态观测区")),
@@ -606,6 +607,7 @@ func _build_wildlife() -> void:
 		var behavior := _identity_behavior_for_species(species_id, category, _behavior_for_species(species_id, category))
 		var group_size := maxi(1, _group_size_for_species(species_id, category, int(entry.get("count", 0))) + _identity_group_size_bonus(species_id, category))
 		var radius := _identity_radius_for_species(category, Vector2(128 + (index % 4) * 34, 72 + (index % 3) * 28))
+		radius = Vector2(radius.x * _world_scale().x * 1.45, radius.y * _world_scale().y * 1.45)
 		var speed := _identity_speed_for_species(category, 0.16 + float((index % 5) + 1) * 0.035)
 		wildlife.append(
 			{
@@ -881,11 +883,29 @@ func _exploration_title() -> String:
 
 func _hotspot_position(hotspot_id: String) -> Vector2:
 	var layout_hotspots: Dictionary = current_region_layout.get("hotspots", HOTSPOT_LAYOUT)
-	return layout_hotspots.get(hotspot_id, HOTSPOT_LAYOUT.get(hotspot_id, WORLD_SIZE * 0.5))
+	return _scale_world_point(layout_hotspots.get(hotspot_id, HOTSPOT_LAYOUT.get(hotspot_id, BASE_WORLD_SIZE * 0.5)))
 
 
 func _active_obstacles() -> Array:
-	return current_region_layout.get("obstacles", OBSTACLE_RECTS)
+	var scaled: Array = []
+	for obstacle_variant in current_region_layout.get("obstacles", OBSTACLE_RECTS):
+		var obstacle: Dictionary = obstacle_variant
+		var copy := obstacle.duplicate(true)
+		copy["rect"] = _scale_world_rect(obstacle.get("rect", Rect2()))
+		scaled.append(copy)
+	return scaled
+
+
+func _scale_world_point(point: Vector2) -> Vector2:
+	return Vector2(point.x * WORLD_SIZE.x / BASE_WORLD_SIZE.x, point.y * WORLD_SIZE.y / BASE_WORLD_SIZE.y)
+
+
+func _scale_world_rect(rect: Rect2) -> Rect2:
+	return Rect2(_scale_world_point(rect.position), Vector2(rect.size.x * WORLD_SIZE.x / BASE_WORLD_SIZE.x, rect.size.y * WORLD_SIZE.y / BASE_WORLD_SIZE.y))
+
+
+func _world_scale() -> Vector2:
+	return Vector2(WORLD_SIZE.x / BASE_WORLD_SIZE.x, WORLD_SIZE.y / BASE_WORLD_SIZE.y)
 
 
 func _update_player(delta: float) -> void:
@@ -953,7 +973,7 @@ func _find_safe_spawn(preferred: Vector2) -> Vector2:
 		var candidate: Vector2 = preferred + offset
 		if not _is_blocked(candidate):
 			return candidate
-	return Vector2(720, 1080)
+	return _scale_world_point(Vector2(720, 1080))
 
 
 func _update_wildlife(delta: float) -> void:
@@ -981,8 +1001,8 @@ func _update_wildlife(delta: float) -> void:
 			var prey_focus := _nearest_target(current_pos, prey_positions)
 			if prey_focus != Vector2.ZERO:
 				var chase_distance := current_pos.distance_to(prey_focus)
-				var chase_burst := chase_distance < 150.0
-				target_pos = target_pos.lerp(prey_focus, 0.48 if chase_burst else 0.24)
+				var chase_burst := chase_distance < 90.0
+				target_pos = target_pos.lerp(prey_focus, 0.16 if chase_burst else 0.08)
 				var pressure_score := 1.0 / maxf(1.0, chase_distance)
 				if strongest_pressure.is_empty() or pressure_score > float(strongest_pressure.get("score", 0.0)):
 					strongest_pressure = {
@@ -998,25 +1018,19 @@ func _update_wildlife(delta: float) -> void:
 					}
 			elif herd_focus != Vector2.ZERO:
 				target_pos = target_pos.lerp(herd_focus, 0.12)
-			if player_distance < 260.0:
-				target_pos = target_pos.lerp(player_pos + player_delta.normalized() * 170.0, 0.18)
+			if player_distance < 120.0:
+				target_pos = target_pos.lerp(current_pos, 0.18)
 		elif behavior == "glide":
 			target_pos.y -= 34.0
-			if player_distance < 150.0:
-				target_pos += player_delta.normalized() * 70.0
 		elif behavior == "swim":
 			target_pos = target_pos.lerp(_hotspot_position("waterhole"), 0.30)
 		elif behavior == "heavy_roam":
 			target_pos = target_pos.lerp(_behavior_bias_target(animal, phase), 0.20)
-			if player_distance < 140.0:
-				target_pos += player_delta.normalized() * 42.0
 		else:
 			var nearest_predator := _nearest_predator_position(current_pos)
 			if nearest_predator != Vector2.ZERO and current_pos.distance_to(nearest_predator) < 240.0:
 				var flee := (current_pos - nearest_predator).normalized()
 				target_pos += flee * (180.0 if current_pos.distance_to(nearest_predator) > 150.0 else 260.0)
-			if player_distance < 70.0 and not Input.is_key_pressed(KEY_SPACE):
-				target_pos += player_delta.normalized() * 46.0
 		target_pos = _clamped_world_position(target_pos)
 		var next_pos := _move_animal_toward(current_pos, target_pos, animal, activity, delta)
 		animal["position"] = next_pos
@@ -1048,7 +1062,7 @@ func _update_wildlife(delta: float) -> void:
 			"predator": chase_predator,
 			"target": strongest_chase.get("target", Vector2.ZERO),
 		}
-		if float(strongest_chase.get("distance", 999999.0)) < 46.0:
+		if float(strongest_chase.get("distance", 999999.0)) < 20.0 and chase_focus_time > 3.2:
 			current_chase_result = {
 				"title": "追猎命中",
 				"body": "%s 成功切入草食群，群体被彻底冲散。" % str(chase_predator.get("label", "掠食者")),
@@ -1058,7 +1072,7 @@ func _update_wildlife(delta: float) -> void:
 			discovery_log.push_front("追猎命中：%s" % str(chase_predator.get("label", "掠食者")))
 			discovery_log = discovery_log.slice(0, 6)
 			chase_focus_time = 0.0
-		elif chase_focus_time > 2.8:
+		elif chase_focus_time > 8.0:
 			current_chase_result = {
 				"title": "追猎落空",
 				"body": "%s 的冲刺结束，草食群成功脱离压迫区。" % str(chase_predator.get("label", "掠食者")),
@@ -1147,7 +1161,7 @@ func _wildlife_speed_px(animal: Dictionary, activity: String) -> float:
 	var base := 74.0
 	match behavior:
 		"stalk":
-			base = 112.0
+			base = 78.0
 		"glide":
 			base = 150.0
 		"swim":
@@ -1156,7 +1170,7 @@ func _wildlife_speed_px(animal: Dictionary, activity: String) -> float:
 			base = 52.0
 	match activity:
 		"逼近", "巡猎":
-			base *= 1.32
+			base *= 1.12
 		"警觉":
 			base *= 1.42
 		"取水", "觅食", "潜伏", "停留":
@@ -1211,8 +1225,6 @@ func _apply_animal_activity_motion(animal: Dictionary, target_pos: Vector2, acti
 		"取水":
 			return target_pos.lerp(_hotspot_position("waterhole"), 0.34)
 		"警觉":
-			if player_distance < 120.0 and player_delta.length() > 0.01 and not Input.is_key_pressed(KEY_SPACE):
-				return target_pos + player_delta.normalized() * 34.0
 			return target_pos.lerp(current_pos, 0.32)
 		"逼近":
 			return current_pos.lerp(target_pos, 0.58)
@@ -1285,8 +1297,8 @@ func _update_encounter() -> void:
 	var best_score := -100000.0
 	for animal in wildlife:
 		var distance := player_pos.distance_to(animal.get("position", Vector2.ZERO))
-		if distance < 116.0:
-			var score := (116.0 - distance) + _active_event_encounter_bias(animal) * 24.0 + _run_profile_encounter_bias(animal) * 20.0
+		if distance < 155.0:
+			var score := (155.0 - distance) + _active_event_encounter_bias(animal) * 24.0 + _run_profile_encounter_bias(animal) * 20.0
 			if score > best_score:
 				best_score = score
 				current_encounter = animal
@@ -4834,13 +4846,30 @@ func _draw_wildlife() -> void:
 			var orbit := elapsed * (0.7 + 0.14 * group_index) + float(group_index) * 1.15
 			var member_offset := Vector2(cos(orbit) * (14.0 + group_index * 9.0), sin(orbit * 1.2) * (7.0 + group_index * 5.0))
 			var member_pos := pos + member_offset
-			var scale := 1.0 if group_index == 0 else 0.74
+			var scale := _animal_visual_scale(animal) * (1.0 if group_index == 0 else 0.74)
 			var facing := -1.0 if sin(orbit) < 0.0 else 1.0
 			_draw_animal_silhouette(animal, member_pos, color, scale, facing)
 		var is_current: bool = not current_encounter.is_empty() and str(current_encounter.get("species_id", "")) == str(animal.get("species_id", ""))
 		var is_objective: bool = str(objective.get("kind", "")) == "animal" and (animal.get("position", Vector2.ZERO) as Vector2).distance_to(objective.get("position", Vector2.ZERO)) < 2.0
-		if is_current or is_objective:
-			_draw_text(pos + Vector2(-26, 24), str(animal.get("label", "")), 11, Color8(242, 241, 230, 220))
+		var label := _short_explorer_text("%s · %s" % [str(animal.get("label", "")), str(animal.get("category", ""))], 14)
+		var label_pos := pos + Vector2(-58, 30)
+		var label_rect := Rect2(label_pos + Vector2(-6, -14), Vector2(138, 22))
+		var label_fill := Color8(22, 28, 23, 182) if is_current or is_objective else Color8(26, 32, 27, 132)
+		_draw_panel(label_rect, label_fill, Color8(238, 226, 176, 120) if is_current or is_objective else Color8(238, 226, 176, 36), 7, 1)
+		_draw_text(label_pos, label, 11, Color8(248, 243, 222, 230))
+
+
+func _animal_visual_scale(animal: Dictionary) -> float:
+	var species_id := str(animal.get("species_id", "")).to_lower()
+	if "elephant" in species_id or "rhino" in species_id or "hippo" in species_id:
+		return 1.55
+	if "giraffe" in species_id:
+		return 1.34
+	if "lion" in species_id or "hyena" in species_id or "wild_dog" in species_id or "wolf" in species_id:
+		return 1.18
+	if "gazelle" in species_id or "antelope" in species_id or "deer" in species_id:
+		return 1.08
+	return 1.0
 
 
 func _draw_interaction_prompts() -> void:
@@ -4867,33 +4896,55 @@ func _draw_interaction_ring(pos: Vector2, accent: Color, text: String) -> void:
 
 func _draw_animal_silhouette(animal: Dictionary, pos: Vector2, color: Color, scale: float, facing: float) -> void:
 	var category := str(animal.get("category", "区域生物"))
-	var species_id := str(animal.get("species_id", ""))
+	var species_id := str(animal.get("species_id", "")).to_lower()
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_ellipse(pos + Vector2(0, 12 * scale), Vector2(19, 6) * scale, Color(0, 0, 0, 0.13), 16)
 	if category == "飞行动物":
 		_draw_bird_silhouette(pos, color, scale, facing)
 	elif category == "水域动物" or species_id in ["small_fish", "minnow", "carp", "catfish", "pike", "blackfish", "pufferfish", "shrimp", "crab", "frog"]:
 		_draw_fish_silhouette(pos, color, scale, facing)
-	elif category == "掠食者" or species_id in ["lion", "hyena", "wolf", "fox"]:
-		_draw_quadruped_silhouette(pos, color, scale, facing, true)
+	elif category == "掠食者" or species_id in ["lion", "hyena", "wolf", "fox", "wild_dog"]:
+		_draw_quadruped_silhouette(pos, color, scale, facing, true, species_id)
 	else:
-		_draw_quadruped_silhouette(pos, color, scale, facing, false)
+		_draw_quadruped_silhouette(pos, color, scale, facing, false, species_id)
 
 
-func _draw_quadruped_silhouette(pos: Vector2, color: Color, scale: float, facing: float, predator: bool) -> void:
+func _draw_quadruped_silhouette(pos: Vector2, color: Color, scale: float, facing: float, predator: bool, species_id: String = "") -> void:
 	var body := Vector2(24, 11) * scale
 	var head_offset := Vector2(19 * facing, -5) * scale
+	if "elephant" in species_id:
+		body = Vector2(34, 17) * scale
+		head_offset = Vector2(26 * facing, -4) * scale
+	elif "giraffe" in species_id:
+		body = Vector2(23, 10) * scale
+		head_offset = Vector2(23 * facing, -27) * scale
+	elif "gazelle" in species_id or "antelope" in species_id or "deer" in species_id:
+		body = Vector2(25, 8) * scale
+		head_offset = Vector2(22 * facing, -8) * scale
 	_draw_ellipse(pos, body, color, 18)
-	_draw_ellipse(pos + Vector2(-7 * facing, -8) * scale, Vector2(10, 7) * scale, color.darkened(0.05), 14)
+	if "elephant" not in species_id:
+		_draw_ellipse(pos + Vector2(-7 * facing, -8) * scale, Vector2(10, 7) * scale, color.darkened(0.05), 14)
+	if "giraffe" in species_id:
+		draw_line(pos + Vector2(11 * facing, -6) * scale, head_offset + pos, color.darkened(0.06), maxf(3.0, 4.6 * scale), true)
+		for spot in [Vector2(-7, -3), Vector2(1, 1), Vector2(9, -2)]:
+			draw_circle(pos + Vector2(spot.x * facing, spot.y) * scale, 2.0 * scale, color.darkened(0.20))
 	_draw_ellipse(pos + head_offset, Vector2(9, 7) * scale, color.lightened(0.05), 14)
 	var leg_color := color.darkened(0.18)
+	var leg_length := 15.0
+	if "giraffe" in species_id:
+		leg_length = 24.0
+	elif "elephant" in species_id:
+		leg_length = 17.0
 	for x in [-11, -3, 7, 14]:
 		var foot_sway := sin(elapsed * 6.0 + float(x)) * 3.0 * scale
 		var hip := pos + Vector2(float(x) * facing, 7) * scale
-		draw_line(hip, hip + Vector2(foot_sway, 15 * scale), leg_color, maxf(1.6, 2.4 * scale), true)
+		draw_line(hip, hip + Vector2(foot_sway, leg_length * scale), leg_color, maxf(1.6, 2.8 * scale), true)
 	var tail_end := pos + Vector2(-27 * facing, (-7 if predator else -2)) * scale
 	draw_line(pos + Vector2(-20 * facing, -4) * scale, tail_end, leg_color, maxf(1.5, 2.2 * scale), true)
-	if predator:
+	if "elephant" in species_id:
+		draw_line(pos + head_offset + Vector2(5 * facing, 3) * scale, pos + head_offset + Vector2(10 * facing, 20) * scale, leg_color, maxf(2.0, 3.2 * scale), true)
+		draw_line(pos + head_offset + Vector2(7 * facing, 0) * scale, pos + head_offset + Vector2(15 * facing, 9) * scale, Color8(240, 228, 190), 1.2 * scale, true)
+	elif predator:
 		draw_circle(pos + head_offset + Vector2(4 * facing, -2) * scale, 1.8 * scale, Color8(250, 230, 176))
 	else:
 		draw_line(pos + head_offset + Vector2(1 * facing, -5) * scale, pos + head_offset + Vector2(5 * facing, -13) * scale, leg_color, 1.4 * scale, true)
