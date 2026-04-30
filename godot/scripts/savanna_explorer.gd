@@ -7,7 +7,7 @@ const SELECTED_REGION_PATH := "user://selected_expedition_region.json"
 const PROJECT_SELECTED_REGION_PATH := "res://data/selected_expedition_region.json"
 const WORLD_MAP_SCENE := "res://scenes/world_map.tscn"
 const BASE_WORLD_SIZE := Vector2(2800, 1700)
-const WORLD_SIZE := Vector2(3600, 2300)
+const WORLD_SIZE := Vector2(4800, 3200)
 const PLAYER_RADIUS := Vector2(18, 22)
 const DEFAULT_SPAWN := Vector2(860, 1120)
 const HOTSPOT_LAYOUT := {
@@ -152,6 +152,17 @@ const REGION_TEXTURE_PATHS := {
 	"forest": "res://assets/ui/region_maps/forest.png",
 	"coast": "res://assets/ui/region_maps/coast.png",
 }
+const ANIMAL_TEXTURE_PATHS := {
+	"antelope": "res://assets/ui/animal_sprites/antelope.png",
+	"canid": "res://assets/ui/animal_sprites/canid.png",
+	"crocodile": "res://assets/ui/animal_sprites/crocodile.png",
+	"elephant": "res://assets/ui/animal_sprites/elephant.png",
+	"fish": "res://assets/ui/animal_sprites/fish.png",
+	"giraffe": "res://assets/ui/animal_sprites/giraffe.png",
+	"lion": "res://assets/ui/animal_sprites/lion.png",
+	"vulture": "res://assets/ui/animal_sprites/vulture.png",
+	"zebra": "res://assets/ui/animal_sprites/zebra.png",
+}
 
 var world_data: Dictionary = {}
 var region_detail: Dictionary = {}
@@ -159,6 +170,7 @@ var current_region_id := ""
 var current_theme: Dictionary = BIOME_THEMES["grassland"]
 var current_region_layout: Dictionary = REGION_LAYOUTS["grassland"]
 var current_region_texture: Texture2D
+var animal_textures: Dictionary = {}
 var species_manifest: Array = []
 var hotspots: Array = []
 var wildlife: Array = []
@@ -222,6 +234,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process(true)
 	ui_font = ThemeDB.fallback_font
+	_load_animal_textures()
 	_load_region_payload()
 	_build_wildlife()
 	_update_camera()
@@ -641,6 +654,15 @@ func _texture_for_biome_key(biome_key: String) -> Texture2D:
 	return ImageTexture.create_from_image(image)
 
 
+func _load_animal_textures() -> void:
+	animal_textures.clear()
+	for texture_key in ANIMAL_TEXTURE_PATHS.keys():
+		var image := Image.load_from_file(ProjectSettings.globalize_path(str(ANIMAL_TEXTURE_PATHS[texture_key])))
+		if image == null:
+			continue
+		animal_textures[texture_key] = ImageTexture.create_from_image(image)
+
+
 func _wildlife_spawn_position(index: int, anchor: Vector2, radius: Vector2) -> Vector2:
 	var angle := float(index) * 1.91
 	var spread := Vector2(cos(angle) * radius.x * 0.92, sin(angle * 1.37) * radius.y * 0.82)
@@ -991,12 +1013,22 @@ func _update_wildlife(delta: float) -> void:
 		animal["activity"] = activity
 		var current_pos: Vector2 = animal.get("position", animal.get("anchor", Vector2.ZERO))
 		var target_pos: Vector2 = animal.get("target_position", _wildlife_next_target(animal, index))
+		var player_delta := current_pos - player_pos
+		var player_distance := player_delta.length()
+		var species_id := str(animal.get("species_id", ""))
+		var observed_this_frame := player_distance < 210.0 \
+			or species_id == survey_target_id \
+			or (not current_encounter.is_empty() and species_id == str(current_encounter.get("species_id", "")))
+		if observed_this_frame:
+			animal["activity"] = "观察"
+			animal["target_position"] = current_pos
+			animal["next_target_time"] = elapsed + 1.8
+			wildlife[index] = animal
+			continue
 		if elapsed >= float(animal.get("next_target_time", 0.0)) or current_pos.distance_to(target_pos) < 34.0:
 			target_pos = _wildlife_next_target(animal, index)
 			animal["target_position"] = target_pos
 			animal["next_target_time"] = elapsed + _wildlife_target_duration(animal, index)
-		var player_delta := current_pos - player_pos
-		var player_distance := player_delta.length()
 		if behavior == "stalk":
 			var prey_focus := _nearest_target(current_pos, prey_positions)
 			if prey_focus != Vector2.ZERO:
@@ -4095,17 +4127,17 @@ func _draw_ground_atmosphere() -> void:
 func _draw_biome_life_details() -> void:
 	match _biome_key():
 		"wetland":
-			_draw_reed_bank(Vector2(700, 670), 6)
-			_draw_reed_bank(Vector2(1870, 730), 5)
+			_draw_reed_bank(_scale_world_point(Vector2(700, 670)), 6)
+			_draw_reed_bank(_scale_world_point(Vector2(1870, 730)), 5)
 		"forest":
-			_draw_forest_cluster(Vector2(690, 620), 7)
-			_draw_forest_cluster(Vector2(1840, 720), 6)
+			_draw_forest_cluster(_scale_world_point(Vector2(690, 620)), 7)
+			_draw_forest_cluster(_scale_world_point(Vector2(1840, 720)), 6)
 		"coast":
-			_draw_palm_cluster(Vector2(690, 640), 5)
-			_draw_palm_cluster(Vector2(1870, 700), 4)
+			_draw_palm_cluster(_scale_world_point(Vector2(690, 640)), 5)
+			_draw_palm_cluster(_scale_world_point(Vector2(1870, 700)), 4)
 		_:
-			_draw_acacia_grove(Vector2(710, 650), 5)
-			_draw_acacia_grove(Vector2(1870, 700), 4)
+			_draw_acacia_grove(_scale_world_point(Vector2(710, 650)), 5)
+			_draw_acacia_grove(_scale_world_point(Vector2(1870, 700)), 4)
 
 
 func _draw_grass_patch(center: Vector2, width: float, height: float, color: Color) -> void:
@@ -4848,7 +4880,8 @@ func _draw_wildlife() -> void:
 			var member_pos := pos + member_offset
 			var scale := _animal_visual_scale(animal) * (1.0 if group_index == 0 else 0.74)
 			var facing := -1.0 if sin(orbit) < 0.0 else 1.0
-			_draw_animal_silhouette(animal, member_pos, color, scale, facing)
+			if not _draw_animal_sprite(animal, member_pos, scale, group_index):
+				_draw_animal_silhouette(animal, member_pos, color, scale, facing)
 		var is_current: bool = not current_encounter.is_empty() and str(current_encounter.get("species_id", "")) == str(animal.get("species_id", ""))
 		var is_objective: bool = str(objective.get("kind", "")) == "animal" and (animal.get("position", Vector2.ZERO) as Vector2).distance_to(objective.get("position", Vector2.ZERO)) < 2.0
 		var label := _short_explorer_text("%s · %s" % [str(animal.get("label", "")), str(animal.get("category", ""))], 14)
@@ -4870,6 +4903,63 @@ func _animal_visual_scale(animal: Dictionary) -> float:
 	if "gazelle" in species_id or "antelope" in species_id or "deer" in species_id:
 		return 1.08
 	return 1.0
+
+
+func _draw_animal_sprite(animal: Dictionary, pos: Vector2, scale: float, group_index: int) -> bool:
+	var texture_key := _animal_texture_key(animal)
+	if texture_key == "" or not animal_textures.has(texture_key):
+		return false
+	var texture: Texture2D = animal_textures[texture_key]
+	var base_width := _animal_sprite_width(texture_key) * scale
+	if group_index > 0:
+		base_width *= 0.78
+	var aspect := float(texture.get_height()) / maxf(1.0, float(texture.get_width()))
+	var draw_size := Vector2(base_width, base_width * aspect)
+	var draw_pos := pos - Vector2(draw_size.x * 0.5, draw_size.y * 0.72)
+	draw_texture_rect(texture, Rect2(draw_pos, draw_size), false)
+	return true
+
+
+func _animal_texture_key(animal: Dictionary) -> String:
+	var species_id := str(animal.get("species_id", "")).to_lower()
+	var category := str(animal.get("category", ""))
+	if "elephant" in species_id or "rhino" in species_id or "hippo" in species_id:
+		return "elephant"
+	if "giraffe" in species_id:
+		return "giraffe"
+	if "zebra" in species_id:
+		return "zebra"
+	if "lion" in species_id:
+		return "lion"
+	if "hyena" in species_id or "wild_dog" in species_id or "wolf" in species_id or "fox" in species_id or category == "掠食者":
+		return "canid"
+	if "crocodile" in species_id or "alligator" in species_id:
+		return "crocodile"
+	if category == "飞行动物" or "vulture" in species_id or "eagle" in species_id or "bird" in species_id:
+		return "vulture"
+	if category == "水域动物" or "fish" in species_id or "carp" in species_id or "pike" in species_id or "catfish" in species_id or "pufferfish" in species_id:
+		return "fish"
+	if "gazelle" in species_id or "antelope" in species_id or "deer" in species_id:
+		return "antelope"
+	return "antelope"
+
+
+func _animal_sprite_width(texture_key: String) -> float:
+	match texture_key:
+		"elephant":
+			return 132.0
+		"giraffe":
+			return 116.0
+		"lion", "canid", "zebra":
+			return 96.0
+		"crocodile":
+			return 112.0
+		"vulture":
+			return 86.0
+		"fish":
+			return 72.0
+		_:
+			return 88.0
 
 
 func _draw_interaction_prompts() -> void:
