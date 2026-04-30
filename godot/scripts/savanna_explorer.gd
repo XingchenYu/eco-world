@@ -189,6 +189,8 @@ var current_chase: Dictionary = {}
 var current_chase_result: Dictionary = {}
 var active_observation_species_id := ""
 var active_observation_until := 0.0
+var active_observation_distance := 0.0
+var active_observation_screen_pos := Vector2.ZERO
 var current_task: Dictionary = {}
 var reward_feedback: Dictionary = {}
 var reward_feedback_timer := 0.0
@@ -1024,8 +1026,7 @@ func _update_wildlife(delta: float) -> void:
 			or species_id == survey_target_id \
 			or (not current_encounter.is_empty() and species_id == str(current_encounter.get("species_id", "")))
 		if observed_this_frame:
-			active_observation_species_id = species_id
-			active_observation_until = elapsed + 4.0
+			_lock_observation(animal, player_distance, 4.0)
 			animal["observe_lock_until"] = elapsed + 4.0
 			animal["observe_position"] = _clamped_world_position(current_pos)
 		var observe_lock_until := float(animal.get("observe_lock_until", 0.0))
@@ -1133,6 +1134,16 @@ func _update_wildlife(delta: float) -> void:
 
 func _observe_hold_position(position: Vector2) -> Vector2:
 	return _clamped_world_position(position)
+
+
+func _lock_observation(animal: Dictionary, distance: float, duration: float = 4.0) -> void:
+	var species_id := str(animal.get("species_id", ""))
+	if species_id == "":
+		return
+	active_observation_species_id = species_id
+	active_observation_until = elapsed + duration
+	active_observation_distance = distance
+	active_observation_screen_pos = _screen_point(animal.get("position", player_pos))
 
 
 func _behavior_bias_target(animal: Dictionary, phase: float) -> Vector2:
@@ -1346,8 +1357,10 @@ func _update_encounter() -> void:
 	var best_score := -100000.0
 	for animal in wildlife:
 		var distance := player_pos.distance_to(animal.get("position", Vector2.ZERO))
-		if distance < 240.0:
-			var score := (240.0 - distance) + _active_event_encounter_bias(animal) * 24.0 + _run_profile_encounter_bias(animal) * 20.0
+		if distance < 320.0:
+			_lock_observation(animal, distance, 4.0)
+		if distance < 260.0:
+			var score := (260.0 - distance) + _active_event_encounter_bias(animal) * 24.0 + _run_profile_encounter_bias(animal) * 20.0
 			if score > best_score:
 				best_score = score
 				current_encounter = animal
@@ -5133,6 +5146,27 @@ func _draw_current_encounter_foreground() -> void:
 	var label_pos := screen_pos + Vector2(-52, 50)
 	_draw_panel(Rect2(label_pos + Vector2(-8, -16), Vector2(128, 24)), Color8(24, 28, 22, 204), Color8(255, 219, 118, 160), 8, 1)
 	_draw_text(label_pos, label, 12, Color8(255, 244, 205, 240))
+	if active_observation_species_id != "" and active_observation_until > elapsed:
+		_draw_observation_lens(animal, screen_pos)
+
+
+func _draw_observation_lens(animal: Dictionary, map_screen_pos: Vector2) -> void:
+	var lens_pos := Vector2(size.x * 0.5, 150.0)
+	var panel := Rect2(lens_pos + Vector2(-190, -74), Vector2(380, 148))
+	_draw_panel(panel, Color8(24, 31, 28, 224), Color8(255, 214, 108, 180), 24, 2)
+	draw_circle(lens_pos + Vector2(-124, 8), 56.0, Color8(255, 220, 118, 34))
+	var color: Color = animal.get("color", Color8(174, 191, 126))
+	var texture_scale := _animal_visual_scale(animal) * 1.45
+	if not _draw_animal_sprite(animal, lens_pos + Vector2(-124, 22), texture_scale, 0):
+		_draw_animal_silhouette(animal, lens_pos + Vector2(-124, 22), color, texture_scale, 1.0)
+	var label := str(animal.get("label", "动物"))
+	var category := str(animal.get("category", "生态位"))
+	var lock_left := maxf(0.0, active_observation_until - elapsed)
+	var in_screen := map_screen_pos.x >= 0.0 and map_screen_pos.y >= 0.0 and map_screen_pos.x <= size.x and map_screen_pos.y <= size.y
+	_draw_text(panel.position + Vector2(132, 34), "观察锁定 · " + label, 19, Color8(255, 244, 205))
+	_draw_text(panel.position + Vector2(132, 60), "%s · 距离 %.0f · 剩余 %.1fs" % [category, active_observation_distance, lock_left], 13, Color8(216, 229, 218))
+	_draw_text(panel.position + Vector2(132, 82), "屏幕内：%s · 坐标 %.0f, %.0f" % ["是" if in_screen else "否", map_screen_pos.x, map_screen_pos.y], 12, Color8(190, 205, 202))
+	_draw_text(panel.position + Vector2(132, 106), "如果地图上被遮住，观察镜仍会显示当前动物。", 12, Color8(255, 226, 146))
 
 
 func _wildlife_by_species(species_id: String) -> Dictionary:
