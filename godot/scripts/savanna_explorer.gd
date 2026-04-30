@@ -256,6 +256,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	elapsed += delta
 	_update_player(delta)
+	_update_encounter()
 	_update_wildlife(delta)
 	_update_camera()
 	_update_encounter()
@@ -282,6 +283,7 @@ func _draw() -> void:
 	_draw_survey_lock_marker()
 	_draw_interaction_prompts()
 	_draw_player()
+	_draw_current_encounter_foreground()
 	_draw_overlay()
 
 
@@ -1020,9 +1022,16 @@ func _update_wildlife(delta: float) -> void:
 			or species_id == survey_target_id \
 			or (not current_encounter.is_empty() and species_id == str(current_encounter.get("species_id", "")))
 		if observed_this_frame:
+			animal["observe_lock_until"] = elapsed + 3.0
+			animal["observe_position"] = _observe_hold_position(current_pos)
+		var observe_lock_until := float(animal.get("observe_lock_until", 0.0))
+		if observe_lock_until > elapsed:
+			current_pos = _observe_hold_position(animal.get("observe_position", current_pos))
 			animal["activity"] = "观察"
+			animal["position"] = current_pos
 			animal["target_position"] = current_pos
 			animal["next_target_time"] = elapsed + 1.8
+			animal["observe_position"] = current_pos
 			wildlife[index] = animal
 			continue
 		if elapsed >= float(animal.get("next_target_time", 0.0)) or current_pos.distance_to(target_pos) < 34.0:
@@ -1116,6 +1125,16 @@ func _update_wildlife(delta: float) -> void:
 			chase_focus_time = 0.0
 	else:
 		chase_focus_time = 0.0
+
+
+func _observe_hold_position(position: Vector2) -> Vector2:
+	var offset := position - player_pos
+	var distance := offset.length()
+	if distance < 0.01:
+		offset = Vector2(1, -0.25)
+	if distance < 104.0:
+		position = player_pos + offset.normalized() * 104.0
+	return _clamped_world_position(position)
 
 
 func _behavior_bias_target(animal: Dictionary, phase: float) -> Vector2:
@@ -5094,6 +5113,36 @@ func _draw_player() -> void:
 	_draw_ellipse(pos + Vector2(0, 6), Vector2(5, 12), vest, 12)
 	draw_line(pos + Vector2(16, -2), pos + Vector2(30, -18), Color8(72, 82, 74), 2.0, true)
 	draw_circle(pos + Vector2(32, -20), 3.0, Color8(92, 112, 96))
+
+
+func _draw_current_encounter_foreground() -> void:
+	if current_encounter.is_empty():
+		return
+	var animal := _wildlife_by_species(str(current_encounter.get("species_id", "")))
+	if animal.is_empty():
+		animal = current_encounter
+	var world_pos: Vector2 = animal.get("position", current_encounter.get("position", player_pos))
+	var screen_pos := _screen_point(world_pos)
+	var color: Color = animal.get("color", Color8(174, 191, 126))
+	var texture_scale := _animal_visual_scale(animal) * 1.18
+	draw_arc(screen_pos + Vector2(0, 10), 54.0, 0.0, TAU, 48, Color(1.0, 0.84, 0.34, 0.24), 5.0, true)
+	draw_circle(screen_pos + Vector2(0, 20), 24.0, Color(0, 0, 0, 0.11))
+	if not _draw_animal_sprite(animal, screen_pos, texture_scale, 0):
+		_draw_animal_silhouette(animal, screen_pos, color, texture_scale, 1.0)
+	var label := _short_explorer_text("%s · 观察中" % str(animal.get("label", current_encounter.get("label", "动物"))), 14)
+	var label_pos := screen_pos + Vector2(-52, 50)
+	_draw_panel(Rect2(label_pos + Vector2(-8, -16), Vector2(128, 24)), Color8(24, 28, 22, 204), Color8(255, 219, 118, 160), 8, 1)
+	_draw_text(label_pos, label, 12, Color8(255, 244, 205, 240))
+
+
+func _wildlife_by_species(species_id: String) -> Dictionary:
+	if species_id == "":
+		return {}
+	for animal_variant in wildlife:
+		var animal: Dictionary = animal_variant
+		if str(animal.get("species_id", "")) == species_id:
+			return animal
+	return {}
 
 
 func _draw_overlay() -> void:
