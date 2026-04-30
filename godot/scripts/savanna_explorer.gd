@@ -187,6 +187,8 @@ var current_event: Dictionary = {}
 var current_interaction: Dictionary = {}
 var current_chase: Dictionary = {}
 var current_chase_result: Dictionary = {}
+var active_observation_species_id := ""
+var active_observation_until := 0.0
 var current_task: Dictionary = {}
 var reward_feedback: Dictionary = {}
 var reward_feedback_timer := 0.0
@@ -283,8 +285,8 @@ func _draw() -> void:
 	_draw_survey_lock_marker()
 	_draw_interaction_prompts()
 	_draw_player()
-	_draw_current_encounter_foreground()
 	_draw_overlay()
+	_draw_current_encounter_foreground()
 
 
 func _load_region_payload() -> void:
@@ -1022,11 +1024,13 @@ func _update_wildlife(delta: float) -> void:
 			or species_id == survey_target_id \
 			or (not current_encounter.is_empty() and species_id == str(current_encounter.get("species_id", "")))
 		if observed_this_frame:
-			animal["observe_lock_until"] = elapsed + 3.0
-			animal["observe_position"] = _observe_hold_position(current_pos)
+			active_observation_species_id = species_id
+			active_observation_until = elapsed + 4.0
+			animal["observe_lock_until"] = elapsed + 4.0
+			animal["observe_position"] = _clamped_world_position(current_pos)
 		var observe_lock_until := float(animal.get("observe_lock_until", 0.0))
 		if observe_lock_until > elapsed:
-			current_pos = _observe_hold_position(animal.get("observe_position", current_pos))
+			current_pos = _clamped_world_position(animal.get("observe_position", current_pos))
 			animal["activity"] = "观察"
 			animal["position"] = current_pos
 			animal["target_position"] = current_pos
@@ -1128,12 +1132,6 @@ func _update_wildlife(delta: float) -> void:
 
 
 func _observe_hold_position(position: Vector2) -> Vector2:
-	var offset := position - player_pos
-	var distance := offset.length()
-	if distance < 0.01:
-		offset = Vector2(1, -0.25)
-	if distance < 104.0:
-		position = player_pos + offset.normalized() * 104.0
 	return _clamped_world_position(position)
 
 
@@ -1348,8 +1346,8 @@ func _update_encounter() -> void:
 	var best_score := -100000.0
 	for animal in wildlife:
 		var distance := player_pos.distance_to(animal.get("position", Vector2.ZERO))
-		if distance < 155.0:
-			var score := (155.0 - distance) + _active_event_encounter_bias(animal) * 24.0 + _run_profile_encounter_bias(animal) * 20.0
+		if distance < 240.0:
+			var score := (240.0 - distance) + _active_event_encounter_bias(animal) * 24.0 + _run_profile_encounter_bias(animal) * 20.0
 			if score > best_score:
 				best_score = score
 				current_encounter = animal
@@ -5116,11 +5114,13 @@ func _draw_player() -> void:
 
 
 func _draw_current_encounter_foreground() -> void:
-	if current_encounter.is_empty():
-		return
-	var animal := _wildlife_by_species(str(current_encounter.get("species_id", "")))
+	var animal := current_encounter
+	if active_observation_species_id != "" and active_observation_until > elapsed:
+		var locked_animal := _wildlife_by_species(active_observation_species_id)
+		if not locked_animal.is_empty():
+			animal = locked_animal
 	if animal.is_empty():
-		animal = current_encounter
+		return
 	var world_pos: Vector2 = animal.get("position", current_encounter.get("position", player_pos))
 	var screen_pos := _screen_point(world_pos)
 	var color: Color = animal.get("color", Color8(174, 191, 126))
